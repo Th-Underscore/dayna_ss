@@ -1,0 +1,46 @@
+{
+	"subjects": {
+		"characters": {
+			"type_of_subject": "characters",
+			"prompt": "This is an example. Type: {type_of_character}, name: {name}, extra list: {extra_list}",
+			"main": {
+				"type_of_character": "main",
+				"submain": {
+					"type_of_character": "submain",
+					"values": [{ "name": "char11" }]
+				},
+				"values": [
+					{ "name": "char1" },
+					{ "name": "char2" },
+					{ "name": "char0", "prompt": "Hello, I am {name}, a {type_of_character} character.", "generation_key": "gen1" }
+				]
+			},
+			"secondary": {
+				"type_of_character": "secondary",
+				"values": [
+					{ "name": "char3" },
+					{ "name": "char4", "generation_key": "gen1" },
+					{ "name": "char5" },
+					{ "name": "char6" }
+				]
+			},
+			"extra": {
+				"type_of_character": "extra",
+				"sub": {
+					"extra_list": "sub",
+					"values": [
+						{ "name": "char7" },
+						{ "name": "char8" }
+					]
+				},
+				"sub2": {
+					"extra_list": "sub2",
+					"values": [
+						{ "name": "char9" },
+						{ "name": "char10" }
+					]
+				}
+			}
+		}
+	}
+}

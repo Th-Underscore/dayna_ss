@@ -1,0 +1,96 @@
+{
+  "what": "Rebel Force Reconnaissance Mission Preparation",
+  "start": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "Rebel Force Headquarters"
+        },
+        {
+          "name": "Amy Harrison",
+          "location": "Technology Lab"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Rebel Force",
+          "location": "Underground Base"
+        },
+        {
+          "name": "Subterranean Intelligence Unit",
+          "location": "Unknown"
+        }
+      ]
+    },
+    "when": {
+      "date": "October 15, 2028",
+      "time": "Pre-dawn hours",
+      "specific time": "05:30"
+    },
+    "where": "Rebel Force Headquarters - Strategic Planning Room",
+    "why": [
+      {
+        "name": "Mission Preparation",
+        "details": "Gathering intelligence on Subterranean troop movements near the Eastern Perimeter"
+      },
+      {
+        "name": "Technological Integration",
+        "details": "Amy Harrison finalizing advanced reconnaissance drone prototypes for the upcoming mission"
+      }
+    ]
+  },
+  "now": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "Mission Staging Area"
+        },
+        {
+          "name": "Paul Jones",
+          "location": "Communications Center"
+        },
+        {
+          "name": "Angelina Kristi",
+          "location": "Infiltration Position"
+        },
+        {
+          "name": "Amy Harrison",
+          "location": "Technology Lab"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Rebel Force",
+          "location": "Mobilization Zone"
+        },
+        {
+          "name": "Subterranean Patrol",
+          "location": "Eastern Perimeter"
+        },
+        {
+          "name": "Subterranean Intelligence Unit",
+          "location": "Unknown"
+        }
+      ]
+    },
+    "when": {
+      "date": "October 15, 2028",
+      "time": "Dawn breaking",
+      "specific time": "06:15"
+    },
+    "where": "Eastern Perimeter - Borderlands between Rebel Territory and Subterranean Zones",
+    "why": [
+      {
+        "name": "Strategic Reconnaissance",
+        "details": "Conducting covert mission to map Subterranean troop positions and identify potential weak points"
+      },
+      {
+        "name": "Intelligence Gathering",
+        "details": "Angelina Kristi secretly collecting information for potential infiltration, while John Jones leads the primary mission"
+      }
+    ]
+  },
+  "summary": " The current scene unfolds on October 15, 2028, at dawn (06:15), in the borderlands between Rebel Territory and Subterranean Zones. It is a tense moment where the Rebel Force, led by John Jones and supported by strategic insights from Amy Harrison, Paul Jones in communications, and Angelina Kristi in infiltration, prepares for a critical reconnaissance mission.\n\n**Characters Involved:**\n- **John Jones** leads from the Mission Staging Area, inspiring soldiers with a mix of authority and assurance.\n- **Paul Jones** ensures seamless communication from the Communications Center.\n- **Angelina Kristi** secretly gathers intelligence from her infiltration position, her actions driven by dual motives.\n- **Amy Harrison**, located in the Technology Lab, has been instrumental in developing advanced reconnaissance drones for the mission.\n\n**Groups Involved:**\n- The Rebel Force mobilizes in the designated Zone, ready for their crucial mission.\n- A Subterranean Patrol is active at the Eastern Perimeter.\n- The Subterranean Intelligence Unit's whereabouts remain undisclosed but are a cause of concern.\n\n**Mission Objectives:**\nThe primary focus is on conducting a covert reconnaissance mission aimed at mapping Subterranean troop positions and identifying potential weak points. Additionally, Angelina Kristi is gathering intelligence for a possible future infiltration, adding an extra layer of complexity and urgency to the mission.\n\nJohn's rallying call has instilled a sense of purpose and unity among the troops, setting the stage for a mission that will shape the fate of their ongoing battle against the Subterranean threat."
+}
