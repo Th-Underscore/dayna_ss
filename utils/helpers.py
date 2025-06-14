@@ -340,8 +340,11 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | 
 
 def get_values(data: dict | list):
     """Get the values of a potentially expanded list."""
+    print(type(data))
     if isinstance(data, dict):
+        print("is dict")
         return data.values()
+    print("is list")
     return data
 
 
@@ -354,31 +357,24 @@ def enumerate_list(data: dict | list):
 
 def strip_json_response(json_str: str) -> str:
     """Remove any markdown formatting from a JSON response, as well as any leading or trailing text."""
-    cleaned_response_text = json_str.strip()
-    if cleaned_response_text.startswith("```json"):
-        cleaned_response_text = cleaned_response_text[len("```json") :].strip()
-    elif "\n```json" in cleaned_response_text:
-        cleaned_response_text = cleaned_response_text[cleaned_response_text.index("\n```json") + len("\n```json") :].strip()
-    if cleaned_response_text.startswith("```") or cleaned_response_text.startswith('"""'):
-        cleaned_response_text = cleaned_response_text[len("```") :].strip()
-    if cleaned_response_text.endswith("```") or cleaned_response_text.endswith('"""'):
-        cleaned_response_text = cleaned_response_text[: -len("```")].strip()
-    elif "\n```" in cleaned_response_text:
-        cleaned_response_text = cleaned_response_text[: cleaned_response_text.index("\n```")].strip()
-    elif '\n"""' in cleaned_response_text:
-        cleaned_response_text = cleaned_response_text[: cleaned_response_text.index('\n"""')].strip()
-    return cleaned_response_text
+    regex_primary = r"^\s*(```|\"\"\")(?:json\s*)?(.*?)\1"
+    match = re.search(regex_primary, json_str, re.DOTALL)
+    if match:
+        return match.group(2).strip()
+
+    return json_str.strip()
 
 
 def strip_thinking(output: str) -> str:
-    """Remove the thinking section from a response."""
-    start_thinking = output.find("<think>")
-    if start_thinking == -1:
-        return output
-    end_thinking = output.find("</think>")
-    if end_thinking == -1:
-        return output
-    return (output[:start_thinking] + output[end_thinking:]).strip()
+    """
+    Exclude the "<think> ... </think>" tags and their content from a response.
+    If <think> is present but </think> is not, returns an empty string.
+    """
+    if "<think>" in output and "</think>" not in output:
+        return ""
+
+    cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=re.DOTALL)
+    return cleaned_output.strip()
 
 
 def strip_response(output: str) -> str:
