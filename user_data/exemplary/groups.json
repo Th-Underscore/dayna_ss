@@ -1,0 +1,61 @@
+{
+  "Rebel Force": {
+    "aliases": ["Rebels"],
+    "description": [
+      "The Rebel Force is a growing organization dedicated to defending humanity against the Subterraneans.",
+      "The Rebels have advanced technological capabilities, including advanced weaponry, defense systems, and communication systems."
+    ],
+    "events": [
+      "The First Incursion", "The Second Incursion", "The Jones Offensive"
+    ],
+    "relationships": {
+      "Subterraneans": {
+        "position": ["Enemy"]
+      }
+    },
+    "characters": {
+      "John Jones": {
+        "position": ["Commander", "Leader"],
+        "events": ["Relevant Event 1", "..."]
+      },
+      "Amy Harrison": {
+        "position": ["Chief Scientist", "Lead Technological Strategist"],
+        "events": ["Relevant Event 2", "..."]
+      },
+      "Paul Jones": {
+        "position": ["General"],
+        "events": ["Relevant Event 3", "..."]
+      },
+      "Angelina Kristi": {
+        "position": ["Soldier"],
+        "events": ["Relevant Event 4", "..."]
+      }
+    }
+  },
+  "Subterraneans": {
+    "aliases": ["STs"],
+    "description": [
+      "The Subterraneans are a group of monstrous, human-like creatures that dwelled deep underground prior to The First Incursion.",
+      "The Subterraneans carry a deep-seated hatred for humanity, seeking to reclaim their homeland, Earth, and destroy the Rebel Force.",
+      "The Subterraneans have an advantage over the Rebels due to their unique technology, utilizing geothermal energy to power their weaponry and defense systems."
+    ],
+    "events": [
+      "The First Incursion", "The Second Incursion", "The Jones Offensive"
+    ],
+    "relationships": {
+      "Rebel Force": {
+        "position": ["Enemy"]
+      }
+    },
+    "characters": {
+      "John Doe": {
+        "position": ["Leader"],
+        "events": ["Relevant Event 1", "..."]
+      },
+      "Jane Doe": {
+        "position": ["Soldier"],
+        "events": ["Relevant Event 2", "..."]
+      }
+    }
+  }
+}

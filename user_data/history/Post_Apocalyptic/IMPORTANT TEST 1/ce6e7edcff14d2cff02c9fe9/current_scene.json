@@ -1,0 +1,96 @@
+{
+  "what": "Rebel Force Reconnaissance Mission Preparation",
+  "start": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "Rebel Force Headquarters"
+        },
+        {
+          "name": "Amy Harrison",
+          "location": "Technology Lab"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Rebel Force",
+          "location": "Underground Base"
+        },
+        {
+          "name": "Subterranean Intelligence Unit",
+          "location": "Unknown"
+        }
+      ]
+    },
+    "when": {
+      "date": "October 15, 2028",
+      "time": "Pre-dawn hours",
+      "specific_time": "05:30"
+    },
+    "where": "Rebel Force Headquarters - Strategic Planning Room",
+    "why": [
+      {
+        "name": "Mission Preparation",
+        "details": "Gathering intelligence on Subterranean troop movements near the Eastern Perimeter"
+      },
+      {
+        "name": "Technological Integration",
+        "details": "Amy Harrison finalizing advanced reconnaissance drone prototypes for the upcoming mission"
+      }
+    ]
+  },
+  "now": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "Mission Staging Area"
+        },
+        {
+          "name": "Paul Jones",
+          "location": "Communications Center"
+        },
+        {
+          "name": "Angelina Kristi",
+          "location": "Infiltration Position"
+        },
+        {
+          "name": "Amy Harrison",
+          "location": "Technology Lab"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Rebel Force",
+          "location": "Mobilization Zone"
+        },
+        {
+          "name": "Subterranean Patrol",
+          "location": "Eastern Perimeter"
+        },
+        {
+          "name": "Subterranean Intelligence Unit",
+          "location": "Unknown"
+        }
+      ]
+    },
+    "when": {
+      "date": "October 15, 2028",
+      "time": "Dawn breaking",
+      "specific_time": "06:15"
+    },
+    "where": "Eastern Perimeter - Borderlands between Rebel Territory and Subterranean Zones",
+    "why": [
+      {
+        "name": "Strategic Reconnaissance",
+        "details": "Conducting covert mission to map Subterranean troop positions and identify potential weak points"
+      },
+      {
+        "name": "Intelligence Gathering",
+        "details": "Angelina Kristi secretly collecting information for potential infiltration, while John Jones leads the primary mission"
+      }
+    ]
+  },
+  "start_message_node": null
+}

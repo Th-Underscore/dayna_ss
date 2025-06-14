@@ -1,0 +1,49 @@
+{
+  "past": [],
+  "scenes": [
+    {
+      "name": "Surviving The First Incursion",
+      "start": {"message_node": "1_1_1", "date": "2027-09-05", "time": "Noon", "specific_time": "12:07"},
+      "end": {"message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon", "specific_time": "14:32"},
+      "summary": "",
+      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    },
+    {
+      "name": "Escaping The First Incursion",
+      "start": {"message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon", "specific_time": "14:32"},
+      "end": {"message_node": "10_2_5", "date": "2027-09-08", "time": "Evening", "specific_time": "20:05"},
+      "summary": " ... Harry was killed ... ",
+      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    },
+    {
+      "name": "Start of The Second Incursion",
+      "start": {"message_node": "55_2_3", "date": "2028-08-18", "time": "Morning", "specific_time": "10:26"},
+      "end": {"message_node": "59_3_2", "date": "2028-08-18", "time": "Afternoon", "specific_time": "14:32"},
+      "summary": "",
+      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    }
+  ],
+  "events": [
+    {
+      "name": "The First Incursion",
+      "start": {"message_node": "1_1_1", "date": "2027-09-05", "time": "Noon", "specific_time": "12:54"},
+      "end": {"message_node": "11_1_3", "date": "2027-09-08", "time": "Late evening", "specific_time": "21:09"},
+      "summary": "",
+      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    },
+    {
+      "name": "Killing of Harry Kristi",
+      "start": {"message_node": "9_2_1", "date": "2027-09-08", "time": "Evening", "specific_time": "19:45"},
+      "end": {"message_node": "10_1_5", "date": "2027-09-08", "time": "Evening", "specific_time": "20:00"},
+      "summary": "In self-defense, John Jones incapacitated Harry. Harry, immediately after waking up, attacked ... ",
+      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    },
+    {
+      "name": "The Second Incursion",
+      "start": {"message_node": "55_2_3", "date": "2028-08-18", "time": "Morning", "specific_time": "10:26"},
+      "end": {"message_node": "70_4_3", "date": "2028-09-11", "time": "Dawn", "specific_time": "5:25"},
+      "summary": "",
+      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    }
+  ]
+}

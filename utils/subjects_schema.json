@@ -1,0 +1,282 @@
+{
+  "definitions": {
+    "Text": {
+      "type": "field",
+      "field": "list[str]",
+      "defaults": {
+        "do_expand_into_dict": false
+      }
+    },
+    "CharacterStatus": {
+      "type": "dataclass",
+      "fields": {
+        "position": "list[str]",
+        "aliases": "list[str]",
+        "events": "list[str]"
+      },
+      "defaults": {
+        "position_desc": "The character's role or rank within this status context (e.g., 'Commander', 'Enemy').",
+        "aliases_desc": "Alternative names or titles for the character within this status context (e.g., 'Leader', 'Hellion').",
+        "events_desc": "A list of significant events related to the character under this status."
+      }
+    },
+    "CharacterRelationship": {
+      "type": "dataclass",
+      "fields": {
+        "relation": "str",
+        "status": "str",
+        "aliases": "list[str]",
+        "events": "list[str]",
+        "importance": "int"
+      },
+      "defaults": {
+        "relation_desc": "A single word to describe the relationship between these two characters for this specific status (e.g., 'brother', 'boss', 'subordinate')",
+        "status_desc": "The connection these two characters have for this relationship (e.g., 'Family', 'School', 'Army')",
+        "aliases_desc": "Nicknames or alternative terms for the related character in the context of this specific relationship (e.g., 'Bro').",
+        "events_desc": "A list of events relevant to this specific relationship between the characters.",
+        "importance_desc": "A numerical value representing the significance of this relationship to the character (0-100). Higher values are more important. In the real JSON, this would be an integer, not a string."
+      }
+    },
+    "CharacterRelationships": {
+      "type": "field",
+      "field": "list[CharacterRelationship]"
+    },
+    "CharacterMilestone": {
+      "type": "dataclass",
+      "fields": {
+        "description": "Text",
+        "scenes": "list[int]",
+        "importance": "int"
+      },
+      "defaults": {
+        "description_desc": "A list of strings describing a significant achievement or event in the character's life.",
+        "scenes_desc": "A list of scene numbers where this milestone is relevant or occurred.",
+        "importance_desc": "A numerical value representing the significance of this milestone (0-100). In the real JSON, this would be an integer, not a string."
+      }
+    },
+    "Character": {
+      "type": "dataclass",
+      "fields": {
+        "description": "Text",
+        "traits": "list[str]",
+        "attributes": "list[str]",
+        "status": "dict[str, CharacterStatus]",
+        "relationships": "dict[str, CharacterRelationships]",
+        "milestones": "list[CharacterMilestone]"
+      },
+      "defaults": {
+        "query_branch_for_changes": true,
+        "branch_query_prompt_template": "Based on the latest information and the current state of the character '{branch_name}', are there any significant changes, additions, or deletions required for this character's entire entry (description, traits, attributes, status, relationships, milestones)? Respond with only 'NO' or 'UNCHANGED' if this character's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
+        "branch_update_prompt_template": "Based on the latest information, review the current state of '{branch_name}'.\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"description.0\", \"value\": \"Updated first line of description\"}},\n  {{\"path\": \"status.current_location\", \"value\": \"New Location\"}},\n  {{\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "description_desc": "A detailed textual description of the character, potentially spanning multiple lines.",
+        "traits_desc": "A list of defining characteristics, personality aspects, or physical features of the character.",
+        "attributes_desc": "A list of character's abilities, skills, or quantifiable characteristics, often with a brief explanation (e.g., 'Raw strength: Greatly above average').",
+        "status_desc": "Example_Status_Name",
+        "relationships_desc": "Example_Character_Name",
+        "milestones_desc": "A list of significant achievements, events, or turning points in the character's life."
+      }
+    },
+    "Characters": {
+      "type": "field",
+      "field": "dict[str, Character]",
+      "defaults": {
+        "perform_gate_check": true,
+        "gate_check_prompt_template": "Based on the latest information, does the entire '{branch_name}' section/category require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'."
+      }
+    },
+    "GroupCharacterInfo": {
+      "type": "dataclass",
+      "fields": {
+        "position": "list[str]",
+        "events": "list[str]"
+      },
+      "defaults": {
+        "position_desc": "The character's role or rank within this specific group.",
+        "events_desc": "A list of events relevant to this character's involvement with the group."
+      }
+    },
+    "GroupRelationship": {
+      "type": "dataclass",
+      "fields": {
+        "position": "list[str]"
+      },
+      "defaults": {
+        "position_desc": "Describes the nature of the relationship this group has with another group (e.g., 'Associate', 'Enemy')."
+      }
+    },
+    "Group": {
+      "type": "dataclass",
+      "fields": {
+        "aliases": "list[str]",
+        "description": "Text",
+        "events": "list[str]",
+        "relationships": "dict[str, GroupRelationship]",
+        "characters": "dict[str, GroupCharacterInfo]"
+      },
+      "defaults": {
+        "query_branch_for_changes": true,
+        "branch_query_prompt_template": "Considering the overall story context and the current details for the group '{branch_name}', does this group's entire information (aliases, description, events, relationships, characters involved) need a review for potential updates? Respond with only 'NO' or 'UNCHANGED' if no updates are needed. Otherwise, respond with 'YES'.",
+        "branch_update_prompt_template": "Based on the latest information, review the current state of '{branch_name}'.\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"aliases.0\", \"value\": \"New Alias for Group\"}},\n  {{\"path\": \"description.1\", \"value\": \"Additional detail for group description\"}},\n  {{\"path\": \"characters.Alice.position.0\", \"value\": \"Leader\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "aliases_desc": "Alternative names or shorthand for the group.",
+        "description_desc": "A detailed textual description of the group, its purpose, and characteristics.",
+        "events_desc": "A list of significant events the group has been involved in.",
+        "relationships_desc": "Example_Other_Group_Name",
+        "characters_desc": "Example_Character_In_Group"
+      }
+    },
+    "Groups": {
+      "type": "field",
+      "field": "dict[str, Group]",
+      "defaults": {
+        "perform_gate_check": true,
+        "gate_check_prompt_template": "Based on the latest information, does the entire '{branch_name}' section/category (all groups) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'."
+      }
+    },
+    "SceneCharacter": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "location": "str"
+      },
+      "defaults": {
+        "name_desc": "The name of the character present in the scene.",
+        "location_desc": "The last known location of the character within the scene."
+      }
+    },
+    "SceneGroup": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "location": "str"
+      },
+      "defaults": {
+        "name_desc": "The name of the group present or relevant to the scene.",
+        "location_desc": "The general location or area of operation for the group in the context of the scene."
+      }
+    },
+    "SceneWho": {
+      "type": "dataclass",
+      "fields": {
+        "characters": "list[SceneCharacter]",
+        "groups": "dict[str, SceneGroup]"
+      },
+      "defaults": {
+        "characters_desc": "Example_Scene_Character_Name",
+        "groups_desc": "Example_Scene_Group_Name"
+      }
+    },
+    "SceneWhen": {
+      "type": "dataclass",
+      "fields": {
+        "date": "str",
+        "time": "str",
+        "specific_time": "str"
+      },
+      "defaults": {
+        "date_desc": "The calendar date of the scene (e.g., 'October 15, 2028').",
+        "time_desc": "A general description of the time of day for the scene (e.g., 'Pre-dawn hours', 'Afternoon').",
+        "specific_time_desc": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
+      }
+    },
+    "SceneWhy": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "details": "str"
+      },
+      "defaults": {
+        "perform_update": true,
+        "update_prompt_template": "Is {item_name}'s {field_name} reason inaccurate or incomplete?\nIf yes, respond with the updated reason.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged reason.\n\nCurrent reason: \"\"\"{value}\"\"\"",
+        "name_desc": "A short title or category for the reason/purpose (e.g., 'Mission Preparation').",
+        "details_desc": "A more detailed explanation of the reason, objective, or motivation behind the scene or elements within it."
+      }
+    },
+    "SceneState": {
+      "type": "dataclass",
+      "fields": {
+        "who": "SceneWho",
+        "when": "SceneWhen",
+        "where": "str",
+        "why": "list[SceneWhy]"
+      },
+      "defaults": {
+        "who_desc": "Describes the characters and groups involved in this state of the scene.",
+        "when_desc": "Describes the timing (date, general time, specific time) of this state of the scene.",
+        "where_desc": "The primary location or setting for this state of the scene.",
+        "why_desc": "Example_Reason"
+      }
+    },
+    "CurrentScene": {
+      "type": "dataclass",
+      "fields": {
+        "what": "str",
+        "start": "SceneState",
+        "now": "SceneState"
+      },
+      "defaults": {
+        "what_desc": "A brief summary or title describing the overall current scene or situation.",
+        "start_desc": "The initial state or setup of the current scene.",
+        "now_desc": "The current, up-to-date state of the scene as it is unfolding."
+      }
+    },
+    "Message": {
+      "type": "field",
+      "field": "str"
+    },
+    "TimePoint": {
+      "type": "dataclass",
+      "fields": {
+        "message_node": "Message",
+        "date": "str",
+        "time": "str",
+        "specific_time": "str"
+      },
+      "defaults": {
+        "message_node_desc": "An identifier linking this time point to a specific message or log entry in the narrative.",
+        "date_desc": "The calendar date of the time point (e.g., 'October 15, 2025').",
+        "time_desc": "A general description of the time of day for the time point (e.g., 'Pre-dawn hours', 'Afternoon').",
+        "specific_time_desc": "A precise time for the time point, if applicable (e.g., '05:30', '14:32')."
+      }
+    },
+    "StoryEvent": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "start": "TimePoint",
+        "end": "TimePoint",
+        "summary": "str"
+      },
+      "defaults": {
+        "query_branch_for_changes": true,
+        "branch_query_prompt_template": "Based on the latest information and the current state of the event '{branch_name}', are there any significant changes, additions, or deletions required for this event's entire entry (name, start, end, messages, summary)? Respond with only 'NO' or 'UNCHANGED' if this event's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
+        "branch_update_prompt_template": "Based on the latest information, review the current state of event '{branch_name}'.\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure (e.g., 'summary', 'start.date').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"summary\", \"value\": \"Updated event summary\"}},\n  {{\"path\": \"end.time\", \"value\": \"18:00\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "update_prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\"",
+        "name_desc": "The unique name or title of the story event.",
+        "start_desc": "The time point marking the beginning of the event.",
+        "end_desc": "The time point marking the end of the event.",
+        "summary_desc": "A textual summary describing the key occurrences and outcomes of the event."
+      }
+    },
+    "Events": {
+      "type": "dataclass",
+      "fields": {
+        "past": "dict[str, StoryEvent]",
+        "scenes": "dict[str, StoryEvent]",
+        "events": "dict[str, StoryEvent]"
+      },
+      "defaults": {
+        "perform_gate_check": true,
+        "gate_check_prompt_template": "Considering recent events and messages, does the overall '{branch_name}' section (including past events, current scenes, and major story events) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.",
+        "past_desc": "Example_Past_Event_Before_Story_Start",
+        "scenes_desc": "Example_Story_Scene",
+        "events_desc": "Example_Major_Story_Event"
+      }
+    }
+  },
+  "subjects": {
+    "characters": "Characters",
+    "groups": "Groups",
+    "current_scene": "CurrentScene",
+    "events": "Events"
+  }
+}

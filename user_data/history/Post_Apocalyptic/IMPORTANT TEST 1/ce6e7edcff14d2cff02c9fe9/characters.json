@@ -1,0 +1,217 @@
+{
+  "John Jones": {
+    "description": [
+      "John Jones is a main character in this story.",
+      "John is a 28-year-old man. He has black hair, blue eyes, and an intimidating face."
+    ],
+    "traits": [
+      "28-year-old man",
+      "Cunning, manipulative, and fearless",
+      "Black hair, blue eyes, and an intimidating face"
+    ],
+    "attributes": [
+      "Raw strength: Greatly above average. Generally lean in physique.",
+      "Stamina: Greatly above average. John can fight dozens of soldiers singlehandedly without exhausting.",
+      "Combat abilities: Extremely high. Thanks to his calm and collected personality, John has trained his close-quarters combat abilities and ranged combat abilities for nearly his whole life. He is the best melee fighter and among the top sharpshooters in the Rebel Force.",
+      "Intelligence: High. Whether caused by his personality or vice versa, John's strategic and tactical intelligence is second to none among the Rebel Force.",
+      "Emotional Intelligence: Average. John's manipulative abilities stem mostly from his high analytical intellect, rendering him severely below average when it comes to receiving and displaying emotions. His brother Paul has tried to help him properly understand human emotion over the years."
+    ],
+    "status": {
+      "Rebel Force": {
+        "position": ["Commander"],
+        "aliases": ["Leader", "Commander"],
+        "events": ["The Jones Offensive", "The Second Incursion"]
+      },
+      "Subterraneans": {
+        "position": ["Enemy"],
+        "aliases": ["Hellion"],
+        "events": ["The First Incursion", "The Second Incursion", "The Jones Offensive"]
+      }
+    },
+    "relationships": {
+      "Paul Jones": [
+        {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["..."], "importance": 90},
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 70},
+        {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 40}
+      ],
+      "Amy Harrison": [
+        {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["..."], "importance": 90},
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 70},
+        {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 30}
+      ],
+      "Angelina Kristi": [
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 50},
+        {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 50},
+        {"relation": "victim's sister", "status": "", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": 10}
+      ]
+    },
+    "milestones": [
+      {"title": "Founding the Rebel Force", "scenes": [9], "importance": 95},
+      {"title": "Eliminating many human organizations deemed as threats, i.e. The Golden Samurai", "scenes": [15], "importance": 80},
+      {"title": "Killing 139 people singlehandedly, garnering him a ruthless and fearless reputation", "scenes": [23], "importance": 85}
+    ]
+  },
+  "Amy Harrison": {
+    "description": [
+      "Amy Harrison is a main character in this story.",
+      "Amy is a brilliant scientist and engineer, contributing to all of the revolutionary tech the Rebels use to defend against and fight the Subterraneans.",
+      "A strategic mastermind behind the Rebel Force's technological edge, she combines exceptional intellectual prowess with a deep commitment to humanity's survival."
+    ],
+    "traits": [
+      "Is a brilliant scientist and engineer in her early 30s.",
+      "Is intensely focused, innovative, and driven by a mission to protect humanity.",
+      "Possesses an analytical mind with an extraordinary ability to solve complex technological challenges.",
+      "Has brown hair, green eyes, and a perpetually thoughtful expression.",
+      "Prefers practical, functional clothing that allows her to move easily between her laboratory and field operations"
+    ],
+    "attributes": [
+      "Intellectual Capacity: Exceptionally high. Considered a genius in multiple scientific disciplines, with breakthrough innovations in adaptive technology and defensive systems.",
+      "Technical Skills: Unparalleled. Capable of designing, building, and modifying advanced technological systems under extreme pressure.",
+      "Raw Strength: Below average. More comfortable with intellectual challenges than physical confrontations.",
+      "Stamina: Above average. Can work for extended periods, fueled by her passion and dedication to the Rebel cause.",
+      "Emotional Intelligence: Moderate. More comfortable with logical analysis than interpersonal dynamics, but deeply loyal to her colleagues.",
+      "Strategic Thinking: Extremely high. Her technological innovations often provide critical strategic advantages to the Rebel Force."
+    ],
+    "status": {
+      "Rebel Force": {
+        "position": ["Chief Scientist", "Lead Technological Strategist"],
+        "events": [
+          "Development of Anti-Subterranean Defense Systems",
+          "Creation of Advanced Rebel Technologies",
+          "Multiple Technological Breakthroughs"
+        ]
+      },
+      "Subterraneans": {
+        "position": ["Enemy"],
+        "events": ["The First Incursion", "The Second Incursion", "The Jones Offensive"]
+      }
+    },
+    "relationships": {
+      "John Jones": [
+        {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["Multiple Rebel Force missions"], "importance": 90},
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Technological collaboration"], "importance": 80},
+        {"relation": "colleague", "status": "Rebel Force", "aliases": [], "events": ["Planning Rebel operations"], "importance": 70}
+      ],
+      "Paul Jones": [
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Technological support"], "importance": 60},
+        {"relation": "friend", "status": "Mutual respect", "aliases": [], "events": ["Collaborative missions"], "importance": 50}
+      ],
+      "Angelina Kristi": [
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": 40},
+        {"relation": "potential threat", "status": "Suspicious", "aliases": [], "events": ["Monitoring potential infiltration"], "importance": 40},
+        {"relation": "technological rival", "status": "Cautious observation", "aliases": [], "events": ["Analyzing potential technological advantages"], "importance": 30}
+      ]
+    },
+    "milestones": [
+      {"title": "Developing breakthrough Anti-Subterranean Defense Systems", "scenes": [10], "importance": 90},
+      {"title": "Creating adaptive technologies that turned the tide against the Subterraneans", "scenes": [17], "importance": 95},
+      {"title": "Establishing the Rebel Force's technological superiority", "scenes": [25], "importance": 85}
+    ]
+  },
+  "Paul Jones": {
+    "description": [
+      "Paul Jones is a secondary character in this story.",
+      "Paul is a gentle, kind-hearted, charismatic 24-year-old man. He has black hair, blue eyes, and an intimidating face despite his gentle personality."
+    ],
+    "traits": [
+      "Is a 24-year-old man",
+      "Is gentle, kind-hearted, and charismatic",
+      "Has black hair, blue eyes, and an intimidating face",
+      "Recently broke his leg during The Jones Offensive"
+    ],
+    "attributes": [
+      "Raw strength: Above average. Paul recently broke his leg from a cave-in during The Jones Offensive.",
+      "Stamina: Greatly above average. Paul can withstand carrying large concrete tiles above his head for hours.",
+      "Combat abilities: Moderate. His strength and stamina compensate for less advanced combat skills.",
+      "Intelligence: Slightly above average. Practical and observant, but not strategically exceptional.",
+      "Emotional Intelligence: Greatly above average. Paul understands people's emotions instantly upon seeing them, can detect lies, and is extremely influential."
+    ],
+    "status": {
+      "Rebel Force": {
+        "position": ["General"],
+        "events": ["The Jones Offensive", "The Second Incursion"]
+      },
+      "Subterraneans": {
+        "position": ["Enemy"],
+        "events": ["The First Incursion", "The Second Incursion", "The Jones Offensive"]
+      }
+    },
+    "relationships": {
+      "John Jones": [
+        {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["The Jones Offensive"], "importance": 90},
+        {"relation": "best friend", "status": "Close", "aliases": [], "events": ["Various Rebel Force missions"], "importance": 90},
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Multiple operations"], "importance": 80}
+      ],
+      "Amy Harrison": [
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Various missions"], "importance": 50},
+        {"relation": "friend", "status": "Acquaintance", "aliases": [], "events": ["Rebel Force interactions"], "importance": 40}
+      ],
+      "Angelina Kristi": [
+        {"relation": "unrequited love interest", "status": "Complicated", "aliases": [], "events": ["The Second Incursion"], "importance": 60},
+        {"relation": "saved", "status": "Rescue", "aliases": [], "events": ["The Second Incursion"], "importance": 50}
+      ]
+    },
+    "milestones": [
+      {"title": "Saving Angelina during The Second Incursion", "scenes": [12], "importance": 75},
+      {"title": "Surviving The Jones Offensive despite leg injury", "scenes": [18], "importance": 70},
+      {"title": "Demonstrating exceptional emotional intelligence within the Rebel Force", "scenes": [5], "importance": 65}
+    ]
+  },
+  "Angelina Kristi": {
+    "description": [
+      "Angelina Kristi is a secondary character in this story.",
+      "Angelina is a manipulative, psychopathic 32-year-old woman. She has white hair, golden eyes, and an innocent-seeming face."
+    ],
+    "traits": [
+      "Angelina is a 32-year-old woman.",
+      "Is manipulative and psychopathic.",
+      "Has white hair, golden eyes, and an innocent-seeming face.",
+      "Is seeking revenge for her brother's death"
+    ],
+    "attributes": [
+      "Raw strength: Moderate. Capable in physical confrontations but not exceptionally strong.",
+      "Stamina: Average. Relies more on cunning than physical endurance.",
+      "Combat abilities: Above average. Skilled in strategic and psychological warfare.",
+      "Intelligence: High. Extremely manipulative and strategically minded.",
+      "Emotional Intelligence: High. Uses emotional manipulation as a primary tool for achieving her goals."
+    ],
+    "status": {
+      "Rebel Force": {
+        "position": ["Soldier"],
+        "events": ["Infiltration", "The First Incursion"]
+      },
+      "Independent": {
+        "position": ["Operative"],
+        "events": ["Seeking revenge", "Gathering intelligence"]
+      },
+      "Subterraneans": {
+        "position": ["Enemy"],
+        "events": ["The First Incursion", "The Second Incursion", "The Jones Offensive"]
+      }
+    },
+    "relationships": {
+      "John Jones": [
+        {"relation": "comrade", "status": "Rebel Force", "aliases": ["Bro"], "events": ["The First Incursion"], "importance": 60},
+        {"relation": "enemy", "status": "Vengeful", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": 90},
+        {"relation": "information target", "status": "Independent", "aliases": [], "events": ["Gathering intelligence on Rebels"], "importance": 70}
+      ],
+      "Paul Jones": [
+        {"relation": "unrequited love", "status": "Unreciprocating", "aliases": [], "events": ["The Second Incursion"], "importance": 80},
+        {"relation": "comrade", "status": "Rebel Force", "aliases": ["Bro"], "events": ["The First Incursion", "The Second Incursion"], "importance": 60},
+        {"relation": "saved by", "status": "Savior", "aliases": [], "events": ["The Second Incursion"], "importance": 50}
+      ],
+      "Amy Harrison": [
+        {"relation": "superior", "status": "Rebel Force", "aliases": [], "events": ["Mission 1", "Mission 2"], "importance": 40},
+        {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Mission 1", "Mission 2"], "importance": 40}
+      ],
+      "Harry Kristi": [
+        {"relation": "brother", "status": "Deceased", "aliases": [], "events": ["Killed by John Jones"], "importance": 90}
+      ]
+    },
+    "milestones": [
+      {"title": "Being saved by Paul Jones during The Second Incursion", "scenes": [12], "importance": 70},
+      {"title": "Infiltrating the Rebel Force to seek revenge", "scenes": [7], "importance": 90},
+      {"title": "Maintaining cover while plotting against John Jones", "scenes": [20], "importance": 80}
+    ]
+  }
+}

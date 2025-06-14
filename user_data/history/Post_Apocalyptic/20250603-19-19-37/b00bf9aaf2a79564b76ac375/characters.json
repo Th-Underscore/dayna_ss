@@ -1,0 +1,177 @@
+{
+  "John Jones": {
+    "description": [
+      "John Jones is a pragmatic and resourceful survivor in the early days of the war against the Subterraneans. With a calm demeanor and a mind honed for survival, he navigates the chaos with calculated precision. His strength and adaptability make him a formidable presence in the battlefield, and his singular focus on finding his brother, Paul, fuels his every action."
+    ],
+    "traits": [
+      "Analytical",
+      "Resilient",
+      "Calm under pressure",
+      "Adaptable",
+      "Physically strong",
+      "Determined"
+    ],
+    "attributes": [
+      "Combat proficiency with improvised weapons",
+      "Urban survival skills",
+      "Tactical thinking",
+      "High endurance",
+      "Emotional restraint",
+      "Leadership potential"
+    ],
+    "status": {
+      "Current_Status": {
+        "position": [
+          "Surviving in the ruins of a major city, actively evading Subterranean forces."
+        ],
+        "aliases": [
+          "The Wraith",
+          "The Survivor"
+        ],
+        "events": [
+          "Witnessed the First Incursion firsthand.",
+          "Killed a Subterranean creature with a tire iron.",
+          "Escaped the initial wave of destruction."
+        ]
+      }
+    },
+    "relationships": {
+      "Paul": [
+        {
+          "relation": "Brother",
+          "status": "Separated during the First Incursion",
+          "aliases": [
+            "The Reason",
+            "The Goal"
+          ],
+          "events": [
+            "John's sole motivation for survival.",
+            "Paul is believed to be abroad and safe."
+          ],
+          "importance": 95
+        }
+      ],
+      "Story Master": [
+        {
+          "relation": "Narrative Anchor",
+          "status": "Shared experiences during the First Incursion",
+          "aliases": [
+            "The Witness",
+            "The Chronicler"
+          ],
+          "events": [
+            "Both experienced the First Incursion.",
+            "Shared a moment of calculated violence and survival."
+          ],
+          "importance": 80
+        }
+      ]
+    },
+    "milestones": [
+      {
+        "title": "The First Incursion",
+        "scenes": [
+          1
+        ],
+        "importance": 100
+      },
+      {
+        "title": "Survival in the City",
+        "scenes": [
+          1
+        ],
+        "importance": 90
+      },
+      {
+        "title": "The Encounter with the Subterranean",
+        "scenes": [
+          1
+        ],
+        "importance": 85
+      }
+    ]
+  },
+  "Paul": {
+    "description": [
+      "Paul is a young man in his mid-twenties, with a lean, athletic build and a sharp, intelligent gaze. He has a quiet, introspective nature, often lost in thought or deep in research. Though not as physically imposing as his brother, John, Paul possesses a keen mind and a deep understanding of technology and alien systems, which will prove vital in the coming war. He is driven by a strong sense of duty and a desire to protect those he loves, especially his brother John."
+    ],
+    "traits": [
+      "Analytical",
+      "Determined",
+      "Inventive",
+      "Cautious",
+      "Empathetic"
+    ],
+    "attributes": [
+      "Expert in alien technology",
+      "Skilled in cybernetics and hacking",
+      "Fluent in multiple languages",
+      "Highly intelligent and resourceful",
+      "Strong moral compass"
+    ],
+    "status": {
+      "current_location": {
+        "position": [
+          "Abroad, in a remote research facility in the Andes Mountains"
+        ],
+        "aliases": [
+          "Paul Jones",
+          "Researcher Jones"
+        ],
+        "events": [
+          "Escaped the initial incursion due to his remote location",
+          "Currently studying ancient alien artifacts",
+          "Developing countermeasures against Subterranean technology"
+        ]
+      }
+    },
+    "relationships": {
+      "John Jones": [
+        {
+          "relation": "Brother",
+          "status": "Family",
+          "aliases": [
+            "John",
+            "Big Brother"
+          ],
+          "events": [
+            "Paul and John were separated during the incursion",
+            "Paul is determined to find John and reunite with him",
+            "John is Paul's greatest motivation to survive"
+          ],
+          "importance": 95
+        }
+      ]
+    },
+    "milestones": [
+      {
+        "title": "The Incursion",
+        "scenes": [
+          1
+        ],
+        "importance": 90
+      },
+      {
+        "title": "Discovery of Alien Artifacts",
+        "scenes": [
+          2
+        ],
+        "importance": 85
+      },
+      {
+        "title": "Reunion with John",
+        "scenes": [
+          3
+        ],
+        "importance": 100
+      },
+      {
+        "title": "Development of the First Countermeasure",
+        "scenes": [
+          4
+        ],
+        "importance": 80
+      }
+    ]
+  }
+}
