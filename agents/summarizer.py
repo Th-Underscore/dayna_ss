@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from torch import no_grad
 
 from modules import shared
-from modules.chat import generate_chat_prompt
+from modules.chat import generate_chat_prompt, replace_character_names
 from modules.llama_cpp_server import LlamaServer
 from modules.text_generation import encode
 
@@ -160,18 +160,9 @@ class Summarizer:
 
             # Prepare a minimal state for generate_using_tgwui
             # It needs 'seed', and other generation params can be default or from self.config
-            custom_state = copy.deepcopy(state)
-            custom_state["name1"] = "SYSTEM"
-            custom_state["name2"] = "DAYNA"
-            # custom_state["chat-instruct_command"] = (
-            #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
-            # )
-            custom_state["context"] = (
-                "The following is a conversation with an AI Large Language Model agent, DAYNA. DAYNA has been trained to answer questions, assist with storywriting, and help with decision making. DAYNA follows system (SYSTEM) requests. DAYNA specializes writing in various styles and tones. DAYNA thinks outside the box."
-            )
-            custom_state["max_new_tokens"] = 2048
-            custom_state["temperature"] = 0.3
-            custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
+            custom_state = copy.deepcopy(dss_shared.persistent_ui_state or state)
+            print(json.dumps(custom_state, indent=2))
+            custom_state.update({"history": {"internal": [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]}})
             # custom_state = {
             #     "seed": state.get("seed", -1), # Use existing seed or default
             #     "max_new_tokens": 1024, # Sensible default for JSON generation
@@ -231,7 +222,7 @@ class Summarizer:
                     print(
                         f"{_ERROR}Failed to parse LLM response for CurrentScene as JSON on attempt {attempt + 1}: {e}{_RESET}"
                     )
-                    print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_response_text}{_RESET}")
+                    print(f"{_ERROR}LLM Cleaned Response was: {_GRAY}{cleaned_response_text}{_RESET}")
                     if attempt < max_retries:
                         error_feedback = "The previous attempt to generate the JSON was not valid JSON. Please ensure your output is a single, valid JSON object.\n"
                         prompt = base_prompt_template.replace("{retry_feedback_placeholder}", error_feedback + "\n\n")
@@ -274,7 +265,7 @@ class Summarizer:
         char_context = state.get("context", "")
         char_greeting = state["history"]["internal"][0][1]  # state.get("greeting", "")
 
-        custom_state = copy.deepcopy(state)
+        custom_state = copy.deepcopy(dss_shared.persistent_ui_state or state)
         custom_state["name1"] = "SYSTEM"
         custom_state["name2"] = "DAYNA"
         # custom_state["chat-instruct_command"] = (
@@ -285,7 +276,7 @@ class Summarizer:
         )
         custom_state["max_new_tokens"] = 2048
         custom_state["temperature"] = 0.3
-        custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
+        custom_state.update({"history": {"internal": [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]}})
 
         # --- Step A: Identification ---
         identification_prompt = (
@@ -333,7 +324,7 @@ class Summarizer:
                 print(f"{_ERROR}LLM response for entity identification was not a list.{_RESET}")
         except json.JSONDecodeError as e:
             print(f"{_ERROR}Failed to parse LLM response for entity identification as JSON: {e}{_RESET}")
-            print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_id_response}{_RESET}")
+            print(f"{_ERROR}LLM Cleaned Response was: {_GRAY}{cleaned_id_response}{_RESET}")
         except Exception as e:
             print(f"{_ERROR}An unexpected error occurred during entity identification parsing: {e}{_RESET}")
             traceback.print_exc()
@@ -493,7 +484,7 @@ class Summarizer:
                     print(
                         f"{_ERROR}Failed to parse LLM response for '{entity_name}' as JSON on attempt {attempt + 1}: {e}{_RESET}"
                     )
-                    print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_detail_response}{_RESET}")
+                    print(f"{_ERROR}LLM Cleaned Response was: {_GRAY}{cleaned_detail_response}{_RESET}")
                     if attempt < max_retries:
                         error_feedback = f"The previous JSON for '{entity_name}' was invalid. Ensure valid JSON output.\n"
                         detail_prompt = base_detail_prompt_template.replace(
@@ -573,7 +564,7 @@ class Summarizer:
 
         # Capture the output
         capture_buffer = io.StringIO()
-        with redirect_stderr(DualStream(sys.stderr, capture_buffer)): #redirect_stdout(DualStream(sys.stdout, capture_buffer))
+        with redirect_stderr(DualStream(sys.stderr, capture_buffer)):  # redirect_stdout(DualStream(sys.stdout, capture_buffer))
             for t, s in self.generate_summary_with_streaming(
                 prompt,
                 state,
@@ -689,6 +680,7 @@ class Summarizer:
     ) -> tuple[str, dict, Path, str]:  # Input method
         print(f"{_HILITE}generate_summary_instr_prompt{_RESET} {kwargs}")
         custom_state = self.retrieve_and_format_context(state, history, **kwargs)
+        print(custom_state)
         history_path = self.last.history_path
 
         next_scene_prefix = "NEXT SCENE:"
@@ -802,14 +794,15 @@ class Summarizer:
                 # TODO: Include additional user instructions from UI blocks
                 full_instr = instr
                 # TODO: Get gen params from UI parameters
-                instr_prompt = (
-                    f"{user_input_prompt}\n\n"
-                    f'Now, write a reply as "{name2}". Imitating {name2}, follow these instructions:\n\n'
-                    f"{full_instr}\n\n"
-                    f"Follow each and every one of these instructions to a T. Follow the style and tone of the latest messages as a reference.\n\n"
-                    f'Remember, write as the character "{name2}". You are writing a reply to the character "{name1}". Follow the same style of writing as {name1} and {name2}. Do not add any unnecessary formatting.\n\n'
-                    f'REMEMBER: You are acting as "{name2}". Do not write in the perspective of "{name1}".'
-                )
+
+                # Retrieve the template from settings
+                instr_prompt_template = custom_state.get("dss_instr_prompt_template")
+
+                # Replace character names first
+                instr_prompt = replace_character_names(instr_prompt_template, name1, name2)
+                instr_prompt = instr_prompt.replace("{{user_input_prompt}}", user_input_prompt)
+                instr_prompt = instr_prompt.replace("{{instr}}", full_instr)
+
                 encoded_instr_prompt = (
                     encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
                 )
@@ -1051,7 +1044,6 @@ class Summarizer:
         Returns:
             out (dict): _description_
         """
-        old_history_path = None
         current_context = self.get_general_summarization(state)
         custom_state, (retrieval_context, context_retriever, last_x, last_x_messages) = self.get_retrieval_context(
             state, history, current_context, **kwargs
@@ -1060,20 +1052,21 @@ class Summarizer:
             return custom_state
 
         # TODO: Get these all from config
-        custom_state["name1"] = "SYSTEM"
-        custom_state["name2"] = "DAYNA"
-        # custom_state["chat-instruct_command"] = (
-        #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
+        # custom_state["name1"] = "SYSTEM"
+        # custom_state["name2"] = "DAYNA"
+        # # custom_state["chat-instruct_command"] = (
+        # #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
+        # # )
+        # custom_state["context"] = (
+        #     "The following is a conversation with an AI Large Language Model agent, DAYNA. DAYNA has been trained to answer questions, assist with storywriting, and help with decision making. DAYNA follows system (SYSTEM) requests. DAYNA specializes writing in various styles and tones. DAYNA thinks outside the box."
         # )
-        custom_state["context"] = (
-            "The following is a conversation with an AI Large Language Model agent, DAYNA. DAYNA has been trained to answer questions, assist with storywriting, and help with decision making. DAYNA follows system (SYSTEM) requests. DAYNA specializes writing in various styles and tones. DAYNA thinks outside the box."
-        )
-        custom_state["user_bio"] = ""
-        custom_state["max_new_tokens"] = 2048
-        custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
+        # custom_state["user_bio"] = ""
+        # custom_state["max_new_tokens"] = 2048
+        custom_state.update({"history": {"internal": [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]}})
         custom_history: History = custom_state["history"]["internal"]
 
-        custom_state["context"] += f"\n\n{current_context}"
+        if current_context:
+            custom_state["context"] += f"\n\n{current_context}"
 
         formatted_last_x = self.format_number(last_x)
 
@@ -1315,7 +1308,7 @@ class Summarizer:
             history_path.mkdir(parents=True)
 
         if not self.last or (history_path and history_path != self.last.history_path):
-            custom_state = copy.deepcopy(state)
+            custom_state = copy.deepcopy(dss_shared.persistent_ui_state or state)
             context_retriever = StoryContextRetriever(history_path)
 
             # Retrieve last x messages
