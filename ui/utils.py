@@ -157,6 +157,7 @@ def list_interface_input_elements():
         "instruction_template_str",
         "chat_template_str",
         "dss_toggle",
+        "dss_instr_prompt_template",
     ]
 
     # Model elements

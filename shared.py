@@ -94,7 +94,7 @@ settings = {
     "prompt_lookup_num_tokens": 0,
     "max_tokens_second": 0,
     "max_updates_second": 12,
-    "auto_max_new_tokens": True,
+    "auto_max_new_tokens": False,
     "ban_eos_token": False,
     "add_bos_token": True,
     "enable_thinking": True,
@@ -111,6 +111,14 @@ settings = {
     "instruction_template_str": "{%- set ns = namespace(found=false) -%}\n{%- for message in messages -%}\n    {%- if message['role'] == 'system' -%}\n        {%- set ns.found = true -%}\n    {%- endif -%}\n{%- endfor -%}\n{%- if not ns.found -%}\n    {{- '' + 'Below is an instruction that describes a task. Write a response that appropriately completes the request.' + '\\n\\n' -}}\n{%- endif %}\n{%- for message in messages %}\n    {%- if message['role'] == 'system' -%}\n        {{- '' + message['content'] + '\\n\\n' -}}\n    {%- else -%}\n        {%- if message['role'] == 'user' -%}\n            {{-'### Instruction:\\n' + message['content'] + '\\n\\n'-}}\n        {%- else -%}\n            {{-'### Response:\\n' + message['content'] + '\\n\\n' -}}\n        {%- endif -%}\n    {%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt -%}\n    {{-'### Response:\\n'-}}\n{%- endif -%}",
     "chat_template_str": "{%- for message in messages %}\n    {%- if message['role'] == 'system' -%}\n        {%- if message['content'] -%}\n            {{- message['content'] + '\\n\\n' -}}\n        {%- endif -%}\n        {%- if user_bio -%}\n            {{- user_bio + '\\n\\n' -}}\n        {%- endif -%}\n    {%- else -%}\n        {%- if message['role'] == 'user' -%}\n            {{- name1 + ': ' + message['content'] + '\\n'-}}\n        {%- else -%}\n            {{- name2 + ': ' + message['content'] + '\\n' -}}\n        {%- endif -%}\n    {%- endif -%}\n{%- endfor -%}",
     "banned_prefixes": '"{{char}}:", "(as {{char}})"',
+    "dss_instr_prompt_template": (
+        "{{user_input_prompt}}\n\n"
+        'Now, write a reply as "{{char}}". Imitating {{char}}, follow these instructions:\n\n'
+        "{{instr}}\n\n"
+        "Follow each and every one of these instructions to a T. Follow the style and tone of the latest messages as a reference.\n\n"
+        'Remember, write as the character "{{char}}". You are writing a reply to the character "{{user}}". Follow the same style of writing as {{user}} and {{char}}. Do not add any unnecessary formatting.\n\n'
+        'REMEMBER: You are acting as "{{char}}". Do not write in the perspective of "{{user}}".'
+    ),
 }
 
 persistent_ui_state = {}

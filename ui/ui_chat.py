@@ -18,7 +18,7 @@ def create_ui():
         label="",
         elem_classes=["slim-dropdown", "pretty_scrollbar"],
         interactive=not mu,
-        elem_id="past-chats",
+        elem_id="dss-past-chats",
         visible=False,
     )
 
@@ -36,7 +36,7 @@ def create_chat_settings_ui():
                             value=None,
                             choices=available_characters,
                             label="Character",
-                            elem_id="character-menu",
+                            elem_id="dss-character-menu",
                             info="Used in chat and chat-instruct modes.",
                             elem_classes="slim-dropdown",
                         )
@@ -167,6 +167,14 @@ def create_chat_settings_ui():
                     info="This gets autodetected or loaded. Used in instruct and chat-instruct modes for this extension.",
                     elem_classes=["add_scrollbar", "monospace"],
                 )
+                dss_shared.gradio["dss_instr_prompt_template"] = gr.Textbox(
+                    value=dss_shared.settings.get("dss_instr_prompt_template", ""),
+                    label="Response Instruction Prompt Template (DSS)",
+                    lines=12,
+                    info="Instruction prompt template for generating detailed instructions pre-reply.",
+                    elem_classes=["add_scrollbar", "monospace"],
+                    interactive=True,
+                )
                 with gr.Row():
                     dss_shared.gradio["send_instruction_to_default"] = gr.Button(
                         "Send to default", elem_classes=["small-button"]
@@ -187,7 +195,7 @@ def create_chat_settings_ui():
                     elem_classes=["add_scrollbar", "monospace"],
                 )
 
-        with gr.Row(elem_id="chat-controls", elem_classes=["pretty_scrollbar"]):
+        with gr.Row(elem_id="dss-chat-controls", elem_classes=["pretty_scrollbar"]):
             with gr.Column():
                 with gr.Row():
                     dss_shared.gradio["start_with"] = gr.Textbox(
@@ -205,7 +213,7 @@ def create_chat_settings_ui():
                         ),
                         label="Mode",
                         info="Defines how the chat prompt is generated. In instruct and chat-instruct modes, the instruction template Parameters > Instruction template is used.",
-                        elem_id="chat-mode",
+                        elem_id="dss-chat-mode",
                     )
 
                 with gr.Row():
@@ -256,6 +264,7 @@ def create_event_handlers():
         "custom_system_message",
         "instruction_template_str",
         "chat_template_str",
+        "dss_summarizer_instr_prompt_template",
     ]
     for key in text_keys_to_bind:
         if key in dss_shared.gradio:
@@ -353,12 +362,9 @@ def create_event_handlers():
     dss_shared.gradio["character_menu"].change(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     ).then(
-        handle_character_menu_change,
-        [shared.gradio["interface_state"], *gradio("interface_state")],
-        [
-            shared.gradio["display"],
-            *gradio("name1", "name2", "character_picture", "greeting", "context", "unique_id"),
-        ],
+        chat.load_character,
+        gradio("character_menu", "name1", "name2"),
+        gradio("name1", "name2", "character_picture", "greeting", "context"),
         show_progress=False,
     ).then(
         None, None, None, js=f"() => {{{ui.update_big_picture_js}; updateBigPicture()}}"
@@ -377,11 +383,3 @@ def create_event_handlers():
     dss_shared.gradio["dss_toggle"].change(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     )
-
-
-def handle_character_menu_change(state, dss_state):
-    dss_state["chat_style"] = state["chat_style"]
-
-    [_, html, name1, name2, picture, greeting, context, past_chats_update] = chat.handle_character_menu_change(dss_state)
-
-    return [html, name1, name2, picture, greeting, context, past_chats_update]
