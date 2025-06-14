@@ -1,3 +1,4 @@
+from typing import Any, Generator, TextIO, TYPE_CHECKING
 import hashlib
 import io
 import json
@@ -10,11 +11,10 @@ import re
 import shutil
 import sys
 import traceback
-from typing import Any, Generator, TextIO
 from dataclasses import dataclass
 
-
-# from torch import no_grad  # Slightly increases load time but helps runtime -> Replaced by background importer
+if TYPE_CHECKING:
+    from torch import no_grad
 
 from modules import shared
 from modules.chat import generate_chat_prompt
@@ -46,6 +46,7 @@ from extensions.dayna_ss.utils.helpers import (
     expand_lists_in_data_for_llm,
     get_values,
     enumerate_list,
+    strip_thinking,
     strip_response,
 )
 
@@ -608,14 +609,14 @@ class Summarizer:
         **kwargs,
     ) -> Generator[tuple[str, str], Any, None]:
         """Generate a summary using the loaded TGWUI model with custom stopping strings."""
-        # from torch import no_grad  # Now at module level
         # if stopping_strings:
         #     quoted_tokens = [f'"{token}"' for token in stopping_strings]
         #     custom_state['custom_token_bans'] = ', '.join(quoted_tokens) if custom_state['custom_token_bans'] else ', '.join(quoted_tokens)
         try:
             model: LlamaServer = shared.model
             if model is not None:
-                no_grad = get_imported_attribute("torch", "no_grad")
+                if not TYPE_CHECKING:
+                    no_grad = get_imported_attribute("torch", "no_grad")
                 with no_grad():
                     if shared.stop_everything:
                         return
@@ -631,16 +632,19 @@ class Summarizer:
                     for text in model.generate_with_streaming(encoded_instr_prompt, state):
                         token_count += 1
                         if shared.stop_everything:
+                            yield text, ""
                             return
                         if stopping_strings:
+                            text = strip_thinking(text)
                             for stopping_string in stopping_strings:
                                 if match_prefix_only:
                                     if text.lstrip().startswith(stopping_string):
                                         yield text, stopping_string
                                         return
-                                elif stopping_string in text:
-                                    yield text, stopping_string
-                                    return
+                                else:
+                                    if stopping_string in text:
+                                        yield text, stopping_string
+                                        return
                         yield text, ""
                     if shared.stop_everything:
                         return
@@ -984,6 +988,7 @@ class Summarizer:
                 context_retriever = self.last.context[1]
                 chunker_instance = context_retriever.chunker
 
+                print(events_data)
                 # Process scenes from events_data
                 for scene_info in get_values(events_data.get("scenes", [])):
                     scene_id = scene_info.get("name")
@@ -1007,6 +1012,7 @@ class Summarizer:
 
                 # Process events from events_data
                 for event_info in get_values(events_data.get("events", [])):
+                    print("event_info", event_info)
                     event_id = event_info.get("name")  # Assuming name is the ID
                     event_messages_ranges = event_info.get("messages", [])
                     if event_id and event_messages_ranges:

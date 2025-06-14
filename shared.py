@@ -116,8 +116,8 @@ settings = {
 persistent_ui_state = {}
 custom_state = gr.State()
 banned_prefixes = [
-    '"{{char}}:", "(as {{char}})", "({{char}})"',
-    '"{{user}}:", "(as {{user}})", "({{user}})"',
+    '"{{char}}:", "{{char}} >>", "(as {{char}})", "({{char}})"',
+    '"{{user}}:", "{{user}} >>", "(as {{user}})", "({{user}})"',
 ]
 
 # settings = {

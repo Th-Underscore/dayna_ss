@@ -622,11 +622,11 @@ class DataSummarizer:
                     context_marker_path_override=item_name_prefix,
                 )
 
-                if updated_branch_data is not None and isinstance(updated_branch_data, dict) and updated_branch_data != data:
+                if updated_branch_data is not None and isinstance(updated_branch_data, dict) and not updated_branch_data is data:
                     print(f"{_SUCCESS}Applying direct branch update to '{branch_name_for_prompt}'.{_RESET}")
                     data.clear()
                     data.update(updated_branch_data)
-                elif updated_branch_data is data or updated_branch_data is None:
+                elif updated_branch_data == data or updated_branch_data is None:
                     print(f"{_GRAY}Direct branch update for '{branch_name_for_prompt}' resulted in no changes.{_RESET}")
                 else:
                     print(
@@ -1178,7 +1178,7 @@ class DataSummarizer:
                 # Keep them as empty strings if generation fails
 
         if formatted_data:
-            branch_list_str = FormattedData(formatted_data.data, f"{item_name}_list").st or "EMPTY"
+            branch_list_str = FormattedData(formatted_data.data, f"{item_name}_list").st or "The list is empty! Maybe add some items?"
 
         format_kwargs = {
             "branch_name": item_name,  # 'item_name' often serves as branch_name in templates
