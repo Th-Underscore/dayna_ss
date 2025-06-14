@@ -11,10 +11,5 @@
         "main_subjects_only": false,
         "excluded_subjects": []
     },
-    "branch_order": "subject_event",
-    "llm_config": {
-        "model_name": "gpt-3.5-turbo",
-        "temperature": 0.7,
-        "max_tokens": 500
-    }
+    "branch_order": "subject_event"
 }
