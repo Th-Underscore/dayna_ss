@@ -51,6 +51,7 @@ from extensions.dayna_ss.utils.helpers import (
 )
 
 from extensions.dayna_ss.utils.schema_parser import SchemaParser, ParsedSchemaClass
+from extensions.dayna_ss.utils.data_formatter import DataFormatter
 
 from extensions.dayna_ss.utils.background_importer import (
     start_background_import,
@@ -210,8 +211,8 @@ class Summarizer:
                     if not validation_errors:
                         populated_data = current_populated_data
                         if "start_message_node" not in populated_data or not populated_data.get("start_message_node"):
-                            populated_data["start_message_node"] = "0_0_0"
-                            print(f"{_DEBUG}Set 'start_message_node' to '0_0_0' for initial CurrentScene.{_RESET}")
+                            populated_data["start_message_node"] = "1_0_0"
+                            print(f"{_DEBUG}Set 'start_message_node' to '1_0_0' for initial CurrentScene.{_RESET}")
                         print(f"{_SUCCESS}CurrentScene data validated successfully on attempt {attempt + 1}.{_RESET}")
                         break  # Successful validation
                     else:
@@ -249,8 +250,8 @@ class Summarizer:
             # After loop, save whatever data we have (valid or last attempt if all failed)
             if populated_data:
                 if "start_message_node" not in populated_data or not populated_data.get("start_message_node"):
-                    populated_data["start_message_node"] = "0_0_0"
-                    print(f"{_DEBUG}Ensured 'start_message_node' is '0_0_0' before saving initial CurrentScene.{_RESET}")
+                    populated_data["start_message_node"] = "1_0_0"
+                    print(f"{_DEBUG}Ensured 'start_message_node' is '1_0_0' before saving initial CurrentScene.{_RESET}")
                 save_json(populated_data, current_scene_target_path)
                 print(f"{_SUCCESS}Successfully populated and saved current_scene.json at {current_scene_target_path}{_RESET}")
             else:
@@ -926,6 +927,10 @@ class Summarizer:
                 load_json(last_history_path / "subjects_schema.json"),
                 new_history_path / "subjects_schema.json",
             )
+            save_json(
+                load_json(last_history_path / "formatted_class_strings.json"),
+                new_history_path / "formatted_class_strings.json",
+            )
 
             # --- Summarize Data ---
             # Helper function to decide if update should proceed and execute or save old data
@@ -1217,6 +1222,7 @@ class Summarizer:
         """
         # TODO: Make this path configurable or discoverable
         GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = Path("extensions/dayna_ss/user_data/exemplary/subjects_schema.json")
+        GLOBAL_FORMAT_TEMPLATES_PATH = Path("extensions/dayna_ss/user_data/exemplary/formatted_class_strings.json")
 
         history_path = self.retrieve_history_path(state, history)
         initial_schema_parser = None
@@ -1282,6 +1288,7 @@ class Summarizer:
                         f"Global subjects schema template not found at {GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH}"
                     )
                 shutil.copy(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH, schema_cache_path)
+                shutil.copy(GLOBAL_FORMAT_TEMPLATES_PATH, initial_world_data_path / "formats.json")
                 print(f"{_SUCCESS}Copied global schema to {schema_cache_path}{_RESET}")
 
                 try:
@@ -1508,170 +1515,96 @@ class FormattedData:
         self.data_type = data_type
         self.parser = parser
         self.data = data
+        self.formatter = None # Initialize formatter attribute
 
+        # Determine the path to the formatter config relative to this file's location
+        # extensions/dayna_ss/agents/summarizer.py -> extensions/dayna_ss/utils/formatted_class_strings.json
+        current_file_path = Path(__file__).resolve()
+        formatter_config_path = current_file_path.parent.parent / "utils" / "formatted_class_strings.json"
+
+        if not formatter_config_path.exists():
+            print(f"{_ERROR}DataFormatter config not found at {formatter_config_path}. Formatting will be basic.{_RESET}")
+        else:
+            try:
+                self.formatter = DataFormatter(formatter_config_path)
+            except Exception as e:
+                print(f"{_ERROR}Failed to initialize DataFormatter: {e}{_RESET}")
+                self.formatter = None
+
+
+        schema_class_name_for_formatter = None
         if self.parser:
             actual_data_schema_hint = None
+
             if data_type == "current_scene":
                 actual_data_schema_hint = self.parser.get_subject_class("current_scene")
+                schema_class_name_for_formatter = "CurrentScene"
             elif data_type == "character_list" or data_type == "characters":
                 actual_data_schema_hint = self.parser.get_subject_class("characters")
-            elif data_type == "groups":
+                # type_string_override will be used by DataFormatter
+            elif data_type == "groups" or data_type == "groups_list":
                 actual_data_schema_hint = self.parser.get_subject_class("groups")
-            elif data_type == "events":
+                # type_string_override will be used
+            elif data_type == "events" or data_type == "events_list":
                 actual_data_schema_hint = self.parser.get_subject_class("events")
-            elif data_type == "scene":
+                # type_string_override will be used
+            elif data_type == "scene" or data_type == "event": # This corresponds to StoryEvent schema
                 actual_data_schema_hint = self.parser.definitions.get("StoryEvent")
+                schema_class_name_for_formatter = "StoryEvent"
+
 
             self.data = expand_lists_in_data_for_llm(self.data, actual_data_schema_hint, self.parser)
 
-        self._str = FormattedData.format_retrieval_data(self.data, self.data_type)
+        self._str = self._format_with_data_formatter(self.data, self.data_type, schema_class_name_for_formatter)
+
+
+    def _format_with_data_formatter(self, data_to_format: Any, type_string: str, schema_name: str | None = None) -> str:
+        if self.formatter:
+            try:
+                # Prioritize type_string_override if it's one of the specific types handled by DataFormatter
+                # Otherwise, use schema_class_name if available.
+                return self.formatter.format(data_to_format, schema_class_name=schema_name, type_string_override=type_string)
+            except Exception as e:
+                print(f"{_ERROR}Error using DataFormatter for type '{type_string}' or schema '{schema_name}': {e}{_RESET}")
+                traceback.print_exc()
+                return f"<Error formatting '{type_string}': {e}>"
+        else:
+            # Fallback if formatter failed to initialize
+            print(f"{_INPUT}DataFormatter not available. Falling back to basic string conversion for type '{type_string}'.{_RESET}")
+            return str(data_to_format)
+
 
     def __getitem__(self, index):
         """Allow dictionary-like access to the (potentially expanded) data."""
         return self.data[index]
 
     @staticmethod
-    def format_retrieval_data(data: dict | list, data_type: str) -> str:
-        """Format retrieved data based on its type."""
-        if not data:
-            return ""
+    def format_retrieval_data(data: dict | list, data_type: str, schema_parser_instance: SchemaParser | None = None) -> str:
+        """
+        Format retrieved data based on its type using DataFormatter.
+        This method is kept for potential external calls but FormattedData instances
+        will use their own _format_with_data_formatter method.
+        """
+        current_file_path = Path(__file__).resolve()
+        formatter_config_path = current_file_path.parent.parent / "utils" / "formatted_class_strings.json"
 
-        nl = "\n"
+        if not formatter_config_path.exists():
+            print(f"{_ERROR}Static: DataFormatter config not found at {formatter_config_path}. Formatting will be basic.{_RESET}")
+            return str(data)
+        
+        try:
+            formatter = DataFormatter(formatter_config_path)
+            schema_class_name_for_formatter = None
+            if data_type == "current_scene":
+                schema_class_name_for_formatter = "CurrentScene"
+            elif data_type == "scene" or data_type == "event":
+                 schema_class_name_for_formatter = "StoryEvent"
 
-        if data_type == "current_scene":
-            if (data.get("start") or data.get("now")) is None:
-                print(f"{_ERROR}No current scene data available.{_RESET}")
-                return "<EMPTY>"
-
-            formatted_str = []
-            for start_or_now in ["start", "now"]:
-                who = data[start_or_now].get("who", {})
-                characters = who.get("characters", {})
-                groups = who.get("groups", {})
-                when = data[start_or_now].get("when", {})
-                where = data[start_or_now].get("where", "Unknown")
-                why = data[start_or_now].get("why", {})
-
-                # Format character entries
-                char_entries = [
-                    f"{char_data.get('name', 'Unknown')} @ {char_data.get('location', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}.who.characters[{i}], current_scene.{start_or_now}.who.characters[{i}].name, current_scene.{start_or_now}.who.characters[{i}].location"
-                    for i, char_data in enumerate_list(characters)
-                ]
-                formatted_chars = f"\n- ".join(char_entries) if char_entries else "None"
-
-                # Format group entries
-                group_entries = [
-                    f"{group_data.get('name', 'Unknown')} @ {group_data.get('location', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}.who.groups[{i}], current_scene.{start_or_now}.who.groups[{i}].name, current_scene.{start_or_now}.who.groups[{i}].location"
-                    for i, group_data in enumerate_list(groups)
-                ]
-                formatted_groups = f"\n- ".join(group_entries) if group_entries else "None"
-
-                formatted_when = f"{when.get('date', 'Unknown')} - {when.get('time', 'Unknown')} ({when.get('specific_time', 'Unknown')}) <<<<<<<<<<<< current_scene.{start_or_now}.when, current_scene.{start_or_now}.when.date, current_scene.{start_or_now}.when.time, current_scene.{start_or_now}.when.specific_time"
-
-                # Format why entries
-                why_entries = [
-                    f"{reason_data.get('name', 'Unknown')} -- {reason_data.get('details', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}.why[{i}]"
-                    for i, reason_data in enumerate_list(why)
-                ]
-                formatted_why = f"\n- ".join(why_entries) if why_entries else "Unknown"
-
-                formatted_str.append(
-                    f"Scene -- {data.get('what', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}, current_scene.what\n\n"
-                    f"Characters -- <<<<<<<<<<<< current_scene.{start_or_now}.who.characters\n- {formatted_chars}\n\n"
-                    f"Groups -- <<<<<<<<<<<< current_scene.{start_or_now}.who.groups\n- {formatted_groups}\n\n"
-                    f"When -- {formatted_when}\n\n"
-                    f"Where -- {where} <<<<<<<<<<<< current_scene.{start_or_now}.where\n\n"
-                    f"Why -- <<<<<<<<<<<< current_scene.{start_or_now}.why\n- {formatted_why}"
-                )
-
-            return (
-                f"Current Scene Start --- <<<<<<<<<<<< current_scene.start\n{formatted_str[0]}\n\n"
-                f"Current Scene Now --- <<<<<<<<<<<< current_scene.now\n{formatted_str[1]}"
-            )
-
-        if data_type == "character_list":
-            return "\n".join(
-                f"Character --- {char} <<<<<<<<<<<< characters.{char} (key)\n"
-                f"Relationships --- {', '.join(char_data.get('relationships', {}).keys())} <<<<<<<<<<<< characters.{char}.relationships\n"
-                for char, char_data in data.items()
-            )
-
-        if data_type == "characters_list":
-            return f"[{json.dumps(list(data.keys()), indent=None)}] <<<<<<<<<<<< characters"
-
-        if data_type == "characters":
-            return "\n\n".join(
-                f"Character --- {char} <<<<<<<<<<<< characters.{char} (key)\n"
-                f"Description --- {nl.join(char_data.get('description', []))} <<<<<<<<<<<< characters.{char}.description\n"
-                f"Relationships --- <<<<<<<<<<<< characters.{char}.relationships\n- {f'{nl}- '.join(f'{rel_char}: {json.dumps(rel_data, indent=None)} <<<<<<<<<<<< characters.{char}.{rel_char} (key), characters.{char}.{rel_char}' for rel_char, rel_data in char_data.get('relationships', {}).items())}\n"
-                f"Group Status --- <<<<<<<<<<<< characters.{char}.status\n- {f'{nl}- '.join(f'{group}: {json.dumps(status, indent=None)} <<<<<<<<<<<< characters.{char}.status.{group} (key), characters.{char}.status.{group}' for group, status in char_data.get('status', {}).items())}"
-                for char, char_data in data.items()
-            )
-
-        if data_type == "groups" or data_type == "groups_list":
-            return "\n\n".join(
-                f"Group --- {group} ({', '.join(get_values(group_data.get('aliases', {})))}) <<<<<<<<<<<< groups.{group} (key), groups.{group}.aliases\n"
-                f"Description --- {nl.join(group_data.get('description', []))} <<<<<<<<<<<< groups.{group}.description\n"
-                f"Specific Events --- {', '.join(get_values(group_data.get('events', {})))} <<<<<<<<<<<< groups.{group}.events\n"
-                for group, group_data in data.items()
-            )
-
-        if data_type == "scene" or data_type == "event":  # StoryEvent
-            start = data.get("start", {})
-            end = data.get("end", {})
-            return (
-                f"Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {data_type}.name\n\n"
-                f"Start --- <<<<<<<<<<<< {data_type}.start\n"
-                f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {data_type}.start.date\n"
-                f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {data_type}.start.time, {data_type}.start.specific_time\n\n"
-                f"End --- <<<<<<<<<<<< {data_type}.end\n"
-                f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {data_type}.end.date\n"
-                f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {data_type}.end.time, {data_type}.end.specific_time\n\n"
-                f"Summary --- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {data_type}.summary"
-            )
-
-        if data_type == "events" or data_type == "events_list":
-            formatted_str = []
-            formatted_str.append(
-                "\n\n".join(
-                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< events.past[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< events.past[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< events.past[{i}].summary"
-                    for i, event_data in enumerate_list(data.get("past", []))
-                )
-                or "Empty"
-            )
-
-            formatted_str.append(
-                "\n\n".join(
-                    f"Scene -- {event_data.get('name')} <<<<<<<<<<<< events.scenes[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< events.scenes[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< events.scenes[{i}].summary"
-                    for i, event_data in enumerate_list(data.get("scenes", []))
-                )
-                or "Empty"
-            )
-
-            formatted_str.append(
-                "\n\n".join(
-                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< events.events[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< events.events[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< events.events[{i}].summary"
-                    for i, event_data in enumerate_list(data.get("events", []))
-                )
-                or "Empty"
-            )
-
-            return (
-                f"Past Events --- <<<<<<<<<<<< events.past\n{formatted_str[0]}\n\n"
-                f"Scenes --- <<<<<<<<<<<< events.scenes\n{formatted_str[1]}\n\n"
-                f"Events --- <<<<<<<<<<<< events.events\n{formatted_str[2]}"
-            )
-
-        if data_type == "lines":
-            return "\n".join(data.values())
-
-        return "<EMPTY>"  # str(data)
+            return formatter.format(data, schema_class_name=schema_class_name_for_formatter, type_string_override=data_type)
+        except Exception as e:
+            print(f"{_ERROR}Static: Error using DataFormatter for type '{data_type}': {e}{_RESET}")
+            traceback.print_exc()
+            return f"<Static Error formatting '{data_type}': {e}>"
 
     @property
     def st(self):
