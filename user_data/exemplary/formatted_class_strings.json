@@ -1,0 +1,42 @@
+{
+  "format_templates": {
+    "StoryEvent": {
+      "template": "Scene --- {{name 'Unknown'}} {{@paths}}\n\nStart --- {{@track_key_literal \"start\"}} {{@paths}}\n- Date: {{start.date 'Unknown'}} {{@paths}}\n- Time: {{start.time 'Unknown'}} ({{start.specific_time 'no specific time'}}) {{@paths}}\n\nEnd --- {{@track_key_literal \"end\"}} {{@paths}}\n- Date: {{end.date 'Unknown'}} {{@paths}}\n- Time: {{end.time 'Unknown'}} ({{end.specific_time 'no specific time'}}) {{@paths}}\n\nSummary --- {{summary 'No summary available'}} {{@paths}}"
+    }
+  },
+  "type_string_overrides": {
+    "current_scene": {
+      "template": "Current Scene Start --- {{@track_key_literal \"start\"}} {{@paths}}\n{{#with start}}Scene -- {{../what 'Unknown'}} {{@paths}}\n\nCharacters -- {{@paths}}\n{{#each (get_values who.characters) as |char_data index|}}- {{char_data.name 'Unknown'}} @ {{char_data.location 'Unknown'}} {{@paths}}\n{{else}}- None\n{{/each}}\nGroups -- {{@paths}}\n{{#each (get_values who.groups) as |group_data index|}}- {{group_data.name 'Unknown'}} @ {{group_data.location 'Unknown'}} {{@paths}}\n{{else}}- None\n{{/each}}\nWhen -- {{when.date 'Unknown'}} - {{when.time 'Unknown'}} ({{when.specific_time 'Unknown'}}) {{@paths}}\n\nWhere -- {{where 'Unknown'}} {{@paths}}\n\nWhy -- {{@paths}}\n{{#each (get_values why) as |reason_data index|}}- {{reason_data.name 'Unknown'}} -- {{reason_data.details 'Unknown'}} {{@paths}}\n{{else}}- Unknown\n{{/each}}{{/with}}\n\nCurrent Scene Now --- {{@track_key_literal \"now\"}} {{@paths}}\n{{#with now}}Scene -- {{../what 'Unknown'}} {{@paths}}\n\nCharacters -- {{@paths}}\n{{#each (get_values who.characters) as |char_data index|}}- {{char_data.name 'Unknown'}} @ {{char_data.location 'Unknown'}} {{@paths}}\n{{else}}- None\n{{/each}}\nGroups -- {{@paths}}\n{{#each (get_values who.groups) as |group_data index|}}- {{group_data.name 'Unknown'}} @ {{group_data.location 'Unknown'}} {{@paths}}\n{{else}}- None\n{{/each}}\nWhen -- {{when.date 'Unknown'}} - {{when.time 'Unknown'}} ({{when.specific_time 'Unknown'}}) {{@paths}}\n\nWhere -- {{where 'Unknown'}} {{@paths}}\n\nWhy -- {{@paths}}\n{{#each (get_values why) as |reason_data index|}}- {{reason_data.name 'Unknown'}} -- {{reason_data.details 'Unknown'}} {{@paths}}\n{{else}}- Unknown\n{{/each}}{{/with}}"
+    },
+    "character_list": {
+      "template": "{{#each data as |char_name, char_data|}}Character --- {{char_name}} {{@paths}}\nRelationships --- {{#each char_data.relationships as |rel_key, rel_value|}}{{rel_key}}{{#unless @last}}, {{/unless}}{{else}}None{{/each}} {{@paths}}{{#unless @last}}\n{{/unless}}{{/each}}"
+    },
+    "characters_list": {
+      "template": "[{{#each data as |char_name, char_data|}}\"{{char_name}}\"{{#unless @last}}, {{/unless}}{{/each}}] {{@track_context}}{{@paths}}"
+    },
+    "characters": {
+      "template": "{{#each data as |char_name, char_data|}}Character --- {{char_name}} {{@paths}}\nDescription --- {{#each char_data.description as |line|}}{{line}}{{nl}}{{/each}} {{@paths}}\nRelationships --- {{@paths}}\n{{#each char_data.relationships as |rel_char, rel_data_list|}}- {{rel_char}}: {{#each rel_data_list as |rel_instance|}}{{json_dump rel_instance}}{{#unless @last}}; {{/unless}}{{/each}} {{@paths}}\n{{else}}- None\n{{/each}}Group Status --- {{@paths}}\n{{#each char_data.status as |group_name, status_data|}}- {{group_name}}: {{json_dump status_data}} {{@paths}}\n{{else}}- None\n{{/each}}{{#unless @last}}\n\n{{/unless}}{{/each}}"
+    },
+    "groups": {
+      "template": "{{#each data as |group_name, group_data|}}Group --- {{group_name}} ({{#each (get_values group_data.aliases) as |alias|}}{{alias}}{{#unless @last}}, {{/unless}}{{/each}}) {{@paths}}\nDescription --- {{#each group_data.description as |line|}}{{line}}{{nl}}{{/each}} {{@paths}}\nSpecific Events --- {{#each (get_values group_data.events) as |event_name|}}{{event_name}}{{#unless @last}}, {{/unless}}{{else}}None{{/each}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{/each}}"
+    },
+    "groups_list": {
+      "template": "{{#each data as |group_name, group_data|}}Group --- {{group_name}} ({{#each (get_values group_data.aliases) as |alias|}}{{alias}}{{#unless @last}}, {{/unless}}{{/each}}) {{@paths}}\nDescription --- {{#each group_data.description as |line|}}{{line}}{{nl}}{{/each}} {{@paths}}\nSpecific Events --- {{#each (get_values group_data.events) as |event_name|}}{{event_name}}{{#unless @last}}, {{/unless}}{{else}}None{{/each}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{/each}}"
+    },
+    "scene": {
+      "template": "Scene --- {{name 'Unknown'}} {{@paths}}\n\nStart --- {{@track_key_literal \"start\"}} {{@paths}}\n- Date: {{start.date 'Unknown'}} {{@paths}}\n- Time: {{start.time 'Unknown'}} ({{start.specific_time 'no specific time'}}) {{@paths}}\n\nEnd --- {{@track_key_literal \"end\"}} {{@paths}}\n- Date: {{end.date 'Unknown'}} {{@paths}}\n- Time: {{end.time 'Unknown'}} ({{end.specific_time 'no specific time'}}) {{@paths}}\n\nSummary --- {{summary 'No summary available'}} {{@paths}}"
+    },
+    "event": {
+      "template": "Scene --- {{name 'Unknown'}} {{@paths}}\n\nStart --- {{@track_key_literal \"start\"}} {{@paths}}\n- Date: {{start.date 'Unknown'}} {{@paths}}\n- Time: {{start.time 'Unknown'}} ({{start.specific_time 'no specific time'}}) {{@paths}}\n\nEnd --- {{@track_key_literal \"end\"}} {{@paths}}\n- Date: {{end.date 'Unknown'}} {{@paths}}\n- Time: {{end.time 'Unknown'}} ({{end.specific_time 'no specific time'}}) {{@paths}}\n\nSummary --- {{summary 'No summary available'}} {{@paths}}"
+    },
+    "events": {
+      "template": "Past Events --- {{@track_key_literal \"past\"}} {{@paths}}\n{{#each (get_values past) as |event_data index|}}Event -- {{event_data.name}} {{@paths}}\nWhen -- {{event_data.start.date 'Unknown'}} {{@paths}}\nSummary -- {{event_data.summary 'No summary available'}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{else}}Empty{{/each}}\n\nScenes --- {{@track_key_literal \"scenes\"}} {{@paths}}\n{{#each (get_values scenes) as |event_data index|}}Scene -- {{event_data.name}} {{@paths}}\nWhen -- {{event_data.start.date 'Unknown'}} {{@paths}}\nSummary -- {{event_data.summary 'No summary available'}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{else}}Empty{{/each}}\n\nEvents --- {{@track_key_literal \"events\"}} {{@paths}}\n{{#each (get_values events) as |event_data index|}}Event -- {{event_data.name}} {{@paths}}\nWhen -- {{event_data.start.date 'Unknown'}} {{@paths}}\nSummary -- {{event_data.summary 'No summary available'}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{else}}Empty{{/each}}"
+    },
+    "events_list": {
+      "template": "Past Events --- {{@track_key_literal \"past\"}} {{@paths}}\n{{#each (get_values past) as |event_data index|}}Event -- {{event_data.name}} {{@paths}}\nWhen -- {{event_data.start.date 'Unknown'}} {{@paths}}\nSummary -- {{event_data.summary 'No summary available'}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{else}}Empty{{/each}}\n\nScenes --- {{@track_key_literal \"scenes\"}} {{@paths}}\n{{#each (get_values scenes) as |event_data index|}}Scene -- {{event_data.name}} {{@paths}}\nWhen -- {{event_data.start.date 'Unknown'}} {{@paths}}\nSummary -- {{event_data.summary 'No summary available'}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{else}}Empty{{/each}}\n\nEvents --- {{@track_key_literal \"events\"}} {{@paths}}\n{{#each (get_values events) as |event_data index|}}Event -- {{event_data.name}} {{@paths}}\nWhen -- {{event_data.start.date 'Unknown'}} {{@paths}}\nSummary -- {{event_data.summary 'No summary available'}} {{@paths}}{{#unless @last}}\n\n{{/unless}}{{else}}Empty{{/each}}"
+    },
+    "lines": {
+      "template": "{{#each (get_values data) as |line|}}{{line}}{{#unless @last}}\n{{/unless}}{{/each}}"
+    }
+  }
+}
