@@ -1,4 +1,4 @@
-import json
+import jsonc
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -172,7 +172,7 @@ class StoryContextRetriever:
         if path.exists():
             try:
                 with open(path, "r", encoding="utf-8") as f:
-                    return json.load(f)
+                    return jsonc.load(f)
             except Exception as e:
                 print(f"{_ERROR}Failed to load JSON file {path}: {e}{_RESET}")
                 traceback.print_exc()

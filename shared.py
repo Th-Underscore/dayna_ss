@@ -1,4 +1,4 @@
-import json
+import json, jsonc
 import os
 from typing import TYPE_CHECKING
 
@@ -27,7 +27,7 @@ def load_json_with_fallback(file_path: str) -> dict:
     """
     try:
         with open(file_path, "rt") as handle:
-            content = json.load(handle) or _load_and_save_default(file_path)
+            content = jsonc.load(handle) or _load_and_save_default(file_path)
             print(f"Loaded config from {file_path}")
             return content
     except FileNotFoundError:
@@ -48,7 +48,7 @@ def _load_and_save_default(file_path: str) -> dict:
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     # Load default config
     with open("./extensions/dayna_ss/default_config.json", "rt") as default_handle:
-        default_config = json.load(default_handle)
+        default_config = jsonc.load(default_handle)
     # Save the default config
     with open(file_path, "wt") as handle:
         json.dump(default_config, handle, indent=4)

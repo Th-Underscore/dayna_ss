@@ -1,7 +1,7 @@
 import re
 from typing import Iterable, Any
 from pathlib import Path
-import json
+import json, jsonc
 import traceback
 from functools import reduce
 
@@ -25,7 +25,7 @@ Histories = dict[str, History]
 def load_json(file_path: str | Path, verbose: bool = False) -> dict:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
+            return jsonc.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         if verbose:
             print(f"Warning: Could not load {file_path}, returning empty dict")
@@ -355,19 +355,6 @@ def enumerate_list(data: dict | list):
     return enumerate(data)
 
 
-def strip_json_inline_comments(json_str: str) -> str:
-    """Removes inline comments (starting with //) from a JSON string."""
-    def replacer(match):
-        # If the match starts with '//', it's a comment, so remove it.
-        # Otherwise, it's a string literal, so keep it.
-        if match.group(0).startswith("//"):
-            return ""
-        else:
-            return match.group(0)
-
-    return re.sub(r'"(?:\\.|[^"\\])*"|\/\/.*', replacer, json_str, flags=re.MULTILINE)
-
-
 def strip_json_response(json_str: str) -> str:
     """Remove any markdown formatting from a JSON response, as well as any leading or trailing text."""
     regex_primary = r"^\s*(```|\"\"\")(?:json\s*)?(.*?)\1"
@@ -375,7 +362,7 @@ def strip_json_response(json_str: str) -> str:
     if match:
         return match.group(2).strip()
 
-    return strip_json_inline_comments(json_str).strip()
+    return json_str.strip()
 
 
 def strip_thinking(output: str) -> str:

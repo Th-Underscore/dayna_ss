@@ -1,7 +1,7 @@
 from typing import Any, Generator, TextIO, TYPE_CHECKING
 import hashlib
 import io
-import json
+import json, jsonc
 from contextlib import redirect_stdout, redirect_stderr
 import copy
 from datetime import datetime
@@ -204,7 +204,7 @@ class Summarizer:
                 cleaned_response_text = strip_response(llm_response_text)
 
                 try:
-                    current_populated_data = json.loads(cleaned_response_text)
+                    current_populated_data = jsonc.loads(cleaned_response_text)
                     validation_errors = schema_parser.validate_data(current_populated_data, "CurrentScene")
 
                     if not validation_errors:
@@ -324,7 +324,7 @@ class Summarizer:
         identified_entities = []
         try:
             cleaned_id_response = strip_response(identification_response_text)
-            parsed_entities = json.loads(cleaned_id_response)
+            parsed_entities = jsonc.loads(cleaned_id_response)
             if isinstance(parsed_entities, list):
                 identified_entities = [
                     e for e in parsed_entities if isinstance(e, dict) and "type" in e and "name" in e and "descriptor" in e
@@ -463,7 +463,7 @@ class Summarizer:
                 cleaned_detail_response = strip_response(detail_response_text)
 
                 try:
-                    current_entity_data = json.loads(cleaned_detail_response)
+                    current_entity_data = jsonc.loads(cleaned_detail_response)
                     validation_errors = schema_parser.validate_data(current_entity_data, schema_name_for_prompt)
 
                     if not validation_errors:

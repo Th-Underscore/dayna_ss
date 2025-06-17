@@ -1,6 +1,6 @@
 from pathlib import Path
 import copy
-import json
+import json, jsonc
 import traceback
 import re
 import time
@@ -251,7 +251,7 @@ class DataSummarizer:
 
         new_entry_names = []
         try:
-            parsed_names = json.loads(stripped_response)
+            parsed_names = jsonc.loads(stripped_response)
             if parsed_names and isinstance(parsed_names, list) and all(isinstance(name, str) for name in parsed_names):
                 new_entry_names = parsed_names
                 print(f"{_SUCCESS}Identified potential new entries for '{branch_name}': {new_entry_names}{_RESET}")
@@ -311,7 +311,7 @@ class DataSummarizer:
 
             try:
                 stripped_entry_json = strip_response(llm_entry_response)
-                new_entry_data = json.loads(stripped_entry_json)
+                new_entry_data = jsonc.loads(stripped_entry_json)
                 if isinstance(new_entry_data, dict):
                     current_data_dict[entry_name] = new_entry_data
                     # TODO: Also update formatted_data?
@@ -362,7 +362,7 @@ class DataSummarizer:
         updates: list[dict[str, Any]] = []
         try:
             # Attempt to parse as JSON list
-            parsed_json = json.loads(response_text)
+            parsed_json = jsonc.loads(response_text)
             if isinstance(parsed_json, list):
                 # Validate structure of each item
                 for item in parsed_json:
@@ -389,7 +389,7 @@ class DataSummarizer:
                 value_str = match.group("value").strip()
                 value: Any
                 try:  # Try to interpret value as JSON primitive/object/array first
-                    value = json.loads(value_str)
+                    value = jsonc.loads(value_str)
                 except json.JSONDecodeError:
                     val_lower = value_str.lower()
                     if val_lower == "true":
@@ -622,7 +622,11 @@ class DataSummarizer:
                     context_marker_path_override=item_name_prefix,
                 )
 
-                if updated_branch_data is not None and isinstance(updated_branch_data, dict) and not updated_branch_data is data:
+                if (
+                    updated_branch_data is not None
+                    and isinstance(updated_branch_data, dict)
+                    and not updated_branch_data is data
+                ):
                     print(f"{_SUCCESS}Applying direct branch update to '{branch_name_for_prompt}'.{_RESET}")
                     data.clear()
                     data.update(updated_branch_data)
@@ -1001,7 +1005,7 @@ class DataSummarizer:
                     if expected_type == list or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is list):
                         try:
                             stripped_text = strip_response(text)
-                            parsed_list = json.loads(stripped_text)
+                            parsed_list = jsonc.loads(stripped_text)
                             if isinstance(parsed_list, list):
                                 return parsed_list
                             else:
@@ -1024,7 +1028,7 @@ class DataSummarizer:
                     if expected_type == dict or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is dict):
                         try:
                             stripped_text = strip_response(text)
-                            parsed_dict = json.loads(stripped_text)
+                            parsed_dict = jsonc.loads(stripped_text)
                             if isinstance(parsed_dict, dict):
                                 return parsed_dict
                             else:
@@ -1163,8 +1167,6 @@ class DataSummarizer:
 
         if schema_for_prompt_context:
             try:
-                # Ensure all_definitions_map is correctly passed or accessed if needed by these methods
-                # Assuming self.schema_parser.definitions is the comprehensive map
                 schema_snippet_str = json.dumps(
                     self.schema_parser.get_relevant_definitions_json(schema_for_prompt_context.name), indent=2
                 )
@@ -1178,7 +1180,9 @@ class DataSummarizer:
                 # Keep them as empty strings if generation fails
 
         if formatted_data:
-            branch_list_str = FormattedData(formatted_data.data, f"{item_name}_list").st or "The list is empty! Maybe add some items?"
+            branch_list_str = (
+                FormattedData(formatted_data.data, f"{item_name}_list").st or "The list is empty! Maybe add some items?"
+            )
 
         format_kwargs = {
             "branch_name": item_name,  # 'item_name' often serves as branch_name in templates

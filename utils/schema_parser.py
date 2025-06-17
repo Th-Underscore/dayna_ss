@@ -1,5 +1,5 @@
 import copy
-import json
+import json, jsonc
 import re
 from pathlib import Path
 from typing import Any, Union, get_origin, get_args
@@ -309,7 +309,7 @@ class ParsedSchemaClass:
                     else:  # Fallback for other types if description not used
                         return f"<{field_description}>"
                 if field_obj.default is not None:
-                    return json.loads(json.dumps(field_obj.default))
+                    return jsonc.loads(json.dumps(field_obj.default))
                 if isinstance(field_type, ParsedSchemaClass):
                     return field_type.generate_example_json(all_definitions_map, depth + 1, max_depth)
                 elif field_type is str:
@@ -387,7 +387,7 @@ class SchemaParser:
         """Load the JSON schema file."""
         try:
             with open(self.schema_path, "r", encoding="utf-8") as f:
-                return json.load(f)
+                return jsonc.load(f)
         except FileNotFoundError:
             raise FileNotFoundError(f"Schema file not found: {self.schema_path}")
         except json.JSONDecodeError as e:
