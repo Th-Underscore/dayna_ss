@@ -363,7 +363,8 @@ class Summarizer:
                                 f"2. Be extremely specific, detailing each step.\n"
                                 f"3. You are providing instructions FOR the response, not writing the response itself.\n"
                                 f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
-                                f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n\n"
+                                f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
+                                f"6. CRITICAL: Explicitly include an instruction that the final response MUST NOT contain any formatting (no bold, no italics, no markdown, no bullet points, no headings, etc.). It must be plain text prose.\n\n"
                                 f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                             )
 
@@ -371,7 +372,9 @@ class Summarizer:
                             custom_state["max_new_tokens"] = 2048
                             custom_state["truncation_length"] = 16384
                             custom_state["temperature"] = 0.3
-                            instr, _ = self.generate_using_tgwui(prompt, custom_state)
+                            instr, _ = self.generate_using_tgwui(
+                                prompt, custom_state
+                            )  # TODO: Force start of response via "continue"
                             if shared.stop_everything:
                                 print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
                                 return user_input, state, history_path, None
@@ -403,7 +406,7 @@ class Summarizer:
                     f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
                     f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
                     f"Adhere strictly to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
-                    f"Your reply should be natural-sounding prose. CRITICAL: Do NOT use any unnecessary formatting such as Markdown, bold text, asterisks for emphasis, headings, or titles unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
+                    f"Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
                     f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
                 )
                 encoded_instr_prompt = (
@@ -662,7 +665,17 @@ class Summarizer:
         #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
         # )
         custom_state["context"] = (
-            "The following is a conversation with an AI Large Language Model agent, DAYNA. DAYNA has been trained to answer questions, assist with storywriting, and help with decision making. DAYNA follows system (SYSTEM) requests. DAYNA specializes writing in various styles and tones. DAYNA thinks outside the box."
+            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context."
+            ""
+            "This context is provided in several parts:"
+            "1.  **General Summary:** An overview of the story's world and plot."
+            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate fand relevant context for your next response."
+            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction."
+            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation."
+            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant."
+            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity."
+            ""
+            "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
         )
         custom_state["user_bio"] = ""
         custom_state["max_new_tokens"] = 2048
@@ -932,7 +945,7 @@ class Summarizer:
 
             self.last = SummarizationContextCache(
                 context=(retrieval_context, context_retriever, last_x, last_x_messages),
-                custom_state=custom_state,  # ref
+                custom_state=custom_state,
                 history_path=history_path,
                 original_seed=original_seed,
                 schema_parser=schema_parser,
@@ -1093,7 +1106,17 @@ class Summarizer:
             #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
             # )
             custom_state["context"] = (
-                "The following is a conversation with an AI Large Language Model agent, DAYNA. DAYNA has been trained to answer questions, assist with storywriting, and help with decision making. DAYNA follows system (SYSTEM) requests. DAYNA specializes writing in various styles and tones. DAYNA thinks outside the box."
+                "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context."
+                ""
+                "This context is provided in several parts:"
+                "1.  **General Summary:** An overview of the story's world and plot."
+                "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate fand relevant context for your next response."
+                "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction."
+                "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation."
+                "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant."
+                "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity."
+                ""
+                "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
             )
             custom_state["max_new_tokens"] = 2048
             custom_state["temperature"] = 0.3
@@ -1207,7 +1230,17 @@ class Summarizer:
         #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
         # )  # Just use user instruct
         custom_state["context"] = (
-            "The following is a conversation with an AI Large Language Model agent, DAYNA. DAYNA has been trained to answer questions, assist with storywriting, and help with decision making. DAYNA follows system (SYSTEM) requests. DAYNA specializes writing in various styles and tones. DAYNA thinks outside the box."
+            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context."
+            ""
+            "This context is provided in several parts:"
+            "1.  **General Summary:** An overview of the story's world and plot."
+            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate fand relevant context for your next response."
+            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction."
+            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation."
+            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant."
+            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity."
+            ""
+            "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
         )
         custom_state["max_new_tokens"] = 2048
         custom_state["temperature"] = 0.3

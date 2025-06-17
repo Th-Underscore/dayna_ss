@@ -1,4 +1,5 @@
 import re
+from types import FunctionType
 from typing import Iterable, Any
 from pathlib import Path
 import json, jsonc
@@ -357,11 +358,10 @@ def enumerate_list(data: dict | list):
 
 def strip_json_response(json_str: str) -> str:
     """Remove any markdown formatting from a JSON response, as well as any leading or trailing text."""
-    regex_primary = r"^\s*(```|\"\"\")(?:json\s*)?(.*?)\1"
-    match = re.search(regex_primary, json_str, (re.DOTALL + re.MULTILINE))
-    if match:
-        return match.group(2).strip()
-
+    for regex in (r"^\s*(?:```|\"\"\")(?:\S*)?(.*)(?:```|\"\"\")", r"^(?:[\t ]*\S+[\t ]*)*({.*?^})"):
+        match = re.search(regex, json_str, (re.DOTALL + re.MULTILINE))
+        if match:
+            return match.group(1).strip()
     return json_str.strip()
 
 
@@ -384,41 +384,74 @@ def strip_response(output: str) -> str:
 
 def extract_meaningful_paragraphs(text: str) -> str:
     """
-    Extracts meaningful paragraphs from text, attempting to strip out common LLM-generated bolded titles or headings.
+    Extracts meaningful paragraphs from text, attempting to strip out common
+    LLM-generated conversational filler, titles, and formatting.
     """
     if not text:
         return ""
 
-    # Split into blocks separated by one or more blank lines
-    blocks = re.split(r"\n\s*\n+", text.strip())
+    # 1. Strip leading/trailing quotes that might wrap the whole response
+    processed_text = text.strip()
+    if processed_text.startswith('"') and processed_text.endswith('"'):
+        processed_text = processed_text[1:-1].strip()
 
+    # 2. Remove common conversational intros
+    intro_patterns = [  # TODO: Make these patterns configurable in the UI, including placeholders
+        r"^(Here's|Here is) my response as \"\w+\":\s*\n*",
+        r"^(Of course|Certainly|Here is the response|Here's the story|Here is your story), as requested:\s*\n*",
+    ]
+    for pattern in intro_patterns:
+        processed_text = re.sub(pattern, "", processed_text, flags=re.IGNORECASE)
+
+    # 3. Split into blocks and process each one
+    blocks = re.split(r"\n\s*\n+", processed_text.strip())
     meaningful_blocks = []
 
     for block in blocks:
-        trimmed_block = block.strip()
-        if not trimmed_block:
-            continue  # Skip empty blocks
+        block = block.strip()
+        if not block:
+            continue
 
-        is_likely_bold_title = False
-        # Check if the block is entirely bolded (e.g., **Title**)
-        if trimmed_block.startswith("**") and trimmed_block.endswith("**") and len(trimmed_block) > 4:
-            content_inside_bold = trimmed_block[2:-2].strip()
-            if (
-                content_inside_bold
-                and (
-                    len(content_inside_bold.split()) < 10
-                    or ":" in content_inside_bold
-                    or "paragraph" in content_inside_bold.lower()
-                    or "response" in content_inside_bold.lower()
-                    or "summary" in content_inside_bold.lower()
-                    or "introduction" in content_inside_bold.lower()
-                    or "conclusion" in content_inside_bold.lower()
-                )
-                and len(trimmed_block) < 200
-            ):
-                is_likely_bold_title = True
+        # 4. Strip list markers and bolded titles (e.g., "* **Tactical Movement**:")
+        # This handles cases where the title is on the same line as the paragraph start.
+        block = re.sub(r"^\s*[\*\-]\s*\*\*(.*?)\*\*:\s*", "", block)
 
-        if not is_likely_bold_title:
-            meaningful_blocks.append(trimmed_block)
+        # 5. Identify and discard standalone titles/headings
+        is_likely_title = False
+        if block.startswith("**") and block.endswith("**"):
+            content_inside = block[2:-2].strip()
+            if len(content_inside.split()) < 8 or content_inside.endswith(":"):
+                is_likely_title = True
+
+        if not is_likely_title and len(block.split()) < 8 and block.endswith(":"):
+            is_likely_title = True
+
+        if not is_likely_title:
+            meaningful_blocks.append(block)
 
     return "\n\n".join(meaningful_blocks)
+
+
+def format_str(string: str, **kwargs) -> str:
+    """Format a string with keyword arguments, calling functions as needed.
+
+    Args:
+        string (str): The string to format. It should contain placeholders like {key}.
+
+    Returns:
+        str: The formatted string.
+
+    Examples:
+        >>> format_str("Hello, {name}!", name="John Doe")
+        'Hello, John Doe!'
+        >>> format_str("The result is {result}.", result=lambda: print(42))
+        42  # Only printed if {result} is present.
+        # In a real scenario, the lambda would call a function that returns a value.
+        'The result is None.'
+    """
+    for key, value in kwargs.items():
+        if f"{{{key}}}" in string:
+            if isinstance(value, FunctionType):
+                value = value()
+            string = string.replace(f"{{{key}}}", str(value))
+    return string

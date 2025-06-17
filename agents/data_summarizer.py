@@ -24,6 +24,7 @@ from extensions.dayna_ss.utils.helpers import (
     expand_lists_in_data_for_llm,
     unexpand_lists_in_data_from_llm,
     strip_response,
+    format_str,
 )
 from extensions.dayna_ss.utils.schema_parser import (
     SchemaParser,
@@ -133,7 +134,7 @@ class DataSummarizer:
         # Boolean flags for actions are now handled by event_map.
         return None
 
-    def _is_action_triggered(
+    def _is_action_triggered(  # TODO?: Also accept overrides?
         self,
         schema_definition: ParsedSchemaClass,
         action_name: str,
@@ -1167,21 +1168,20 @@ class DataSummarizer:
 
         if schema_for_prompt_context:
             try:
-                schema_snippet_str = json.dumps(
+                schema_snippet_str = lambda: json.dumps(
                     self.schema_parser.get_relevant_definitions_json(schema_for_prompt_context.name), indent=2
                 )
-                example_json_str = json.dumps(
+                example_json_str = lambda: json.dumps(
                     schema_for_prompt_context.generate_example_json(self.schema_parser.definitions), indent=2
                 )
             except Exception as e:
                 print(
                     f"{_ERROR}Error generating schema snippet or example JSON for {schema_for_prompt_context.name}: {e}{_RESET}"
                 )
-                # Keep them as empty strings if generation fails
 
         if formatted_data:
             branch_list_str = (
-                FormattedData(formatted_data.data, f"{item_name}_list").st or "The list is empty! Maybe add some items?"
+                lambda: FormattedData(formatted_data.data, f"{item_name}_list").st or "The list is empty! Maybe add some items?"
             )
 
         format_kwargs = {
@@ -1195,32 +1195,15 @@ class DataSummarizer:
             "branch_list": branch_list_str,
             "user_input": self.user_input,
             "output": self.output,
-            "exchange": (
-                self.summarizer.format_dialogue(self.custom_state, [[self.user_input, self.output]])
-                if "{exchange}" in prompt_template_str
-                else ""
-            ),
+            "exchange": lambda: self.summarizer.format_dialogue(self.custom_state, [[self.user_input, self.output]]),
         }
         if entry_name is not None:
             format_kwargs["entry_name"] = entry_name
 
         try:
-            # Find all placeholders in the template string
-            placeholders = re.findall(r"\{(\w+)\}", prompt_template_str)
-
-            final_format_kwargs = {k: v for k, v in format_kwargs.items() if k in placeholders}
-
-            # Ensure all placeholders found are in format_kwargs, or provide a default/error
-            for ph in placeholders:
-                if ph not in final_format_kwargs:
-                    print(
-                        f"{_INPUT}Placeholder '{{{ph}}}' in template but not in provided format arguments. Using empty string.{_RESET}"
-                    )
-                    final_format_kwargs[ph] = ""
-
-            return prompt_template_str.format(**final_format_kwargs)
+            return format_str(prompt_template_str, **format_kwargs)
         except KeyError as e:
             print(
-                f"{_ERROR}Missing key in prompt template formatting: {e}. Template: '{prompt_template_str}', Args: {final_format_kwargs}{_RESET}"
+                f"{_ERROR}Missing key in prompt template formatting: {e}. Template: '{prompt_template_str}', Args: {format_kwargs}{_RESET}"
             )
             return f"Update field '{field_name}' for item '{item_name}'. Current value: {value_str}"
