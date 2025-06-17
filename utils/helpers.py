@@ -355,14 +355,27 @@ def enumerate_list(data: dict | list):
     return enumerate(data)
 
 
+def strip_json_inline_comments(json_str: str) -> str:
+    """Removes inline comments (starting with //) from a JSON string."""
+    def replacer(match):
+        # If the match starts with '//', it's a comment, so remove it.
+        # Otherwise, it's a string literal, so keep it.
+        if match.group(0).startswith("//"):
+            return ""
+        else:
+            return match.group(0)
+
+    return re.sub(r'"(?:\\.|[^"\\])*"|\/\/.*', replacer, json_str, flags=re.MULTILINE)
+
+
 def strip_json_response(json_str: str) -> str:
     """Remove any markdown formatting from a JSON response, as well as any leading or trailing text."""
     regex_primary = r"^\s*(```|\"\"\")(?:json\s*)?(.*?)\1"
-    match = re.search(regex_primary, json_str, re.DOTALL)
+    match = re.search(regex_primary, json_str, (re.DOTALL + re.MULTILINE))
     if match:
         return match.group(2).strip()
 
-    return json_str.strip()
+    return strip_json_inline_comments(json_str).strip()
 
 
 def strip_thinking(output: str) -> str:
@@ -373,7 +386,7 @@ def strip_thinking(output: str) -> str:
     if "<think>" in output and "</think>" not in output:
         return ""
 
-    cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=re.DOTALL)
+    cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=(re.DOTALL + re.MULTILINE))
     return cleaned_output.strip()
 
 
