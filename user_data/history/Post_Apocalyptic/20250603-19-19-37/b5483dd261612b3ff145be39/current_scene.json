@@ -1,30 +1,34 @@
 {
-  "what": "The First Incursion",
+  "what": "The First Incursion: Initial Subterranean Assault",
   "start": {
     "who": {
       "characters": [
         {
           "name": "John Jones",
-          "location": "An unsuspecting suburban street"
+          "location": "Unknown, presumed within a bustling cityscape or quiet suburban street"
         }
       ],
       "groups": [
         {
-          "name": "General Population",
-          "location": "Cityscapes and suburban streets globally"
+          "name": "Humanity",
+          "location": "Global, with initial focal points in various cityscapes and suburban areas"
+        },
+        {
+          "name": "Subterraneans",
+          "location": "Emerging from fissures in scattered locations worldwide"
         }
       ]
     },
     "when": {
-      "date": "September 5, 2027",
-      "time": "Midday",
-      "specific_time": "12:53 PM"
+      "date": "September 5th, 2027",
+      "time": "Lunch hour, transitioning to early afternoon",
+      "specific_time": "12:54 PM"
     },
-    "where": "Urban and suburban areas across the globe",
+    "where": "Global, with immediate chaos in cityscapes and suburban areas where Subterraneans first emerge",
     "why": [
       {
         "name": "The First Incursion",
-        "details": "The Subterraneans emerge from the earth in a coordinated assault, marking the beginning of an open war for Earth's survival."
+        "details": "The initial, coordinated assault by the Subterraneans, marking the beginning of a brutal war for Earth's dominance."
       }
     ]
   },
@@ -33,33 +37,33 @@
       "characters": [
         {
           "name": "John Jones",
-          "location": "Amidst the chaos of the incursion"
+          "location": "Unknown, potentially in the midst of chaos or seeking safety"
         }
       ],
       "groups": [
         {
-          "name": "Subterraneans",
-          "location": "Emerging from fissures in the earth"
+          "name": "Humanity",
+          "location": "Scattered, with some in panic, others attempting to respond to the attack"
         },
         {
-          "name": "Civilian Population",
-          "location": "Scattered across affected regions"
+          "name": "Subterraneans",
+          "location": "Continuing to emerge and spread from initial fissure locations"
         }
       ]
     },
     "when": {
-      "date": "September 5, 2027",
-      "time": "Midday",
-      "specific_time": "12:54 PM"
+      "date": "September 5th, 2027",
+      "time": "Early afternoon, immediate aftermath of the initial assault",
+      "specific_time": "Moments after 12:54 PM"
     },
-    "where": "The surface of Earth, with primary conflict zones at fissure sites",
+    "where": "The chaos spreads across the globe, with focal points of destruction and battle in areas where Subterraneans have emerged",
     "why": [
       {
-        "name": "The First Incursion",
-        "details": "The Subterraneans launch a full-scale invasion, overwhelming humanity and initiating a brutal war for the planet."
+        "name": "Survival and Initial Response",
+        "details": "Humanity's scramble to comprehend the situation, seek safety, and muster a response to the Subterranean threat."
       }
     ]
   },
   "_start_message_node": "<INTERNAL_FIELD_DO_NOT_UPDATE>",
-  "start_message_node": "0_0_0"
+  "start_message_node": "1_1_1"
 }

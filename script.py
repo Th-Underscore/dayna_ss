@@ -1,3 +1,4 @@
+import re
 from subprocess import Popen
 import ast
 import html
@@ -25,6 +26,7 @@ from extensions.dayna_ss.utils.helpers import (
     _DEBUG,
     History,
     Histories,
+    extract_meaningful_paragraphs,
 )
 
 params = {"display_name": "DSS", "is_tab": True}
@@ -145,11 +147,7 @@ def handle_output(output: str, state: dict, history: Histories):
     """Generate new history data using input and output after generation."""
     global summarizer, story_rag, _last_generation
 
-    if not dss_shared.persistent_ui_state.get("dss_toggle", True):
-        return
-    if not summarizer or not story_rag:
-        return
-    if not shared.model:
+    if not dss_shared.persistent_ui_state.get("dss_toggle", True) or not summarizer or not story_rag or not shared.model:
         return
 
     print("handle_output")
@@ -334,14 +332,21 @@ def generate_chat_reply(text, state, regenerate=False, _continue=False, loading_
         loading_message=loading_message,
         for_ui=for_ui,
     ):
-        reply: str = history["internal"][-1][1]
-        if reply and not is_final_output:  # Prefix stripping
-            for prefix in banned_prefixes:
-                if prefix.startswith(reply):
-                    continue
-                elif reply.startswith(prefix):
-                    history["internal"][-1][1] = reply[len(prefix) :].lstrip()
+        current_reply_internal: str = history["internal"][-1][1]
+
+        if current_reply_internal and not is_final_output:
+            processed_reply = extract_meaningful_paragraphs(current_reply_internal)
+
+            for prefix_to_strip in banned_prefixes:
+                processed_reply = re.sub(f"^{re.escape(prefix_to_strip)}\s*", "", processed_reply, count=1, flags=re.IGNORECASE)
+
+            history["internal"][-1][1] = processed_reply
+
+        if history["internal"][-1][1] is not None:
             history["visible"][-1][1] = html.escape(history["internal"][-1][1])
+        else:
+            history["visible"][-1][1] = ""
+
         yield history
     is_final_output = False
 

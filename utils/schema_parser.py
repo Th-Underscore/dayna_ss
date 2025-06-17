@@ -535,6 +535,8 @@ class SchemaParser:
         visited: set[str] = set()
         all_definition_keys = set(self.definitions.keys())
 
+        print(f"{_HILITE}Collecting relevant definitions for root definition '{root_definition_name}'...{_RESET}")
+
         if root_definition_name in all_definition_keys:
             queue.append(root_definition_name)
         else:

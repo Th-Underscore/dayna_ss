@@ -367,8 +367,8 @@ def strip_json_response(json_str: str) -> str:
 
 def strip_thinking(output: str) -> str:
     """
-    Exclude the "<think> ... </think>" tags and their content from a response.
-    If <think> is present but </think> is not, returns an empty string.
+    Exclude the "\<think> ... \</think>" tags and their content from a response.
+    If \<think> is present but \</think> is not, returns an empty string.
     """
     if "<think>" in output and "</think>" not in output:
         return ""
@@ -380,3 +380,45 @@ def strip_thinking(output: str) -> str:
 def strip_response(output: str) -> str:
     """Remove the response section from a response."""
     return strip_json_response(strip_thinking(output))
+
+
+def extract_meaningful_paragraphs(text: str) -> str:
+    """
+    Extracts meaningful paragraphs from text, attempting to strip out common LLM-generated bolded titles or headings.
+    """
+    if not text:
+        return ""
+
+    # Split into blocks separated by one or more blank lines
+    blocks = re.split(r"\n\s*\n+", text.strip())
+
+    meaningful_blocks = []
+
+    for block in blocks:
+        trimmed_block = block.strip()
+        if not trimmed_block:
+            continue  # Skip empty blocks
+
+        is_likely_bold_title = False
+        # Check if the block is entirely bolded (e.g., **Title**)
+        if trimmed_block.startswith("**") and trimmed_block.endswith("**") and len(trimmed_block) > 4:
+            content_inside_bold = trimmed_block[2:-2].strip()
+            if (
+                content_inside_bold
+                and (
+                    len(content_inside_bold.split()) < 10
+                    or ":" in content_inside_bold
+                    or "paragraph" in content_inside_bold.lower()
+                    or "response" in content_inside_bold.lower()
+                    or "summary" in content_inside_bold.lower()
+                    or "introduction" in content_inside_bold.lower()
+                    or "conclusion" in content_inside_bold.lower()
+                )
+                and len(trimmed_block) < 200
+            ):
+                is_likely_bold_title = True
+
+        if not is_likely_bold_title:
+            meaningful_blocks.append(trimmed_block)
+
+    return "\n\n".join(meaningful_blocks)
