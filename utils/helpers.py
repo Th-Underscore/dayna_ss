@@ -358,12 +358,12 @@ def enumerate_list(data: dict | list):
 
 # --- LLM response parsing ---
 patterns = (r"{[ \t\S]*(?:}(?![ \t\S]*}))", r"^[ \t]*(?:```|\"\"\")(?:\S*)?.*(?:```|\"\"\")", r"{.*?^}")
-regex = re.compile("|".join(patterns), (re.MULTILINE + re.DOTALL))
+json_regex = re.compile("|".join(patterns), (re.MULTILINE + re.DOTALL))
 
 
 def strip_json_response(json_str: str) -> str:
     """Remove any markdown formatting from a JSON response, as well as any leading or trailing text."""
-    match = re.search(regex, json_str)
+    match = re.search(json_regex, json_str)
     if match:
         return match.group(0)
     return json_str

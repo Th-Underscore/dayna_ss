@@ -1,0 +1,473 @@
+{}
+
+========================== ORIGINAL STATE
+
+{
+  "temperature": 1,
+  "dynatemp_low": 1,
+  "dynatemp_high": 1,
+  "dynatemp_exponent": 1,
+  "smoothing_factor": 0,
+  "smoothing_curve": 1,
+  "min_p": 0.05,
+  "top_p": 1,
+  "top_k": 0,
+  "typical_p": 1,
+  "xtc_threshold": 0.1,
+  "xtc_probability": 0,
+  "epsilon_cutoff": 0,
+  "eta_cutoff": 0,
+  "tfs": 1,
+  "top_a": 0,
+  "top_n_sigma": 0,
+  "dry_multiplier": 0,
+  "dry_allowed_length": 2,
+  "dry_base": 1.75,
+  "repetition_penalty": 1,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "encoder_repetition_penalty": 1,
+  "no_repeat_ngram_size": 0,
+  "repetition_penalty_range": 1024,
+  "penalty_alpha": 0,
+  "guidance_scale": 1,
+  "mirostat_mode": 0,
+  "mirostat_tau": 5,
+  "mirostat_eta": 0.1,
+  "max_new_tokens": 512,
+  "prompt_lookup_num_tokens": 0,
+  "max_tokens_second": 0,
+  "do_sample": true,
+  "dynamic_temperature": false,
+  "temperature_last": false,
+  "auto_max_new_tokens": false,
+  "ban_eos_token": false,
+  "add_bos_token": true,
+  "enable_thinking": false,
+  "skip_special_tokens": true,
+  "stream": true,
+  "static_cache": false,
+  "truncation_length": 16384,
+  "seed": 0,
+  "sampler_priority": "repetition_penalty\npresence_penalty\nfrequency_penalty\ndry\ntop_n_sigma\ntemperature\ndynamic_temperature\nquadratic_sampling\ntop_k\ntop_p\ntypical_p\nepsilon_cutoff\neta_cutoff\ntfs\ntop_a\nmin_p\nmirostat\nxtc\nencoder_repetition_penalty\nno_repeat_ngram",
+  "custom_stopping_strings": "",
+  "custom_token_bans": "",
+  "negative_prompt": "",
+  "dry_sequence_breakers": "\"\\n\", \":\", \"\\\"\", \"*\"",
+  "grammar_string": "",
+  "navigate_message_index": -1,
+  "navigate_direction": "",
+  "navigate_message_role": "",
+  "edit_message_index": -1,
+  "edit_message_text": "",
+  "edit_message_role": "",
+  "branch_index": -1,
+  "enable_web_search": false,
+  "web_search_pages": 3,
+  "history": {
+    "internal": [
+      [
+        "<|BEGIN-VISIBLE-CHAT|>",
+        "How can I help you today?"
+      ]
+    ],
+    "visible": [
+      [
+        "",
+        "How can I help you today?"
+      ]
+    ],
+    "metadata": {
+      "assistant_0": {
+        "timestamp": "Jun 17, 2025 17:22"
+      }
+    }
+  },
+  "search_chat": "",
+  "unique_id": "20250617-17-22-49",
+  "start_with": "",
+  "mode": "chat-instruct",
+  "chat_style": "cai-chat",
+  "chat-instruct_command": "Continue the chat dialogue below. Write a single reply for the character \"DAYNA\". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>",
+  "character_menu": "Assistant",
+  "name2": "AI",
+  "context": "The following is a conversation with an AI Large Language Model. The AI has been trained to answer questions, provide recommendations, and help with decision making. The AI follows user requests. The AI thinks outside the box.",
+  "greeting": "How can I help you today?",
+  "name1": "John Jones",
+  "user_bio": "John Jones is the main character in this story.\nJohn is a 28-year-old man. He has black hair, blue eyes, and an intimidating face.",
+  "custom_system_message": "",
+  "instruction_template_str": "{%- if tools %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- messages[0]['content'] }}\n    {%- else %}\n        {{- 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.' }}\n    {%- endif %}\n    {{- \"\\n\\n# Tools\\n\\nYou may call one or more functions to assist with the user query.\\n\\nYou are provided with function signatures within <tools></tools> XML tags:\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\\n\\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\\n<tool_call>\\n{\\\"name\\\": <function-name>, \\\"arguments\\\": <args-json-object>}\\n</tool_call><|im_end|>\\n\" }}\n{%- else %}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- '<|im_start|>system\\n' + messages[0]['content'] + '<|im_end|>\\n' }}\n    {%- else %}\n        {{- '<|im_start|>system\\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- for message in messages %}\n    {%- if (message.role == \"user\") or (message.role == \"system\" and not loop.first) or (message.role == \"assistant\" and not message.tool_calls) %}\n        {{- '<|im_start|>' + message.role + '\\n' + message.content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {{- '<|im_start|>' + message.role }}\n        {%- if message.content %}\n            {{- '\\n' + message.content }}\n        {%- endif %}\n        {%- for tool_call in message.tool_calls %}\n            {%- if tool_call.function is defined %}\n                {%- set tool_call = tool_call.function %}\n            {%- endif %}\n            {{- '\\n<tool_call>\\n{\"name\": \"' }}\n            {{- tool_call.name }}\n            {{- '\", \"arguments\": ' }}\n            {{- tool_call.arguments | tojson }}\n            {{- '}\\n</tool_call>' }}\n        {%- endfor %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if (loop.index0 == 0) or (messages[loop.index0 - 1].role != \"tool\") %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- message.content }}\n        {{- '\\n</tool_response>' }}\n        {%- if loop.last or (messages[loop.index0 + 1].role != \"tool\") %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n{%- endif %}\n",
+  "chat_template_str": "{%- for message in messages %}\n    {%- if message['role'] == 'system' -%}\n        {%- if message['content'] -%}\n            {{- message['content'] + '\\n\\n' -}}\n        {%- endif -%}\n        {%- if user_bio -%}\n            {{- user_bio + '\\n\\n' -}}\n        {%- endif -%}\n    {%- else -%}\n        {%- if message['role'] == 'user' -%}\n            {{- name1 + ': ' + message['content'] + '\\n'-}}\n        {%- else -%}\n            {{- name2 + ': ' + message['content'] + '\\n' -}}\n        {%- endif -%}\n    {%- endif -%}\n{%- endfor -%}",
+  "textbox-default": "Common sense questions and answers\n\nQuestion: \nFactual answer:",
+  "textbox-notebook": "Common sense questions and answers\n\nQuestion: \nFactual answer:",
+  "prompt_menu-default": "QA",
+  "prompt_menu-notebook": "QA",
+  "output_textbox": "",
+  "filter_by_loader": "llama.cpp",
+  "loader": "llama.cpp",
+  "cpu_memory": 0,
+  "gpu_layers": 49,
+  "threads": 64,
+  "threads_batch": 0,
+  "batch_size": 256,
+  "ctx_size": 16384,
+  "cache_type": "fp16",
+  "tensor_split": "",
+  "extra_flags": "",
+  "streaming_llm": false,
+  "gpu_split": "",
+  "alpha_value": 1,
+  "rope_freq_base": 1000000,
+  "compress_pos_emb": 1,
+  "compute_dtype": "float16",
+  "quant_type": "nf4",
+  "num_experts_per_token": 2,
+  "load_in_8bit": false,
+  "load_in_4bit": false,
+  "torch_compile": false,
+  "flash_attn": true,
+  "use_flash_attention_2": false,
+  "cpu": false,
+  "disk": false,
+  "row_split": false,
+  "no_kv_offload": false,
+  "no_mmap": false,
+  "mlock": false,
+  "numa": true,
+  "use_double_quant": false,
+  "use_eager_attention": false,
+  "bf16": false,
+  "autosplit": false,
+  "enable_tp": false,
+  "no_flash_attn": false,
+  "no_xformers": false,
+  "no_sdpa": false,
+  "cfg_cache": false,
+  "cpp_runner": false,
+  "trust_remote_code": false,
+  "no_use_fast": false,
+  "model_draft": null,
+  "draft_max": 4,
+  "gpu_layers_draft": 256,
+  "device_draft": "",
+  "ctx_size_draft": 0,
+  "show_two_notebook_columns": false,
+  "paste_to_attachment": false,
+  "include_past_attachments": false
+}
+
+==========================
+
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (f0368e61595b83025e7aedec)
+
+The following is a conversation with an AI Large Language Model agent, DAYNA. DAYNA has been trained to answer questions, assist with storywriting, and help with decision making. DAYNA follows system (SYSTEM) requests. DAYNA specializes writing in various styles and tones. DAYNA thinks outside the box.
+
+==========================
+========================== INTERNAL HISTORY (493d6b66a25c84830964e2f9)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+You are an expert data extractor. Based on the provided character context and initial greeting, populate the fields for an initial CurrentScene object. You MUST strictly adhere to the provided JSON schemas. The primary object to generate is 'CurrentScene'. All necessary schema definitions are provided under the 'definitions' key.
+
+Focus on the 'start' state. The 'greeting' often sets the immediate scene. If information for a specific field is not present, use sensible defaults (empty string, empty list, null) or omit the field if optional, ensuring the output strictly adheres to the schema.
+
+Character Context:
+"""
+The following is a conversation with an AI Large Language Model. The AI has been trained to answer questions, provide recommendations, and help with decision making. The AI follows user requests. The AI thinks outside the box.
+"""
+
+Initial Greeting:
+"""
+How can I help you today?
+"""
+
+Complete JSON Schema Definitions (including CurrentScene and all its dependencies):
+```json
+{
+  "definitions": {
+    "CurrentScene": {
+      "type": "object",
+      "properties": {
+        "what": {
+          "type": "string"
+        },
+        "start": {
+          "$ref": "#/definitions/SceneStart"
+        },
+        "now": {
+          "$ref": "#/definitions/SceneNow"
+        },
+        "_start_message_node": {
+          "$ref": "#/definitions/Message"
+        }
+      },
+      "required": [
+        "what",
+        "start",
+        "now",
+        "_start_message_node"
+      ]
+    },
+    "SceneStart": {
+      "$ref": "#/definitions/SceneState"
+    },
+    "SceneNow": {
+      "$ref": "#/definitions/SceneState"
+    },
+    "Message": {
+      "type": "string"
+    },
+    "SceneState": {
+      "type": "object",
+      "properties": {
+        "who": {
+          "$ref": "#/definitions/SceneWho"
+        },
+        "when": {
+          "$ref": "#/definitions/SceneWhen"
+        },
+        "where": {
+          "type": "string"
+        },
+        "why": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SceneWhy"
+          }
+        }
+      },
+      "required": [
+        "who",
+        "when",
+        "where",
+        "why"
+      ]
+    },
+    "SceneWho": {
+      "type": "object",
+      "properties": {
+        "characters": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SceneCharacter"
+          }
+        },
+        "groups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SceneGroup"
+          }
+        }
+      },
+      "required": [
+        "characters",
+        "groups"
+      ]
+    },
+    "SceneWhen": {
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        },
+        "specific_time": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "time",
+        "specific_time"
+      ]
+    },
+    "SceneWhy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "details": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "details"
+      ]
+    },
+    "SceneCharacter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "location"
+      ]
+    },
+    "SceneGroup": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "location"
+      ]
+    }
+  }
+}
+```
+
+Example of the expected JSON structure for CurrentScene:
+```json
+{
+  "what": "A brief summary or title describing the overall current scene or situation.",
+  "start": {
+    "who": {
+      "characters": [
+        {
+          "name": "The name of the character present in the scene.",
+          "location": "The last known location of the character within the scene."
+        }
+      ],
+      "groups": [
+        {
+          "name": "The name of the group present or relevant to the scene.",
+          "location": "The general location or area of operation for the group in the context of the scene."
+        }
+      ]
+    },
+    "when": {
+      "date": "The calendar date of the scene (e.g., 'October 15, 2028').",
+      "time": "A general description of the time of day for the scene (e.g., 'Pre-dawn hours', 'Afternoon').",
+      "specific_time": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
+    },
+    "where": "The primary location or setting for this state of the scene.",
+    "why": [
+      {
+        "name": "A short title or category for the reason/purpose (e.g., 'Mission Preparation').",
+        "details": "A more detailed explanation of the reason, objective, or motivation behind the scene or elements within it."
+      }
+    ]
+  },
+  "now": {
+    "who": {
+      "characters": [
+        {
+          "name": "The name of the character present in the scene.",
+          "location": "The last known location of the character within the scene."
+        }
+      ],
+      "groups": [
+        {
+          "name": "The name of the group present or relevant to the scene.",
+          "location": "The general location or area of operation for the group in the context of the scene."
+        }
+      ]
+    },
+    "when": {
+      "date": "The calendar date of the scene (e.g., 'October 15, 2028').",
+      "time": "A general description of the time of day for the scene (e.g., 'Pre-dawn hours', 'Afternoon').",
+      "specific_time": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
+    },
+    "where": "The primary location or setting for this state of the scene.",
+    "why": [
+      {
+        "name": "A short title or category for the reason/purpose (e.g., 'Mission Preparation').",
+        "details": "A more detailed explanation of the reason, objective, or motivation behind the scene or elements within it."
+      }
+    ]
+  },
+  "_start_message_node": "<INTERNAL_FIELD_DO_NOT_UPDATE>"
+}
+```
+
+Your output must be a single valid JSON object for 'CurrentScene' matching the schema and mirroring the structure of the example.
+
+REMEMBER: Do not add anything else to the response. Only respond with the JSON object.
+
+==========================
+
+```json
+{
+  "what": "Initial Greeting",
+  "start": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "At the entrance of a dimly lit bar"
+        }
+      ],
+      "groups": []
+    },
+    "when": {
+      "date": "Not specified",
+      "time": "Evening",
+      "specific_time": "Not specified"
+    },
+    "where": "A dimly lit bar",
+    "why": [
+      {
+        "name": "Greeting",
+        "details": "John is greeted by the AI, setting the scene for interaction."
+      }
+    ]
+  },
+  "now": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "At the entrance of a dimly lit bar"
+        }
+      ],
+      "groups": []
+    },
+    "when": {
+      "date": "Not specified",
+      "time": "Evening",
+      "specific_time": "Not specified"
+    },
+    "where": "A dimly lit bar",
+    "why": [
+      {
+        "name": "Greeting",
+        "details": "John is greeted by the AI, setting the scene for interaction."
+      }
+    ]
+  },
+  "_start_message_node": "How can I help you today?"
+}
+```
+
+==========================
+
+prompt eval time =    2514.18 ms /  1646 tokens (    1.53 ms per token,   654.69 tokens per second)
+       eval time =    9665.80 ms /   296 tokens (   32.65 ms per token,    30.62 tokens per second)
+      total time =   12179.99 ms /  1942 tokens

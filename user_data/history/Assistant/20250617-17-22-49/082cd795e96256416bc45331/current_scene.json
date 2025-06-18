@@ -1,0 +1,51 @@
+{
+  "what": "Initial Greeting",
+  "start": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "At the entrance of a dimly lit bar"
+        }
+      ],
+      "groups": []
+    },
+    "when": {
+      "date": "Not specified",
+      "time": "Evening",
+      "specific_time": "Not specified"
+    },
+    "where": "A dimly lit bar",
+    "why": [
+      {
+        "name": "Greeting",
+        "details": "John is greeted by the AI, setting the scene for interaction."
+      }
+    ]
+  },
+  "now": {
+    "who": {
+      "characters": [
+        {
+          "name": "John Jones",
+          "location": "At the entrance of a dimly lit bar"
+        }
+      ],
+      "groups": []
+    },
+    "when": {
+      "date": "Not specified",
+      "time": "Evening",
+      "specific_time": "Not specified"
+    },
+    "where": "A dimly lit bar",
+    "why": [
+      {
+        "name": "Greeting",
+        "details": "John is greeted by the AI, setting the scene for interaction."
+      }
+    ]
+  },
+  "_start_message_node": "How can I help you today?",
+  "start_message_node": "1_1_1"
+}

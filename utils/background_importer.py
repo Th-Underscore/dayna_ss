@@ -75,9 +75,9 @@ def get_imported_attribute(module_name: str, attribute_name: str | None = None, 
     Args:
         module_name (str): The name of the module to import (e.g., 'torch').
         attribute_name (str, optional): The name of the attribute to get from the module (e.g., 'no_grad').
-                                     If None, the whole module is returned.
+                                        If None, the whole module is returned.
         timeout (float, optional): Optional timeout in seconds to wait for the import.
-                                If None, waits indefinitely.
+                                   If None, waits indefinitely.
 
     Returns:
         any: The imported attribute or module.

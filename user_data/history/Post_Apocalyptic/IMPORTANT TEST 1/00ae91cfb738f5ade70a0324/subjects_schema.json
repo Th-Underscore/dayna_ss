@@ -75,7 +75,9 @@
         "milestones_desc": "A list of significant achievements, events, or turning points in the character's life."
       },
       "events": {
-        "always": ["query_branch_for_changes"]
+        "always": [
+          "query_branch_for_changes"
+        ]
       }
     },
     "Characters": {
@@ -87,8 +89,12 @@
         "new_field_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new character named '{entry_name}'.\n\nRelevant Schema for a new Character:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Character:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new character."
       },
       "events": {
-        "always": ["perform_gate_check"],
-        "on_new_scene": ["add_new"]
+        "always": [
+          "perform_gate_check"
+        ],
+        "on_new_scene": [
+          "add_new"
+        ]
       }
     },
     "GroupCharacterInfo": {
@@ -130,7 +136,9 @@
         "characters_desc": "Example_Character_In_Group"
       },
       "events": {
-        "always": ["query_branch_for_changes"]
+        "always": [
+          "query_branch_for_changes"
+        ]
       }
     },
     "Groups": {
@@ -142,7 +150,10 @@
         "new_field_entry_prompt_template": "Based on all of the information in the last scene,, generate the full data for the new group named '{entry_name}'.\n\nRelevant Schema for a new Group:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Group:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new group."
       },
       "events": {
-        "always": ["perform_gate_check", "add_new"]
+        "always": [
+          "perform_gate_check",
+          "add_new"
+        ]
       }
     },
     "SceneCharacter": {
@@ -156,7 +167,9 @@
         "location_desc": "The last known location of the character within the scene."
       },
       "events": {
-        "always": ["perform_update"]
+        "always": [
+          "perform_update"
+        ]
       }
     },
     "SceneGroup": {
@@ -170,7 +183,9 @@
         "location_desc": "The general location or area of operation for the group in the context of the scene."
       },
       "events": {
-        "always": ["perform_update"]
+        "always": [
+          "perform_update"
+        ]
       }
     },
     "SceneWho": {
@@ -197,7 +212,9 @@
         "specific_time_desc": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
       },
       "events": {
-        "always": ["perform_update"]
+        "always": [
+          "perform_update"
+        ]
       }
     },
     "SceneWhy": {
@@ -212,7 +229,10 @@
         "update_prompt_template": "Based on the latest exchange, is {item_name}'s {field_name} reason inaccurate or incomplete?\nRelevant Schema for '{field_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{field_name}':\n```json\n{example_json}\n```\nIf yes, respond with the updated reason.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged reason.\n\nCurrent reason:\n\"\"\"{value}\n\"\"\""
       },
       "events": {
-        "always": ["add_new", "perform_update"]
+        "always": [
+          "add_new",
+          "perform_update"
+        ]
       }
     },
     "SceneState": {
@@ -295,7 +315,9 @@
         "summary_desc": "A textual summary describing the key occurrences and outcomes of the event."
       },
       "events": {
-        "always": ["query_branch_for_changes"]
+        "always": [
+          "query_branch_for_changes"
+        ]
       }
     },
     "StoryEvents": {
@@ -306,7 +328,9 @@
         "new_field_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event."
       },
       "events": {
-        "on_new_scene": ["add_new"]
+        "on_new_scene": [
+          "add_new"
+        ]
       }
     },
     "Events": {
@@ -323,7 +347,9 @@
         "events_desc": "Example_Major_Story_Event"
       },
       "events": {
-        "always": ["perform_gate_check"]
+        "always": [
+          "perform_gate_check"
+        ]
       }
     }
   },

@@ -58,6 +58,9 @@ _last_generation = {}
 
 
 def chat_input_modifier(text: str, visible_text: str, state: dict):
+    if not dss_shared.persistent_ui_state.get("dss_toggle", True):
+        return text, visible_text
+    
     next_scene_prefix = "NEXT SCENE:"
 
     if summarizer and not summarizer.last:
