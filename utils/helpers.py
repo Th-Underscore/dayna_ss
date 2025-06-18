@@ -356,13 +356,17 @@ def enumerate_list(data: dict | list):
     return enumerate(data)
 
 
+# --- LLM response parsing ---
+patterns = (r"{[ \t\S]*(?:}(?![ \t\S]*}))", r"^[ \t]*(?:```|\"\"\")(?:\S*)?.*(?:```|\"\"\")", r"{.*?^}")
+regex = re.compile("|".join(patterns), (re.MULTILINE + re.DOTALL))
+
+
 def strip_json_response(json_str: str) -> str:
     """Remove any markdown formatting from a JSON response, as well as any leading or trailing text."""
-    for regex in (r"^\s*(?:```|\"\"\")(?:\S*)?(.*)(?:```|\"\"\")", r"^(?:[\t ]*\S+[\t ]*)*({.*?^})"):
-        match = re.search(regex, json_str, (re.DOTALL + re.MULTILINE))
-        if match:
-            return match.group(1).strip()
-    return json_str.strip()
+    match = re.search(regex, json_str)
+    if match:
+        return match.group(0)
+    return json_str
 
 
 def strip_thinking(output: str) -> str:
@@ -373,7 +377,7 @@ def strip_thinking(output: str) -> str:
     if "<think>" in output and "</think>" not in output:
         return ""
 
-    cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=(re.DOTALL + re.MULTILINE))
+    cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=(re.MULTILINE + re.DOTALL))
     return cleaned_output.strip()
 
 
