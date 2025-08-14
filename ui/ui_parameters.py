@@ -2,10 +2,10 @@ from pathlib import Path
 
 import gradio as gr
 
-from modules import loaders, presets, shared, ui
+from modules import presets, shared, ui
 
 import extensions.dayna_ss.shared as dss_shared
-from extensions.dayna_ss.ui import ui_chat, utils
+from extensions.dayna_ss.ui import loaders, ui_chat, utils
 from extensions.dayna_ss.ui.utils import gradio
 
 dss_path = Path(__file__).parent
