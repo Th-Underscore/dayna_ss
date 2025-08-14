@@ -1,5 +1,6 @@
 import copy
-import json, jsonc
+import json
+import jsonc
 import re
 from pathlib import Path
 from typing import Any, Union, get_origin, get_args
@@ -203,8 +204,7 @@ class ParsedSchemaClass:
                     field_type = field_obj.type
                     field_name = field_obj.name
                     # Try to get description from parent class's defaults to use as example value
-                    field_description_key = f"{field_name}_desc"
-                    field_description = self.defaults.get(field_description_key)
+                    field_description = self.defaults.get(f"{field_name}_desc")
 
                     if field_description is not None:
                         if field_type is str or field_type is int or field_type is float or field_type is bool:
@@ -258,8 +258,7 @@ class ParsedSchemaClass:
                                 example_obj[field_name] = [f"<example_for_{str(item_type)}>"]
                         elif origin is dict and len(args) == 2:
                             # Determine the example key using the field's description if available
-                            field_description_for_key_lookup = f"{field_name}_desc"
-                            field_description_as_key = self.defaults.get(field_description_for_key_lookup)
+                            field_description_as_key = self.defaults.get(f"{field_name}_desc")
                             key_example = (
                                 str(field_description_as_key)
                                 if field_description_as_key is not None

@@ -1,6 +1,7 @@
 from pathlib import Path
 import copy
-import json, jsonc
+import json
+import jsonc
 import traceback
 import re
 import time
@@ -77,6 +78,7 @@ class DataSummarizer:
     ):
         """
         Gets an effective setting value, primarily for prompt templates.
+
         Priority:
         1. Direct override for base_setting_name in data._overrides.
         2. For templates, field-specific override in data._overrides (e.g., description_prompt_template).
@@ -111,18 +113,14 @@ class DataSummarizer:
             field_specific_schema_key = f"{field_name_context}_prompt_template"
             if field_specific_schema_key in schema_definition.defaults:
                 return schema_definition.defaults[field_specific_schema_key]
-            # If field-specific not in defaults, and schema_attr_value (general template) exists, return it
-            if schema_attr_value is not None:  # General template from attribute
+            if schema_attr_value is not None:
                 return schema_attr_value
-            # If general template also not an attribute, check defaults for general template
-            if base_setting_name in schema_definition.defaults:  # General template from defaults
+            if base_setting_name in schema_definition.defaults:
                 return schema_definition.defaults[base_setting_name]
 
         # 5. If not a field-specific template context, or if it was but not found:
-        #    Return the schema attribute value (if any)
         if schema_attr_value is not None:
             return schema_attr_value
-        #    Else, check the defaults dictionary for the base setting name.
         if base_setting_name in schema_definition.defaults:
             return schema_definition.defaults[base_setting_name]
 
@@ -130,7 +128,6 @@ class DataSummarizer:
         if base_setting_name.endswith("_prompt_template"):
             return None
 
-        # For other non-template settings not found, None is a safe default.
         # Boolean flags for actions are now handled by event_map.
         return None
 
@@ -241,6 +238,7 @@ class DataSummarizer:
             state=self.custom_state or {},
             history_path=self.history_path,
             stopping_strings=query_stopping_strings,
+            match_prefix_only=True,
         )
 
         if shared.stop_everything:
@@ -286,10 +284,6 @@ class DataSummarizer:
                 return
             print(f"{_INPUT}Generating data for new entry '{entry_name}' in '{branch_name}'...{_RESET}")
 
-            # Create a temporary, minimal state for generating this single new entry
-            # This helps the LLM focus on generating just this entry from scratch.
-            # We pass the overall formatted_data for context, but the prompt targets the new entry.
-
             entry_generation_prompt = self._create_update_prompt(
                 item_name=branch_name,
                 field_name="",  # Not updating a sub-field of the new entry yet
@@ -300,10 +294,9 @@ class DataSummarizer:
                 keys=keys,
             )
 
-            # For generating a new entry, we don't mark a specific field in the existing data.
             llm_entry_response, _ = self.summarizer.generate_using_tgwui(
                 prompt=entry_generation_prompt,
-                state=self.custom_state or {},  # Use current custom state
+                state=self.custom_state or {},
                 history_path=self.history_path,
                 # No specific stopping strings here, expect full JSON
             )
@@ -326,7 +319,6 @@ class DataSummarizer:
                     f"{_ERROR}Failed to parse LLM response for new entry '{entry_name}' in '{branch_name}' as JSON: {llm_entry_response}{_RESET}"
                 )
 
-        recursive_set(formatted_data.data, keys, current_data_dict)
         recursive_set(formatted_data.data, keys, current_data_dict)
 
     # --- Helper methods for parsing and applying LLM updates ---
@@ -560,6 +552,7 @@ class DataSummarizer:
                     state=current_custom_state,
                     history_path=self.history_path,
                     stopping_strings=[*stopping_strings, "YES"],
+                    match_prefix_only=True,
                 )
                 if shared.stop_everything:
                     return updated_fields
@@ -611,7 +604,7 @@ class DataSummarizer:
 
             if current_prompt_template_str:
                 # We expect the LLM to return the entire dictionary for 'data'
-                updated_branch_data = self._get_llm_update_for_value(
+                updated_branch_data = self._generate_field_update(
                     item_name_prefix=item_name_prefix,
                     field_name="",  # Not a sub-field, but the branch itself
                     current_value=data,
@@ -671,6 +664,7 @@ class DataSummarizer:
                     state=current_custom_state,
                     history_path=self.history_path,
                     stopping_strings=[*query_stopping_strings, "YES"],
+                    match_prefix_only=True,
                 )
                 if shared.stop_everything:
                     return updated_fields
@@ -689,12 +683,13 @@ class DataSummarizer:
                     f"{_INPUT}Query for '{branch_name_for_prompt}' suggests changes. Requesting field updates list...{_RESET}"
                 )
                 branch_update_list_full_prompt = f"Current context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix)}\n\n{branch_update_prompt}"
-                update_stopping_strings = ["NO_UPDATES_REQUIRED", "END_OF_UPDATES"]
+                update_stopping_strings = ["NO", "END"]
                 llm_update_response_text, _ = self.summarizer.generate_using_tgwui(
                     prompt=branch_update_list_full_prompt,
                     state=current_custom_state,
                     history_path=self.history_path,
                     stopping_strings=update_stopping_strings,
+                    match_prefix_only=True,
                 )
                 if shared.stop_everything:
                     return updated_fields
@@ -722,37 +717,26 @@ class DataSummarizer:
         # --- END: Branch Query Logic ---
 
         fields_to_iterate = []
-        if target_schema_class.definition_type == "dataclass":
-            fields_to_iterate = target_schema_class.get_fields()
-        elif target_schema_class.definition_type == "field" and isinstance(target_schema_class._field.type, ParsedSchemaClass):
-            if target_schema_class._field.type.definition_type == "dataclass":
-                print(f"{_HILITE}{target_schema_class.name}{_GRAY}: {_RESET}{updated_fields}")
-                effective_child_schema = copy.copy(target_schema_class._field.type)
-                for attr_name in defaults_to_inherit:
-                    if getattr(effective_child_schema, attr_name, None) is None:
-                        parent_template_value = getattr(target_schema_class, attr_name, None)
-                        if parent_template_value is not None:
-                            setattr(effective_child_schema, attr_name, parent_template_value)
-                            effective_child_schema.defaults[attr_name] = parent_template_value
-                updated_fields.update(
-                    self._update_recursive(
-                        item_name_prefix,
-                        data,
-                        formatted_data,
-                        original_data,
-                        effective_child_schema,
-                        target_schema_class,
-                        keys,
-                    )
-                )
+        if target_schema_class.definition_type == "field":
+            target_schema_class = self._inherit_defaults_from_parent(
+                target_schema_class._field.type, target_schema_class, defaults_to_inherit
+            )
+            target_schema_class = self._retrieve_final_nested_field_class(target_schema_class, defaults_to_inherit)
+        fields_to_iterate = target_schema_class.get_fields()
 
         if not isinstance(data, dict):
             return updated_fields
 
         for field in fields_to_iterate:
             field_name = field.name
-            field_type = field.type
 
+            if isinstance(field.type, ParsedSchemaClass) and field.type.definition_type == "field":
+                field_class = self._inherit_defaults_from_parent(field.type, target_schema_class, defaults_to_inherit)
+                nested_field_class = self._retrieve_final_nested_field(field_class, defaults_to_inherit)
+                print(f"{_HILITE}Nested field '{field_name}' (type: {nested_field_class}){_RESET}")
+                field = nested_field_class
+
+            field_type = field.type
             current_item_name = f"{item_name_prefix}.{field_name}"
 
             if field.no_update:
@@ -794,18 +778,14 @@ class DataSummarizer:
                 value_type = field_args[1] if len(field_args) > 1 else Any
                 if isinstance(value_type, ParsedSchemaClass) and isinstance(field_value, dict):
                     # Dictionary of nested schema classes
-                    updated_dict_items = {}
                     for k, v_dict in field_value.items():
                         if isinstance(v_dict, dict):
-                            # Prepare child schema with inherited templates
-                            effective_child_schema = copy.copy(value_type)
-
-                            for attr_name in defaults_to_inherit:
-                                if getattr(effective_child_schema, attr_name, None) is None:
-                                    parent_template_value = getattr(target_schema_class, attr_name, None)
-                                    if parent_template_value is not None:
-                                        setattr(effective_child_schema, attr_name, parent_template_value)
-                                        effective_child_schema.defaults[attr_name] = parent_template_value
+                            effective_child_schema = self._inherit_defaults_from_parent(
+                                value_type, target_schema_class, defaults_to_inherit
+                            )
+                            effective_child_schema = self._retrieve_final_nested_field_class(
+                                effective_child_schema, defaults_to_inherit
+                            )
 
                             updated_item = self._update_recursive(
                                 f"{current_item_name}.{k}",
@@ -817,23 +797,22 @@ class DataSummarizer:
                                 keys=[*keys, field_name, k],
                             )
                             if updated_item:
-                                v_dict.update(updated_item)  # Update nested dict in place
-                                updated_dict_items[k] = v_dict  # Track changes if needed, though modification is in-place
+                                v_dict.update(updated_item)
                         else:
                             print(f"{_INPUT}Skipping non-dict value in dict field {current_item_name}: {k}={v_dict}{_RESET}")
                 else:
-                    # Regular dictionary (or dict where value is not a schema class) - update as a whole field
+                    # Regular dictionary (dict where value is not a schema class) - update as a whole field
                     updated_value = self._update_field(
-                        item_name_prefix,  # parent_item_name_prefix for _update_field
-                        data,  # parent_data_object for _update_field
+                        item_name_prefix,
+                        data,
                         field_name,
                         field_value,
                         formatted_data,
-                        target_schema_class,  # parent_schema_class for _update_field
-                        field,  # field_schema for _update_field
+                        target_schema_class,
+                        field,
                         keys,
                     )
-                    if updated_value is not None and updated_value != field_value:  # Check for actual change
+                    if updated_value is not None and updated_value != field_value:
                         updated_fields[field_name] = updated_value
 
             elif field_origin is list:
@@ -841,21 +820,17 @@ class DataSummarizer:
                 item_type = field_args[0] if field_args else Any
                 if isinstance(item_type, ParsedSchemaClass) and isinstance(field_value, list):
                     # List of nested schema classes
-                    updated_list_items = []
                     for i, item_dict in enumerate(field_value):
                         if isinstance(item_dict, dict):
-                            # Prepare child schema with inherited templates
-                            effective_child_schema = copy.copy(item_type)
-
-                            for attr_name in defaults_to_inherit:
-                                if getattr(effective_child_schema, attr_name, None) is None:
-                                    parent_template_value = getattr(target_schema_class, attr_name, None)
-                                    if parent_template_value is not None:
-                                        setattr(effective_child_schema, attr_name, parent_template_value)
-                                        effective_child_schema.defaults[attr_name] = parent_template_value
+                            effective_child_schema = self._inherit_defaults_from_parent(
+                                item_type, target_schema_class, defaults_to_inherit
+                            )
+                            effective_child_schema = self._retrieve_final_nested_field_class(
+                                effective_child_schema, defaults_to_inherit
+                            )
 
                             updated_item = self._update_recursive(
-                                f"{current_item_name}[{i}]",  # Pass the full path as prefix
+                                f"{current_item_name}[{i}]",
                                 item_dict,
                                 formatted_data,
                                 original_data,
@@ -864,41 +839,32 @@ class DataSummarizer:
                                 keys=[*keys, field_name, i],
                             )
                             if updated_item:
-                                item_dict.update(updated_item)  # Update item dict in place
-                                updated_list_items.append(item_dict)  # Track changes if needed
+                                item_dict.update(updated_item)
                         else:
                             print(
                                 f"{_INPUT}Skipping non-dict item in list field {current_item_name}: index {i}={item_dict}{_RESET}"
                             )
-                    # Similar to dict, in-place modification assumed sufficient.
                 else:
-                    # Regular list (or list where item is not a schema class) - update as a whole field
+                    # Regular list (list where item is not a schema class) - update as a whole field
                     updated_value = self._update_field(
-                        item_name_prefix,  # parent_item_name_prefix for _update_field
-                        data,  # parent_data_object for _update_field
+                        item_name_prefix,
+                        data,
                         field_name,
                         field_value,
                         formatted_data,
-                        target_schema_class,  # parent_schema_class for _update_field
-                        field,  # field_schema for _update_field
+                        target_schema_class,
+                        field,
                         keys,
                     )
                     if updated_value is not None and updated_value != field_value:
                         updated_fields[field_name] = updated_value
 
-            elif isinstance(field_type, ParsedSchemaClass) and isinstance(field_value, dict):
+            elif isinstance(field_type, ParsedSchemaClass):
                 # Nested single schema class
-
-                # Prepare child schema with inherited templates
-                original_child_schema = field_type
-                effective_child_schema = copy.deepcopy(original_child_schema)
-
-                for attr_name in defaults_to_inherit:
-                    if getattr(effective_child_schema, attr_name, None) is None:
-                        parent_template_value = getattr(target_schema_class, attr_name, None)
-                        if parent_template_value is not None:
-                            setattr(effective_child_schema, attr_name, parent_template_value)
-                            effective_child_schema.defaults[attr_name] = parent_template_value
+                effective_child_schema = self._inherit_defaults_from_parent(
+                    field_type, target_schema_class, defaults_to_inherit
+                )
+                effective_child_schema = self._retrieve_final_nested_field_class(effective_child_schema, defaults_to_inherit)
 
                 updated_nested_fields = self._update_recursive(
                     current_item_name,
@@ -925,12 +891,76 @@ class DataSummarizer:
                     keys,
                 )
                 # Check if value actually changed to avoid unnecessary updates
-                if updated_value is not None and updated_value != field_value:
+                if updated_value:
                     updated_fields[field_name] = updated_value
 
         return updated_fields  # Return dict of fields that were actually updated at this level
 
-    def _get_llm_update_for_value(
+    def _retrieve_final_nested_field(
+        self,
+        target_schema_class: ParsedSchemaClass,
+        defaults_to_inherit: list[str] | None = None,
+    ):
+        """Recursively retrieve the final nested field from a schema field class.
+
+        Example:
+            ParsedSchemaClass._field[ParsedSchemaClass._field[ParsedSchemaClass._fields[str, int]]] => ParsedSchemaClass._field[ParsedSchemaClass._fields[str, int]]
+        """
+        effective_child_schema = target_schema_class
+        while (
+            effective_child_schema.definition_type == "field"
+            and isinstance(effective_child_schema._field.type, ParsedSchemaClass)
+            and effective_child_schema._field.type.definition_type == "field"
+        ):
+            effective_child_schema = self._inherit_defaults_from_parent(
+                effective_child_schema._field.type, effective_child_schema, defaults_to_inherit
+            )
+
+        return effective_child_schema._field
+
+    def _retrieve_final_nested_field_class(
+        self,
+        target_schema_class: ParsedSchemaClass,
+        defaults_to_inherit: list[str] | None = None,
+    ):
+        """Recursively retrieve the final nested field class from a schema field class.
+
+        Example:
+            ParsedSchemaClass._field[ParsedSchemaClass._field[ParsedSchemaClass._fields[str, int]]] => ParsedSchemaClass._fields[str, int]
+        """
+        effective_child_schema = target_schema_class
+        while effective_child_schema.definition_type == "field" and isinstance(
+            effective_child_schema._field.type, ParsedSchemaClass
+        ):
+            effective_child_schema = self._inherit_defaults_from_parent(
+                effective_child_schema._field.type, effective_child_schema, defaults_to_inherit
+            )
+
+        return effective_child_schema
+
+    def _inherit_defaults_from_parent(
+        self,
+        child_schema_class: ParsedSchemaClass,
+        parent_schema_class: ParsedSchemaClass,
+        defaults_to_inherit: list[str] | None = None,
+    ):
+        """Inherit default values from parent schema class to child schema class."""
+        effective_child_schema = copy.copy(child_schema_class)
+        effective_child_schema.defaults = copy.copy(child_schema_class.defaults)
+
+        if defaults_to_inherit:
+            for attr_name in defaults_to_inherit:
+                if getattr(effective_child_schema, attr_name, None) is None:
+                    parent_template_value = getattr(parent_schema_class, attr_name, None)
+                    if parent_template_value is not None:
+                        setattr(effective_child_schema, attr_name, parent_template_value)
+                        effective_child_schema.defaults[attr_name] = parent_template_value
+        else:
+            effective_child_schema.defaults.update(parent_schema_class.defaults)
+
+        return effective_child_schema
+
+    def _generate_field_update(
         self,
         item_name_prefix: str,
         field_name: str,
@@ -1003,6 +1033,7 @@ class DataSummarizer:
                         return float(text)
                     if expected_type == bool:
                         return text.strip().lower() in ["true", "yes", "1"]
+                    stripped_text = ""
                     if expected_type == list or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is list):
                         try:
                             stripped_text = strip_response(text)
@@ -1011,7 +1042,7 @@ class DataSummarizer:
                                 return parsed_list
                             else:
                                 print(
-                                    f"{_ERROR}LLM response for list field {context_path_for_marker} was valid JSON but not a list: '{text}'{_RESET}"
+                                    f"{_ERROR}LLM response for list field {context_path_for_marker} was valid JSON but not a list: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
                                 )
                                 return current_value  # Fallback to original
                         except json.JSONDecodeError:
@@ -1023,7 +1054,7 @@ class DataSummarizer:
                             if is_list_of_str:
                                 return [item.strip() for item in text.split(",")]
                             print(
-                                f"{_ERROR}LLM response for list field {context_path_for_marker} is not valid JSON and type is not list[str]: '{text}'{_RESET}"
+                                f"{_ERROR}LLM response for list field {context_path_for_marker} is not valid JSON and type is not list[str]: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
                             )
                             return current_value
                     if expected_type == dict or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is dict):
@@ -1034,12 +1065,12 @@ class DataSummarizer:
                                 return parsed_dict
                             else:
                                 print(
-                                    f"{_ERROR}LLM response for dict field {context_path_for_marker} was valid JSON but not a dict: '{text}'{_RESET}"
+                                    f"{_ERROR}LLM response for dict field {context_path_for_marker} was valid JSON but not a dict: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
                                 )
                                 return current_value
                         except json.JSONDecodeError:
                             print(
-                                f"{_ERROR}LLM response for dict field {context_path_for_marker} is not valid JSON: '{text}'{_RESET}"
+                                f"{_ERROR}LLM response for dict field {context_path_for_marker} is not valid JSON: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
                             )
                             return current_value
                     return text
@@ -1051,7 +1082,7 @@ class DataSummarizer:
             else:
                 return current_value
         except Exception as e:
-            print(f"{_ERROR}Error in _get_llm_update_for_value for {item_name_prefix}.{field_name}: {e}{_RESET}")
+            print(f"{_ERROR}Error in _generate_field_update for {item_name_prefix}.{field_name}: {e}{_RESET}")
             traceback.print_exc()
             return current_value
 
@@ -1066,7 +1097,7 @@ class DataSummarizer:
         field_schema: ParsedSchemaField,
         keys: list = [],
     ) -> Any:
-        """Update a single field using the _get_llm_update_for_value method.
+        """Update a single field using the _generate_field_update method.
         Checks for overrides in parent_data_object for prompt templates.
         Determines the schema context for the prompt.
 
@@ -1091,8 +1122,8 @@ class DataSummarizer:
             prompt_template = (
                 f"Based on the most recent exchange, is the field '{{field_name}}' for item '{{item_name}}' inaccurate or incomplete?\n\n"
                 f"Current value:\n```\n{{value}}\n```\n\n"
-                f"Relevant Schema for '{{field_name}}':\n```json\n{{schema_snippet}}\n```\n"
-                f"Example JSON structure for '{{field_name}}':\n```json\n{{example_json}}\n```\n"
+                f"Relevant Schema for '{{field_name}}':\n```json\n{{schema_snippet}}\n```\n\n"
+                f"Example JSON structure for '{{field_name}}':\n```json\n{{example_json}}\n```\n\n"
                 f"If yes, respond with the updated value for '{{field_name}}'.\n"
                 f'If no, respond "unchanged".\n'
                 f'If unsure, respond "unchanged".\n\n'
@@ -1106,7 +1137,7 @@ class DataSummarizer:
         if isinstance(field_schema.type, ParsedSchemaClass):
             schema_for_context = field_schema.type
 
-        return self._get_llm_update_for_value(
+        return self._generate_field_update(
             item_name_prefix=parent_item_name_prefix,
             field_name=field_name,
             current_value=field_value,
@@ -1171,9 +1202,11 @@ class DataSummarizer:
                 schema_snippet_str = lambda: json.dumps(
                     self.schema_parser.get_relevant_definitions_json(schema_for_prompt_context.name), indent=2
                 )
+
                 example_json_str = lambda: json.dumps(
                     schema_for_prompt_context.generate_example_json(self.schema_parser.definitions), indent=2
                 )
+
             except Exception as e:
                 print(
                     f"{_ERROR}Error generating schema snippet or example JSON for {schema_for_prompt_context.name}: {e}{_RESET}"
@@ -1185,8 +1218,8 @@ class DataSummarizer:
             )
 
         format_kwargs = {
-            "branch_name": item_name,  # 'item_name' often serves as branch_name in templates
-            "item_name": item_name,  # For field-level prompts
+            "branch_name": item_name,
+            "item_name": item_name,
             "field_name": field_name,
             "value": value_str,
             "keys": keys or [],
