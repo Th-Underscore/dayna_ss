@@ -1,7 +1,8 @@
 from typing import Any, Generator, TextIO, TYPE_CHECKING
 import hashlib
 import io
-import json, jsonc
+import json
+import jsonc
 from contextlib import redirect_stdout, redirect_stderr
 import copy
 from datetime import datetime
@@ -115,16 +116,16 @@ class Summarizer:
         **kwargs,
     ) -> tuple[str, str]:
         """Generate a message using TGWUI's shared model.
-        Z
-                Args:
-                    prompt (str): The prompt to give to the LLM.
-                    state (dict): The state dictionary to generate context with.
-                    history_path (Path, optional): The history path.
-                    stopping_strings (list[str], optional): The optional stopping strings.
-                    match_prefix_only (bool, optional): Whether to match prefix only for stopping strings.
 
-                Returns:
-                    out (tuple[str, str]): A tuple of (response_text, stop_reason)
+        Args:
+            prompt (str): The prompt to give to the LLM.
+            state (dict): The state dictionary to generate context with.
+            history_path (Path, optional): The history path.
+            stopping_strings (list[str], optional): The optional stopping strings.
+            match_prefix_only (bool, optional): Whether to match prefix only for stopping strings.
+
+        Returns:
+            out (tuple[str, str]): A tuple of (response_text, stop_reason)
         """
         if not history_path:
             history_path = self.last.history_path
@@ -364,12 +365,13 @@ class Summarizer:
                                 f"3. You are providing instructions FOR the response, not writing the response itself.\n"
                                 f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
                                 f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
-                                f"6. CRITICAL: Explicitly include an instruction that the final response MUST NOT contain any formatting (no bold, no italics, no markdown, no bullet points, no headings, etc.). It must be plain text prose.\n\n"
+                                f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
+                                f"7. CRITICAL: Explicitly include an instruction that the final response MUST NOT contain any formatting (no bold, no italics, no markdown, no bullet points, no headings, etc.). It must be plain text prose.\n\n"
                                 f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                             )
 
                             # TODO: Get these from config (ui_parameters)
-                            custom_state["max_new_tokens"] = 2048
+                            custom_state["auto_max_new_tokens"] = True
                             custom_state["truncation_length"] = 16384
                             custom_state["temperature"] = 0.3
                             instr, _ = self.generate_using_tgwui(
@@ -587,12 +589,11 @@ class Summarizer:
                 context_retriever = self.last.context[1]
                 chunker_instance = context_retriever.chunker
 
-                print(events_data)
                 # Process scenes from events_data
                 for scene_info in get_values(events_data.get("scenes", [])):
                     scene_id = scene_info.get("name")
-                    scene_start_node = [int(node) for node in scene_info.get("start", {}).get("message_node", "").split("_")]
-                    scene_end_node = [int(node) for node in scene_info.get("end", {}).get("message_node", "").split("_")]
+                    scene_start_node = [int(node) if node else None for node in scene_info.get("start", {}).get("_message_node", "").split("_") if node]
+                    scene_end_node = [int(node) if node else None for node in scene_info.get("end", {}).get("_message_node", "").split("_") if node]
                     scene_messages_ranges = [scene_start_node, scene_end_node]
                     if scene_id and scene_messages_ranges:
                         # Flatten the message ranges to get individual message indices
@@ -611,7 +612,6 @@ class Summarizer:
 
                 # Process events from events_data
                 for event_info in get_values(events_data.get("events", [])):
-                    print("event_info", event_info)
                     event_id = event_info.get("name")  # Assuming name is the ID
                     event_messages_ranges = event_info.get("messages", [])
                     if event_id and event_messages_ranges:
@@ -650,7 +650,6 @@ class Summarizer:
         Returns:
             out (dict): _description_
         """
-        old_history_path = None
         current_context = self.get_general_summarization(state)
         custom_state, (retrieval_context, context_retriever, last_x, last_x_messages) = self.get_retrieval_context(
             state, history, current_context, **kwargs
@@ -661,24 +660,24 @@ class Summarizer:
         # TODO: Get these all from config
         custom_state["name1"] = "SYSTEM"
         custom_state["name2"] = "DAYNA"
+        custom_state["mode"] = "instruct"
+        custom_state["enable_thinking"] = True
         # custom_state["chat-instruct_command"] = (
         #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
         # )
         custom_state["context"] = (
-            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context."
-            ""
-            "This context is provided in several parts:"
-            "1.  **General Summary:** An overview of the story's world and plot."
-            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate fand relevant context for your next response."
-            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction."
-            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation."
-            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant."
-            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity."
-            ""
+            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
+            "This context is provided in several parts:\n\n"
+            "1.  **General Summary:** An overview of the story's world and plot.\n"
+            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
+            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
+            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
+            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
+            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
             "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
         )
         custom_state["user_bio"] = ""
-        custom_state["max_new_tokens"] = 2048
+        custom_state["auto_max_new_tokens"] = True
         custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
         custom_history: History = custom_state["history"]["internal"]
 
@@ -1102,23 +1101,23 @@ class Summarizer:
             custom_state = copy.deepcopy(state)
             custom_state["name1"] = "SYSTEM"
             custom_state["name2"] = "DAYNA"
+            custom_state["mode"] = "instruct"
+            custom_state["enable_thinking"] = True
             # custom_state["chat-instruct_command"] = (
             #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
             # )
             custom_state["context"] = (
-                "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context."
-                ""
-                "This context is provided in several parts:"
-                "1.  **General Summary:** An overview of the story's world and plot."
-                "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate fand relevant context for your next response."
-                "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction."
-                "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation."
-                "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant."
-                "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity."
-                ""
+                "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
+                "This context is provided in several parts:\n\n"
+                "1.  **General Summary:** An overview of the story's world and plot.\n"
+                "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
+                "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
+                "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
+                "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
+                "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
                 "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
             )
-            custom_state["max_new_tokens"] = 2048
+            custom_state["auto_max_new_tokens"] = True
             custom_state["temperature"] = 0.3
             custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
             # custom_state = {
@@ -1226,23 +1225,23 @@ class Summarizer:
         custom_state = copy.deepcopy(state)
         custom_state["name1"] = "SYSTEM"
         custom_state["name2"] = "DAYNA"
+        custom_state["mode"] = "instruct"
+        custom_state["enable_thinking"] = True
         # custom_state["chat-instruct_command"] = (
         #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
         # )  # Just use user instruct
         custom_state["context"] = (
-            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context."
-            ""
-            "This context is provided in several parts:"
-            "1.  **General Summary:** An overview of the story's world and plot."
-            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate fand relevant context for your next response."
-            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction."
-            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation."
-            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant."
-            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity."
-            ""
+            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
+            "This context is provided in several parts:\n\n"
+            "1.  **General Summary:** An overview of the story's world and plot.\n"
+            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
+            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
+            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
+            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
+            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
             "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
         )
-        custom_state["max_new_tokens"] = 2048
+        custom_state["auto_max_new_tokens"] = True
         custom_state["temperature"] = 0.3
         custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
 
@@ -1512,6 +1511,7 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                         f"{_HILITE}Stop signal received in MessageSummarizer after generating summary for message_idx {current_message_idx}.{_RESET}"
                     )
                     return
+                summary_text = strip_thinking(summary_text)
 
                 summary_speakers = ["System"]  # TODO: Derive from context
                 summary_chars_present = self.chunker._extract_entities(summary_text, self.chunker.character_name_patterns)

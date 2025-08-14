@@ -1,4 +1,5 @@
-import json, jsonc
+import json
+import jsonc
 import os
 from typing import TYPE_CHECKING
 
@@ -88,9 +89,9 @@ settings = {
     "user_bio": "",
     "custom_system_message": "",
     "preset": "min_p",
-    "max_new_tokens": 2048,
+    "max_new_tokens": 4096,
     "max_new_tokens_min": 1,
-    "max_new_tokens_max": 4096,
+    "max_new_tokens_max": 8192,
     "prompt_lookup_num_tokens": 0,
     "max_tokens_second": 0,
     "max_updates_second": 12,

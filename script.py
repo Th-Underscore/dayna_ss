@@ -27,6 +27,7 @@ from extensions.dayna_ss.utils.helpers import (
     History,
     Histories,
     extract_meaningful_paragraphs,
+    strip_thinking,
 )
 
 params = {"display_name": "DSS", "is_tab": True}
@@ -60,7 +61,7 @@ _last_generation = {}
 def chat_input_modifier(text: str, visible_text: str, state: dict):
     if not dss_shared.persistent_ui_state.get("dss_toggle", True):
         return text, visible_text
-    
+
     next_scene_prefix = "NEXT SCENE:"
 
     if summarizer and not summarizer.last:
@@ -81,9 +82,7 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
     global summarizer, _last_generation
     from modules.chat import generate_chat_prompt
 
-    if not shared.model:
-        return generate_chat_prompt(user_input, state, **kwargs)
-    if not dss_shared.persistent_ui_state.get("dss_toggle", True):
+    if not shared.model or not dss_shared.persistent_ui_state.get("dss_toggle", True):
         return generate_chat_prompt(user_input, state, **kwargs)
 
     if not summarizer:
@@ -108,6 +107,10 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
         instr_prompt, custom_state, history_path, timestamp_str = summarizer.generate_summary_instr_prompt(
             user_input, state, history["internal"], **kwargs
         )
+        if shared.stop_everything:
+            print(f"{_HILITE}Stop signal received after instruction prompt generation.{_RESET}")
+            shared.stop_everything = False
+            return ""
         if timestamp_str:
             # TODO: Only rewrite if not _continue or regenerate
             summarizer.save_message_chunks(user_input, index, timestamp_str)
@@ -139,6 +142,9 @@ def handle_input(user_input: str, state: dict, history: Histories):
         return
 
     print("handle_input")
+    # from extensions.dayna_ss.utils.model_loader import load_secondary_model
+    # model_2, tokenizer_2 = load_secondary_model("Lucy-128k-Q6_K.gguf", {})
+    # print(_HILITE, model_2, tokenizer_2, _RESET)
 
     if summarizer and not summarizer.last:
         print(f"handle_input{_BOLD}no last summarization{_RESET}")
@@ -164,6 +170,11 @@ def handle_output(output: str, state: dict, history: Histories):
             # summarizer.vram_manager.reset_sequence()
 
             timestamp_str = summarizer.summarize_latest_state(output, history["internal"][-1][0], state, history["internal"])
+            if shared.stop_everything:
+                state["seed"] = summarizer.last.original_seed
+                print(f"{_HILITE}Stop signal received after summarization.{_RESET}")
+                shared.stop_everything = False
+                return ""
             if timestamp_str:
                 summarizer.save_message_chunks(output, index, timestamp_str)
 
@@ -338,7 +349,8 @@ def generate_chat_reply(text, state, regenerate=False, _continue=False, loading_
         current_reply_internal: str = history["internal"][-1][1]
 
         if current_reply_internal and not is_final_output:
-            processed_reply = extract_meaningful_paragraphs(current_reply_internal)
+            processed_reply = strip_thinking(current_reply_internal)
+            processed_reply = extract_meaningful_paragraphs(processed_reply)
 
             for prefix_to_strip in banned_prefixes:
                 processed_reply = re.sub(f"^{re.escape(prefix_to_strip)}\s*", "", processed_reply, count=1, flags=re.IGNORECASE)

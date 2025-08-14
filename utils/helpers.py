@@ -2,7 +2,8 @@ import re
 from types import FunctionType
 from typing import Iterable, Any
 from pathlib import Path
-import json, jsonc
+import json
+import jsonc
 import traceback
 from functools import reduce
 
@@ -356,29 +357,66 @@ def enumerate_list(data: dict | list):
     return enumerate(data)
 
 
+def format_str(string: str, **kwargs) -> str:
+    """Format a string with keyword arguments, calling functions as needed.
+
+    Args:
+        string (str): The string to format. It should contain placeholders like {key}.
+
+    Returns:
+        str: The formatted string.
+
+    Examples:
+        >>> format_str("Hello, {name}!", name="John Doe")
+        'Hello, John Doe!'
+        >>> format_str("The result is {result}.", result=lambda: print(42))
+        42  # Only printed if {result} is present.
+        # In a real scenario, the lambda would call a function that returns a value.
+        'The result is None.'
+    """
+    for key, value in kwargs.items():
+        if f"{{{key}}}" in string:
+            if isinstance(value, FunctionType):
+                value = value()
+            string = string.replace(f"{{{key}}}", str(value))
+    return string
+
+
 # --- LLM response parsing ---
-patterns = (r"{[ \t\S]*(?:}(?![ \t\S]*}))", r"^[ \t]*(?:```|\"\"\")(?:\S*)?.*(?:```|\"\"\")", r"{.*?^}")
-json_regex = re.compile("|".join(patterns), (re.MULTILINE + re.DOTALL))
+patterns = (
+    r"({[ \t\S]*(?:}(?![ \t\S]*})))",  # Single-line JSON object
+    r'^[ \t]*(?:```|""")(?:\S*)?(.*?)(?:```|""")',  # Multi-line JSON object with code blocks
+    r"({.*?^})",  # Multi-line JSON object without code blocks
+)
+# json_regex = re.compile(patterns, flags=(re.MULTILINE + re.DOTALL))
+print(f"{_HILITE}JSON regex: {_RESET}{patterns}")
 
 
-def strip_json_response(json_str: str) -> str:
-    """Remove any markdown formatting from a JSON response, as well as any leading or trailing text."""
-    match = re.search(json_regex, json_str)
-    if match:
-        return match.group(0)
-    return json_str
+def strip_json_response(output: str) -> str:
+    """Remove any markdown formatting or extra text from a JSON response."""
+    for pattern in patterns:
+        match = re.search(pattern, output, flags=(re.MULTILINE + re.DOTALL))
+        if match:
+            return match.group(1)
+    return output
+
+
+ellipsis_count = 3  # Number of dots to use for thinking ellipsis
 
 
 def strip_thinking(output: str) -> str:
     """
     Exclude the "\<think> ... \</think>" tags and their content from a response.
     If \<think> is present but \</think> is not, returns an empty string.
+    If \</think> is present but \<think> is not, returns everything after the first \</think>.
     """
     if "<think>" in output and "</think>" not in output:
-        return ""
+        global ellipsis_count
+        ellipsis_count = (ellipsis_count + 1) % 3
+        return f"*Thinking{'.' * (ellipsis_count + 1)}*"
 
     cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=(re.MULTILINE + re.DOTALL))
-    return cleaned_output.strip()
+    return cleaned_output.lstrip()
 
 
 def strip_response(output: str) -> str:
@@ -434,28 +472,3 @@ def extract_meaningful_paragraphs(text: str) -> str:
             meaningful_blocks.append(block)
 
     return "\n\n".join(meaningful_blocks)
-
-
-def format_str(string: str, **kwargs) -> str:
-    """Format a string with keyword arguments, calling functions as needed.
-
-    Args:
-        string (str): The string to format. It should contain placeholders like {key}.
-
-    Returns:
-        str: The formatted string.
-
-    Examples:
-        >>> format_str("Hello, {name}!", name="John Doe")
-        'Hello, John Doe!'
-        >>> format_str("The result is {result}.", result=lambda: print(42))
-        42  # Only printed if {result} is present.
-        # In a real scenario, the lambda would call a function that returns a value.
-        'The result is None.'
-    """
-    for key, value in kwargs.items():
-        if f"{{{key}}}" in string:
-            if isinstance(value, FunctionType):
-                value = value()
-            string = string.replace(f"{{{key}}}", str(value))
-    return string
