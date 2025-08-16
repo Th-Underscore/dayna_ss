@@ -384,7 +384,7 @@ def format_str(string: str, **kwargs) -> str:
 
 # --- LLM response parsing ---
 patterns = (
-    r'^[ \t]*(?:```|""")(?:\S*)?(.*?)(?:```|""")',  # Multi-line JSON object with code blocks
+    r'^[ \t]*(?:```(?:\S*)?|""")(.*?)(?:```|""")',  # Multi-line JSON object with code blocks
     r"^(?![\s\t])(?:.*?})({.*})",  # Single-line JSON object
     r"({.*?^})",  # Multi-line JSON object without code blocks
 )
