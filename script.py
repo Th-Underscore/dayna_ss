@@ -349,7 +349,7 @@ def generate_chat_reply(text, state, regenerate=False, _continue=False, loading_
         current_reply_internal: str = history["internal"][-1][1]
 
         if current_reply_internal and not is_final_output:
-            processed_reply = strip_thinking(current_reply_internal)
+            processed_reply = strip_thinking(current_reply_internal) or current_reply_internal
             processed_reply = extract_meaningful_paragraphs(processed_reply)
 
             for prefix_to_strip in banned_prefixes:

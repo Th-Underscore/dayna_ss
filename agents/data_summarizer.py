@@ -717,7 +717,7 @@ class DataSummarizer:
         # --- END: Branch Query Logic ---
 
         fields_to_iterate = []
-        if target_schema_class.definition_type == "field":
+        if target_schema_class.definition_type == "field" and isinstance(target_schema_class._field.type, ParsedSchemaClass):
             target_schema_class = self._inherit_defaults_from_parent(
                 target_schema_class._field.type, target_schema_class, defaults_to_inherit
             )

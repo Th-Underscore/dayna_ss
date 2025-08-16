@@ -384,8 +384,8 @@ def format_str(string: str, **kwargs) -> str:
 
 # --- LLM response parsing ---
 patterns = (
-    r"({[ \t\S]*(?:}(?![ \t\S]*})))",  # Single-line JSON object
     r'^[ \t]*(?:```|""")(?:\S*)?(.*?)(?:```|""")',  # Multi-line JSON object with code blocks
+    r"^(?![\s\t])(?:.*?})({.*})",  # Single-line JSON object
     r"({.*?^})",  # Multi-line JSON object without code blocks
 )
 # json_regex = re.compile(patterns, flags=(re.MULTILINE + re.DOTALL))
@@ -401,19 +401,14 @@ def strip_json_response(output: str) -> str:
     return output
 
 
-ellipsis_count = 3  # Number of dots to use for thinking ellipsis
-
-
 def strip_thinking(output: str) -> str:
     """
-    Exclude the "\<think> ... \</think>" tags and their content from a response.
-    If \<think> is present but \</think> is not, returns an empty string.
-    If \</think> is present but \<think> is not, returns everything after the first \</think>.
+    Exclude the "\\<think> ... \\</think>" tags and their content from a response.
+    If \\<think> is present but \\</think> is not, returns an empty string.
+    If \\</think> is present but \\<think> is not, returns everything after the first \\</think>.
     """
     if "<think>" in output and "</think>" not in output:
-        global ellipsis_count
-        ellipsis_count = (ellipsis_count + 1) % 3
-        return f"*Thinking{'.' * (ellipsis_count + 1)}*"
+        return ""
 
     cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=(re.MULTILINE + re.DOTALL))
     return cleaned_output.lstrip()
