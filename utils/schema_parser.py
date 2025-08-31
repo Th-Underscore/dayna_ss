@@ -47,12 +47,12 @@ class ParsedSchemaClass:
         fields: list[ParsedSchemaField] | None = None,
         field: ParsedSchemaField | None = None,
         defaults: dict[str, Any] | None = None,
-        events: dict[str, list[str]] | None = None,
+        triggers: dict[str, list[str]] | None = None,
     ):
         self.name = name
         self.definition_type = definition_type
         self.defaults = defaults or {}
-        self.event_map: dict[str, list[str]] = events or {}
+        self.trigger_map: dict[str, list[str]] = triggers or {}
 
         self._fields_dict: dict[str, ParsedSchemaField] | None = None  # Parsed fields for "dataclass" type
         self._field: ParsedSchemaField | None = None  # Parsed type for "field" type
@@ -448,7 +448,7 @@ class SchemaParser:
         for name, definition in schema_definitions.items():
             def_type = definition.get("type")
             defaults = definition.get("defaults")
-            events_data = definition.get("events")
+            triggers_data = definition.get("triggers")
 
             if def_type == "dataclass":
                 fields_data = definition.get("fields", {})
@@ -459,7 +459,7 @@ class SchemaParser:
                 for field_name, type_str in fields_data.items():
                     fields.append(ParsedSchemaField(field_name, type_str))  # type_str is placeholder
                 self.definitions[name] = ParsedSchemaClass(
-                    name, definition_type="dataclass", fields=fields, defaults=defaults, events=events_data
+                    name, definition_type="dataclass", fields=fields, defaults=defaults, triggers=triggers_data
                 )
             elif def_type == "field":
                 field_type_str = definition.get("field")
@@ -470,7 +470,7 @@ class SchemaParser:
                     definition_type="field",
                     field=ParsedSchemaField(name, field_type_str),
                     defaults=defaults,
-                    events=events_data,
+                    triggers=triggers_data,
                 )
             # Add handling for other types if needed (e.g., enums)
 
@@ -687,7 +687,7 @@ if __name__ == "__main__":
     try:
         schema_file_path = Path(__file__).parent / "subjects_schema.json"
         if not schema_file_path.exists():
-            schema_file_path = Path("extensions/dayna_ss/utils/subjects_schema.json")
+            schema_file_path = Path("extensions/dayna_ss/user_data/exemplary/subjects_schema.json")
 
         parser = SchemaParser(schema_file_path)
         print("Schema loaded and parsed successfully.")

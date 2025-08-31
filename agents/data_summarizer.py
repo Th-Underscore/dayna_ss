@@ -138,10 +138,10 @@ class DataSummarizer:
         current_event_triggers: list[str],
     ) -> bool:
         """Checks if a given action is triggered by any of the current event conditions."""
-        if not schema_definition or not hasattr(schema_definition, "event_map"):
+        if not schema_definition or not schema_definition.trigger_map:
             return False
         for trigger in current_event_triggers:
-            if action_name in schema_definition.event_map.get(trigger, []):
+            if action_name in schema_definition.trigger_map.get(trigger, []):
                 return True
         return False
 
@@ -251,7 +251,10 @@ class DataSummarizer:
         new_entry_names = []
         try:
             parsed_names = jsonc.loads(stripped_response)
-            if parsed_names and isinstance(parsed_names, list) and all(isinstance(name, str) for name in parsed_names):
+            if not parsed_names:
+                print(f"{_INPUT}LLM response for new entry names for '{branch_name}' was empty: {llm_query_response}{_RESET}")
+                return
+            elif isinstance(parsed_names, list) and all(isinstance(name, str) for name in parsed_names):
                 new_entry_names = parsed_names
                 print(f"{_SUCCESS}Identified potential new entries for '{branch_name}': {new_entry_names}{_RESET}")
             else:
@@ -435,19 +438,13 @@ class DataSummarizer:
     def _should_update_subject(self, schema_class: ParsedSchemaClass) -> bool:
         if not schema_class:
             return False
-
         current_event_triggers = ["always"]
         if self.summarizer.last and self.summarizer.last.is_new_scene_turn:
             current_event_triggers.append("on_new_scene")
-
-        actions_that_imply_update_check = [
-            "perform_update",
-            "perform_gate_check",
-            "query_branch_for_changes",
-            "add_new",
-        ]
-        for action in actions_that_imply_update_check:
-            if self._is_action_triggered(schema_class, action, current_event_triggers):
+        else:
+            current_event_triggers.append("on_existing_scene")
+        for trigger in current_event_triggers:
+            if schema_class.trigger_map.get(trigger):
                 return True
         return False
 

@@ -91,7 +91,7 @@ class SummarizationContextCache:
 class Summarizer:
     def __init__(self, config_path: str | None = None):
         """Initialize Summarizer, optionally loading config from `config_path`."""
-        dss_dir = Path(__file__).parent.parent  # Get the root directory of the extension
+        dss_dir = Path(__file__).parent.parent  # Root directory of the extension
         self.config = self._load_config(config_path or dss_dir / "dss_config.json")
 
         # self.vram_manager = VRAMManager()
@@ -480,98 +480,79 @@ class Summarizer:
                 self, (user_input, output), custom_state, new_history_path, self.last.schema_parser
             )
 
-            # TODO: Replace with dynamic schema loading
-            character_schema = self.last.schema_parser.get_subject_class("characters")
-            group_schema = self.last.schema_parser.get_subject_class("groups")
-            current_scene_schema = self.last.schema_parser.get_subject_class("current_scene")
-            events_schema = self.last.schema_parser.get_subject_class("events")
+            all_subjects_data = {}
+            for subject_name in self.last.schema_parser.subjects:
+                subject_path = last_history_path / f"{subject_name}.json"
+                all_subjects_data[subject_name] = load_json(subject_path) or {}
+            
+            all_subjects_data = {}
+            missing_schemas = []
 
-            if not (character_schema and group_schema and current_scene_schema and events_schema):
-                missing = [
-                    name
-                    for name, schema in [
-                        ("char", character_schema),
-                        ("group", group_schema),
-                        ("scene", current_scene_schema),
-                        ("events", events_schema),
-                    ]
-                    if not schema
-                ]
-                print(f"{_ERROR}Could not find required schema definitions: {missing}. Aborting summarization.{_RESET}")
+            # Step 1: Dynamically load the data for every subject defined in the schema.
+            for subject_name in self.last.schema_parser.subjects:
+                # Check if the schema for this subject exists before proceeding
+                if not self.last.schema_parser.get_subject_class(subject_name):
+                    missing_schemas.append(subject_name)
+                    continue
+
+                subject_path = last_history_path / f"{subject_name}.json"
+                all_subjects_data[subject_name] = load_json(subject_path) or {}
+            print(f"{_DEBUG}All subjects data: {all_subjects_data.keys()}{_RESET}")
+
+            if missing_schemas:
+                print(f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}")
                 return None
 
-            # Load existing data or initialize empty structures
-            characters_path = last_history_path / "characters.json"
-            print(f"{_DEBUG}characters_path: {characters_path}{_RESET}")
-            groups_path = last_history_path / "groups.json"
-            events_path = last_history_path / "events.json"
-            current_scene_path = last_history_path / "current_scene.json"
-
-            characters_data = load_json(characters_path) or {}
-            groups_data = load_json(groups_path) or {}
-            events_data = load_json(events_path) or {}
-            current_scene_data = load_json(current_scene_path) or {}
-
+            # Handle special case for new scene turn before processing
             if self.last and self.last.is_new_scene_turn and self.last.new_scene_start_node is not None:
-                print(
-                    f"{_DEBUG}Populating 'start_message_node' for new scene with start node: {self.last.new_scene_start_node}{_RESET}"
-                )
-                current_scene_data["start_message_node"] = str(self.last.new_scene_start_node)
-                # The flag self.last.is_new_scene_turn will be naturally reset when self.last is
-                # re-instantiated for the next turn in get_retrieval_context.
+                if "current_scene" in all_subjects_data:
+                    print(
+                        f"{_DEBUG}Populating 'start_message_node' for new scene with start node: {self.last.new_scene_start_node}{_RESET}"
+                    )
+                    all_subjects_data["current_scene"]["_start_message_node"] = str(self.last.new_scene_start_node)
 
-            print(f"{_BOLD}Dynamically summarizing data using DataSummarizer...{_RESET}")
+            print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
-            # Copy subjects_schema.json
+            # Copy subjects_schema.json to the new history path
             save_json(
                 load_json(last_history_path / "subjects_schema.json"),
                 new_history_path / "subjects_schema.json",
             )
 
-            # --- Summarize Data ---
-            # Helper function to decide if update should proceed and execute or save old data
             def process_subject_update(subject_name: str, data: dict, schema_class: ParsedSchemaClass) -> dict:
                 if shared.stop_everything:
                     print(f"{_HILITE}Stop signal received during subject update for {subject_name}.{_RESET}")
                     save_json(data, new_history_path / f"{subject_name}.json")
                     return data
 
-                should_update_this_subject = True
-                if not data_summarizer._should_update_subject(schema_class):
-                    # should_update_this_subject = False
-                    # print(
-                    #     f"{_HILITE}Skipping update for '{subject_name}' as it's not a new scene turn and update_when is 'on_new_scene'.{_RESET}"
-                    # )
-                    pass
-
-                if should_update_this_subject:
-                    updated_data = data_summarizer.generate(subject_name, data, schema_class)
-                    return updated_data
+                print(f"{_BOLD}{subject_name}{_RESET} {data_summarizer._should_update_subject(schema_class)}")
+                if data_summarizer._should_update_subject(schema_class):
+                    return data_summarizer.generate(subject_name, data, schema_class)
                 else:
                     save_json(data, new_history_path / f"{subject_name}.json")
                     return data
 
-            characters_data = process_subject_update("characters", characters_data, character_schema)
-            if shared.stop_everything:
-                return None
+            # Step 2: Dynamically process each subject.
+            processed_subjects_data = {}
+            for subject_name, subject_data in all_subjects_data.items():
+                schema_class = self.last.schema_parser.get_subject_class(subject_name)
+                print(f"{_BOLD}Processing subject: {subject_name}{_RESET} {schema_class}")
+                if not schema_class:  # Redundant but good for safety
+                    continue
+                print(f"{subject_name} exists")
 
-            groups_data = process_subject_update("groups", groups_data, group_schema)
+                updated_data = process_subject_update(subject_name, subject_data, schema_class)
+                processed_subjects_data[subject_name] = updated_data
 
-            current_scene_data = process_subject_update("current_scene", current_scene_data, current_scene_schema)
-            if shared.stop_everything:
-                return None
-
-            events_data = process_subject_update("events", events_data, events_schema)
-            if shared.stop_everything:
-                return None
-            # save_json(events_data, new_history_path / "events.json")
+                if shared.stop_everything:
+                    return None
 
             # --- Summarize New Messages ---
-            message_idx = len(history) * 2 - 1
-            # NOTE: history was passed as history[:-1] to retrieve_and_format_context
+            message_idx = len(history) * 2 - 1  # history was passed as history[:-1] to retrieve_and_format_context
 
-            # Determine current timestamp for new message chunks and summaries
+            # Determine current timestamp from the processed current_scene data
             current_timestamp_str = datetime.now().isoformat()
+            current_scene_data = processed_subjects_data.get("current_scene", {})
             if current_scene_data:
                 scene_time_data = current_scene_data.get("now", {}).get("when", {})
                 if scene_time_data.get("specific_time") and scene_time_data.get("date"):
@@ -580,53 +561,47 @@ class Summarizer:
                     current_timestamp_str = scene_time_data["date"]
 
             msg_summarizer = MessageSummarizer(self, new_history_path, current_timestamp_str)
-            # User input index: message_idx - 1
-            # Model output index: message_idx
             msg_summarizer.generate((user_input, output), (message_idx - 1, message_idx))
 
             # --- Update scene_id and event_id for message chunks ---
             if self.last and self.last.context:
                 context_retriever = self.last.context[1]
                 chunker_instance = context_retriever.chunker
+                events_data = processed_subjects_data.get("events", {})
 
-                # Process scenes from events_data
-                for scene_info in get_values(events_data.get("scenes", [])):
+                # Process scenes from the processed events_data
+                for scene_info in get_values(events_data.get("scenes", {})):
                     scene_id = scene_info.get("name")
-                    scene_start_node = [int(node) if node else None for node in scene_info.get("start", {}).get("_message_node", "").split("_") if node]
-                    scene_end_node = [int(node) if node else None for node in scene_info.get("end", {}).get("_message_node", "").split("_") if node]
-                    scene_messages_ranges = [scene_start_node, scene_end_node]
-                    if scene_id and scene_messages_ranges:
-                        # Flatten the message ranges to get individual message indices
-                        min_msg_idx = float("inf")
-                        max_msg_idx = float("-inf")
-                        if scene_messages_ranges and scene_messages_ranges[0] and len(scene_messages_ranges[0]) == 2:
-                            start_chunk_indices = scene_messages_ranges[0][0]
-                            end_chunk_indices = scene_messages_ranges[0][1]
-                            if start_chunk_indices and end_chunk_indices:
-                                min_msg_idx = start_chunk_indices[0]
-                                max_msg_idx = end_chunk_indices[0]
+                    scene_start_node_str = scene_info.get("start", {}).get("_message_node", "")
+                    scene_end_node_str = scene_info.get("end", {}).get("_message_node", "")
 
-                        if min_msg_idx <= max_msg_idx:
-                            for msg_idx_to_update in range(min_msg_idx, max_msg_idx + 1):
+                    if scene_id and scene_start_node_str and scene_end_node_str:
+                        try:
+                            start_msg_idx = int(scene_start_node_str.split('_')[0])
+                            end_msg_idx = int(scene_end_node_str.split('_')[0])
+
+                            for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
                                 chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"scene_id": scene_id})
+                        except (ValueError, IndexError) as e:
+                            print(f"{_ERROR}Could not parse message nodes for scene '{scene_id}': {e}{_RESET}")
 
-                # Process events from events_data
-                for event_info in get_values(events_data.get("events", [])):
-                    event_id = event_info.get("name")  # Assuming name is the ID
-                    event_messages_ranges = event_info.get("messages", [])
-                    if event_id and event_messages_ranges:
-                        min_msg_idx = float("inf")
-                        max_msg_idx = float("-inf")
-                        if event_messages_ranges and event_messages_ranges[0] and len(event_messages_ranges[0]) == 2:
-                            start_chunk_indices = event_messages_ranges[0][0]
-                            end_chunk_indices = event_messages_ranges[0][1]
-                            if start_chunk_indices and end_chunk_indices:
-                                min_msg_idx = start_chunk_indices[0]
-                                max_msg_idx = end_chunk_indices[0]
 
-                        if min_msg_idx <= max_msg_idx:
-                            for msg_idx_to_update in range(min_msg_idx, max_msg_idx + 1):
+                # Process events from the processed events_data
+                for event_info in get_values(events_data.get("events", {})):
+                    event_id = event_info.get("name")
+                    event_start_node_str = event_info.get("start", {}).get("_message_node", "")
+                    event_end_node_str = event_info.get("end", {}).get("_message_node", "")
+
+                    if event_id and event_start_node_str and event_end_node_str:
+                        try:
+                            start_msg_idx = int(event_start_node_str.split('_')[0])
+                            end_msg_idx = int(event_end_node_str.split('_')[0])
+
+                            for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
                                 chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"event_id": event_id})
+                        except (ValueError, IndexError) as e:
+                            print(f"{_ERROR}Could not parse message nodes for event '{event_id}': {e}{_RESET}")
+
             else:
                 print(f"{_ERROR}Cannot update scene/event IDs for chunks: Summarizer.last.context not available.{_RESET}")
 
