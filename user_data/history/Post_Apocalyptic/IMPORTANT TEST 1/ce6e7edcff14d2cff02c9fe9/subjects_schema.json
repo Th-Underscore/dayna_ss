@@ -74,7 +74,7 @@
         "relationships_desc": "Example_Character_Name",
         "milestones_desc": "A list of significant achievements, events, or turning points in the character's life."
       },
-      "events": {
+      "triggers": {
         "always": ["query_branch_for_changes"]
       }
     },
@@ -86,7 +86,7 @@
         "new_field_query_prompt_template": "Throughout the last scene, have there been any new characters mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny new characters should be added to the list. If a character is named: Always add them. If a character is unnamed: Add them as long as they have a direct interaction with another named character, are important to a named characterare relevant to the story in general.\n\nIf new characters are identified, provide their names as a JSON list of strings.\n\nExample:\n```json\n[\"David Smith\", \"Mysterious Stranger\", \"The Captain\"]\n```\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nREMEMBER: _Any_ relevant character should be added to the list, groups and crowds excluded.",
         "new_field_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new character named '{entry_name}'.\n\nRelevant Schema for a new Character:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Character:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new character."
       },
-      "events": {
+      "triggers": {
         "always": ["perform_gate_check"],
         "on_new_scene": ["add_new"]
       }
@@ -129,7 +129,7 @@
         "relationships_desc": "Example_Other_Group_Name",
         "characters_desc": "Example_Character_In_Group"
       },
-      "events": {
+      "triggers": {
         "always": ["query_branch_for_changes"]
       }
     },
@@ -141,7 +141,7 @@
         "new_field_query_prompt_template": "Throughout the last scene, have there been any new groups mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny and all new groups, crowds, etc. should be added to the list, whether named or unnamed.\nIf new groups are identified, provide their names as a JSON list of strings.\n\nExample:\n```json\n[\"The Survivors\", \"Marauder Gang X\"]\n```\n\nIf NO new groups are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
         "new_field_entry_prompt_template": "Based on all of the information in the last scene,, generate the full data for the new group named '{entry_name}'.\n\nRelevant Schema for a new Group:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Group:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new group."
       },
-      "events": {
+      "triggers": {
         "always": ["perform_gate_check", "add_new"]
       }
     },
@@ -155,7 +155,7 @@
         "name_desc": "The name of the character present in the scene.",
         "location_desc": "The last known location of the character within the scene."
       },
-      "events": {
+      "triggers": {
         "always": ["perform_update"]
       }
     },
@@ -169,7 +169,7 @@
         "name_desc": "The name of the group present or relevant to the scene.",
         "location_desc": "The general location or area of operation for the group in the context of the scene."
       },
-      "events": {
+      "triggers": {
         "always": ["perform_update"]
       }
     },
@@ -196,7 +196,7 @@
         "time_desc": "A general description of the time of day for the scene (e.g., 'Pre-dawn hours', 'Afternoon').",
         "specific_time_desc": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
       },
-      "events": {
+      "triggers": {
         "always": ["perform_update"]
       }
     },
@@ -211,7 +211,7 @@
         "details_desc": "A more detailed explanation of the reason, objective, or motivation behind the scene or elements within it.",
         "update_prompt_template": "Based on the latest exchange, is {item_name}'s {field_name} reason inaccurate or incomplete?\nRelevant Schema for '{field_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{field_name}':\n```json\n{example_json}\n```\nIf yes, respond with the updated reason.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged reason.\n\nCurrent reason:\n\"\"\"{value}\n\"\"\""
       },
-      "events": {
+      "triggers": {
         "always": ["add_new", "perform_update"]
       }
     },
@@ -294,7 +294,7 @@
         "end_desc": "The time point marking the end of the event.",
         "summary_desc": "A textual summary describing the key occurrences and outcomes of the event."
       },
-      "events": {
+      "triggers": {
         "always": ["query_branch_for_changes"]
       }
     },
@@ -305,7 +305,7 @@
         "new_field_query_prompt_template": "Throughout the last scene, have there been any new events (past, scenes, or major story events) mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
         "new_field_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event."
       },
-      "events": {
+      "triggers": {
         "on_new_scene": ["add_new"]
       }
     },
@@ -322,8 +322,33 @@
         "scenes_desc": "Example_Story_Scene",
         "events_desc": "Example_Major_Story_Event"
       },
-      "events": {
+      "triggers": {
         "always": ["perform_gate_check"]
+      }
+    },
+    "GeneralInfo": {
+      "type": "dataclass",
+      "fields": {
+        "writing_style": "str",
+        "tone": "str",
+        "themes": "list[str]",
+        "main_objective": "str",
+        "summary": "str"
+      },
+      "defaults": {
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the story and chat as a whole, are there any significant changes, additions, or deletions required for this general information section (writing style, tone, themes, main objective, summary)? Respond with only 'NO' or 'UNCHANGED' if all the general information is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"description.0\", \"value\": \"Updated first line of description\"}},\n  {{\"path\": \"status.current_location\", \"value\": \"New Location\"}},\n  {{\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "gate_check_prompt_template": "A new scene has just concluded. Does the summary of this new scene contain information significant enough to warrant updating the overall story's General Info? Respond with only 'YES' or 'NO'.",
+        "update_prompt_template": "Given the previous General Info and a summary of the most recently completed scene, generate an updated JSON object for the story's General Info.\n\nPrevious General Info:\n```json\n{value}\n```\n\nSummary of New Scene:\n'''\n{new_scene_summary}\n'''\n\nRespond with ONLY the updated JSON object.",
+        "writing_style_desc": "Describes the narrative format to ensure stylistic consistency. Examples: '3rd-person prose, one paragraph per response, no more than one paragraph.' or '1st-person dialogue with actions in asterisks'.",
+        "tone_desc": "The primary emotional tone or mood of the story. This guides the feeling of the narrative. Examples: 'Tense and suspenseful', 'Hopeful but grim', 'Witty and adventurous'.",
+        "themes_desc": "A comma-separated list of the central themes or underlying ideas being explored in the story. Examples: 'The cost of survival', 'Betrayal and redemption', 'Man vs. Nature'.",
+        "main_objective_desc": "A single sentence describing the main, active goal the protagonists are currently pursuing. Example: 'Find a cure for the nanite plague'.",
+        "summary_desc": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or unresolved conflict that is driving the story forward."
+      },
+      "events": {
+        "on_existing_scene": ["query_branch_for_changes"],
+        "on_new_scene": ["perform_gate_check", "perform_update"]
       }
     }
   },
@@ -331,6 +356,7 @@
     "characters": "Characters",
     "groups": "Groups",
     "current_scene": "CurrentScene",
-    "events": "Events"
+    "events": "Events",
+    "general_info": "GeneralInfo"
   }
 }

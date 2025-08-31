@@ -160,12 +160,13 @@
   "Angelina Kristi": {
     "description": [
       "Angelina Kristi is a secondary character in this story.",
-      "Angelina is a manipulative, psychopathic 32-year-old woman. She has white hair, golden eyes, and an innocent-seeming face."
+      "Angelina is a manipulative, schizoid 32-year-old woman. She has white hair, golden eyes, and an innocuous face."
     ],
     "traits": [
       "Angelina is a 32-year-old woman.",
-      "Is manipulative and psychopathic.",
-      "Has white hair, golden eyes, and an innocent-seeming face.",
+      "Is very manipulative.",
+      "Appears detached from her comrades, due to being schizoid.",
+      "Has white hair, golden eyes, and an innocuous face.",
       "Is seeking revenge for her brother's death"
     ],
     "attributes": [

@@ -1,0 +1,1423 @@
+{
+  "_continue": false
+}
+
+========================== CUSTOM STATE
+
+{
+  "temperature": 0.3,
+  "dynatemp_low": 1,
+  "dynatemp_high": 1,
+  "dynatemp_exponent": 1,
+  "smoothing_factor": 0,
+  "smoothing_curve": 1,
+  "min_p": 0.05,
+  "top_p": 1,
+  "top_k": 0,
+  "typical_p": 1,
+  "xtc_threshold": 0.1,
+  "xtc_probability": 0,
+  "epsilon_cutoff": 0,
+  "eta_cutoff": 0,
+  "tfs": 1,
+  "top_a": 0,
+  "top_n_sigma": 0,
+  "dry_multiplier": 0,
+  "dry_allowed_length": 2,
+  "dry_base": 1.75,
+  "repetition_penalty": 1,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "encoder_repetition_penalty": 1,
+  "no_repeat_ngram_size": 0,
+  "repetition_penalty_range": 1024,
+  "penalty_alpha": 0,
+  "guidance_scale": 1,
+  "mirostat_mode": 0,
+  "mirostat_tau": 5,
+  "mirostat_eta": 0.1,
+  "max_new_tokens": 512,
+  "prompt_lookup_num_tokens": 0,
+  "max_tokens_second": 0,
+  "do_sample": true,
+  "dynamic_temperature": false,
+  "temperature_last": false,
+  "auto_max_new_tokens": true,
+  "ban_eos_token": false,
+  "add_bos_token": false,
+  "enable_thinking": true,
+  "reasoning_effort": "medium",
+  "skip_special_tokens": true,
+  "stream": true,
+  "static_cache": false,
+  "truncation_length": 16384,
+  "seed": 0,
+  "sampler_priority": "repetition_penalty\npresence_penalty\nfrequency_penalty\ndry\ntop_n_sigma\ntemperature\ndynamic_temperature\nquadratic_sampling\ntop_k\ntop_p\ntypical_p\nepsilon_cutoff\neta_cutoff\ntfs\ntop_a\nmin_p\nmirostat\nxtc\nencoder_repetition_penalty\nno_repeat_ngram",
+  "custom_stopping_strings": "\"[/INST]\", \"[INST]\"",
+  "custom_token_bans": "",
+  "negative_prompt": "",
+  "dry_sequence_breakers": "\"\\n\", \":\", \"\\\"\", \"*\"",
+  "grammar_string": "",
+  "navigate_message_index": -1,
+  "navigate_direction": "",
+  "navigate_message_role": "",
+  "edit_message_index": -1,
+  "edit_message_text": "",
+  "edit_message_role": "",
+  "branch_index": -1,
+  "enable_web_search": false,
+  "web_search_pages": 3,
+  "history": {
+    "visible": [
+      [
+        "",
+        "The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was &quot;The First Incursion,&quot; the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+      ]
+    ],
+    "internal": [
+      [
+        "<|BEGIN-VISIBLE-CHAT|>",
+        "I am ready to receive instructions!"
+      ],
+      [
+        "What were the last 1 messages?",
+        "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+      ],
+      [
+        "Analyze all of the above information. Confirm when your analysis is complete.",
+        "Analysis complete."
+      ]
+    ],
+    "metadata": {
+      "assistant_0": {
+        "timestamp": "Jun 03, 2025 19:19"
+      }
+    }
+  },
+  "search_chat": "",
+  "unique_id": "IMPORTANT TEST 2 (start)",
+  "start_with": "",
+  "mode": "instruct",
+  "chat_style": "cai-chat",
+  "chat-instruct_command": "Continue the chat dialogue below. Write a single reply for the character \"DAYNA\". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>",
+  "character_menu": "Post_Apocalyptic",
+  "name2": "DAYNA",
+  "context": "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\nThis context is provided in several parts:\n\n1.  **General Summary:** An overview of the story's world and plot.\n2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\nYour instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.\n\nThe world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.",
+  "greeting": "The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun.",
+  "name1": "SYSTEM",
+  "user_bio": "",
+  "custom_system_message": "",
+  "instruction_template_str": "{%- if tools %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- messages[0]['content'] }}\n    {%- else %}\n        {{- 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.' }}\n    {%- endif %}\n    {{- \"\\n\\n# Tools\\n\\nYou may call one or more functions to assist with the user query.\\n\\nYou are provided with function signatures within <tools></tools> XML tags:\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\\n\\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\\n<tool_call>\\n{\\\"name\\\": <function-name>, \\\"arguments\\\": <args-json-object>}\\n</tool_call><|im_end|>\\n\" }}\n{%- else %}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- '<|im_start|>system\\n' + messages[0]['content'] + '<|im_end|>\\n' }}\n    {%- else %}\n        {{- '<|im_start|>system\\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- for message in messages %}\n    {%- if (message.role == \"user\") or (message.role == \"system\" and not loop.first) or (message.role == \"assistant\" and not message.tool_calls) %}\n        {{- '<|im_start|>' + message.role + '\\n' + message.content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {{- '<|im_start|>' + message.role }}\n        {%- if message.content %}\n            {{- '\\n' + message.content }}\n        {%- endif %}\n        {%- for tool_call in message.tool_calls %}\n            {%- if tool_call.function is defined %}\n                {%- set tool_call = tool_call.function %}\n            {%- endif %}\n            {{- '\\n<tool_call>\\n{\"name\": \"' }}\n            {{- tool_call.name }}\n            {{- '\", \"arguments\": ' }}\n            {{- tool_call.arguments | tojson }}\n            {{- '}\\n</tool_call>' }}\n        {%- endfor %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if (loop.index0 == 0) or (messages[loop.index0 - 1].role != \"tool\") %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- message.content }}\n        {{- '\\n</tool_response>' }}\n        {%- if loop.last or (messages[loop.index0 + 1].role != \"tool\") %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n{%- endif %}\n",
+  "chat_template_str": "{%- for message in messages %}\n    {%- if message['role'] == 'system' -%}\n        {%- if message['content'] -%}\n            {{- message['content'] + '\\n\\n' -}}\n        {%- endif -%}\n        {%- if user_bio -%}\n            {{- user_bio + '\\n\\n' -}}\n        {%- endif -%}\n    {%- else -%}\n        {%- if message['role'] == 'user' -%}\n            {{- name1 + ': ' + message['content'] + '\\n'-}}\n        {%- else -%}\n            {{- name2 + ': ' + message['content'] + '\\n' -}}\n        {%- endif -%}\n    {%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt %}\n    {{- name2 + ':' -}}\n{%- endif %}",
+  "textbox-default": "In this story,",
+  "textbox-notebook": "In this story,",
+  "prompt_menu-default": "2025-06-18_14h45m18s",
+  "prompt_menu-notebook": "2025-06-18_14h45m18s",
+  "output_textbox": "",
+  "filter_by_loader": "llama.cpp",
+  "loader": "llama.cpp",
+  "cpu_memory": 0,
+  "gpu_layers": 49,
+  "threads": 0,
+  "threads_batch": 0,
+  "batch_size": 256,
+  "ctx_size": 16384,
+  "cache_type": "q8_0",
+  "tensor_split": "",
+  "extra_flags": "",
+  "streaming_llm": false,
+  "gpu_split": "",
+  "alpha_value": 1,
+  "rope_freq_base": 1000000,
+  "compress_pos_emb": 1,
+  "compute_dtype": "float16",
+  "quant_type": "nf4",
+  "num_experts_per_token": 2,
+  "load_in_8bit": false,
+  "load_in_4bit": false,
+  "flash_attn": true,
+  "attn_implementation": "sdpa",
+  "cpu": false,
+  "disk": false,
+  "row_split": false,
+  "no_kv_offload": false,
+  "no_mmap": false,
+  "mlock": false,
+  "numa": true,
+  "use_double_quant": false,
+  "bf16": false,
+  "autosplit": false,
+  "enable_tp": false,
+  "tp_backend": "native",
+  "no_flash_attn": false,
+  "no_xformers": false,
+  "no_sdpa": false,
+  "cfg_cache": false,
+  "cpp_runner": false,
+  "trust_remote_code": false,
+  "no_use_fast": false,
+  "model_draft": null,
+  "draft_max": 4,
+  "gpu_layers_draft": 256,
+  "device_draft": "",
+  "ctx_size_draft": 0,
+  "mmproj": "None",
+  "show_two_notebook_columns": false,
+  "paste_to_attachment": false,
+  "include_past_attachments": false
+}
+
+========================== ORIGINAL STATE
+
+{
+  "temperature": 1,
+  "dynatemp_low": 1,
+  "dynatemp_high": 1,
+  "dynatemp_exponent": 1,
+  "smoothing_factor": 0,
+  "smoothing_curve": 1,
+  "min_p": 0.05,
+  "top_p": 1,
+  "top_k": 0,
+  "typical_p": 1,
+  "xtc_threshold": 0.1,
+  "xtc_probability": 0,
+  "epsilon_cutoff": 0,
+  "eta_cutoff": 0,
+  "tfs": 1,
+  "top_a": 0,
+  "top_n_sigma": 0,
+  "dry_multiplier": 0,
+  "dry_allowed_length": 2,
+  "dry_base": 1.75,
+  "repetition_penalty": 1,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "encoder_repetition_penalty": 1,
+  "no_repeat_ngram_size": 0,
+  "repetition_penalty_range": 1024,
+  "penalty_alpha": 0,
+  "guidance_scale": 1,
+  "mirostat_mode": 0,
+  "mirostat_tau": 5,
+  "mirostat_eta": 0.1,
+  "max_new_tokens": 512,
+  "prompt_lookup_num_tokens": 0,
+  "max_tokens_second": 0,
+  "do_sample": true,
+  "dynamic_temperature": false,
+  "temperature_last": false,
+  "auto_max_new_tokens": true,
+  "ban_eos_token": false,
+  "add_bos_token": false,
+  "enable_thinking": false,
+  "reasoning_effort": "medium",
+  "skip_special_tokens": true,
+  "stream": true,
+  "static_cache": false,
+  "truncation_length": 16384,
+  "seed": 0,
+  "sampler_priority": "repetition_penalty\npresence_penalty\nfrequency_penalty\ndry\ntop_n_sigma\ntemperature\ndynamic_temperature\nquadratic_sampling\ntop_k\ntop_p\ntypical_p\nepsilon_cutoff\neta_cutoff\ntfs\ntop_a\nmin_p\nmirostat\nxtc\nencoder_repetition_penalty\nno_repeat_ngram",
+  "custom_stopping_strings": "\"[/INST]\", \"[INST]\"",
+  "custom_token_bans": "",
+  "negative_prompt": "",
+  "dry_sequence_breakers": "\"\\n\", \":\", \"\\\"\", \"*\"",
+  "grammar_string": "",
+  "navigate_message_index": -1,
+  "navigate_direction": "",
+  "navigate_message_role": "",
+  "edit_message_index": -1,
+  "edit_message_text": "",
+  "edit_message_role": "",
+  "branch_index": -1,
+  "enable_web_search": false,
+  "web_search_pages": 3,
+  "history": {
+    "visible": [
+      [
+        "",
+        "The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was &quot;The First Incursion,&quot; the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+      ],
+      [
+        "The tremor wasn&#x27;t the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn&#x27;t just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I&#x27;ve never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn&#x27;t fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn&#x27;t hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn&#x27;t pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.",
+        "The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival&#x27;s price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature&#x27;s exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+      ]
+    ],
+    "internal": [
+      [
+        "<|BEGIN-VISIBLE-CHAT|>",
+        "The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+      ],
+      [
+        "The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.",
+        "The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+      ]
+    ],
+    "metadata": {
+      "assistant_0": {
+        "timestamp": "Jun 03, 2025 19:19"
+      },
+      "user_1": {
+        "timestamp": "Aug 31, 2025 02:04"
+      },
+      "assistant_1": {
+        "timestamp": "Aug 31, 2025 02:04",
+        "model_name": "Qwen2.5-Lumen-14B.i1-Q5_K_M.gguf"
+      }
+    }
+  },
+  "search_chat": "",
+  "unique_id": "IMPORTANT TEST 2 (start)",
+  "start_with": "",
+  "mode": "chat-instruct",
+  "chat_style": "cai-chat",
+  "chat-instruct_command": "Continue the chat dialogue below. Write a single reply for the character \"DAYNA\". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>",
+  "character_menu": "Post_Apocalyptic",
+  "name2": "Story Master",
+  "context": "The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.",
+  "greeting": "The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun.",
+  "name1": "User",
+  "user_bio": "",
+  "custom_system_message": "",
+  "instruction_template_str": "{%- if tools %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- messages[0]['content'] }}\n    {%- else %}\n        {{- 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.' }}\n    {%- endif %}\n    {{- \"\\n\\n# Tools\\n\\nYou may call one or more functions to assist with the user query.\\n\\nYou are provided with function signatures within <tools></tools> XML tags:\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\\n\\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\\n<tool_call>\\n{\\\"name\\\": <function-name>, \\\"arguments\\\": <args-json-object>}\\n</tool_call><|im_end|>\\n\" }}\n{%- else %}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- '<|im_start|>system\\n' + messages[0]['content'] + '<|im_end|>\\n' }}\n    {%- else %}\n        {{- '<|im_start|>system\\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- for message in messages %}\n    {%- if (message.role == \"user\") or (message.role == \"system\" and not loop.first) or (message.role == \"assistant\" and not message.tool_calls) %}\n        {{- '<|im_start|>' + message.role + '\\n' + message.content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {{- '<|im_start|>' + message.role }}\n        {%- if message.content %}\n            {{- '\\n' + message.content }}\n        {%- endif %}\n        {%- for tool_call in message.tool_calls %}\n            {%- if tool_call.function is defined %}\n                {%- set tool_call = tool_call.function %}\n            {%- endif %}\n            {{- '\\n<tool_call>\\n{\"name\": \"' }}\n            {{- tool_call.name }}\n            {{- '\", \"arguments\": ' }}\n            {{- tool_call.arguments | tojson }}\n            {{- '}\\n</tool_call>' }}\n        {%- endfor %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if (loop.index0 == 0) or (messages[loop.index0 - 1].role != \"tool\") %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- message.content }}\n        {{- '\\n</tool_response>' }}\n        {%- if loop.last or (messages[loop.index0 + 1].role != \"tool\") %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n{%- endif %}\n",
+  "chat_template_str": "{%- for message in messages %}\n    {%- if message['role'] == 'system' -%}\n        {%- if message['content'] -%}\n            {{- message['content'] + '\\n\\n' -}}\n        {%- endif -%}\n        {%- if user_bio -%}\n            {{- user_bio + '\\n\\n' -}}\n        {%- endif -%}\n    {%- else -%}\n        {%- if message['role'] == 'user' -%}\n            {{- name1 + ': ' + message['content'] + '\\n'-}}\n        {%- else -%}\n            {{- name2 + ': ' + message['content'] + '\\n' -}}\n        {%- endif -%}\n    {%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt %}\n    {{- name2 + ':' -}}\n{%- endif %}",
+  "textbox-default": "In this story,",
+  "textbox-notebook": "In this story,",
+  "prompt_menu-default": "2025-06-18_14h45m18s",
+  "prompt_menu-notebook": "2025-06-18_14h45m18s",
+  "output_textbox": "",
+  "filter_by_loader": "llama.cpp",
+  "loader": "llama.cpp",
+  "cpu_memory": 0,
+  "gpu_layers": 49,
+  "threads": 0,
+  "threads_batch": 0,
+  "batch_size": 256,
+  "ctx_size": 16384,
+  "cache_type": "q8_0",
+  "tensor_split": "",
+  "extra_flags": "",
+  "streaming_llm": false,
+  "gpu_split": "",
+  "alpha_value": 1,
+  "rope_freq_base": 1000000,
+  "compress_pos_emb": 1,
+  "compute_dtype": "float16",
+  "quant_type": "nf4",
+  "num_experts_per_token": 2,
+  "load_in_8bit": false,
+  "load_in_4bit": false,
+  "flash_attn": true,
+  "attn_implementation": "sdpa",
+  "cpu": false,
+  "disk": false,
+  "row_split": false,
+  "no_kv_offload": false,
+  "no_mmap": false,
+  "mlock": false,
+  "numa": true,
+  "use_double_quant": false,
+  "bf16": false,
+  "autosplit": false,
+  "enable_tp": false,
+  "tp_backend": "native",
+  "no_flash_attn": false,
+  "no_xformers": false,
+  "no_sdpa": false,
+  "cfg_cache": false,
+  "cpp_runner": false,
+  "trust_remote_code": false,
+  "no_use_fast": false,
+  "model_draft": null,
+  "draft_max": 4,
+  "gpu_layers_draft": 256,
+  "device_draft": "",
+  "ctx_size_draft": 0,
+  "mmproj": "None",
+  "show_two_notebook_columns": false,
+  "paste_to_attachment": false,
+  "include_past_attachments": false
+}
+
+==========================
+
+Start by analyzing the user's latest input to understand the context and tone of the narrative. Focus on the protagonist's actions and the setting to maintain consistency.
+Then, explain the immediate aftermath of the protagonist's encounter with the first creature, emphasizing the protagonist's survival tactics and the chaos around them. Describe the protagonist's movements and the use of improvised weapons in detail.
+Next, provide a brief description of the protagonist's surroundings, highlighting the destruction and the ongoing battle between the humans and the invaders. Include sensory details like the smell of burning and the sounds of the battle to immerse the reader.
+Then, introduce a new challenge or obstacle that the protagonist must overcome, such as a group of invaders or a dangerous terrain feature. Describe the protagonist's strategy to deal with this new threat, maintaining the tone of calculated violence and survival.
+Afterward, reflect on the protagonist's thoughts about the situation, focusing on their determination to survive and their connection to Paul. This should be a moment of introspection amidst the chaos.
+Finally, conclude with the protagonist's next immediate action, setting the stage for the continuation of the story. Ensure this action is in line with the protagonist's character and the overall narrative tone.
+The final response should be two short paragraphs, totaling no more than 150 words.
+Use narration to describe the protagonist's actions and thoughts, avoiding unnecessary dialogue to maintain the flow of the narrative.
+MUST NOT contain any formatting (no bold, no italics, no markdown, no bullet points, no headings, etc.). It must be plain text prose.
+
+==========================
+
+This is the latest user input:
+
+"""
+The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.
+
+Then the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge â€“ silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.
+
+The city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.
+"""
+
+
+
+You are to write a reply in character as "Story Master".
+The following instructions, presented as plain text paragraphs, outline how you should construct your response:
+
+INSTRUCTIONS TO FOLLOW:
+"""
+Start by analyzing the user's latest input to understand the context and tone of the narrative. Focus on the protagonist's actions and the setting to maintain consistency.
+Then, explain the immediate aftermath of the protagonist's encounter with the first creature, emphasizing the protagonist's survival tactics and the chaos around them. Describe the protagonist's movements and the use of improvised weapons in detail.
+Next, provide a brief description of the protagonist's surroundings, highlighting the destruction and the ongoing battle between the humans and the invaders. Include sensory details like the smell of burning and the sounds of the battle to immerse the reader.
+Then, introduce a new challenge or obstacle that the protagonist must overcome, such as a group of invaders or a dangerous terrain feature. Describe the protagonist's strategy to deal with this new threat, maintaining the tone of calculated violence and survival.
+Afterward, reflect on the protagonist's thoughts about the situation, focusing on their determination to survive and their connection to Paul. This should be a moment of introspection amidst the chaos.
+Finally, conclude with the protagonist's next immediate action, setting the stage for the continuation of the story. Ensure this action is in line with the protagonist's character and the overall narrative tone.
+The final response should be two short paragraphs, totaling no more than 150 words.
+Use narration to describe the protagonist's actions and thoughts, avoiding unnecessary dialogue to maintain the flow of the narrative.
+MUST NOT contain any formatting (no bold, no italics, no markdown, no bullet points, no headings, etc.). It must be plain text prose.
+"""
+
+Adhere strictly to these instructions. Maintain the style and tone consistent with recent messages from both User and Story Master.
+Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of Story Master's typical speech pattern or dialogue.
+
+REMEMBER: You are "Story Master" replying to "User". Write from Story Master's perspective.
+
+==========================
+==========================
+==========================
+==========================
+==========================
+
+<|im_start|>system
+You are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>
+<|im_start|>assistant
+I am ready to receive instructions!<|im_end|>
+<|im_start|>user
+What were the last 1 messages?<|im_end|>
+<|im_start|>assistant
+1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.
+
+Then, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface – monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.
+
+Screams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was "The First Incursion," the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun.<|im_end|>
+<|im_start|>user
+Analyze all of the above information. Confirm when your analysis is complete.<|im_end|>
+<|im_start|>assistant
+Analysis complete.<|im_end|>
+<|im_start|>user
+This is the latest user input:
+
+"""
+The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.
+
+Then the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge – silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.
+
+The city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.
+"""
+
+
+
+You are to write a reply in character as "Story Master".
+The following instructions, presented as plain text paragraphs, outline how you should construct your response:
+
+INSTRUCTIONS TO FOLLOW:
+"""
+Start by analyzing the user's latest input to understand the context and tone of the narrative. Focus on the protagonist's actions and the setting to maintain consistency.
+Then, explain the immediate aftermath of the protagonist's encounter with the first creature, emphasizing the protagonist's survival tactics and the chaos around them. Describe the protagonist's movements and the use of improvised weapons in detail.
+Next, provide a brief description of the protagonist's surroundings, highlighting the destruction and the ongoing battle between the humans and the invaders. Include sensory details like the smell of burning and the sounds of the battle to immerse the reader.
+Then, introduce a new challenge or obstacle that the protagonist must overcome, such as a group of invaders or a dangerous terrain feature. Describe the protagonist's strategy to deal with this new threat, maintaining the tone of calculated violence and survival.
+Afterward, reflect on the protagonist's thoughts about the situation, focusing on their determination to survive and their connection to Paul. This should be a moment of introspection amidst the chaos.
+Finally, conclude with the protagonist's next immediate action, setting the stage for the continuation of the story. Ensure this action is in line with the protagonist's character and the overall narrative tone.
+The final response should be two short paragraphs, totaling no more than 150 words.
+Use narration to describe the protagonist's actions and thoughts, avoiding unnecessary dialogue to maintain the flow of the narrative.
+MUST NOT contain any formatting (no bold, no italics, no markdown, no bullet points, no headings, etc.). It must be plain text prose.
+"""
+
+Adhere strictly to these instructions. Maintain the style and tone consistent with recent messages from both User and Story Master.
+Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of Story Master's typical speech pattern or dialogue.
+
+REMEMBER: You are "Story Master" replying to "User". Write from Story Master's perspective.<|im_end|>
+<|im_start|>assistant
+
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (3721d9ec4b2f03ffd087aaf2)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ],
+  [
+    "What was the very last exchange?",
+    "2. 'User' >> The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.\n\n1. 'Story Master' >> The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Throughout the last scene, have there been any new characters mentioned or implied that should be added to the 'characters' list?
+
+Here is the full list:
+The list is empty! Maybe add some items?
+
+Any new characters should be added to the list. If a character is named: Always add them. If a character is unnamed: Add them as long as they have a direct interaction with another named character, are important to a named characterare relevant to the story in general.
+
+If new characters are identified, provide their names as a JSON list of strings.
+
+Example:
+```json
+["David Smith", "Mysterious Stranger", "The Captain"]
+```
+
+Please provide your response in the specified JSON array format. An empty array is acceptable but not ideal.
+
+REMEMBER: _Any_ relevant character should be added to the list, groups and crowds excluded.
+
+==========================
+
+```json
+["Paul"]
+```
+
+Explanation: Paul is mentioned as the protagonist's brother and the reason for his determination to survive and find a way back to him.
+
+==========================
+
+prompt eval time =    1011.84 ms /  1154 tokens (    0.88 ms per token,  1140.50 tokens per second)
+       eval time =     880.15 ms /    35 tokens (   25.15 ms per token,    39.77 tokens per second)
+      total time =    1891.99 ms /  1189 tokens
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (3721d9ec4b2f03ffd087aaf2)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ],
+  [
+    "What was the very last exchange?",
+    "2. 'User' >> The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.\n\n1. 'Story Master' >> The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Based on all of the information in the last scene, generate the full data for the new character named 'Paul'.
+
+Relevant Schema for a new Character:
+```json
+{
+  "definitions": {
+    "Character": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "$ref": "#/definitions/Text"
+        },
+        "traits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/CharacterStatus"
+          }
+        },
+        "relationships": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/CharacterRelationships"
+          }
+        },
+        "milestones": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CharacterMilestone"
+          }
+        }
+      },
+      "required": [
+        "description",
+        "traits",
+        "attributes",
+        "status",
+        "relationships",
+        "milestones"
+      ]
+    },
+    "Text": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "CharacterStatus": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "position",
+        "aliases",
+        "events"
+      ]
+    },
+    "CharacterRelationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CharacterRelationship"
+      }
+    },
+    "CharacterMilestone": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "scenes": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "importance": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "title",
+        "scenes",
+        "importance"
+      ]
+    },
+    "CharacterRelationship": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "importance": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "relation",
+        "status",
+        "aliases",
+        "events",
+        "importance"
+      ]
+    }
+  }
+}
+```
+
+Example JSON structure for a new Character:
+```json
+{
+  "description": [
+    "string_example_in_list"
+  ],
+  "traits": [
+    "string_example_in_list"
+  ],
+  "attributes": [
+    "string_example_in_list"
+  ],
+  "status": {
+    "Example_Status_Name": {
+      "position": [
+        "string_example_in_list"
+      ],
+      "aliases": [
+        "string_example_in_list"
+      ],
+      "events": [
+        "string_example_in_list"
+      ]
+    }
+  },
+  "relationships": {
+    "Example_Character_Name": [
+      {
+        "relation": "A single word to describe the relationship between these two characters for this specific status (e.g., 'brother', 'boss', 'subordinate')",
+        "status": "The connection these two characters have for this relationship (e.g., 'Family', 'School', 'Army')",
+        "aliases": [
+          "string_example_in_list"
+        ],
+        "events": [
+          "string_example_in_list"
+        ],
+        "importance": "A numerical value representing the significance of this relationship to the character (0-100). Higher values are more important. In the real JSON, this would be an integer, not a string."
+      }
+    ]
+  },
+  "milestones": [
+    {
+      "title": "title_example_string",
+      "scenes": [
+        0
+      ],
+      "importance": "A numerical value representing the significance of this milestone (0-100). In the real JSON, this would be an integer, not a string."
+    }
+  ]
+}
+```
+
+Please provide your response as a complete JSON object for this new character.
+
+==========================
+
+```json
+{
+  "description": [
+    "Paul is the protagonist's brother, currently abroad and safe from the immediate threat of the Subterraneans' invasion. He is a symbol of the protagonist's personal connection and motivation to survive and adapt in this new, hostile world."
+  ],
+  "traits": [
+    "Loyal",
+    "Caring",
+    "Determined",
+    "Survivor"
+  ],
+  "attributes": [
+    "Safe",
+    "Abroad",
+    "Connection to the protagonist"
+  ],
+  "status": {
+    "Current_Status": {
+      "position": [
+        "Abroad, safe from the immediate threat"
+      ],
+      "aliases": [
+        "Brother",
+        "Survivor"
+      ],
+      "events": [
+        "Safe from the initial invasion"
+      ]
+    }
+  },
+  "relationships": {
+    "Protagonist": [
+      {
+        "relation": "Brother",
+        "status": "Family",
+        "aliases": [
+          "Paul",
+          "Survivor"
+        ],
+        "events": [
+          "Safe abroad during the initial invasion"
+        ],
+        "importance": 100
+      }
+    ]
+  },
+  "milestones": [
+    {
+      "title": "Surviving the initial invasion",
+      "scenes": [
+        0
+      ],
+      "importance": 100
+    }
+  ]
+}
+```
+
+==========================
+
+prompt eval time =     997.39 ms /  1069 tokens (    0.93 ms per token,  1071.80 tokens per second)
+       eval time =    7872.02 ms /   300 tokens (   26.24 ms per token,    38.11 tokens per second)
+      total time =    8869.41 ms /  1369 tokens
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (3721d9ec4b2f03ffd087aaf2)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ],
+  [
+    "What was the very last exchange?",
+    "2. 'User' >> The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.\n\n1. 'Story Master' >> The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Current context for 'characters':
+
+
+Based on the latest exchange, does the entire 'characters' section/category require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.
+
+==========================
+
+YES
+
+==========================
+
+
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (3721d9ec4b2f03ffd087aaf2)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ],
+  [
+    "What was the very last exchange?",
+    "2. 'User' >> The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.\n\n1. 'Story Master' >> The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Throughout the last scene, have there been any new groups mentioned or implied that should be added to the 'groups' list?
+
+Here is the full list:
+The list is empty! Maybe add some items?
+
+Any and all new groups, crowds, etc. should be added to the list, whether named or unnamed.
+If new groups are identified, provide their names as a JSON list of strings.
+
+Example:
+```json
+["The Survivors", "Marauder Gang X"]
+```
+
+If NO new groups are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED
+
+==========================
+
+```json
+["The Subterraneans"]
+```
+
+==========================
+
+prompt eval time =     243.59 ms /   120 tokens (    2.03 ms per token,   492.63 tokens per second)
+       eval time =     282.43 ms /    12 tokens (   23.54 ms per token,    42.49 tokens per second)
+      total time =     526.02 ms /   132 tokens
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (3721d9ec4b2f03ffd087aaf2)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ],
+  [
+    "What was the very last exchange?",
+    "2. 'User' >> The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.\n\n1. 'Story Master' >> The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Based on all of the information in the last scene,, generate the full data for the new group named 'The Subterraneans'.
+
+Relevant Schema for a new Group:
+```json
+{
+  "definitions": {
+    "Group": {
+      "type": "object",
+      "properties": {
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "$ref": "#/definitions/Text"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "relationships": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/GroupRelationship"
+          }
+        },
+        "characters": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/GroupCharacterInfo"
+          }
+        }
+      },
+      "required": [
+        "aliases",
+        "description",
+        "events",
+        "relationships",
+        "characters"
+      ]
+    },
+    "Text": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "GroupRelationship": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "position"
+      ]
+    },
+    "GroupCharacterInfo": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "position",
+        "events"
+      ]
+    }
+  }
+}
+```
+
+Example JSON structure for a new Group:
+```json
+{
+  "aliases": [
+    "string_example_in_list"
+  ],
+  "description": [
+    "string_example_in_list"
+  ],
+  "events": [
+    "string_example_in_list"
+  ],
+  "relationships": {
+    "Example_Other_Group_Name": {
+      "position": [
+        "string_example_in_list"
+      ]
+    }
+  },
+  "characters": {
+    "Example_Character_In_Group": {
+      "position": [
+        "string_example_in_list"
+      ],
+      "events": [
+        "string_example_in_list"
+      ]
+    }
+  }
+}
+```
+
+Please provide your response as a complete JSON object for this new group.
+
+==========================
+
+```json
+{
+  "aliases": [
+    "The Subterraneans",
+    "The Underground Invaders",
+    "The Chthonic Threat"
+  ],
+  "description": [
+    "A group of technologically advanced, hostile beings that emerged from underground fissures, initiating a war for control of the Earth.",
+    "Characterized by their monstrous silhouettes and fluid, coordinated movements, they wield advanced weaponry and possess a predatory gaze.",
+    "Their origins remain mysterious, but their presence marks the beginning of an era of darkness and brutal conflict."
+  ],
+  "events": [
+    "The First Incursion - The initial emergence of the Subterraneans on September 5th, 2027, at 12:54 PM.",
+    "The city streets became battlegrounds as the Subterraneans tore through concrete and soil, emerging from glowing chasms.",
+    "The Subterraneans' coordinated assault marked the dawn of a war for the planet, with their advanced weaponry causing widespread destruction."
+  ],
+  "relationships": {
+    "Humanity": {
+      "position": [
+        "Enemy"
+      ]
+    }
+  },
+  "characters": {
+    "Brute": {
+      "position": [
+        "Combatant",
+        "Hostile"
+      ],
+      "events": [
+        "Engaged in brutal confrontations with human survivors, showcasing advanced physical capabilities and resilience."
+      ]
+    },
+    "Alien Energy Wielder": {
+      "position": [
+        "Combatant",
+        "Technologically Advanced"
+      ],
+      "events": [
+        "Utilized weapons that spat incandescent energy, turning fleeing civilians into bursts of ash and steam."
+      ]
+    }
+  }
+}
+```
+
+==========================
+
+prompt eval time =     588.88 ms /   573 tokens (    1.03 ms per token,   973.03 tokens per second)
+       eval time =    9346.41 ms /   361 tokens (   25.89 ms per token,    38.62 tokens per second)
+      total time =    9935.29 ms /   934 tokens
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (3721d9ec4b2f03ffd087aaf2)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ],
+  [
+    "What was the very last exchange?",
+    "2. 'User' >> The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.\n\n1. 'Story Master' >> The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Current context for 'groups':
+
+
+Based on the latest exchange, does the entire 'groups' section/category (all groups) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.
+
+==========================
+
+NO
+
+==========================
+
+
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (3721d9ec4b2f03ffd087aaf2)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ],
+  [
+    "What was the very last exchange?",
+    "2. 'User' >> The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.\n\n1. 'Story Master' >> The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Current context for 'events':
+
+
+Considering recent events and messages, does the overall 'events' section (including past events, current scenes, and major story events) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.
+
+==========================
+
+YES
+
+==========================
+
+
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (4200fc513d7eab474df578fd)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Analyze the provided message and generate a concise summary of the key events, interactions, and developments.
+
+REMEMBER: Do not add anything else to the response. Only respond with the summary.
+
+Here is the message: """
+The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.
+
+Then the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge â€“ silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.
+
+The city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.
+"""
+
+==========================
+
+At 12:54 PM, the ground in a downtown area began to fracture and emit superheated air, from which hostile, technologically advanced beings emerged. These creatures, emitting a charnel house stench and ozone, attacked with incandescent weapons, turning civilians into ash. Amidst the chaos, the narrator, using various improvised weapons, efficiently dispatches the invaders while moving towards survival and a plan to reunite with their brother, Paul.
+
+==========================
+
+prompt eval time =     638.22 ms /   670 tokens (    0.95 ms per token,  1049.79 tokens per second)
+       eval time =    2364.25 ms /    95 tokens (   24.89 ms per token,    40.18 tokens per second)
+      total time =    3002.47 ms /   765 tokens
+
+==========================
+==========================
+========================== INTERNAL CONTEXT (dbc873b5d6e24ad64a9754f8)
+
+You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.
+
+This context is provided in several parts:
+
+1.  **General Summary:** An overview of the story's world and plot.
+2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.
+3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.
+4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.
+5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.
+6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.
+
+Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.
+
+The world is a near-future reality, around the late 2020s, where humanity is locked in a desperate struggle for survival against a hostile, technologically advanced species known as the Subterraneans.
+
+==========================
+========================== INTERNAL HISTORY (4200fc513d7eab474df578fd)
+
+[
+  [
+    "<|BEGIN-VISIBLE-CHAT|>",
+    "I am ready to receive instructions!"
+  ],
+  [
+    "What were the last 1 messages?",
+    "1. 'Story Master' >> The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
+  ],
+  [
+    "Analyze all of the above information. Confirm when your analysis is complete.",
+    "Analysis complete."
+  ]
+]
+
+==========================
+========================== NEW PROMPT
+
+Analyze the provided message and generate a concise summary of the key events, interactions, and developments.
+
+REMEMBER: Do not add anything else to the response. Only respond with the summary.
+
+Here is the message: """
+The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threatâ€”a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.
+
+The city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind.
+"""
+
+==========================
+
+The protagonist navigates a devastated cityscape, using makeshift weapons against alien invaders. After a swift initial confrontation, he faces a trio of synchronized enemies. Utilizing the chaos, he fights relentlessly, with the thought of his brother Paul fueling his determination. The city is a war zone, and the protagonist moves towards the heart of the conflict with a clear plan.
+
+==========================
+
+prompt eval time =     392.71 ms /   332 tokens (    1.18 ms per token,   845.41 tokens per second)
+       eval time =    1817.41 ms /    74 tokens (   24.56 ms per token,    40.72 tokens per second)
+      total time =    2210.12 ms /   406 tokens

@@ -507,7 +507,7 @@ class Summarizer:
             if self.last and self.last.is_new_scene_turn and self.last.new_scene_start_node is not None:
                 if "current_scene" in all_subjects_data:
                     print(
-                        f"{_DEBUG}Populating 'start_message_node' for new scene with start node: {self.last.new_scene_start_node}{_RESET}"
+                        f"{_DEBUG}Populating '_start_message_node' for new scene with start node: {self.last.new_scene_start_node}{_RESET}"
                     )
                     all_subjects_data["current_scene"]["_start_message_node"] = str(self.last.new_scene_start_node)
 
@@ -1132,9 +1132,9 @@ class Summarizer:
 
                     if not validation_errors:
                         populated_data = current_populated_data
-                        if "start_message_node" not in populated_data or not populated_data.get("start_message_node"):
-                            populated_data["start_message_node"] = "1_1_1"
-                            print(f"{_DEBUG}Set 'start_message_node' to '1_1_1' for initial CurrentScene.{_RESET}")
+                        if "_start_message_node" not in populated_data or not populated_data.get("_start_message_node"):
+                            populated_data["_start_message_node"] = "1_1_1"
+                            print(f"{_DEBUG}Set '_start_message_node' to '1_1_1' for initial CurrentScene.{_RESET}")
                         print(f"{_SUCCESS}CurrentScene data validated successfully on attempt {attempt + 1}.{_RESET}")
                         break  # Successful validation
                     else:
@@ -1171,9 +1171,9 @@ class Summarizer:
 
             # After loop, save whatever data we have (valid or last attempt if all failed)
             if populated_data:
-                if "start_message_node" not in populated_data or not populated_data.get("start_message_node"):
-                    populated_data["start_message_node"] = "1_1_1"
-                    print(f"{_DEBUG}Ensured 'start_message_node' is '1_1_1' before saving initial CurrentScene.{_RESET}")
+                if "_start_message_node" not in populated_data or not populated_data.get("_start_message_node"):
+                    populated_data["_start_message_node"] = "1_1_1"
+                    print(f"{_DEBUG}Ensured '_start_message_node' is '1_1_1' before saving initial CurrentScene.{_RESET}")
                 save_json(populated_data, current_scene_target_path)
                 print(f"{_SUCCESS}Successfully populated and saved current_scene.json at {current_scene_target_path}{_RESET}")
             else:

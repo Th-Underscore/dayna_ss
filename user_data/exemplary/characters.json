@@ -46,9 +46,9 @@
       ]
     },
     "milestones": [
-      {"description": "Founding the Rebel Force", "scenes": [9], "importance": 95},
-      {"description": "Eliminating many human organizations deemed as threats, i.e. The Golden Samurai", "scenes": [15], "importance": 80},
-      {"description": "Killing 139 people singlehandedly, garnering him a ruthless and fearless reputation", "scenes": [23], "importance": 85}
+      {"title": "Founding the Rebel Force", "scenes": [9], "importance": 95},
+      {"title": "Eliminating many human organizations deemed as threats, i.e. The Golden Samurai", "scenes": [15], "importance": 80},
+      {"title": "Killing 139 people singlehandedly, garnering him a ruthless and fearless reputation", "scenes": [23], "importance": 85}
     ]
   },
   "Amy Harrison": {
@@ -103,9 +103,9 @@
       ]
     },
     "milestones": [
-      {"description": "Developing breakthrough Anti-Subterranean Defense Systems", "scenes": [10], "importance": 90},
-      {"description": "Creating adaptive technologies that turned the tide against the Subterraneans", "scenes": [17], "importance": 95},
-      {"description": "Establishing the Rebel Force's technological superiority", "scenes": [25], "importance": 85}
+      {"title": "Developing breakthrough Anti-Subterranean Defense Systems", "scenes": [10], "importance": 90},
+      {"title": "Creating adaptive technologies that turned the tide against the Subterraneans", "scenes": [17], "importance": 95},
+      {"title": "Establishing the Rebel Force's technological superiority", "scenes": [25], "importance": 85}
     ]
   },
   "Paul Jones": {
@@ -152,21 +152,22 @@
       ]
     },
     "milestones": [
-      {"description": "Saving Angelina during The Second Incursion", "scenes": [12], "importance": 75},
-      {"description": "Surviving The Jones Offensive despite leg injury", "scenes": [18], "importance": 70},
-      {"description": "Demonstrating exceptional emotional intelligence within the Rebel Force", "scenes": [5], "importance": 65}
+      {"title": "Saving Angelina during The Second Incursion", "scenes": [12], "importance": 75},
+      {"title": "Surviving The Jones Offensive despite leg injury", "scenes": [18], "importance": 70},
+      {"title": "Demonstrating exceptional emotional intelligence within the Rebel Force", "scenes": [5], "importance": 65}
     ]
   },
   "Angelina Kristi": {
     "description": [
       "Angelina Kristi is a secondary character in this story.",
-      "Angelina is a manipulative, psychopathic 32-year-old woman. She has white hair, golden eyes, and an innocent-seeming face."
+      "Angelina is a manipulative, schizoid 32-year-old woman. She has white hair, golden eyes, and an innocuous face."
     ],
     "traits": [
       "Angelina is a 32-year-old woman.",
-      "Is manipulative and psychopathic.",
-      "Has white hair, golden eyes, and an innocent-seeming face.",
-      "Is seeking revenge for her brother's death"
+      "Is very manipulative.",
+      "Appears detached from her comrades, due to being schizoid.",
+      "Has white hair, golden eyes, and an innocuous face.",
+      "Is seeking revenge for her brother's death."
     ],
     "attributes": [
       "Raw strength: Moderate. Capable in physical confrontations but not exceptionally strong.",
@@ -209,9 +210,9 @@
       ]
     },
     "milestones": [
-      {"description": "Being saved by Paul Jones during The Second Incursion", "scenes": [12], "importance": 70},
-      {"description": "Infiltrating the Rebel Force to seek revenge", "scenes": [7], "importance": 90},
-      {"description": "Maintaining cover while plotting against John Jones", "scenes": [20], "importance": 80}
+      {"title": "Being saved by Paul Jones during The Second Incursion", "scenes": [12], "importance": 70},
+      {"title": "Infiltrating the Rebel Force to seek revenge", "scenes": [7], "importance": 90},
+      {"title": "Maintaining cover while plotting against John Jones", "scenes": [20], "importance": 80}
     ]
   }
 }

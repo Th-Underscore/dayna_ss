@@ -1,0 +1,58 @@
+{
+  "Paul": {
+    "description": [
+      "Paul is the protagonist's brother, currently abroad and safe from the immediate threat of the Subterraneans' invasion. He is a symbol of the protagonist's personal connection and motivation to survive and adapt in this new, hostile world."
+    ],
+    "traits": [
+      "Loyal",
+      "Caring",
+      "Determined",
+      "Survivor"
+    ],
+    "attributes": [
+      "Safe",
+      "Abroad",
+      "Connection to the protagonist"
+    ],
+    "status": {
+      "Current_Status": {
+        "position": [
+          "Abroad, safe from the immediate threat"
+        ],
+        "aliases": [
+          "Brother",
+          "Survivor"
+        ],
+        "events": [
+          "Safe from the initial invasion"
+        ]
+      }
+    },
+    "relationships": {
+      "Protagonist": [
+        {
+          "relation": "Brother",
+          "status": "Family",
+          "aliases": [
+            "Paul",
+            "Survivor"
+          ],
+          "events": [
+            "Safe abroad during the initial invasion"
+          ],
+          "importance": 100
+        }
+      ]
+    },
+    "milestones": [
+      {
+        "title": "Surviving the initial invasion",
+        "scenes": [
+          0
+        ],
+        "importance": 100
+      }
+    ]
+  },
+  "Characters": {}
+}

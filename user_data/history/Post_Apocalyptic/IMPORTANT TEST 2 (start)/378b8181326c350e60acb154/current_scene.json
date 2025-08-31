@@ -1,0 +1,51 @@
+{
+  "what": "The First Incursion",
+  "start": {
+    "who": {
+      "characters": [],
+      "groups": [
+        {
+          "name": "The Subterraneans",
+          "location": "Emerging from fissures across the globe"
+        }
+      ]
+    },
+    "when": {
+      "date": "September 5th, 2027",
+      "time": "Lunch hour",
+      "specific_time": "12:54 PM"
+    },
+    "where": "Bustling cityscapes and quiet suburban streets",
+    "why": [
+      {
+        "name": "The First Incursion",
+        "details": "The Subterraneans' coordinated assault signaling the beginning of a war for Earth"
+      }
+    ]
+  },
+  "now": {
+    "who": {
+      "characters": [],
+      "groups": [
+        {
+          "name": "The Subterraneans",
+          "location": "Emerging from fissures across the globe"
+        }
+      ]
+    },
+    "when": {
+      "date": "September 5th, 2027",
+      "time": "Lunch hour",
+      "specific_time": "12:54 PM"
+    },
+    "where": "Bustling cityscapes and quiet suburban streets",
+    "why": [
+      {
+        "name": "The First Incursion",
+        "details": "The Subterraneans' coordinated assault signaling the beginning of a war for Earth"
+      }
+    ]
+  },
+  "_start_message_node": "2_1_1",
+  "start_message_node": "1_1_1"
+}
