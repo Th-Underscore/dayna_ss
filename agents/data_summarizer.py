@@ -385,6 +385,8 @@ class DataSummarizer:
         if response_text == "NO_UPDATES_REQUIRED":
             print(f"{_INPUT}[{branch_name_for_log}] LLM indicates no updates required.{_RESET}")
             return []
+        
+        response_text = strip_response(response_text)
 
         updates: list[dict[str, Any]] = []
         try:
