@@ -88,6 +88,30 @@ class SummarizationContextCache:
     detected_new_entities: list | None = None
 
 
+# TODO: Get base_state from config
+base_state = {
+    "name1": "SYSTEM",
+    "name2": "DAYNA",
+    "mode": "instruct",
+    "chat-instruct_command": 'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>',
+    "enable_thinking": True,
+    "context": (
+        "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
+        "This context is provided in several parts:\n\n"
+        "1.  **General Summary:** An overview of the story's world and plot.\n"
+        "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
+        "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
+        "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
+        "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
+        "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
+        "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
+    ),
+    "auto_max_new_tokens": True,
+    "temperature": 0.3,
+    "history": {"internal": [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]},
+}
+
+
 class Summarizer:
     def __init__(self, config_path: str | None = None):
         """Initialize Summarizer, optionally loading config from `config_path`."""
@@ -484,7 +508,7 @@ class Summarizer:
             for subject_name in self.last.schema_parser.subjects:
                 subject_path = last_history_path / f"{subject_name}.json"
                 all_subjects_data[subject_name] = load_json(subject_path) or {}
-            
+
             all_subjects_data = {}
             missing_schemas = []
 
@@ -500,7 +524,9 @@ class Summarizer:
             print(f"{_DEBUG}All subjects data: {all_subjects_data.keys()}{_RESET}")
 
             if missing_schemas:
-                print(f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}")
+                print(
+                    f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}"
+                )
                 return None
 
             # Handle special case for new scene turn before processing
@@ -577,14 +603,13 @@ class Summarizer:
 
                     if scene_id and scene_start_node_str and scene_end_node_str:
                         try:
-                            start_msg_idx = int(scene_start_node_str.split('_')[0])
-                            end_msg_idx = int(scene_end_node_str.split('_')[0])
+                            start_msg_idx = int(scene_start_node_str.split("_")[0])
+                            end_msg_idx = int(scene_end_node_str.split("_")[0])
 
                             for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
                                 chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"scene_id": scene_id})
                         except (ValueError, IndexError) as e:
                             print(f"{_ERROR}Could not parse message nodes for scene '{scene_id}': {e}{_RESET}")
-
 
                 # Process events from the processed events_data
                 for event_info in get_values(events_data.get("events", {})):
@@ -594,8 +619,8 @@ class Summarizer:
 
                     if event_id and event_start_node_str and event_end_node_str:
                         try:
-                            start_msg_idx = int(event_start_node_str.split('_')[0])
-                            end_msg_idx = int(event_end_node_str.split('_')[0])
+                            start_msg_idx = int(event_start_node_str.split("_")[0])
+                            end_msg_idx = int(event_end_node_str.split("_")[0])
 
                             for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
                                 chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"event_id": event_id})
@@ -625,6 +650,8 @@ class Summarizer:
         Returns:
             out (dict): _description_
         """
+        global base_state
+        
         current_context = self.get_general_summarization(state)
         custom_state, (retrieval_context, context_retriever, last_x, last_x_messages) = self.get_retrieval_context(
             state, history, current_context, **kwargs
@@ -632,28 +659,7 @@ class Summarizer:
         if not self.last.history_length is None:
             return custom_state
 
-        # TODO: Get these all from config
-        custom_state["name1"] = "SYSTEM"
-        custom_state["name2"] = "DAYNA"
-        custom_state["mode"] = "instruct"
-        custom_state["enable_thinking"] = True
-        # custom_state["chat-instruct_command"] = (
-        #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
-        # )
-        custom_state["context"] = (
-            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
-            "This context is provided in several parts:\n\n"
-            "1.  **General Summary:** An overview of the story's world and plot.\n"
-            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
-            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
-            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
-            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
-            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
-            "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
-        )
-        custom_state["user_bio"] = ""
-        custom_state["auto_max_new_tokens"] = True
-        custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
+        custom_state.update(base_state)
         custom_history: History = custom_state["history"]["internal"]
 
         custom_state["context"] += f"\n\n{current_context}"
@@ -664,33 +670,25 @@ class Summarizer:
         # last_scene = context_retriever.get_scene(-1)
         # if last_scene:
         #     formatted_last_scene = FormattedData(last_scene, 'scene').st
-        #     current_context += f"\n\nThe last scene was: {formatted_last_scene}"
+        #     custom_history.append(["What happened in the last scene?", formatted_last_scene])
 
+        if not self.last.schema_parser:
+            raise RuntimeError("Schema parser not initialized in retrieve_and_format_context.")
+
+        # TODO: Add this formatting to subjects_schema.json? Make it dynamic
         # Current scene
         if retrieval_context.current_scene:
-            if not self.last.schema_parser:
-                print(
-                    f"{_ERROR}Schema parser not initialized in retrieve_and_format_context. Skipping current_scene formatting.{_RESET}"
-                )
-                formatted_current_scene = "<ERROR: Schema parser not available for current_scene>"
-            else:
-                formatted_current_scene = FormattedData(
-                    retrieval_context.current_scene, "current_scene", self.last.schema_parser
-                ).st
+            formatted_current_scene = FormattedData(
+                retrieval_context.current_scene, "current_scene", self.last.schema_parser
+            ).st
             current_context += f"\n\nThe current scene is: {formatted_current_scene}"
             custom_history.append(["What is the current scene in the story?", formatted_current_scene])
 
         # Format and append retrieved information
         if retrieval_context.characters:
-            if not self.last.schema_parser:
-                print(
-                    f"{_ERROR}Schema parser not initialized in retrieve_and_format_context. Skipping character_list formatting.{_RESET}"
-                )
-                formatted_character_list = "<ERROR: Schema parser not available for character_list>"
-            else:
-                formatted_character_list = FormattedData(
-                    retrieval_context.characters, "character_list", self.last.schema_parser
-                ).st
+            formatted_character_list = FormattedData(
+                retrieval_context.characters, "character_list", self.last.schema_parser
+            ).st
             custom_history.append(
                 [
                     "What are the relevant details? Start with a list of relevant characters.",
@@ -699,13 +697,7 @@ class Summarizer:
             )
 
         if retrieval_context.groups:
-            if not self.last.schema_parser:
-                print(
-                    f"{_ERROR}Schema parser not initialized in retrieve_and_format_context. Skipping groups formatting.{_RESET}"
-                )
-                formatted_groups = "<ERROR: Schema parser not available for groups>"
-            else:
-                formatted_groups = FormattedData(retrieval_context.groups, "groups", self.last.schema_parser).st
+            formatted_groups = FormattedData(retrieval_context.groups, "groups", self.last.schema_parser).st
             custom_history.append(
                 [
                     "Now, relevant groups.",
@@ -714,13 +706,7 @@ class Summarizer:
             )
 
         if retrieval_context.events:
-            if not self.last.schema_parser:
-                print(
-                    f"{_ERROR}Schema parser not initialized in retrieve_and_format_context. Skipping events formatting.{_RESET}"
-                )
-                formatted_events = "<ERROR: Schema parser not available for events>"
-            else:
-                formatted_events = FormattedData(retrieval_context.events, "events", self.last.schema_parser).st
+            formatted_events = FormattedData(retrieval_context.events, "events", self.last.schema_parser).st
             custom_history.append(
                 [
                     "Now, relevant events.",
@@ -729,13 +715,7 @@ class Summarizer:
             )
 
         if retrieval_context.characters:
-            if not self.last.schema_parser:
-                print(
-                    f"{_ERROR}Schema parser not initialized in retrieve_and_format_context. Skipping characters formatting.{_RESET}"
-                )
-                formatted_characters = "<ERROR: Schema parser not available for characters>"
-            else:
-                formatted_characters = FormattedData(retrieval_context.characters, "characters", self.last.schema_parser).st
+            formatted_characters = FormattedData(retrieval_context.characters, "characters", self.last.schema_parser).st
             custom_history.append(
                 [
                     "Now, describe each of the relevant characters.",
@@ -744,13 +724,7 @@ class Summarizer:
             )
 
         if retrieval_context.messages:
-            if not self.last.schema_parser:
-                print(
-                    f"{_ERROR}Schema parser not initialized in retrieve_and_format_context. Skipping lines formatting.{_RESET}"
-                )
-                formatted_lines = "<ERROR: Schema parser not available for lines>"
-            else:
-                formatted_lines = FormattedData(retrieval_context.messages, "lines", self.last.schema_parser).st
+            formatted_lines = FormattedData(retrieval_context.messages, "lines", self.last.schema_parser).st
             custom_history.append(
                 [
                     "Now, retrieve specific lines earlier in the story that might be relevant:",
@@ -799,13 +773,15 @@ class Summarizer:
                     num_last_messages, formatted_last_messages_str).
         """
         # TODO: Make this path configurable or discoverable
-        GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = Path("extensions/dayna_ss/user_data/exemplary/subjects_schema.json")
 
         history_path = self.retrieve_history_path(state, history)
         initial_schema_parser = None
         is_new_scene = False
 
         if len(history) < 2 and not history_path.exists():  # New chat
+            GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = Path("extensions/dayna_ss/user_data/exemplary/subjects_schema.json")
+            GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH)
+
             print(f"{_BOLD}Fresh chat detected. Initializing...{_RESET}")
 
             # Phase 0: Determine Initial World Data Path & Check Cache
@@ -829,12 +805,9 @@ class Summarizer:
             )
             print(f"{_DEBUG}Initial world data cache path: {initial_world_data_path}{_RESET}")
 
-            required_cache_files = [  # TODO: Make this list dynamic
+            required_cache_files = [
                 "subjects_schema.json",
-                "characters.json",
-                "groups.json",
-                "current_scene.json",
-                "events.json",
+                *[f"{subject}.json" for subject in GLOBAL_SCHEMA_PARSER.subjects.keys()],
             ]
             cache_hit = initial_world_data_path.exists() and all(
                 (initial_world_data_path / f).exists() for f in required_cache_files
@@ -1025,6 +998,8 @@ class Summarizer:
         Uses LLM interaction to populate current_scene.json based on state['context'] and state['greeting'].
         Saves to initial_world_data_path / "current_scene.json".
         """
+        global base_state
+
         print(f"{_DEBUG}Attempting to populate initial current_scene.json for {initial_world_data_path}{_RESET}")
         current_scene_target_path = initial_world_data_path / "current_scene.json"
 
@@ -1074,27 +1049,7 @@ class Summarizer:
             # Prepare a minimal state for generate_using_tgwui
             # It needs 'seed', and other generation params can be default or from self.config
             custom_state = copy.deepcopy(state)
-            custom_state["name1"] = "SYSTEM"
-            custom_state["name2"] = "DAYNA"
-            custom_state["mode"] = "instruct"
-            custom_state["enable_thinking"] = True
-            # custom_state["chat-instruct_command"] = (
-            #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
-            # )
-            custom_state["context"] = (
-                "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
-                "This context is provided in several parts:\n\n"
-                "1.  **General Summary:** An overview of the story's world and plot.\n"
-                "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
-                "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
-                "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
-                "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
-                "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
-                "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
-            )
-            custom_state["auto_max_new_tokens"] = True
-            custom_state["temperature"] = 0.3
-            custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
+            custom_state.update(base_state)
             # custom_state = {
             #     "seed": state.get("seed", -1), # Use existing seed or default
             #     "max_new_tokens": 1024, # Sensible default for JSON generation
@@ -1190,6 +1145,8 @@ class Summarizer:
         Uses LLM interaction to populate characters.json and groups.json based on state['context'] and state['greeting'].
         Saves to initial_world_data_path / "characters.json" and "groups.json".
         """
+        global base_state
+
         print(f"{_DEBUG}Attempting to populate initial entities (characters & groups) for {initial_world_data_path}{_RESET}")
         characters_target_path = initial_world_data_path / "characters.json"
         groups_target_path = initial_world_data_path / "groups.json"
@@ -1198,27 +1155,7 @@ class Summarizer:
         char_greeting = state["history"]["internal"][0][1]  # state.get("greeting", "")
 
         custom_state = copy.deepcopy(state)
-        custom_state["name1"] = "SYSTEM"
-        custom_state["name2"] = "DAYNA"
-        custom_state["mode"] = "instruct"
-        custom_state["enable_thinking"] = True
-        # custom_state["chat-instruct_command"] = (
-        #     'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>'
-        # )  # Just use user instruct
-        custom_state["context"] = (
-            "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
-            "This context is provided in several parts:\n\n"
-            "1.  **General Summary:** An overview of the story's world and plot.\n"
-            "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
-            "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
-            "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
-            "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
-            "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
-            "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
-        )
-        custom_state["auto_max_new_tokens"] = True
-        custom_state["temperature"] = 0.3
-        custom_state["history"]["internal"] = [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]
+        custom_state.update(base_state)
 
         # --- Step A: Identification ---
         identification_prompt = (
