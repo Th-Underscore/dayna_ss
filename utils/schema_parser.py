@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import copy
 import json
 import jsonc
 import re
+from enum import IntEnum
 from pathlib import Path
 from typing import Any, Union, get_origin, get_args
 
@@ -26,6 +29,19 @@ TYPE_MAP = {
 }
 
 
+class Action(IntEnum):
+    ADD_NEW = 1
+    PERFORM_GATE_CHECK = 2
+    QUERY_BRANCH_FOR_CHANGES = 3
+    PERFORM_UPDATE = 4
+
+
+class Trigger(IntEnum):
+    ALWAYS = 0
+    ON_NEW_SCENE = 1
+    ON_EXISTING_SCENE = 2
+
+
 class ParsedSchemaField:
     """Represents a field parsed from the schema."""
 
@@ -47,12 +63,12 @@ class ParsedSchemaClass:
         fields: list[ParsedSchemaField] | None = None,
         field: ParsedSchemaField | None = None,
         defaults: dict[str, Any] | None = None,
-        triggers: dict[str, list[str]] | None = None,
+        triggers: dict[Trigger, list[Action]] | None = None,
     ):
         self.name = name
         self.definition_type = definition_type
         self.defaults = defaults or {}
-        self.trigger_map: dict[str, list[str]] = triggers or {}
+        self.trigger_map: dict[Trigger, list[Action]] = triggers or {}
 
         self._fields_dict: dict[str, ParsedSchemaField] | None = None  # Parsed fields for "dataclass" type
         self._field: ParsedSchemaField | None = None  # Parsed type for "field" type
@@ -71,8 +87,8 @@ class ParsedSchemaClass:
         self.branch_query_prompt_template: str | None = None
         self.update_prompt_template: str | None = None
         self.branch_update_prompt_template: str | None = None
-        self.new_field_query_prompt_template: str | None = None
-        self.new_field_entry_prompt_template: str | None = None
+        self.new_entry_query_prompt_template: str | None = None
+        self.new_entry_prompt_template: str | None = None
         self.do_expand_into_dict: bool = True
 
         # Add default values to fields where applicable and parse specific flags/templates from defaults
@@ -85,10 +101,10 @@ class ParsedSchemaClass:
                 self.branch_query_prompt_template = str(value)
             elif field_name_or_flag == "branch_update_prompt_template":
                 self.branch_update_prompt_template = str(value)
-            elif field_name_or_flag == "new_field_query_prompt_template":
-                self.new_field_query_prompt_template = str(value)
-            elif field_name_or_flag == "new_field_entry_prompt_template":
-                self.new_field_entry_prompt_template = str(value)
+            elif field_name_or_flag == "new_entry_query_prompt_template":
+                self.new_entry_query_prompt_template = str(value)
+            elif field_name_or_flag == "new_entry_prompt_template":
+                self.new_entry_prompt_template = str(value)
             elif field_name_or_flag == "update_prompt_template":
                 self.update_prompt_template = str(value)
             elif field_name_or_flag == "do_expand_into_dict":
@@ -112,46 +128,48 @@ class ParsedSchemaClass:
             return self._fields_dict.get(name)
         return self._field
 
-    def _type_to_json_schema_dict(self, type_hint: Any, all_definitions_map: dict) -> dict:
+    def _type_to_json_schema_dict(
+        self, type_hint: ParsedSchemaClass | type, all_definitions_map: dict, field_name: str | None = None
+    ) -> dict:
         """Converts a Python type hint (potentially a ParsedSchemaClass) to a JSON schema dict."""
+        schema: dict[str, Any] = {}
+        description = self.defaults.get(f"{field_name}_placeholder")
+        if description:
+            schema["description"] = description
+
         if isinstance(type_hint, ParsedSchemaClass):
             # This is a reference to another defined type
             if type_hint.name in all_definitions_map:
-                return {"$ref": f"#/definitions/{type_hint.name}"}
+                schema["$ref"] = f"#/definitions/{type_hint.name}"
             else:
-                # Fallback if somehow not in all_definitions_map, convert it directly
-                # This case should ideally not be hit if all_definitions_map is comprehensive
-                return type_hint.to_json_schema_dict(all_definitions_map)
+                schema.update(type_hint.to_json_schema_dict(all_definitions_map))
         elif type_hint is str:
-            return {"type": "string"}
+            schema["type"] = "string"
         elif type_hint is int:
-            return {"type": "integer"}
+            schema["type"] = "integer"
         elif type_hint is float:
-            return {"type": "number"}
+            schema["type"] = "number"
         elif type_hint is bool:
-            return {"type": "boolean"}
+            schema["type"] = "boolean"
         elif hasattr(type_hint, "__origin__"):
             origin = type_hint.__origin__
             args = getattr(type_hint, "__args__", tuple())
             if origin is list and args:
-                return {
-                    "type": "array",
-                    "items": self._type_to_json_schema_dict(args[0], all_definitions_map),
-                }
+                schema["type"] = "array"
+                schema["items"] = self._type_to_json_schema_dict(args[0], all_definitions_map)
             elif origin is dict and len(args) == 2:
                 # JSON schema for dicts is typically an object with string keys.
                 # For 'additionalProperties', we describe the type of the values.
-                return {
-                    "type": "object",
-                    "additionalProperties": self._type_to_json_schema_dict(args[1], all_definitions_map),
-                }
+                schema["type"] = "object"
+                schema["additionalProperties"] = self._type_to_json_schema_dict(args[1], all_definitions_map)
         elif type_hint is Any or type_hint is None:
-            return {}  # Any type or can be null
-
-        # Fallback for unknown types: treat as string or object? For now, an empty schema.
-        # Consider raising an error or logging a warning for unhandled types.
-        print(f"{_ERROR}Warning: Unhandled type '{type_hint}' in _type_to_json_schema_dict. Returning empty schema.{_RESET}")
-        return {}
+            pass
+        else:
+            # Fallback for unknown types: treat as string or object
+            print(
+                f"{_ERROR}Warning: Unhandled type '{type_hint}' in _type_to_json_schema_dict. Returning empty schema.{_RESET}"
+            )
+        return schema
 
     def to_json_schema_dict(self, all_definitions_map: dict) -> dict:
         """Converts this ParsedSchemaClass instance to a JSON schema dictionary."""
@@ -160,7 +178,7 @@ class ParsedSchemaClass:
             required_fields = []  # Assuming all fields are required unless a default is present or explicitly marked optional
 
             for field_obj in self.get_fields():
-                properties[field_obj.name] = self._type_to_json_schema_dict(field_obj.type, all_definitions_map)
+                properties[field_obj.name] = self._type_to_json_schema_dict(field_obj.type, all_definitions_map, field_obj.name)
                 if field_obj.default is None:  # Basic check for required; could be more sophisticated
                     # Check if default is None because it was not set, vs. explicitly set to None
                     is_explicitly_optional = False  # Placeholder for more advanced optionality check
@@ -176,7 +194,7 @@ class ParsedSchemaClass:
             # For a 'field' type, the ParsedSchemaClass itself represents the type.
             # Its 'name' is the definition name, and its '_field.type' is the actual type.
             if self._field and self._field.type:
-                return self._type_to_json_schema_dict(self._field.type, all_definitions_map)
+                return self._type_to_json_schema_dict(self._field.type, all_definitions_map, self.name)
             else:
                 # Should not happen if parser is correct
                 print(
@@ -197,26 +215,35 @@ class ParsedSchemaClass:
         if self.definition_type == "dataclass":
             example_obj = {}
             for field_obj in self.get_fields():
+                field_type = field_obj.type
+                field_name = field_obj.name
                 if field_obj.default is not None:
-                    pass
-                    # example_obj[field_obj.name] = copy.copy(field_obj.default)
+                    pass  # TODO: Handle default values
+                    # example_obj[field_name] = copy.copy(field_obj.default)
                 else:
-                    field_type = field_obj.type
-                    field_name = field_obj.name
                     # Try to get description from parent class's defaults to use as example value
-                    field_description = self.defaults.get(f"{field_name}_desc")
+                    field_placeholder = self.defaults.get(f"{field_name}_placeholder")
 
-                    if field_description is not None:
+                    if field_placeholder is not None:
                         if field_type is str or field_type is int or field_type is float or field_type is bool:
-                            example_obj[field_name] = str(field_description)
+                            example_obj[field_name] = str(field_placeholder)
                         elif isinstance(field_type, ParsedSchemaClass):  # Nested class, recurse
                             example_obj[field_name] = field_type.generate_example_json(
                                 all_definitions_map, depth + 1, max_depth
                             )
-                        elif hasattr(field_type, "__origin__"):  # Handle generics like list/dict
-                            pass
+                        elif hasattr(field_type, "__origin__"):
+                            origin = field_type.__origin__
+                            args = getattr(field_type, "__args__", tuple())
+                            if origin is list and args:
+                                item_type = args[0]
+                                if isinstance(item_type, ParsedSchemaClass):
+                                    example_obj[field_name] = [
+                                        item_type.generate_example_json(all_definitions_map, depth + 1, max_depth)
+                                    ]
+                                else:
+                                    example_obj[field_name] = [field_placeholder]
                         else:  # Fallback for other types if description not used
-                            example_obj[field_name] = f"<{field_description}>"  # Use description as placeholder
+                            example_obj[field_name] = f"<{field_placeholder}>"  # Use description as placeholder
 
                     # If description wasn't used or applicable for the primitive type, or if it's a complex type
                     if field_name not in example_obj:
@@ -258,10 +285,10 @@ class ParsedSchemaClass:
                                 example_obj[field_name] = [f"<example_for_{str(item_type)}>"]
                         elif origin is dict and len(args) == 2:
                             # Determine the example key using the field's description if available
-                            field_description_as_key = self.defaults.get(f"{field_name}_desc")
+                            field_placeholder_as_key = self.defaults.get(f"{field_name}_placeholder")
                             key_example = (
-                                str(field_description_as_key)
-                                if field_description_as_key is not None
+                                str(field_placeholder_as_key)
+                                if field_placeholder_as_key is not None
                                 else f"{field_name}_key_example"
                             )
 
@@ -296,17 +323,17 @@ class ParsedSchemaClass:
             if self._field:
                 field_obj = self._field
                 field_type = field_obj.type
-                field_description = self.defaults.get("field_desc")
+                field_placeholder = self.defaults.get("field_placeholder")
 
-                if field_description is not None:
+                if field_placeholder is not None:
                     if field_type is str or field_type is int or field_type is float or field_type is bool:
-                        return str(field_description)
+                        return str(field_placeholder)
                     elif isinstance(field_type, ParsedSchemaClass):  # Nested class, recurse
                         return field_type.generate_example_json(all_definitions_map, depth + 1, max_depth)
                     elif hasattr(field_type, "__origin__"):  # Handle generics like list/dict
-                        pass
+                        pass  # TODO: Handle generics
                     else:  # Fallback for other types if description not used
-                        return f"<{field_description}>"
+                        return f"<{field_placeholder}>"
                 if field_obj.default is not None:
                     return jsonc.loads(json.dumps(field_obj.default))
                 if isinstance(field_type, ParsedSchemaClass):
@@ -447,8 +474,15 @@ class SchemaParser:
         # First pass: Create ParsedSchemaClass objects with string placeholders for types
         for name, definition in schema_definitions.items():
             def_type = definition.get("type")
-            defaults = definition.get("defaults")
-            triggers_data = definition.get("triggers")
+            if not def_type:
+                raise ValueError(f"Definition '{name}' is missing the 'type' attribute.")
+            defaults = definition.get("defaults", {})
+            triggers_data = definition.get("triggers", {})
+
+            triggers = {
+                getattr(Trigger, trigger.upper()): [getattr(Action, action.upper()) for action in actions]
+                for trigger, actions in triggers_data.items()
+            }
 
             if def_type == "dataclass":
                 fields_data = definition.get("fields", {})
@@ -459,7 +493,7 @@ class SchemaParser:
                 for field_name, type_str in fields_data.items():
                     fields.append(ParsedSchemaField(field_name, type_str))  # type_str is placeholder
                 self.definitions[name] = ParsedSchemaClass(
-                    name, definition_type="dataclass", fields=fields, defaults=defaults, triggers=triggers_data
+                    name, definition_type="dataclass", fields=fields, defaults=defaults, triggers=triggers
                 )
             elif def_type == "field":
                 field_type_str = definition.get("field")
@@ -470,7 +504,7 @@ class SchemaParser:
                     definition_type="field",
                     field=ParsedSchemaField(name, field_type_str),
                     defaults=defaults,
-                    triggers=triggers_data,
+                    triggers=triggers,
                 )
             # Add handling for other types if needed (e.g., enums)
 
@@ -523,25 +557,79 @@ class SchemaParser:
             for item in schema_part:
                 self._collect_refs_from_schema_part(item, queue, visited, all_definition_keys)
 
-    def get_relevant_definitions_json(self, root_definition_name: str) -> dict:
+    def _type_hint_to_json_schema(self, type_hint: Any, root_schema_obj: ParsedSchemaClass | None = None) -> dict:
+        """Converts a Python type hint to a JSON schema dictionary within the SchemaParser context."""
+        schema: dict[str, Any] = {}
+        if root_schema_obj and root_schema_obj.definition_type == "field":
+            description = root_schema_obj.defaults.get("field_placeholder")
+            if description:
+                schema["description"] = description
+
+        if isinstance(type_hint, ParsedSchemaClass):
+            schema["$ref"] = f"#/definitions/{type_hint.name}"
+            return schema
+
+        origin = getattr(type_hint, "__origin__", None)
+        args = getattr(type_hint, "__args__", tuple())
+
+        if origin is dict:
+            value_schema = self._type_hint_to_json_schema(args[1]) if len(args) > 1 else {}
+            schema["type"] = "object"
+            schema["additionalProperties"] = value_schema
+        elif origin is list:
+            item_schema = self._type_hint_to_json_schema(args[0]) if args else {}
+            schema["type"] = "array"
+            schema["items"] = item_schema
+        elif origin is Union:
+            schema["anyOf"] = [self._type_hint_to_json_schema(arg) for arg in args]
+        elif type_hint is str:
+            schema["type"] = "string"
+        elif type_hint is int:
+            schema["type"] = "integer"
+        elif type_hint is float:
+            schema["type"] = "number"
+        elif type_hint is bool:
+            schema["type"] = "boolean"
+        elif type_hint is Any:
+            pass  # No type to specify
+        else:
+            schema["type"] = "string"  # Fallback
+
+        return schema
+
+    def get_relevant_definitions_json(self, root_schema_or_type: ParsedSchemaClass | type) -> dict:
         """
-        Collects the JSON schema for the given root_definition_name and all
-        recursively referenced definitions.
-        Returns a dictionary structured for JSON schema "definitions" section.
+        Generates a JSON schema for the given root type (which can be a class name,
+        a ParsedSchemaClass, or a generic type hint) and includes all recursively
+        referenced definitions.
         """
-        relevant_schemas: dict[str, dict] = {}
+        main_schema: dict = {}
+        relevant_definitions: dict[str, dict] = {}
         queue: list[str] = []
         visited: set[str] = set()
         all_definition_keys = set(self.definitions.keys())
 
-        print(f"{_HILITE}Collecting relevant definitions for root definition '{root_definition_name}'...{_RESET}")
+        print(f"{_HILITE}Collecting relevant definitions for root '{root_schema_or_type}'...{_RESET}")
 
-        if root_definition_name in all_definition_keys:
-            queue.append(root_definition_name)
-        else:
-            print(f"{_ERROR}Error: Root definition name '{root_definition_name}' not found in schema definitions.{_RESET}")
-            return {"definitions": {}}
+        # Convert the root type into a preliminary JSON schema and find initial refs.
+        if isinstance(root_schema_or_type, str) and root_schema_or_type in self.definitions:
+            main_schema = {"$ref": f"#/definitions/{root_schema_or_type}"}
+            queue.append(root_schema_or_type)
+        elif isinstance(root_schema_or_type, ParsedSchemaClass):
+            main_schema = {"$ref": f"#/definitions/{root_schema_or_type.name}"}
+            if root_schema_or_type.name in self.definitions:
+                queue.append(root_schema_or_type.name)
+        else:  # Handle generic types like dict[str, MyClass]
+            root_schema_obj = (
+                self.definitions.get(root_schema_or_type.name) if isinstance(root_schema_or_type, ParsedSchemaClass) else None
+            )
+            main_schema = self._type_hint_to_json_schema(root_schema_or_type, root_schema_obj)
+            # Find initial references from the generated main schema
+            self._collect_refs_from_schema_part(main_schema, queue, visited, all_definition_keys)
+            # We reset visited here because we only used it to de-duplicate the initial queue.
+            visited = set()
 
+        # Process the queue to find all nested definitions.
         while queue:
             current_name = queue.pop(0)
             if current_name in visited:
@@ -550,19 +638,16 @@ class SchemaParser:
 
             parsed_class_obj = self.definitions.get(current_name)
             if not parsed_class_obj:
-                print(
-                    f"{_ERROR}Warning: Definition '{current_name}' not found during recursive collection, though it was queued.{_RESET}"
-                )
+                print(f"{_ERROR}Warning: Definition '{current_name}' not found during recursive collection.{_RESET}")
                 continue
 
-            # Generate the JSON schema for the current definition
             current_schema_json = parsed_class_obj.to_json_schema_dict(self.definitions)
-            relevant_schemas[current_name] = current_schema_json
+            relevant_definitions[current_name] = current_schema_json
 
-            # Scan current_schema_json for new $refs to add to the queue
+            # Scan the generated schema for more references to add to the queue.
             self._collect_refs_from_schema_part(current_schema_json, queue, visited, all_definition_keys)
 
-        return {"definitions": relevant_schemas}
+        return {"main_schema": main_schema, "definitions": relevant_definitions}
 
     def _parse_subjects(self):
         """Parse the 'subjects' section, resolving types."""
@@ -571,6 +656,40 @@ class SchemaParser:
             parsed_type = self._parse_type_string(type_str)
             resolved_type = self._resolve_type_placeholders(parsed_type)
             self.subjects[name] = resolved_type
+
+    def generate_example_json(self, type_hint: Any, depth: int = 0, max_depth: int = 5) -> Any:
+        """
+        Generates an example JSON-like structure for a given type hint, which can be
+        a ParsedSchemaClass or a generic type.
+        """
+        if depth > max_depth:
+            return f"<max_depth_reached>"
+
+        if isinstance(type_hint, ParsedSchemaClass):
+            return type_hint.generate_example_json(self.definitions, depth + 1, max_depth)
+
+        origin = getattr(type_hint, "__origin__", None)
+        args = getattr(type_hint, "__args__", tuple())
+
+        if origin is list and args:
+            item_example = self.generate_example_json(args[0], depth + 1, max_depth)
+            return [item_example]
+        elif origin is dict and len(args) == 2:
+            key_example = "key_example"  # Simplified key example for generics
+            value_example = self.generate_example_json(args[1], depth + 1, max_depth)
+            return {key_example: value_example}
+        elif type_hint is str:
+            return "string_example"
+        elif type_hint is int:
+            return 0
+        elif type_hint is float:
+            return 0.0
+        elif type_hint is bool:
+            return True
+        elif type_hint is Any:
+            return "any_value"
+
+        return f"<unknown_type_{str(type_hint)}>"
 
     def get_subject_class(self, subject_name: str) -> ParsedSchemaClass | None:
         """Get the parsed class definition for a top-level subject."""

@@ -31,6 +31,8 @@ from extensions.dayna_ss.utils.schema_parser import (
     SchemaParser,
     ParsedSchemaClass,
     ParsedSchemaField,
+    Action,
+    Trigger,
 )
 from extensions.dayna_ss.agents.summarizer import Summarizer, FormattedData
 
@@ -128,22 +130,46 @@ class DataSummarizer:
         if base_setting_name.endswith("_prompt_template"):
             return None
 
-        # Boolean flags for actions are now handled by event_map.
+        # Boolean flags for actions are now handled by trigger_map.
         return None
+
+    def _get_current_event_triggers(self):
+        """Get the current event triggers based on the last turn, which can be used to determine whether an action is triggered."""
+        current_event_triggers = [Trigger.ALWAYS]
+        if self.summarizer.last and self.summarizer.last.is_new_scene_turn:
+            current_event_triggers.append(Trigger.ON_NEW_SCENE)
+        else:
+            current_event_triggers.append(Trigger.ON_EXISTING_SCENE)
+        return current_event_triggers
 
     def _is_action_triggered(  # TODO?: Also accept overrides?
         self,
-        schema_definition: ParsedSchemaClass,
-        action_name: str,
-        current_event_triggers: list[str],
+        schema_class: ParsedSchemaClass,
+        action: Action,
+        event_triggers: list[Trigger] = [],
     ) -> bool:
-        """Checks if a given action is triggered by any of the current event conditions."""
-        if not schema_definition or not schema_definition.trigger_map:
+        """Whether a given action is triggered by any of the current event conditions. Use `_should_update_subject` for a general check."""
+        if not schema_class or not schema_class.trigger_map:
             return False
-        for trigger in current_event_triggers:
-            if action_name in schema_definition.trigger_map.get(trigger, []):
-                return True
-        return False
+        return bool(
+            [
+                True
+                for trigger in (event_triggers or self._get_current_event_triggers())
+                if action in schema_class.trigger_map.get(trigger, [])
+            ]
+        )
+
+    def _should_update_subject(self, schema_class: ParsedSchemaClass, event_triggers: list[Trigger] = []) -> bool:
+        """Whether the subject should be updated at all based on the schema_class's trigger_map. Use `_is_action_triggered` for more fine-grained control."""
+        if not schema_class or not schema_class.trigger_map:
+            return False
+        return bool(
+            [
+                True
+                for trigger in (event_triggers or self._get_current_event_triggers())
+                if schema_class.trigger_map.get(trigger)
+            ]
+        )
 
     def generate(self, data_type: str, data: dict, target_schema_class: ParsedSchemaClass) -> dict:
         """Dynamically generate summaries for data based on its class structure.
@@ -166,7 +192,7 @@ class DataSummarizer:
 
             subject_type = self.schema_parser.subjects.get(data_type)
             print(f"{_HILITE}Subject type for '{data_type}':{_RESET} {subject_type}")
-            original_data = FormattedData(data, data_type)
+            unexpanded_formatted_data = FormattedData(data, data_type)
             formatted_data = FormattedData(data, data_type, self.schema_parser)
             if hasattr(subject_type, "__origin__") and subject_type.__origin__ is dict:
                 # e.g., "characters": "dict[str, Character]"
@@ -174,11 +200,15 @@ class DataSummarizer:
                     if not item_data:
                         print(f"{_ERROR}Empty data for {name}, skipping{_RESET}")
                         continue
-                    updated_fields = self._update_recursive(name, item_data, formatted_data, original_data, target_schema_class)
+                    updated_fields = self._update_recursive(
+                        name, item_data, formatted_data, unexpanded_formatted_data, target_schema_class
+                    )
                     if updated_fields:
                         item_data.update(updated_fields)
             else:  # e.g., "current_scene": "CurrentScene"
-                updated_fields = self._update_recursive(data_type, data, formatted_data, original_data, target_schema_class)
+                updated_fields = self._update_recursive(
+                    data_type, data, formatted_data, unexpanded_formatted_data, target_schema_class
+                )
                 if updated_fields:
                     data.update(updated_fields)
 
@@ -197,9 +227,11 @@ class DataSummarizer:
     def _detect_and_add_new_entries_to_branch(
         self,
         branch_name: str,
-        current_data_dict: dict,
+        data: dict,
         formatted_data: FormattedData,
         branch_schema_class: ParsedSchemaClass,
+        new_query_template: str | None = None,
+        new_entry_template: str | None = None,
         keys: list = [],
     ):
         """Handles querying for and adding new entries to a dictionary-like branch."""
@@ -211,8 +243,12 @@ class DataSummarizer:
             # This logic is for dictionary fields like "Characters: dict[str, Character]"
             return
 
-        new_query_template = branch_schema_class.new_field_query_prompt_template
-        new_entry_template = branch_schema_class.new_field_entry_prompt_template
+        new_query_template = new_query_template or self._get_effective_setting(
+            data, branch_schema_class, "new_entry_query_prompt_template"
+        )
+        new_entry_template = new_entry_template or self._get_effective_setting(
+            data, branch_schema_class, "new_entry_prompt_template"
+        )
 
         if not new_query_template or not new_entry_template:
             print(
@@ -228,7 +264,7 @@ class DataSummarizer:
             field_name="",  # Not specific to a field
             formatted_data=formatted_data,
             prompt_template_str=new_query_template,
-            schema_for_prompt_context=branch_schema_class,
+            target_schema_or_type=branch_schema_class,
             keys=keys,
         )
 
@@ -292,7 +328,7 @@ class DataSummarizer:
                 field_name="",  # Not updating a sub-field of the new entry yet
                 formatted_data=formatted_data,
                 prompt_template_str=new_entry_template,
-                schema_for_prompt_context=value_schema_class,
+                target_schema_or_type=value_schema_class,
                 entry_name=entry_name,
                 keys=keys,
             )
@@ -301,7 +337,7 @@ class DataSummarizer:
                 prompt=entry_generation_prompt,
                 state=self.custom_state or {},
                 history_path=self.history_path,
-                # No specific stopping strings here, expect full JSON
+                # No specific stopping strings, expect full JSON
             )
             if shared.stop_everything:
                 return
@@ -310,8 +346,9 @@ class DataSummarizer:
                 stripped_entry_json = strip_response(llm_entry_response)
                 new_entry_data = jsonc.loads(stripped_entry_json)
                 if isinstance(new_entry_data, dict):
-                    current_data_dict[entry_name] = new_entry_data
-                    # TODO: Also update formatted_data?
+                    data[entry_name] = new_entry_data
+                    expanded_data: dict = recursive_get(formatted_data.data, keys, default=None)
+                    expanded_data[entry_name] = new_entry_data
                     print(f"\r{_SUCCESS}Successfully added new entry '{entry_name}' to '{branch_name}'.{_RESET}")
                 else:
                     print(
@@ -322,7 +359,7 @@ class DataSummarizer:
                     f"{_ERROR}Failed to parse LLM response for new entry '{entry_name}' in '{branch_name}' as JSON: {llm_entry_response}{_RESET}"
                 )
 
-        recursive_set(formatted_data.data, keys, current_data_dict)
+        recursive_set(formatted_data.data, keys, data)
 
     # --- Helper methods for parsing and applying LLM updates ---
     def _parse_llm_field_updates(self, llm_response_text: str, branch_name_for_log: str) -> list[dict[str, Any]]:
@@ -435,37 +472,25 @@ class DataSummarizer:
 
         return valid_updates
 
-    def _should_update_subject(self, schema_class: ParsedSchemaClass) -> bool:
-        if not schema_class:
-            return False
-        current_event_triggers = ["always"]
-        if self.summarizer.last and self.summarizer.last.is_new_scene_turn:
-            current_event_triggers.append("on_new_scene")
-        else:
-            current_event_triggers.append("on_existing_scene")
-        for trigger in current_event_triggers:
-            if schema_class.trigger_map.get(trigger):
-                return True
-        return False
-
     def _update_recursive(
         self,
         item_name_prefix: str,
         data: dict,
         formatted_data: FormattedData,
-        original_data: FormattedData,
+        unexpanded_formatted_data: FormattedData,
         target_schema_class: ParsedSchemaClass,
         parent_schema_class: ParsedSchemaClass | None = None,
         keys: list = [],
     ) -> dict:
         """Recursively update fields based on parsed schema structure.
 
-        Handles gate checks, full branch updates, branch queries, and individual field updates based on the target_schema_class's event_map.
+        Handles gate checks, full branch updates, branch queries, and individual field updates based on the target_schema_class's trigger_map.
 
         Args:
             item_name_prefix (str): Prefix for the current item's name (e.g., "CharacterName.inventory").
-            data (dict): The data dictionary to update.
+            data (dict): The data dictionary to update. When top-level, this is equivalent to `unexpanded_formatted_data.data`. Otherwise, it's a sub-dict.
             formatted_data (FormattedData): Formatted data for LLM context.
+            unexpanded_formatted_data (FormattedData): Unformatted data for LLM context.
             target_schema_class (ParsedSchemaClass): Schema for the current data level.
             parent_schema_class (ParsedSchemaClass, optional): Schema of the parent. Defaults to None.
             keys (list, optional): Path keys to the current data level. Defaults to [].
@@ -490,40 +515,39 @@ class DataSummarizer:
         )
 
         # Determine current event triggers
-        current_event_triggers = ["always"]
-        if self.summarizer.last and self.summarizer.last.is_new_scene_turn:
-            current_event_triggers.append("on_new_scene")
+        current_event_triggers = self._get_current_event_triggers()
 
         # --- START: Add New Entries to Dictionary Logic ---
         if target_schema_class.definition_type == "field" and self._is_action_triggered(
             target_schema_class, "add_new", current_event_triggers
         ):
-
-            new_field_query_prompt_template = self._get_effective_setting(
-                data, target_schema_class, "new_field_query_prompt_template"
-            )
-            new_field_entry_prompt_template = self._get_effective_setting(
-                data, target_schema_class, "new_field_entry_prompt_template"
-            )
+            new_entry_query_prompt_template = self._get_effective_setting(
+                data, target_schema_class, "new_entry_query_prompt_template"
+            )  # field
+            new_entry_prompt_template = self._get_effective_setting(
+                data, target_schema_class, "new_entry_prompt_template"
+            )  # entry
 
             if (
                 hasattr(target_schema_class._field.type, "__origin__")
                 and target_schema_class._field.type.__origin__ is dict
-                and new_field_query_prompt_template
-                and new_field_entry_prompt_template
+                and new_entry_query_prompt_template
+                and new_entry_prompt_template
             ):
                 self._detect_and_add_new_entries_to_branch(
                     branch_name=item_name_prefix,
-                    current_data_dict=data,
-                    formatted_data=original_data,
+                    data=data,
+                    formatted_data=unexpanded_formatted_data,
                     branch_schema_class=target_schema_class,
+                    new_query_template=new_entry_query_prompt_template,
+                    new_entry_template=new_entry_prompt_template,
                 )
         # --- END: Add New Entries to Dictionary Logic ---
 
         # --- START: Gate Check Logic ---
         gate_check_prompt_template = self._get_effective_setting(data, target_schema_class, "gate_check_prompt_template")
         if (
-            self._is_action_triggered(target_schema_class, "perform_gate_check", current_event_triggers)
+            self._is_action_triggered(target_schema_class, Action.PERFORM_GATE_CHECK, current_event_triggers)
             and gate_check_prompt_template
         ):
 
@@ -608,7 +632,7 @@ class DataSummarizer:
                     formatted_data=formatted_data,
                     prompt_template_str=current_prompt_template_str,
                     expected_type=dict,
-                    schema_for_prompt_context=target_schema_class,
+                    target_schema_or_type=target_schema_class,
                     keys=keys,
                     context_marker_path_override=item_name_prefix,
                 )
@@ -619,7 +643,6 @@ class DataSummarizer:
                     and not updated_branch_data is data
                 ):
                     print(f"{_SUCCESS}Applying direct branch update to '{branch_name_for_prompt}'.{_RESET}")
-                    data.clear()
                     data.update(updated_branch_data)
                 elif updated_branch_data == data or updated_branch_data is None:
                     print(f"{_GRAY}Direct branch update for '{branch_name_for_prompt}' resulted in no changes.{_RESET}")
@@ -784,17 +807,20 @@ class DataSummarizer:
                                 effective_child_schema, defaults_to_inherit
                             )
 
+                            key_list = [*keys, field_name, k]
                             updated_item = self._update_recursive(
                                 f"{current_item_name}.{k}",
                                 v_dict,
                                 formatted_data,
-                                original_data,
+                                unexpanded_formatted_data,
                                 effective_child_schema,
                                 target_schema_class,
-                                keys=[*keys, field_name, k],
+                                keys=key_list,
                             )
                             if updated_item:
                                 v_dict.update(updated_item)
+                                expanded_v_dict: dict = recursive_get(formatted_data.data, key_list, default=None)
+                                expanded_v_dict.update(updated_item)
                         else:
                             print(f"{_INPUT}Skipping non-dict value in dict field {current_item_name}: {k}={v_dict}{_RESET}")
                 else:
@@ -826,17 +852,20 @@ class DataSummarizer:
                                 effective_child_schema, defaults_to_inherit
                             )
 
+                            key_list = [*keys, field_name, i]
                             updated_item = self._update_recursive(
                                 f"{current_item_name}[{i}]",
                                 item_dict,
                                 formatted_data,
-                                original_data,
+                                unexpanded_formatted_data,
                                 effective_child_schema,
                                 target_schema_class,
-                                keys=[*keys, field_name, i],
+                                keys=key_list,
                             )
                             if updated_item:
                                 item_dict.update(updated_item)
+                                expanded_item_dict: dict = recursive_get(formatted_data.data, key_list, default=None)
+                                expanded_item_dict.update(updated_item)
                         else:
                             print(
                                 f"{_INPUT}Skipping non-dict item in list field {current_item_name}: index {i}={item_dict}{_RESET}"
@@ -863,17 +892,20 @@ class DataSummarizer:
                 )
                 effective_child_schema = self._retrieve_final_nested_field_class(effective_child_schema, defaults_to_inherit)
 
+                key_list = [*keys, field_name]
                 updated_nested_fields = self._update_recursive(
                     current_item_name,
                     field_value,
                     formatted_data,
-                    original_data,
+                    unexpanded_formatted_data,
                     effective_child_schema,
                     target_schema_class,
-                    keys=[*keys, field_name],
+                    keys=key_list,
                 )
                 if updated_nested_fields:
                     field_value.update(updated_nested_fields)
+                    expanded_field_value: dict = recursive_get(formatted_data.data, key_list, default=None)
+                    expanded_field_value.update(updated_item)
 
             else:
                 # Simple field (str, int, etc.)
@@ -965,7 +997,7 @@ class DataSummarizer:
         formatted_data: FormattedData,
         prompt_template_str: str,
         expected_type: type,
-        schema_for_prompt_context: ParsedSchemaClass | None = None,
+        target_schema_or_type: ParsedSchemaClass | None = None,
         keys: list = [],
         context_marker_path_override: str | None = None,
         entry_name_for_prompt: str | None = None,
@@ -979,7 +1011,7 @@ class DataSummarizer:
             formatted_data (FormattedData): Formatted data for LLM context.
             prompt_template_str (str): The prompt template string to use.
             expected_type (type): The expected Python type of the updated value.
-            schema_for_prompt_context (ParsedSchemaClass, optional): Schema for snippet/example.
+            target_schema_or_type (ParsedSchemaClass, optional): Schema for snippet/example.
             keys (list, optional): Path keys to the current data level. Defaults to [].
             context_marker_path_override (str, optional): Override path for context marking. Defaults to None.
             entry_name_for_prompt (str, optional): Name of the new entry if generating one.
@@ -993,7 +1025,7 @@ class DataSummarizer:
                 field_name=field_name,
                 formatted_data=formatted_data,
                 prompt_template_str=prompt_template_str,
-                schema_for_prompt_context=schema_for_prompt_context,
+                target_schema_or_type=target_schema_or_type,
                 entry_name=entry_name_for_prompt,
                 keys=keys,
                 indent=2,
@@ -1130,10 +1162,6 @@ class DataSummarizer:
                 f"{_INPUT}Using default structured prompt template with schema/example for {parent_item_name_prefix}.{field_name}{_RESET}"
             )
 
-        schema_for_context = None
-        if isinstance(field_schema.type, ParsedSchemaClass):
-            schema_for_context = field_schema.type
-
         return self._generate_field_update(
             item_name_prefix=parent_item_name_prefix,
             field_name=field_name,
@@ -1141,7 +1169,7 @@ class DataSummarizer:
             formatted_data=formatted_data,
             prompt_template_str=prompt_template,
             expected_type=field_schema.type,
-            schema_for_prompt_context=schema_for_context,
+            target_schema_or_type=field_schema.type,
             keys=keys,
         )
 
@@ -1151,7 +1179,7 @@ class DataSummarizer:
         field_name: str,
         formatted_data: FormattedData,
         prompt_template_str: str,
-        schema_for_prompt_context: ParsedSchemaClass | None = None,
+        target_schema_or_type: ParsedSchemaClass | type | None = None,
         entry_name: str | None = None,
         keys: list = [],
         indent: int | str | None = None,
@@ -1163,9 +1191,7 @@ class DataSummarizer:
             field_name (str): Name of the specific field if applicable.
             formatted_data (FormattedData): Formatted data object for context.
             prompt_template_str (str): The prompt template string.
-            schema_for_prompt_context (ParsedSchemaClass, optional): The schema definition relevant
-                to what the prompt is asking to generate or update (e.g., schema for 'Character' if
-                generating a new character, or schema for 'Character.description').
+            target_schema_or_type (ParsedSchemaClass | type, optional): The schema definition or type hint relevant to what the prompt is asking to generate or update.
             entry_name (str, optional): The name of a new entry being generated (e.g. a new character's name).
             keys (list, optional): Path keys to the current data.
             indent (int | str, optional): Indentation for JSON stringification. Defaults to None.
@@ -1194,20 +1220,17 @@ class DataSummarizer:
         example_json_str = ""
         branch_list_str = ""
 
-        if schema_for_prompt_context:
+        if target_schema_or_type:
+            target_name = getattr(target_schema_or_type, "name", str(target_schema_or_type))
+            print(f"{_INPUT}Generating schema snippet and example JSON for {target_name}{_RESET}")
             try:
                 schema_snippet_str = lambda: json.dumps(
-                    self.schema_parser.get_relevant_definitions_json(schema_for_prompt_context.name), indent=2
+                    self.schema_parser.get_relevant_definitions_json(target_schema_or_type), indent=2
                 )
-
-                example_json_str = lambda: json.dumps(
-                    schema_for_prompt_context.generate_example_json(self.schema_parser.definitions), indent=2
-                )
-
+                example_json_str = lambda: json.dumps(self.schema_parser.generate_example_json(target_schema_or_type), indent=2)
             except Exception as e:
-                print(
-                    f"{_ERROR}Error generating schema snippet or example JSON for {schema_for_prompt_context.name}: {e}{_RESET}"
-                )
+                print(f"{_ERROR}Error generating schema snippet or example JSON for {target_name}: {e}{_RESET}")
+                traceback.print_exc()
 
         if formatted_data:
             branch_list_str = (
