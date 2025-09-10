@@ -651,7 +651,7 @@ class Summarizer:
             out (dict): _description_
         """
         global base_state
-        
+
         current_context = self.get_general_summarization(state)
         custom_state, (retrieval_context, context_retriever, last_x, last_x_messages) = self.get_retrieval_context(
             state, history, current_context, **kwargs
@@ -686,9 +686,7 @@ class Summarizer:
 
         # Format and append retrieved information
         if retrieval_context.characters:
-            formatted_character_list = FormattedData(
-                retrieval_context.characters, "character_list", self.last.schema_parser
-            ).st
+            formatted_character_list = FormattedData(retrieval_context.characters, "character_list", self.last.schema_parser).st
             custom_history.append(
                 [
                     "What are the relevant details? Start with a list of relevant characters.",
@@ -779,7 +777,7 @@ class Summarizer:
         is_new_scene = False
 
         if len(history) < 2 and not history_path.exists():  # New chat
-            GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = Path("extensions/dayna_ss/user_data/exemplary/subjects_schema.json")
+            GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = Path("extensions/dayna_ss/user_data/example/subjects_schema.json")
             GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH)
 
             print(f"{_BOLD}Fresh chat detected. Initializing...{_RESET}")

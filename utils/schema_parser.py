@@ -34,6 +34,7 @@ class Action(IntEnum):
     PERFORM_GATE_CHECK = 2
     QUERY_BRANCH_FOR_CHANGES = 3
     PERFORM_UPDATE = 4
+    QUERY_FOR_ARCHIVE = 5
 
 
 class Trigger(IntEnum):
@@ -806,7 +807,7 @@ if __name__ == "__main__":
     try:
         schema_file_path = Path(__file__).parent / "subjects_schema.json"
         if not schema_file_path.exists():
-            schema_file_path = Path("extensions/dayna_ss/user_data/exemplary/subjects_schema.json")
+            schema_file_path = Path("extensions/dayna_ss/user_data/example/subjects_schema.json")
 
         parser = SchemaParser(schema_file_path)
         print("Schema loaded and parsed successfully.")
