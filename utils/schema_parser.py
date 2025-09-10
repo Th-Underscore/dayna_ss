@@ -120,7 +120,7 @@ class ParsedSchemaClass:
         """Mimics dataclasses.fields() for 'dataclass' type. Returns empty list for 'field' type."""
         if self.definition_type == "dataclass":
             return list(self._fields_dict.values())
-        return [self._field]
+        return []
 
     def get_field(self, name: str | None = None) -> ParsedSchemaField:
         """Get a specific field by name for 'dataclass' type. Returns self._field for 'field' type."""

@@ -169,7 +169,7 @@ def expand_lists_in_data_for_llm(data: dict | list, schema_type: ParsedSchemaCla
 
     Args:
         data (dict | list): The data to process (dict, list, or primitive).
-        schema_type (ParsedSchemaClass): The type for the current data segment, if available.
+        schema_type (ParsedSchemaClass | None): The type for the current data segment, if available.
         parser (SchemaParser): The SchemaParser instance for resolving type definitions.
 
     Returns:
@@ -278,16 +278,10 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | 
             return data_copy
         elif parsed_class_obj.definition_type == "field":
             field_type = parsed_class_obj.get_field().type
-            if parsed_class_obj.do_expand_into_dict and isinstance(data, dict):
-                if _is_dict_expandable_to_list(data):
-                    list_item_schema_type = None
-                    if (
-                        field_type
-                        and hasattr(field_type, "__origin__")
-                        and field_type.__origin__ is list
-                        and hasattr(field_type, "__args__")
-                        and field_type.__args__
-                    ):
+            if parsed_class_obj.do_expand_into_dict and isinstance(data, dict) and _is_dict_expandable_to_list(data):
+                list_item_schema_type = None
+                if field_type and hasattr(field_type, "__origin__") and field_type.__origin__ is list:
+                    if hasattr(field_type, "__args__") and field_type.__args__:
                         list_item_schema_type = field_type.__args__[0]
 
                     # Ensure keys are sorted numerically for correct list order
