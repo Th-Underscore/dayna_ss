@@ -92,7 +92,7 @@ class DataSummarizer:
         Args:
             data (dict): The actual data dictionary that might contain _overrides.
             schema_definition (ParsedSchemaClass): The schema definition for this data.
-            base_setting_name (str): The name of the setting to get (e.g., "do_perform_gate_check", "update_prompt_template").
+            base_setting_name (str): The name of the setting to get (e.g., "update_prompt_template").
             field_name_context (str, optional): For field-specific templates, e.g., "description". Defaults to None.
         """
         overrides = data.get("_overrides", {})
@@ -151,25 +151,19 @@ class DataSummarizer:
         """Whether a given action is triggered by any of the current event conditions. Use `_should_update_subject` for a general check."""
         if not schema_class or not schema_class.trigger_map:
             return False
-        return bool(
-            [
-                True
-                for trigger in (event_triggers or self._get_current_event_triggers())
-                if action in schema_class.trigger_map.get(trigger, [])
-            ]
-        )
+        for trigger in (event_triggers or self._get_current_event_triggers()):
+            if action in schema_class.trigger_map.get(trigger, []):
+                return True
+        return False
 
     def _should_update_subject(self, schema_class: ParsedSchemaClass, event_triggers: list[Trigger] = []) -> bool:
         """Whether the subject should be updated at all based on the schema_class's trigger_map. Use `_is_action_triggered` for more fine-grained control."""
         if not schema_class or not schema_class.trigger_map:
             return False
-        return bool(
-            [
-                True
-                for trigger in (event_triggers or self._get_current_event_triggers())
-                if schema_class.trigger_map.get(trigger)
-            ]
-        )
+        for trigger in (event_triggers or self._get_current_event_triggers()):
+            if schema_class.trigger_map.get(trigger):
+                return True
+        return False
 
     def generate(self, data_type: str, data: dict, target_schema_class: ParsedSchemaClass) -> dict:
         """Dynamically generate summaries for data based on its class structure.
@@ -519,7 +513,7 @@ class DataSummarizer:
 
         # --- START: Add New Entries to Dictionary Logic ---
         if target_schema_class.definition_type == "field" and self._is_action_triggered(
-            target_schema_class, "add_new", current_event_triggers
+            target_schema_class, Action.ADD_NEW, current_event_triggers
         ):
             new_entry_query_prompt_template = self._get_effective_setting(
                 data, target_schema_class, "new_entry_query_prompt_template"
@@ -600,7 +594,7 @@ class DataSummarizer:
             data, target_schema_class, "update_prompt_template"  # General update template for the branch
         )
         if (
-            self._is_action_triggered(target_schema_class, "perform_update", current_event_triggers)
+            self._is_action_triggered(target_schema_class, Action.PERFORM_UPDATE, current_event_triggers)
             and update_prompt_for_branch
             and target_schema_class.definition_type == "dataclass"
         ):
@@ -659,7 +653,7 @@ class DataSummarizer:
 
         if (
             not skip_current_schema_branch_query
-            and self._is_action_triggered(target_schema_class, "query_branch_for_changes", current_event_triggers)
+            and self._is_action_triggered(target_schema_class, Action.QUERY_BRANCH_FOR_CHANGES, current_event_triggers)
             and branch_query_prompt_template
             and branch_update_prompt_template
         ):
@@ -736,7 +730,6 @@ class DataSummarizer:
                 return updated_fields  # Branch querying handles the whole branch, no further recursion needed for its fields
         # --- END: Branch Query Logic ---
 
-        fields_to_iterate = []
         if target_schema_class.definition_type == "field" and isinstance(target_schema_class._field.type, ParsedSchemaClass):
             target_schema_class = self._inherit_defaults_from_parent(
                 target_schema_class._field.type, target_schema_class, defaults_to_inherit
