@@ -1,0 +1,236 @@
+{
+  "Civilians": {
+    "aliases": [
+      "Non-Combatants",
+      "City Population",
+      "Survivors"
+    ],
+    "description": [
+      "The general populace of the city caught in the initial wave of the Subterranean invasion. They are largely unprepared for the scale of the attack and exhibit a range of reactions, from paralyzed fear to desperate attempts at escape. Their primary characteristic is vulnerability, lacking the training, equipment, or mindset to effectively combat the Subterraneans. Many are quickly killed or injured, becoming casualties of the 'First Incursion'.",
+      "They represent the everyday people whose lives have been shattered by the sudden arrival of a hostile alien force."
+    ],
+    "events": [
+      "The First Incursion - initial attack and widespread panic.",
+      "Mass casualties during the initial Subterranean assault.",
+      "Witnessing the destruction of the city and the collapse of infrastructure.",
+      "Attempts to flee the city, often resulting in further casualties.",
+      "Some individuals offering aid to the wounded (e.g., the medic)."
+    ],
+    "relationships": {
+      "Subterraneans": {
+        "position": [
+          "Victims",
+          "Target"
+        ]
+      },
+      "Narrator": {
+        "position": [
+          "Observed",
+          "Bypassed (mostly)"
+        ]
+      },
+      "Paul (Narrator's Brother)": {
+        "position": [
+          "Concerned For",
+          "Indirectly Affected"
+        ]
+      }
+    },
+    "characters": {
+      "Pink-Haired Woman in Brew & Bytes": {
+        "position": [
+          "Victim",
+          "Paralyzed by Fear"
+        ],
+        "events": [
+          "Witnessing the initial attack.",
+          "Frozen in place during the chaos."
+        ]
+      },
+      "Man in Tailored Suit in Brew & Bytes": {
+        "position": [
+          "Victim",
+          "Casualty"
+        ],
+        "events": [
+          "Witnessing the initial attack.",
+          "Slumping forward, presumably injured or killed."
+        ]
+      },
+      "Medic": {
+        "position": [
+          "Aid Provider",
+          "Vulnerable"
+        ],
+        "events": [
+          "Offering aid to the wounded.",
+          "Providing antiseptic wipes and gauze to the Narrator."
+        ]
+      },
+      "Wounded Man (assisted by Medic)": {
+        "position": [
+          "Victim",
+          "Injured"
+        ],
+        "events": [
+          "Being wounded during the attack.",
+          "Receiving medical attention from the medic."
+        ]
+      }
+    }
+  },
+  "Police": {
+    "aliases": [
+      "Medics",
+      "Emergency Services"
+    ],
+    "description": [
+      "A loosely organized group of medical professionals and civilians providing aid to the injured during the First Incursion. They are largely operating independently due to communication failures and the collapse of established infrastructure. Their primary focus is triage and immediate care, often with limited resources. They represent a dwindling beacon of hope amidst the chaos, prioritizing saving lives despite the overwhelming odds."
+    ],
+    "events": [
+      "Providing aid to the wounded during the First Incursion.",
+      "Attempting to maintain order and provide medical assistance in a chaotic environment.",
+      "Offering supplies (antiseptic wipes, gauze) to survivors."
+    ],
+    "relationships": {
+      "Police": {
+        "position": [
+          "Compromised",
+          "Former Associates"
+        ]
+      },
+      "Subterraneans": {
+        "position": [
+          "Enemy"
+        ]
+      },
+      "Civilians": {
+        "position": [
+          "Beneficiaries",
+          "Allies"
+        ]
+      }
+    },
+    "characters": {
+      "Unnamed Medic": {
+        "position": [
+          "Field Medic",
+          "First Responder"
+        ],
+        "events": [
+          "Offering aid to the narrator.",
+          "Recognizing the narrator's self-preservation instincts.",
+          "Providing limited medical supplies."
+        ]
+      }
+    }
+  },
+  "Medics": {
+    "aliases": [
+      "Police",
+      "Law Enforcement"
+    ],
+    "description": [
+      "The city's police force, now largely fragmented and struggling to maintain order amidst the Subterranean invasion. Their communication systems are failing, and their ability to respond effectively is severely hampered. They represent a dwindling authority attempting to provide aid and information, but are largely overwhelmed by the scale of the disaster."
+    ],
+    "events": [
+      "Communication systems failure during The First Incursion.",
+      "Attempted broadcast of status updates during the attack.",
+      "Likely widespread casualties and disruption of operations."
+    ],
+    "relationships": {
+      "Medics": {
+        "position": [
+          "Associate",
+          "Cooperative"
+        ]
+      },
+      "Subterraneans": {
+        "position": [
+          "Enemy"
+        ]
+      },
+      "Civilians": {
+        "position": [
+          "Protector",
+          "Guardian"
+        ]
+      }
+    },
+    "characters": {
+      "Unnamed Police Officer (Radio Voice)": {
+        "position": [
+          "Communicator",
+          "Reporter"
+        ],
+        "events": [
+          "Broadcasted a desperate status update via police radio.",
+          "Attempted to gather information from other units."
+        ]
+      }
+    }
+  },
+  "Subterraneans": {
+    "aliases": [
+      "Civilians",
+      "Survivors"
+    ],
+    "description": [
+      "The general populace caught in the First Incursion. They represent the non-combatant humans struggling to survive the Subterranean attack. Their initial state is one of shock, fear, and paralysis, though some, like the medic encountered, demonstrate resilience and a willingness to help others. They are largely unprepared for the scale of the disaster and rely on individual resourcefulness or the aid of others for survival.",
+      "They are characterized by their vulnerability and lack of specialized training, contrasting sharply with the preparedness of the narrator and the aggressive nature of the Subterraneans."
+    ],
+    "events": [
+      "The First Incursion - initial shock and widespread casualties.",
+      "Attempting to cope with the immediate aftermath of the attack.",
+      "Providing limited aid to the wounded (as exemplified by the medic).",
+      "Becoming victims of the Subterranean attacks."
+    ],
+    "relationships": {
+      "Subterraneans": {
+        "position": [
+          "Victims",
+          "Enemy"
+        ]
+      },
+      "Narrator": {
+        "position": [
+          "Beneficiaries (of aid, though limited)",
+          "Protectors (potentially, though the narrator prioritizes self-preservation)"
+        ]
+      }
+    },
+    "characters": {
+      "Pink-Haired Woman": {
+        "position": [
+          "Victim",
+          "Bystander"
+        ],
+        "events": [
+          "Frozen in shock during the initial attack.",
+          "Witnessing the chaos unfolding around her."
+        ]
+      },
+      "Man in Tailored Suit": {
+        "position": [
+          "Victim",
+          "Bystander"
+        ],
+        "events": [
+          "Slumped forward, incapacitated by the attack.",
+          "Represents the disruption of normal life."
+        ]
+      },
+      "Medic": {
+        "position": [
+          "Aid Provider",
+          "Survivor"
+        ],
+        "events": [
+          "Providing first aid to the wounded.",
+          "Offering supplies to the Narrator.",
+          "Demonstrating resilience in the face of disaster."
+        ]
+      }
+    }
+  }
+}

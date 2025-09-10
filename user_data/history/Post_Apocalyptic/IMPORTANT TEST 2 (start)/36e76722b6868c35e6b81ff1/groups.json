@@ -1,0 +1,290 @@
+{
+  "Downtown Workers": {
+    "aliases": [
+      "Downtown Workers",
+      "Cafe Patrons",
+      "City Lunch Crowd"
+    ],
+    "description": [
+      "A collection of individuals present in the downtown area during The First Incursion, primarily those utilizing businesses like 'The Daily Grind' cafe. They represent the initial wave of civilian casualties and survivors.",
+      "This group embodies the unpreparedness and shock of the initial attack, showcasing a range of reactions from paralysis to desperate attempts at survival."
+    ],
+    "events": [
+      "The First Incursion",
+      "Initial Earthquake/Tremor",
+      "Street Fracturing and Subterranean Emergence",
+      "Immediate Civilian Casualties",
+      "Cafe Disruption and Panic",
+      "Fragmented Radio Transmission",
+      "Attempted Aid by Medic"
+    ],
+    "relationships": {
+      "Subterraneans": {
+        "position": [
+          "Antagonistic",
+          "Attackers"
+        ]
+      },
+      "The Protagonist": {
+        "position": [
+          "Witness",
+          "Survivor alongside"
+        ]
+      },
+      "Medic": {
+        "position": [
+          "Allies",
+          "Aid Providers"
+        ]
+      }
+    },
+    "characters": {
+      "Unnamed Cafe Patrons": {
+        "position": [
+          "Victims",
+          "Bystanders"
+        ],
+        "events": [
+          "Exhibited initial shock and paralysis",
+          "Suffered casualties during the attack",
+          "Represented the unprepared civilian population"
+        ]
+      },
+      "The Medic": {
+        "position": [
+          "Aid Provider",
+          "Survivor"
+        ],
+        "events": [
+          "Attempted to provide medical assistance to the wounded",
+          "Offered bandages and antiseptic to the protagonist",
+          "Demonstrated resilience in the face of chaos"
+        ]
+      }
+    }
+  },
+  "City Civilians": {
+    "aliases": [
+      "Medics",
+      "Emergency Services",
+      "First Responders"
+    ],
+    "description": [
+      "Individuals providing medical assistance to the injured during The First Incursion. Largely comprised of doctors, nurses, paramedics, and volunteers attempting to offer aid amidst the chaos.",
+      "They are severely under-equipped and overwhelmed, operating with limited resources and facing immense danger."
+    ],
+    "events": [
+      "The First Incursion",
+      "Providing aid to the wounded near the collapsed bus",
+      "Attempting to maintain order amidst widespread panic",
+      "Facing resource scarcity"
+    ],
+    "relationships": {
+      "City Civilians": {
+        "position": [
+          "Subgroup",
+          "Dependent"
+        ]
+      },
+      "Subterraneans": {
+        "position": [
+          "Opposed",
+          "Targeted"
+        ]
+      },
+      "Player Character": {
+        "position": [
+          "Neutral",
+          "Offered Assistance"
+        ]
+      }
+    },
+    "characters": {
+      "Unnamed Medic": {
+        "position": [
+          "Representative",
+          "Frontline"
+        ],
+        "events": [
+          "Offering bandages and antiseptic to the Player Character",
+          "Expressing exhaustion and desperation",
+          "Acknowledging the Player Character's self-reliance"
+        ]
+      }
+    }
+  },
+  "The Subterraneans": {
+    "aliases": [
+      "Civilians",
+      "Survivors",
+      "The Remaining"
+    ],
+    "description": [
+      "The human population caught in the initial wave of The First Incursion. Largely unprepared and lacking coordinated defense, they represent the primary victims of the Subterranean assault. Their actions are driven by survival, desperation, and a dwindling hope for rescue or retribution.",
+      "Individuals attempting to navigate the chaos and destruction wrought by the Subterraneans. They range from those actively fighting back with improvised weapons to those simply trying to escape the immediate danger.",
+      "A fractured and disorganized group, lacking central leadership or a unified strategy. Their strength lies in their sheer numbers and individual resilience."
+    ],
+    "events": [
+      "The First Incursion",
+      "Initial Assault on Cities",
+      "Scattered Resistance",
+      "Desperate Flight",
+      "Improvised Weaponry",
+      "Loss of Communication",
+      "Seeking Shelter"
+    ],
+    "relationships": {
+      "The Subterraneans": {
+        "position": [
+          "Victims",
+          "Enemies",
+          "Oppressed"
+        ]
+      },
+      "Military Forces (Implied)": {
+        "position": [
+          "Potential Allies",
+          "Hope for Rescue",
+          "Unknown Status"
+        ]
+      }
+    },
+    "characters": {
+      "The Medic": {
+        "position": [
+          "Aid Provider",
+          "Witness",
+          "Symbol of Hope"
+        ],
+        "events": [
+          "Providing First Aid",
+          "Offering Bandages",
+          "Expressing Desperation"
+        ]
+      },
+      "The Narrator (User)": {
+        "position": [
+          "Survivor",
+          "Combatant",
+          "Observer"
+        ],
+        "events": [
+          "Engaging in Combat",
+          "Improvised Weapon Use",
+          "Seeking Brother (Paul)",
+          "Strategic Assessment"
+        ]
+      }
+    }
+  },
+  "Medics": {
+    "aliases": [
+      "Civilians",
+      "Survivors"
+    ],
+    "description": [
+      "The general populace caught in the First Incursion. They represent the vast majority of those affected, ranging from those actively trying to help (like the medic) to those simply trying to survive.",
+      "Individuals struggling to cope with the immediate aftermath of the Subterranean attack, exhibiting a wide range of responses from panic and despair to resilience and resourcefulness."
+    ],
+    "events": [
+      "The First Incursion",
+      "Initial Chaos and Panic",
+      "Seeking Shelter",
+      "Providing Aid (limited capacity)",
+      "Experiencing Casualties"
+    ],
+    "relationships": {
+      "Medics": {
+        "position": [
+          "Allies",
+          "Dependent"
+        ]
+      },
+      "Subterraneans": {
+        "position": [
+          "Enemies",
+          "Victims"
+        ]
+      },
+      "Protagonist": {
+        "position": [
+          "Coexist",
+          "Indirectly Assisted"
+        ]
+      }
+    },
+    "characters": {
+      "Unnamed Medic": {
+        "position": [
+          "Key Representative",
+          "Aid Provider"
+        ],
+        "events": [
+          "Offering Bandages",
+          "Witnessing Destruction",
+          "Exhausted Desperation"
+        ]
+      },
+      "Unnamed Bystanders": {
+        "position": [
+          "General Population",
+          "Victims"
+        ],
+        "events": [
+          "Experiencing Initial Shock",
+          "Fleeing the Attack",
+          "Suffering Casualties"
+        ]
+      }
+    }
+  },
+  "Radio Operators": {
+    "aliases": [
+      "Emergency Broadcast System",
+      "EBS",
+      "Radio Operators"
+    ],
+    "description": [
+      "A fragmented network of radio operators attempting to maintain communication and disseminate information during The First Incursion. Their broadcasts are often interrupted, garbled, and filled with panic, but represent one of the few remaining sources of external information.",
+      "They are struggling to coordinate rescue efforts and assess the scale of the disaster."
+    ],
+    "events": [
+      "The First Incursion",
+      "Fragmented Transmission",
+      "Attempting to establish communication network"
+    ],
+    "relationships": {
+      "Subterraneans": {
+        "position": [
+          "Antagonistic Force"
+        ]
+      },
+      "Civilians": {
+        "position": [
+          "Information Source",
+          "Potential Rescue Targets"
+        ]
+      },
+      "Protagonist": {
+        "position": [
+          "Listener",
+          "Potential Contact"
+        ]
+      }
+    },
+    "characters": {
+      "Unknown Voice (Radio)": {
+        "position": [
+          "Operator",
+          "Communicator"
+        ],
+        "events": [
+          "Broadcasted fragmented transmission",
+          "Reported multiple cities under attack",
+          "Requested status reports"
+        ]
+      }
+    }
+  },
+  "Groups": {}
+}

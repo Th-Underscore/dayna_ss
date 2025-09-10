@@ -1,51 +1,60 @@
 {
-  "what": "The First Incursion",
+  "what": "The First Incursion - Initial Attack",
   "start": {
     "who": {
-      "characters": [],
+      "characters": [
+        {
+          "name": "Humanity",
+          "location": "Cities and suburban streets"
+        }
+      ],
       "groups": [
         {
-          "name": "The Subterraneans",
-          "location": "Emerging from fissures across the globe"
+          "name": "Subterraneans",
+          "location": "Underground, emerging through fissures"
         }
       ]
     },
     "when": {
       "date": "September 5th, 2027",
-      "time": "Lunch hour",
-      "specific_time": "12:54 PM"
+      "time": "Midday",
+      "specific_time": "12:53 PM - 12:54 PM"
     },
-    "where": "Bustling cityscapes and quiet suburban streets",
+    "where": "Earth - Scattered locations globally",
     "why": [
       {
-        "name": "The First Incursion",
-        "details": "The Subterraneans' coordinated assault signaling the beginning of a war for Earth"
+        "name": "Initial Attack",
+        "details": "The Subterraneans launch a coordinated assault on the surface world, marking the beginning of open war with humanity."
       }
     ]
   },
   "now": {
     "who": {
-      "characters": [],
+      "characters": [
+        {
+          "name": "Humanity",
+          "location": "Cities and suburban streets"
+        }
+      ],
       "groups": [
         {
-          "name": "The Subterraneans",
-          "location": "Emerging from fissures across the globe"
+          "name": "Subterraneans",
+          "location": "Surface - Emerging from fissures"
         }
       ]
     },
     "when": {
       "date": "September 5th, 2027",
-      "time": "Lunch hour",
+      "time": "Midday",
       "specific_time": "12:54 PM"
     },
-    "where": "Bustling cityscapes and quiet suburban streets",
+    "where": "Earth - Locations with fissures",
     "why": [
       {
-        "name": "The First Incursion",
-        "details": "The Subterraneans' coordinated assault signaling the beginning of a war for Earth"
+        "name": "Ongoing Invasion",
+        "details": "The Subterraneans are actively invading and engaging in combat with humans."
       }
     ]
   },
-  "_start_message_node": "<INTERNAL_FIELD_DO_NOT_UPDATE>",
-  "start_message_node": "1_1_1"
+  "_start_message_node": "<INTERNAL_FIELD_DO_NOT_UPDATE>"
 }

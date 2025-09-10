@@ -1,6 +1,4 @@
-{
-  "_continue": false
-}
+{}
 
 ========================== ORIGINAL STATE
 
@@ -53,7 +51,7 @@
   "truncation_length": 16384,
   "seed": 0,
   "sampler_priority": "repetition_penalty\npresence_penalty\nfrequency_penalty\ndry\ntop_n_sigma\ntemperature\ndynamic_temperature\nquadratic_sampling\ntop_k\ntop_p\ntypical_p\nepsilon_cutoff\neta_cutoff\ntfs\ntop_a\nmin_p\nmirostat\nxtc\nencoder_repetition_penalty\nno_repeat_ngram",
-  "custom_stopping_strings": "\"[/INST]\", \"[INST]\"",
+  "custom_stopping_strings": "\"[/INST]\", \"[INST]\", \"<|im_end|>\", \"<|im_start|>\"",
   "custom_token_bans": "",
   "negative_prompt": "",
   "dry_sequence_breakers": "\"\\n\", \":\", \"\\\"\", \"*\"",
@@ -72,32 +70,17 @@
       [
         "",
         "The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was &quot;The First Incursion,&quot; the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
-      ],
-      [
-        "The tremor wasn&#x27;t the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn&#x27;t just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I&#x27;ve never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn&#x27;t fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn&#x27;t hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn&#x27;t pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.",
-        "The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival&#x27;s price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature&#x27;s exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
       ]
     ],
     "internal": [
       [
         "<|BEGIN-VISIBLE-CHAT|>",
         "The midday sun of September 5th, 2027, cast long shadows across bustling cityscapes and quiet suburban streets alike. Lunch hour was in full swing, a million mundane moments unfolding under a deceptively calm sky. Few registered the precise minute, 12:53 PM, as anything other than another tick towards the afternoon. The world, blissfully unaware, teetered on the precipice of an unimaginable terror, a future where survival would become a daily, brutal struggle.\n\nThen, at 12:54 PM, the earth groaned. Not with the familiar rumble of an earthquake, but with a deep, resonant thrum that vibrated through the soles of shoes and rattled windows in their frames. Before panic could fully take root, the ground in scattered locations began to fracture. Great fissures, glowing with an unnatural, geothermal heat, tore through concrete and soil. From these smoking chasms, the first wave of the Subterraneans clawed their way to the surface \u2013 monstrous silhouettes against the daylight, their guttural roars heralding an age of darkness and the dawn of open war.\n\nScreams replaced the lunchtime chatter as the initial shockwave of the assault ripped through unsuspecting populations. The Subterraneans, beings of nightmare given form, surged forth with a terrifying, coordinated ferocity, their advanced, alien weaponry spitting incandescent energy. This was no isolated incident, no localized disaster. This was \"The First Incursion,\" the horrifying, brutal announcement that humanity was no longer the sole claimant to Earth, and a desperate, bloody war for the planet had just begun."
-      ],
-      [
-        "The tremor wasn't the usual city-life rattle; this was a deep, guttural vibration, like the planet itself was clearing its throat. I was halfway through a lukewarm coffee in a downtown cafe, idly watching the lunchtime drones scurry about. 12:53 PM. Then, 12:54 PM. The ground didn't just shake, it *groaned*. A low, resonant thrum that vibrated up through the soles of my boots, making the cutlery on the table dance. Most people froze, a few yelped. I simply set my cup down, my eyes already scanning, assessing. Panic is a luxury, and I've never been one for expensive habits.\n\nThen the streets tore open. Not cracks, but gaping maws, vomiting superheated air and a stench like a charnel house mixed with ozone. From these fissures, things began to emerge \u2013 silhouettes at first, backlit by an infernal glow. They were fast, their movements unnervingly fluid for their bulk. The screams started then, a symphony of terror that replaced the usual urban cacophony. My first thought wasn't fear, but a cold, analytical assessment: *hostile, unknown, technologically advanced*. Their weapons spat incandescent death, turning fleeing civilians into bursts of ash and steam. While others scrambled, I moved. A heavy-set man, eyes wide with terror, stumbled into my path. I didn't hesitate, using his momentary obstruction as a pivot, snatching a discarded tire iron from a shattered storefront as I vaulted over a crumpled taxi. The first creature that lunged, a hulking brute with too many eyes and razor-sharp talons, met the business end of that iron. It shrieked, a sound that grated on the nerves, and collapsed. I didn't pause to admire my handiwork.\n\nThe city became a slaughterhouse. The air filled with the coppery tang of blood, the sizzle of alien energy, and the constant, horrifying roars of the invaders. I moved through the chaos like a wraith, a blur of calculated violence. A broken pipe became a spear, a shattered pane of glass a makeshift blade. Every alleyway was a potential ambush, every street corner a new battlefield. My strength, always a reliable asset, served me well, allowing me to clear obstacles and dispatch threats with brutal efficiency. My mind, however, was my sharpest weapon, processing the unfolding pandemonium, identifying escape routes, and predicting enemy movements. Through it all, one thought remained a burning ember in the core of my being: Paul. He was abroad, thankfully spared this initial butchery, but the world had just irrevocably changed. My objective was singular, absolute: survive this. Survive, adapt, and find a way back to my brother. The war had begun, and I intended to see its end, with Paul by my side.",
-        "The ground beneath him seemed to shift with each new impact of alien energy, yet the protagonist moved with a grace born of necessity. The destruction around him was a testament to the chaos unleashed, buildings reduced to rubble, once-bustling streets now a labyrinth of danger. Amid the stench of smoke and ozone, he felt the heat of nearby infernos and the acrid tang of blood in the air, a grim bouquet of survival's price. The initial confrontation had been a swift, brutal affair, the tire iron he wielded an effective if crude implement against the first creature. Now, the protagonist faced a new threat\u2014a trio of invaders, their movements synchronized, their eyes locked onto him with a predatory gaze. He sidestepped a barreling brute, the sharp edge of a shattered pipe slicing through the air, cutting into the creature's exposed flesh. The enemy was relentless, and the protagonist, his movements a ballet of destruction, was equally unyielding, using the chaos to his advantage.\n\nThe city was a war zone, a stark landscape of survival. Every shadow held a potential threat, and every street corner could be the site of a deadly ambush. Amid the cacophony of battle, a single thought burned in his mind: Paul. His brother, safe abroad, yet the connection remained unshattered, a beacon in the storm. His determination was unyielding; he would not be defeated here. With a final glance at the carnage around him, the protagonist sprinted towards the heart of the conflict, his next move already mapped out in the cold, calculating recesses of his mind."
       ]
     ],
     "metadata": {
       "assistant_0": {
         "timestamp": "Jun 03, 2025 19:19"
-      },
-      "user_1": {
-        "timestamp": "Aug 31, 2025 02:04"
-      },
-      "assistant_1": {
-        "timestamp": "Aug 31, 2025 02:04",
-        "model_name": "Qwen2.5-Lumen-14B.i1-Q5_K_M.gguf"
       }
     }
   },
@@ -114,7 +97,7 @@
   "name1": "User",
   "user_bio": "",
   "custom_system_message": "",
-  "instruction_template_str": "{%- if tools %}\n    {{- '<|im_start|>system\\n' }}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- messages[0]['content'] }}\n    {%- else %}\n        {{- 'You are Qwen, created by Alibaba Cloud. You are a helpful assistant.' }}\n    {%- endif %}\n    {{- \"\\n\\n# Tools\\n\\nYou may call one or more functions to assist with the user query.\\n\\nYou are provided with function signatures within <tools></tools> XML tags:\\n<tools>\" }}\n    {%- for tool in tools %}\n        {{- \"\\n\" }}\n        {{- tool | tojson }}\n    {%- endfor %}\n    {{- \"\\n</tools>\\n\\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> XML tags:\\n<tool_call>\\n{\\\"name\\\": <function-name>, \\\"arguments\\\": <args-json-object>}\\n</tool_call><|im_end|>\\n\" }}\n{%- else %}\n    {%- if messages[0]['role'] == 'system' %}\n        {{- '<|im_start|>system\\n' + messages[0]['content'] + '<|im_end|>\\n' }}\n    {%- else %}\n        {{- '<|im_start|>system\\nYou are Qwen, created by Alibaba Cloud. You are a helpful assistant.<|im_end|>\\n' }}\n    {%- endif %}\n{%- endif %}\n{%- for message in messages %}\n    {%- if (message.role == \"user\") or (message.role == \"system\" and not loop.first) or (message.role == \"assistant\" and not message.tool_calls) %}\n        {{- '<|im_start|>' + message.role + '\\n' + message.content + '<|im_end|>' + '\\n' }}\n    {%- elif message.role == \"assistant\" %}\n        {{- '<|im_start|>' + message.role }}\n        {%- if message.content %}\n            {{- '\\n' + message.content }}\n        {%- endif %}\n        {%- for tool_call in message.tool_calls %}\n            {%- if tool_call.function is defined %}\n                {%- set tool_call = tool_call.function %}\n            {%- endif %}\n            {{- '\\n<tool_call>\\n{\"name\": \"' }}\n            {{- tool_call.name }}\n            {{- '\", \"arguments\": ' }}\n            {{- tool_call.arguments | tojson }}\n            {{- '}\\n</tool_call>' }}\n        {%- endfor %}\n        {{- '<|im_end|>\\n' }}\n    {%- elif message.role == \"tool\" %}\n        {%- if (loop.index0 == 0) or (messages[loop.index0 - 1].role != \"tool\") %}\n            {{- '<|im_start|>user' }}\n        {%- endif %}\n        {{- '\\n<tool_response>\\n' }}\n        {{- message.content }}\n        {{- '\\n</tool_response>' }}\n        {%- if loop.last or (messages[loop.index0 + 1].role != \"tool\") %}\n            {{- '<|im_end|>\\n' }}\n        {%- endif %}\n    {%- endif %}\n{%- endfor %}\n{%- if add_generation_prompt %}\n    {{- '<|im_start|>assistant\\n' }}\n{%- endif %}\n",
+  "instruction_template_str": "{{ '<bos>' }}\n{%- if messages[0]['role'] == 'system' -%}\n    {%- if messages[0]['content'] is string -%}\n        {%- set first_user_prefix = messages[0]['content'] + '\n\n' -%}\n    {%- else -%}\n        {%- set first_user_prefix = messages[0]['content'][0]['text'] + '\n\n' -%}\n    {%- endif -%}\n    {%- set loop_messages = messages[1:] -%}\n{%- else -%}\n    {%- set first_user_prefix = \"\" -%}\n    {%- set loop_messages = messages -%}\n{%- endif -%}\n{%- for message in loop_messages -%}\n    {%- if (message['role'] == 'user') != (loop.index0 % 2 == 0) -%}\n        \n    {%- endif -%}\n    {%- if (message['role'] == 'assistant') -%}\n        {%- set role = \"model\" -%}\n    {%- else -%}\n        {%- set role = message['role'] -%}\n    {%- endif -%}\n    {{ '<start_of_turn>' + role + '\n' + (first_user_prefix if loop.first else \"\") }}\n    {%- if message['content'] is string -%}\n        {{ message['content'] | trim }}\n    {%- elif message['content'] is iterable -%}\n        {%- for item in message['content'] -%}\n            {%- if item['type'] == 'image' -%}\n                {{ '<start_of_image>' }}\n            {%- elif item['type'] == 'text' -%}\n                {{ item['text'] | trim }}\n            {%- endif -%}\n        {%- endfor -%}\n    {%- else -%}\n        \n    {%- endif -%}\n    {{ '<end_of_turn>\n' }}\n{%- endfor -%}\n{%- if add_generation_prompt -%}\n    {{'<start_of_turn>model\n'}}\n{%- endif -%}\n",
   "chat_template_str": "{%- for message in messages %}\n    {%- if message['role'] == 'system' -%}\n        {%- if message['content'] -%}\n            {{- message['content'] + '\\n\\n' -}}\n        {%- endif -%}\n        {%- if user_bio -%}\n            {{- user_bio + '\\n\\n' -}}\n        {%- endif -%}\n    {%- else -%}\n        {%- if message['role'] == 'user' -%}\n            {{- name1 + ': ' + message['content'] + '\\n'-}}\n        {%- else -%}\n            {{- name2 + ': ' + message['content'] + '\\n' -}}\n        {%- endif -%}\n    {%- endif -%}\n{%- endfor -%}\n{%- if add_generation_prompt %}\n    {{- name2 + ':' -}}\n{%- endif %}",
   "textbox-default": "In this story,",
   "textbox-notebook": "In this story,",
@@ -124,7 +107,7 @@
   "filter_by_loader": "llama.cpp",
   "loader": "llama.cpp",
   "cpu_memory": 0,
-  "gpu_layers": 49,
+  "gpu_layers": 63,
   "threads": 0,
   "threads_batch": 0,
   "batch_size": 256,
@@ -136,13 +119,12 @@
   "gpu_split": "",
   "alpha_value": 1,
   "rope_freq_base": 1000000,
-  "compress_pos_emb": 1,
+  "compress_pos_emb": 8,
   "compute_dtype": "float16",
   "quant_type": "nf4",
   "num_experts_per_token": 2,
   "load_in_8bit": false,
   "load_in_4bit": false,
-  "flash_attn": true,
   "attn_implementation": "sdpa",
   "cpu": false,
   "disk": false,
@@ -228,6 +210,9 @@ Screams replaced the lunchtime chatter as the initial shockwave of the assault r
 Complete JSON Schema Definitions (including CurrentScene and all its dependencies):
 ```json
 {
+  "main_schema": {
+    "$ref": "#/definitions/CurrentScene"
+  },
   "definitions": {
     "CurrentScene": {
       "type": "object",
@@ -446,59 +431,72 @@ REMEMBER: Do not add anything else to the response. Only respond with the JSON o
 
 ==========================
 
+```json
 {
-  "what": "The First Incursion",
+  "what": "The First Incursion - Initial Attack",
   "start": {
     "who": {
-      "characters": [],
+      "characters": [
+        {
+          "name": "Humanity",
+          "location": "Cities and suburban streets"
+        }
+      ],
       "groups": [
         {
-          "name": "The Subterraneans",
-          "location": "Emerging from fissures across the globe"
+          "name": "Subterraneans",
+          "location": "Underground, emerging through fissures"
         }
       ]
     },
     "when": {
       "date": "September 5th, 2027",
-      "time": "Lunch hour",
-      "specific_time": "12:54 PM"
+      "time": "Midday",
+      "specific_time": "12:53 PM - 12:54 PM"
     },
-    "where": "Bustling cityscapes and quiet suburban streets",
+    "where": "Earth - Scattered locations globally",
     "why": [
       {
-        "name": "The First Incursion",
-        "details": "The Subterraneans' coordinated assault signaling the beginning of a war for Earth"
+        "name": "Initial Attack",
+        "details": "The Subterraneans launch a coordinated assault on the surface world, marking the beginning of open war with humanity."
       }
     ]
   },
   "now": {
     "who": {
-      "characters": [],
+      "characters": [
+        {
+          "name": "Humanity",
+          "location": "Cities and suburban streets"
+        }
+      ],
       "groups": [
         {
-          "name": "The Subterraneans",
-          "location": "Emerging from fissures across the globe"
+          "name": "Subterraneans",
+          "location": "Surface - Emerging from fissures"
         }
       ]
     },
     "when": {
       "date": "September 5th, 2027",
-      "time": "Lunch hour",
+      "time": "Midday",
       "specific_time": "12:54 PM"
     },
-    "where": "Bustling cityscapes and quiet suburban streets",
+    "where": "Earth - Locations with fissures",
     "why": [
       {
-        "name": "The First Incursion",
-        "details": "The Subterraneans' coordinated assault signaling the beginning of a war for Earth"
+        "name": "Ongoing Invasion",
+        "details": "The Subterraneans are actively invading and engaging in combat with humans."
       }
     ]
   },
   "_start_message_node": "<INTERNAL_FIELD_DO_NOT_UPDATE>"
 }
+```
 
 ==========================
 
-prompt eval time =    1738.00 ms /  1890 tokens (    0.92 ms per token,  1087.46 tokens per second)
-       eval time =    8813.28 ms /   344 tokens (   25.62 ms per token,    39.03 tokens per second)
-      total time =   10551.28 ms /  2234 tokens
+prompt processing progress, n_past = 2147, n_tokens = 99, progress = 1.000000
+prompt eval time =    5199.39 ms /  2147 tokens (    2.42 ms per token,   412.93 tokens per second)
+       eval time =   23043.81 ms /   456 tokens (   50.53 ms per token,    19.79 tokens per second)
+      total time =   28243.19 ms /  2603 tokens

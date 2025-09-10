@@ -1,0 +1,139 @@
+{
+  "Paul": {
+    "description": [
+      "Paul is the brother of the protagonist. He is described as someone the protagonist deeply cares for and wants to reunite with.",
+      "Currently abroad, his safety is unknown following 'The First Incursion'."
+    ],
+    "traits": [
+      "Reliable",
+      "Intelligent",
+      "Compassionate",
+      "Resourceful"
+    ],
+    "attributes": [
+      "Analytical",
+      "Adaptable",
+      "Calm under pressure",
+      "Physically fit"
+    ],
+    "status": {
+      "Current Whereabouts": {
+        "position": [
+          "Unknown - Last known location was abroad."
+        ],
+        "aliases": [
+          "Abroad",
+          "Missing"
+        ],
+        "events": [
+          "The First Incursion",
+          "Initial Safety (prior to Incursion)"
+        ]
+      }
+    },
+    "relationships": {
+      "Protagonist": [
+        {
+          "relation": "brother",
+          "status": "Family",
+          "aliases": [
+            "Brother",
+            "Family"
+          ],
+          "events": [
+            "Shared Childhood",
+            "Ongoing Support",
+            "Separation due to Incursion"
+          ],
+          "importance": 95
+        }
+      ]
+    },
+    "milestones": [
+      {
+        "title": "Pre-Incursion Life",
+        "scenes": [
+          1
+        ],
+        "importance": 60
+      },
+      {
+        "title": "Separation During Incursion",
+        "scenes": [
+          1
+        ],
+        "importance": 80
+      }
+    ]
+  },
+  "The Medic": {
+    "description": [
+      "A young woman, likely in her early to mid-twenties, displaying exhaustion but unwavering dedication. She is a medic, attempting to provide aid amidst the chaos of the First Incursion."
+    ],
+    "traits": [
+      "Compassionate",
+      "Resilient",
+      "Pragmatic",
+      "Selfless",
+      "Determined"
+    ],
+    "attributes": [
+      "Medical Expertise",
+      "Quick Thinking",
+      "Calm Under Pressure",
+      "Resourceful",
+      "Observant"
+    ],
+    "status": {
+      "Current": {
+        "position": [
+          "Near a collapsed bus, providing aid to the wounded",
+          "Downtown Cityscape",
+          "During The First Incursion"
+        ],
+        "aliases": [
+          "The Medic",
+          "Aid Worker"
+        ],
+        "events": [
+          "The First Incursion",
+          "Providing medical assistance during a disaster",
+          "Witnessing widespread destruction and casualties"
+        ]
+      }
+    },
+    "relationships": {
+      "Player Character": [
+        {
+          "relation": "Observer",
+          "status": "Brief Encounter",
+          "aliases": [
+            "Stranger"
+          ],
+          "events": [
+            "Offered medical supplies",
+            "Acknowledged Player Character's self-reliance"
+          ],
+          "importance": 30
+        }
+      ]
+    },
+    "milestones": [
+      {
+        "title": "Initial Response to the Incursion",
+        "scenes": [
+          2
+        ],
+        "importance": 40
+      },
+      {
+        "title": "Offering Aid in Chaos",
+        "scenes": [
+          2
+        ],
+        "importance": 50
+      }
+    ]
+  },
+  "Characters": {}
+}
