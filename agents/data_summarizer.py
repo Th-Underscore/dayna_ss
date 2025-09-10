@@ -547,14 +547,14 @@ class DataSummarizer:
 
             gate_check_branch_name = item_name_prefix or target_schema_class.name or "current data category"
 
-            try:
-                gate_check_prompt = gate_check_prompt_template.format(branch_name=gate_check_branch_name)
-            except KeyError as e:
-                print(
-                    f"{_ERROR}Gate check prompt for '{gate_check_branch_name}' missing key: {e}. Template: '{gate_check_prompt_template}'{_RESET}"
-                )
-                traceback.print_exc()
-                gate_check_prompt = None
+            gate_check_prompt = self._create_update_prompt(
+                item_name=gate_check_branch_name,
+                field_name="",  # Not a sub-field, but the branch itself
+                formatted_data=formatted_data,
+                prompt_template_str=gate_check_prompt_template,
+                target_schema_or_type=target_schema_class,
+                keys=keys,
+            )
 
             if gate_check_prompt:
                 print(f"{_GRAY}Performing gate check for '{gate_check_branch_name}'...{_RESET}")
@@ -659,14 +659,22 @@ class DataSummarizer:
         ):
             branch_name_for_prompt = item_name_prefix or target_schema_class.name or "current data section"
 
-            try:
-                branch_query_prompt = branch_query_prompt_template.format(branch_name=branch_name_for_prompt)
-                branch_update_prompt = branch_update_prompt_template.format(branch_name=branch_name_for_prompt)
-            except KeyError as e:
-                print(
-                    f"{_ERROR}Branch query/update prompts for '{branch_name_for_prompt}' missing key: {e}. QueryT: '{branch_query_prompt_template}', UpdateT: '{branch_update_prompt_template}'{_RESET}"
-                )
-                branch_query_prompt = None
+            branch_query_prompt = self._create_update_prompt(
+                item_name=branch_name_for_prompt,
+                field_name="",  # Not a sub-field, but the branch itself
+                formatted_data=formatted_data,
+                prompt_template_str=branch_query_prompt_template,
+                target_schema_or_type=target_schema_class,
+                keys=keys,
+            )
+            branch_update_prompt = self._create_update_prompt(
+                item_name=branch_name_for_prompt,
+                field_name="",
+                formatted_data=formatted_data,
+                prompt_template_str=branch_update_prompt_template,
+                target_schema_or_type=target_schema_class,
+                keys=keys,
+            )
 
             if branch_query_prompt:
                 print(f"{_GRAY}Querying LLM: Does branch '{branch_name_for_prompt}' need updates?{_RESET}")
@@ -1176,6 +1184,7 @@ class DataSummarizer:
         entry_name: str | None = None,
         keys: list = [],
         indent: int | str | None = None,
+        **kwargs: str,
     ) -> str:
         """Create a prompt for updating or generating data using a specific template string.
 
@@ -1188,6 +1197,7 @@ class DataSummarizer:
             entry_name (str, optional): The name of a new entry being generated (e.g. a new character's name).
             keys (list, optional): Path keys to the current data.
             indent (int | str, optional): Indentation for JSON stringification. Defaults to None.
+            kwargs (str, optional): Additional keyword arguments to include when formatting.
 
         Returns:
             out (str): The generated prompt string.
@@ -1242,6 +1252,7 @@ class DataSummarizer:
             "user_input": self.user_input,
             "output": self.output,
             "exchange": lambda: self.summarizer.format_dialogue(self.custom_state, [[self.user_input, self.output]]),
+            **kwargs,
         }
         if entry_name is not None:
             format_kwargs["entry_name"] = entry_name
