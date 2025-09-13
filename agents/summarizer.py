@@ -392,7 +392,7 @@ class Summarizer:
                                 f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
                                 f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
                                 f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
-                                f"7. CRITICAL: Explicitly include an instruction that the final response MUST NOT contain any formatting (no bold, no italics, no markdown, no bullet points, no headings, etc.). It must be plain text prose.\n\n"
+                                f"7. CRITICAL: Explicitly include an instruction on the writing style of the response (e.g., '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 1st-person prose as \"{name1}\", approximately double the paragraphs as {name1}', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}') in a clear, direct manner.\n\n"
                                 f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                             )
 
@@ -610,7 +610,9 @@ class Summarizer:
                             end_msg_idx = int(scene_end_node_str.split("_")[0])
 
                             for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
-                                chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"scene_id": scene_id}, persist_dir=persist_dir)
+                                chunker_instance.update_node_metadata_by_message_idx(
+                                    msg_idx_to_update, {"scene_id": scene_id}, persist_dir=persist_dir
+                                )
                         except (ValueError, IndexError) as e:
                             print(f"{_ERROR}Could not parse message nodes for scene '{scene_id}': {e}{_RESET}")
 
@@ -626,7 +628,9 @@ class Summarizer:
                             end_msg_idx = int(event_end_node_str.split("_")[0])
 
                             for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
-                                chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"event_id": event_id}, persist_dir=persist_dir)
+                                chunker_instance.update_node_metadata_by_message_idx(
+                                    msg_idx_to_update, {"event_id": event_id}, persist_dir=persist_dir
+                                )
                         except (ValueError, IndexError) as e:
                             print(f"{_ERROR}Could not parse message nodes for event '{event_id}': {e}{_RESET}")
 
@@ -681,9 +685,7 @@ class Summarizer:
         # TODO: Add this formatting to subjects_schema.json? Make it dynamic
         # General info
         if retrieval_context.general_info:
-            formatted_general_info = FormattedData(
-                retrieval_context.general_info, "general_info", self.last.schema_parser
-            ).st
+            formatted_general_info = FormattedData(retrieval_context.general_info, "general_info", self.last.schema_parser).st
             custom_state["context"] += f"\n\n{formatted_general_info}"
             custom_history.append(["Describe the story in broad strokes.", formatted_general_info])
 
@@ -1457,7 +1459,7 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                     "event_id": None,  # Same as scene_id
                     "is_summary": True,
                 }
-                self.chunker.store_chunks([summary_chunk_data], persist_dir=self.history_path)
+                self.chunker.store_chunks([summary_chunk_data], persist_dir=(self.history_path / "message_index"))
                 print(f"{_SUCCESS}Stored summary for message_idx {current_message_idx}{_RESET}")
             except Exception as e:
                 print(f"{_ERROR}Error generating message summary for message_idx {current_message_idx}: {e}{_RESET}")
@@ -1642,7 +1644,7 @@ class FormattedData:
                 f"Scenes --- <<<<<<<<<<<< events.scenes\n{formatted_str[1]}\n\n"
                 f"Events --- <<<<<<<<<<<< events.events\n{formatted_str[2]}"
             )
-        
+
         if data_type == "general_info":
             return (
                 f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< general_info.synopsis\n\n"
