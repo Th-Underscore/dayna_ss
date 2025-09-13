@@ -46,7 +46,7 @@ _last_generation = {}
 #     next_scene_prefix = "NEXT SCENE:"
 
 #     if summarizer and not summarizer.last:
-#         current_context = summarizer.get_general_summarization(state)
+#         current_context = state["context"]
 #         summarizer.get_retrieval_context(state, state["history"]["internal"], current_context)
 
 #     if user_input.startswith(next_scene_prefix) and summarizer and summarizer.last:
@@ -65,7 +65,7 @@ def chat_input_modifier(text: str, visible_text: str, state: dict):
     next_scene_prefix = "NEXT SCENE:"
 
     if summarizer and not summarizer.last:
-        current_context = summarizer.get_general_summarization(state)
+        current_context = state["context"]
         summarizer.get_retrieval_context(state, state["history"]["internal"], current_context)
 
     if text.startswith(next_scene_prefix) and summarizer and summarizer.last:
@@ -148,7 +148,7 @@ def handle_input(user_input: str, state: dict, history: Histories):
 
     if summarizer and not summarizer.last:
         print(f"handle_input{_BOLD}no last summarization{_RESET}")
-        current_context = summarizer.get_general_summarization(state)
+        current_context = state["context"]
         summarizer.get_retrieval_context(state, history["internal"], current_context)
 
 

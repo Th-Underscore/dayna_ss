@@ -78,6 +78,7 @@ class DualStream:
 @dataclass
 class SummarizationContextCache:
     history_path: Path
+    state: dict
     custom_state: dict
     context: tuple[RetrievalContext, StoryContextRetriever, int, str]
     original_seed: int
@@ -381,8 +382,9 @@ class Summarizer:
                                 f"- Each paragraph should represent a distinct part of the response plan.\n"
                                 f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
                                 f"Example of desired output structure (imagine these are the instructions):\n"
-                                f"First, analyze the user's query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
-                                f"Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n\n"
+                                f"  First, analyze the user's query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
+                                f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
+                                f"Remember: The above is an example. In a narrative context, acknowledging the user's input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
                                 f"INSTRUCTION CONTENT:\n"
                                 f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
                                 f"2. Be extremely specific, detailing each step.\n"
@@ -645,14 +647,14 @@ class Summarizer:
         """Retrieve and format context for instructing model based on history.
 
         Args:
-            state (dict): Original (base) state
+            state (dict): Original (TGWUI) state
 
         Returns:
             out (dict): _description_
         """
         global base_state
 
-        current_context = self.get_general_summarization(state)
+        current_context = state["context"]
         custom_state, (retrieval_context, context_retriever, last_x, last_x_messages) = self.get_retrieval_context(
             state, history, current_context, **kwargs
         )
@@ -676,12 +678,19 @@ class Summarizer:
             raise RuntimeError("Schema parser not initialized in retrieve_and_format_context.")
 
         # TODO: Add this formatting to subjects_schema.json? Make it dynamic
+        # General info
+        if retrieval_context.general_info:
+            formatted_general_info = FormattedData(
+                retrieval_context.general_info, "general_info", self.last.schema_parser
+            ).st
+            custom_state["context"] += f"\n\n{formatted_general_info}"
+            custom_history.append(["Describe the story in broad strokes.", formatted_general_info])
+
         # Current scene
         if retrieval_context.current_scene:
             formatted_current_scene = FormattedData(
                 retrieval_context.current_scene, "current_scene", self.last.schema_parser
             ).st
-            current_context += f"\n\nThe current scene is: {formatted_current_scene}"
             custom_history.append(["What is the current scene in the story?", formatted_current_scene])
 
         # Format and append retrieved information
@@ -847,7 +856,7 @@ class Summarizer:
                 is_new_scene = True
                 # Populate current_scene.json, characters.json, groups.json using LLM (stubs for now)
                 self._populate_initial_current_scene_llm(initial_world_data_path, initial_schema_parser, state)
-                # self._populate_initial_entities_llm(initial_world_data_path, initial_schema_parser, state)
+                self._populate_initial_entities_llm(initial_world_data_path, initial_schema_parser, state)
                 print(f"{_SUCCESS}Initial world data populated in cache: {initial_world_data_path}{_RESET}")
 
             # Phase 1: Session history_path Generation & Creation
@@ -890,6 +899,7 @@ class Summarizer:
 
             self.last = SummarizationContextCache(
                 context=(retrieval_context, context_retriever, last_x, last_x_messages),
+                state=state,
                 custom_state=custom_state,
                 history_path=history_path,
                 original_seed=original_seed,
@@ -920,10 +930,6 @@ class Summarizer:
             out (str): The hashed string.
         """
         return hashlib.sha1(str(key).encode("utf-8")).hexdigest()[:precision]
-
-    def get_general_summarization(self, state: dict) -> str:
-        """Get the general summarization context string from the state."""
-        return state["context"]
 
     def get_current_scene(self, state: dict):
         """Get the current scene data; initializes if not present."""
@@ -1485,8 +1491,10 @@ class FormattedData:
                 actual_data_schema_hint = self.parser.get_subject_class("groups")
             elif data_type == "events":
                 actual_data_schema_hint = self.parser.get_subject_class("events")
-            elif data_type == "scene":
+            elif data_type == "scene" or data_type == "event":
                 actual_data_schema_hint = self.parser.definitions.get("StoryEvent")
+            elif data_type == "general_info":
+                actual_data_schema_hint = self.parser.get_subject_class("general_info")
 
             self.data = expand_lists_in_data_for_llm(self.data, actual_data_schema_hint, self.parser)
 
@@ -1632,6 +1640,15 @@ class FormattedData:
                 f"Past Events --- <<<<<<<<<<<< events.past\n{formatted_str[0]}\n\n"
                 f"Scenes --- <<<<<<<<<<<< events.scenes\n{formatted_str[1]}\n\n"
                 f"Events --- <<<<<<<<<<<< events.events\n{formatted_str[2]}"
+            )
+        
+        if data_type == "general_info":
+            return (
+                f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< general_info.synopsis\n\n"
+                f"Main Objective --- {data.get('main_objective', 'No main objective specified')} <<<<<<<<<<<< general_info.main_objective\n\n"
+                f"Themes --- {', '.join(get_values(data.get('themes', []))) or 'No themes specified'} <<<<<<<<<<<< general_info.themes\n\n"
+                f"Tone --- {data.get('tone', 'No tone specified')} <<<<<<<<<<<< general_info.tone\n\n"
+                f"Writing Style --- {data.get('writing_style', 'No writing style specified')} <<<<<<<<<<<< general_info.writing_style"
             )
 
         if data_type == "lines":

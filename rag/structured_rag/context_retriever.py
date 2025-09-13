@@ -56,6 +56,7 @@ class RetrievalContext:
     characters: dict[str, dict] = field(default_factory=dict)
     groups: dict[str, dict] = field(default_factory=dict)
     events: dict[str, dict] = field(default_factory=dict)
+    general_info: dict[str, dict] = field(default_factory=dict)
     messages: list[str] = field(default_factory=list)
 
 
@@ -71,11 +72,13 @@ class StoryContextRetriever:
         self.characters_path = history_path / "characters.json"
         self.events_path = history_path / "events.json"
         self.groups_path = history_path / "groups.json"
+        self.general_info_path = history_path / "general_info.json"
         self.current_scene_path = history_path / "current_scene.json"
 
         self.characters = self._load_json(self.characters_path)
         self.groups = self._load_json(self.groups_path)
         self.events = self._load_json(self.events_path)
+        self.general_info = self._load_json(self.general_info_path)
         self.current_scene = self._load_json(self.current_scene_path)
 
         self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene)
@@ -263,7 +266,7 @@ class StoryContextRetriever:
 
     def retrieve_context(self, current_context: str, last_x_messages: list[str]) -> RetrievalContext:
         """Main method to retrieve all relevant context based on current state."""
-        result = RetrievalContext()
+        result = RetrievalContext(general_info=self.general_info)
         current_scene = self.get_current_scene()
 
         # Get characters from current scene and context

@@ -386,6 +386,7 @@ class DataSummarizer:
             print(f"{_INPUT}[{branch_name_for_log}] LLM indicates no updates required.{_RESET}")
             return []
         
+        original_response_text = response_text
         response_text = strip_response(response_text)
 
         updates: list[dict[str, Any]] = []
@@ -404,7 +405,7 @@ class DataSummarizer:
                 print(f"{_GRAY}[{branch_name_for_log}] Treated single JSON object as a list of one update.{_RESET}")
             else:
                 print(
-                    f"{_ERROR}[{branch_name_for_log}] LLM response parsed as JSON but is not a list of updates or a single update object: {type(parsed_json)}{_RESET}"
+                    f"{_ERROR}[{branch_name_for_log}] LLM response parsed as JSON but is not a list of updates or a single update object: {type(parsed_json)}{_RESET}\nRaw response: {original_response_text}\n{_DEBUG}Parsed response: {response_text}{_RESET}"
                 )
                 return []
         except json.JSONDecodeError:
@@ -1242,6 +1243,7 @@ class DataSummarizer:
                 lambda: FormattedData(formatted_data.data, f"{item_name}_list").st or "The list is empty! Maybe add some items?"
             )
 
+        state = self.summarizer.last.state
         format_kwargs = {
             "branch_name": item_name,
             "item_name": item_name,
@@ -1254,6 +1256,8 @@ class DataSummarizer:
             "user_input": self.user_input,
             "output": self.output,
             "exchange": lambda: self.summarizer.format_dialogue(self.custom_state, [[self.user_input, self.output]]),
+            "{user}": state["name1"],
+            "{char}": state["name2"],
             **kwargs,
         }
         if entry_name is not None:
