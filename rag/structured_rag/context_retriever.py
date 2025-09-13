@@ -350,7 +350,7 @@ class MessageChunker:
         Settings.embed_model = embed_model
 
         self.history_path = Path(history_path)
-        self.storage_dir = self.history_path.parent / "message_index"
+        self.storage_dir = self.history_path / "message_index"
         self.storage_dir.mkdir(parents=True, exist_ok=True)
 
         # Store provided data
@@ -746,7 +746,7 @@ class MessageChunker:
 
         shutil.copytree(self.storage_dir, self.history_path / "message_index", dirs_exist_ok=True)
 
-    def update_node_metadata_by_message_idx(self, message_idx: int, metadata_updates: dict[str, Any]):
+    def update_node_metadata_by_message_idx(self, message_idx: int, metadata_updates: dict[str, Any], persist_dir: str | Path | None = None):
         """Update metadata for all nodes associated with a message_idx."""
         nodes_to_update = []
         # node_ids_to_delete_for_update = [] # Not strictly needed if insert_nodes handles updates by ID
@@ -767,7 +767,7 @@ class MessageChunker:
 
         if nodes_to_update:
             self.index.insert_nodes(nodes_to_update)
-            self.index.storage_context.persist(persist_dir=str(self.storage_dir))
+            self.index.storage_context.persist(persist_dir=str(persist_dir or self.storage_dir))
             try:
                 print(f"{_SUCCESS}Updated metadata for {len(nodes_to_update)} nodes for message_idx {message_idx}{_RESET}")
             except Exception as e:
@@ -785,7 +785,7 @@ class MessageChunker:
         self.store_chunks(chunks)
         return chunks
 
-    def store_chunks(self, chunks: list):
+    def store_chunks(self, chunks: list, persist_dir: str | Path | None = None):
         """Store chunks using LlamaIndex."""
 
         nodes = []
@@ -808,14 +808,14 @@ class MessageChunker:
 
         if nodes:  # Only insert if there are nodes to avoid errors with empty list
             self.index.insert_nodes(nodes)
-            self.index.storage_context.persist(persist_dir=str(self.storage_dir))
-            try:
-                import shutil
+            self.index.storage_context.persist(persist_dir=str(persist_dir or self.storage_dir))
+            # try:
+            #     import shutil
 
-                shutil.copytree(
-                    self.storage_dir,
-                    self.history_path / "message_index",
-                    dirs_exist_ok=True,
-                )
-            except Exception as e:
-                print(f"{_ERROR}Error copying message_index after storing chunks: {e}{_RESET}")
+            #     shutil.copytree(
+            #         self.storage_dir,
+            #         self.history_path / "message_index",
+            #         dirs_exist_ok=True,
+            #     )
+            # except Exception as e:
+            #     print(f"{_ERROR}Error copying message_index after storing chunks: {e}{_RESET}")

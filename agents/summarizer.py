@@ -275,7 +275,7 @@ class Summarizer:
                 print(f"{_ERROR}Summarizer.last.context not available for MessageChunker init in save_message_chunks.{_RESET}")
                 raise RuntimeError("Summarizer.last.context not available for MessageChunker initialization.")
 
-            context_retriever: StoryContextRetriever = self.last.context[1]
+            context_retriever = self.last.context[1]
             if not isinstance(context_retriever, StoryContextRetriever):
                 raise TypeError(f"Expected StoryContextRetriever, got {type(context_retriever)}")
 
@@ -594,6 +594,7 @@ class Summarizer:
             # --- Update scene_id and event_id for message chunks ---
             if self.last and self.last.context:
                 context_retriever = self.last.context[1]
+                persist_dir = context_retriever.history_path / "message_index"
                 chunker_instance = context_retriever.chunker
                 events_data = processed_subjects_data.get("events", {})
 
@@ -609,7 +610,7 @@ class Summarizer:
                             end_msg_idx = int(scene_end_node_str.split("_")[0])
 
                             for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
-                                chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"scene_id": scene_id})
+                                chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"scene_id": scene_id}, persist_dir=persist_dir)
                         except (ValueError, IndexError) as e:
                             print(f"{_ERROR}Could not parse message nodes for scene '{scene_id}': {e}{_RESET}")
 
@@ -625,7 +626,7 @@ class Summarizer:
                             end_msg_idx = int(event_end_node_str.split("_")[0])
 
                             for msg_idx_to_update in range(start_msg_idx, end_msg_idx + 1):
-                                chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"event_id": event_id})
+                                chunker_instance.update_node_metadata_by_message_idx(msg_idx_to_update, {"event_id": event_id}, persist_dir=persist_dir)
                         except (ValueError, IndexError) as e:
                             print(f"{_ERROR}Could not parse message nodes for event '{event_id}': {e}{_RESET}")
 
@@ -1456,7 +1457,7 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                     "event_id": None,  # Same as scene_id
                     "is_summary": True,
                 }
-                self.chunker.store_chunks([summary_chunk_data])
+                self.chunker.store_chunks([summary_chunk_data], persist_dir=self.history_path)
                 print(f"{_SUCCESS}Stored summary for message_idx {current_message_idx}{_RESET}")
             except Exception as e:
                 print(f"{_ERROR}Error generating message summary for message_idx {current_message_idx}: {e}{_RESET}")
