@@ -659,7 +659,7 @@ class Summarizer:
         if not self.last.history_length is None:
             return custom_state
 
-        custom_state.update(base_state)
+        custom_state.update(copy.deepcopy(base_state))
         custom_history: History = custom_state["history"]["internal"]
 
         custom_state["context"] += f"\n\n{current_context}"
@@ -1047,7 +1047,7 @@ class Summarizer:
             # Prepare a minimal state for generate_using_tgwui
             # It needs 'seed', and other generation params can be default or from self.config
             custom_state = copy.deepcopy(state)
-            custom_state.update(base_state)
+            custom_state.update(copy.deepcopy(base_state))
             # custom_state = {
             #     "seed": state.get("seed", -1), # Use existing seed or default
             #     "max_new_tokens": 1024, # Sensible default for JSON generation
@@ -1153,7 +1153,7 @@ class Summarizer:
         char_greeting = state["history"]["internal"][0][1]  # state.get("greeting", "")
 
         custom_state = copy.deepcopy(state)
-        custom_state.update(base_state)
+        custom_state.update(copy.deepcopy(base_state))
 
         # --- Step A: Identification ---
         identification_prompt = (
