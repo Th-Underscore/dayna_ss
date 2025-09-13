@@ -24,6 +24,12 @@ History = list[list[str]]
 Histories = dict[str, History]
 
 
+class TypedKey:
+    def __init__(self, key: str, type: type):
+        self.key = key
+        self.type = type
+
+
 def load_json(file_path: str | Path, verbose: bool = False) -> dict:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
@@ -127,18 +133,34 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
     current_level = data
     length = len(keyList)
     for i, key in enumerate(keyList):
-        if i == length - 1:
-            current_level[key] = value
-        elif isinstance(current_level, dict):
-            current_level = current_level.setdefault(key, {})
-        elif isinstance(current_level, list):
-            if key.isdigit():
-                index = int(key)
-                while len(current_level) <= index:
-                    current_level.append(None)  # Ensure the list is long enough
-                current_level = current_level[index]
+        if isinstance(key, TypedKey):  # Handle typed keys
+            key = key.key
+
+        if isinstance(current_level, dict):
+            is_value_exists = key in current_level
+        if isinstance(current_level, list):
+            if isinstance(key, str) and key.isdigit():
+                key = int(key)
+                if len(current_level) <= key:
+                    while len(current_level) <= key:
+                        current_level.append(None)  # Ensure the list is long enough
+                    is_value_exists = False
             else:
                 raise TypeError(f"Cannot use non-integer key '{key}' on a list.")
+
+        if i == length - 1:  # Set the final value
+            current_level[key] = value
+        else:  # Create nested data structures
+            if not is_value_exists:
+                next_key = keyList[i + 1]
+                if isinstance(next_key, TypedKey):
+                    current_level[key] = next_key.type()
+                elif isinstance(next_key, str) and next_key.isdigit():
+                    current_level[key] = []
+                else:
+                    current_level[key] = {}
+            current_level = current_level[key]
+    return data
 
 
 def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
