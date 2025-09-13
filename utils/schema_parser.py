@@ -44,7 +44,7 @@ class Trigger(IntEnum):
 
 
 class ParsedSchemaField:
-    """Represents a field parsed from the schema."""
+    """Represents a field under a class parsed from the schema."""
 
     def __init__(self, name: str, type_hint: Any, default: Any = None):
         self.name = name
@@ -55,12 +55,53 @@ class ParsedSchemaField:
 
 
 class ParsedSchemaClass:
-    """Represents a class structure parsed from the schema."""
+    """Represents a class structure parsed from the schema.
+    
+    This class serves a dual purpose based on the `definition_type` string,
+    acting as a container for either a complex object or a single type alias.
+
+    ### Structure
+
+    - If `definition_type` is "dataclass":\n
+      It represents an object-like structure with multiple named properties.
+      - Key Attribute: `self._fields_dict: dict[str, ParsedSchemaField]`\n
+          A dictionary mapping field names to their ParsedSchemaField definitions.
+
+    - If `definition_type` is "field":\n
+      It represents a type definition or an alias that wraps another single type.
+      - Key Attribute: `self._field: ParsedSchemaField`\n
+          A single ParsedSchemaField object defining the wrapped type.
+          This is primarily used for customizations, e.g. adding specific defaults to a field.
+
+    The link between these structures is the `ParsedSchemaField` class, which
+    defines a property's type recursively.
+
+    - `ParsedSchemaField.type: type | ParsedSchemaClass`.\n
+        The `type` attribute can be a standard Python type (`str`, `int`, `list`, etc.) or
+        another `ParsedSchemaClass`, allowing for nested structures.
+
+    ### Summary
+
+    ```
+    # A ParsedSchemaClass for an object-like structure
+    ParsedSchemaClass(definition_type="dataclass"):
+        _fields_dict: dict[str, ParsedSchemaField]
+
+    # A ParsedSchemaClass for a type alias
+    ParsedSchemaClass(definition_type="field"):
+        _field: ParsedSchemaField
+
+    # A field, which defines a type that can be primitive or another schema class
+    ParsedSchemaField:
+        type: type | ParsedSchemaClass
+    ```
+    """
 
     def __init__(
         self,
         name: str,
         definition_type: str,
+        parser: SchemaParser,
         fields: list[ParsedSchemaField] | None = None,
         field: ParsedSchemaField | None = None,
         defaults: dict[str, Any] | None = None,
@@ -68,16 +109,17 @@ class ParsedSchemaClass:
     ):
         self.name = name
         self.definition_type = definition_type
+        self.parser = parser
         self.defaults = defaults or {}
         self.trigger_map: dict[Trigger, list[Action]] = triggers or {}
 
-        self._fields_dict: dict[str, ParsedSchemaField] | None = None  # Parsed fields for "dataclass" type
+        self._fields: dict[str, ParsedSchemaField] | None = None  # Parsed fields for "dataclass" type
         self._field: ParsedSchemaField | None = None  # Parsed type for "field" type
 
         if self.definition_type == "dataclass":
             if not fields:
                 raise ValueError(f"ParsedSchemaClass '{name}' of type 'dataclass' must have fields defined.")
-            self._fields_dict = {f.name: f for f in fields}
+            self._fields = {f.name: f for f in fields}
         elif self.definition_type == "field":
             if not field:
                 raise ValueError(f"ParsedSchemaClass '{name}' of type 'field' must have a field defined.")
@@ -120,13 +162,13 @@ class ParsedSchemaClass:
     def get_fields(self) -> list[ParsedSchemaField]:
         """Mimics dataclasses.fields() for 'dataclass' type. Returns empty list for 'field' type."""
         if self.definition_type == "dataclass":
-            return list(self._fields_dict.values())
+            return list(self._fields.values())
         return []
 
     def get_field(self, name: str | None = None) -> ParsedSchemaField:
         """Get a specific field by name for 'dataclass' type. Returns self._field for 'field' type."""
         if self.definition_type == "dataclass":
-            return self._fields_dict.get(name)
+            return self._fields.get(name)
         return self._field
 
     def _type_to_json_schema_dict(
@@ -494,7 +536,7 @@ class SchemaParser:
                 for field_name, type_str in fields_data.items():
                     fields.append(ParsedSchemaField(field_name, type_str))  # type_str is placeholder
                 self.definitions[name] = ParsedSchemaClass(
-                    name, definition_type="dataclass", fields=fields, defaults=defaults, triggers=triggers
+                    name, definition_type="dataclass", parser=self, fields=fields, defaults=defaults, triggers=triggers
                 )
             elif def_type == "field":
                 field_type_str = definition.get("field")
@@ -503,6 +545,7 @@ class SchemaParser:
                 self.definitions[name] = ParsedSchemaClass(
                     name,
                     definition_type="field",
+                    parser=self,
                     field=ParsedSchemaField(name, field_type_str),
                     defaults=defaults,
                     triggers=triggers,
