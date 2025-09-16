@@ -1,4 +1,5 @@
 from typing import Any, Generator, TextIO, TYPE_CHECKING
+from os import PathLike
 import hashlib
 import io
 import json
@@ -99,7 +100,7 @@ base_state = {
     "context": (
         "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
         "This context is provided in several parts:\n\n"
-        "1.  **General Summary:** An overview of the story's world and plot.\n"
+        "1.  **General Info:** An overview of the story's world, plot, and writing style.\n"
         "2.  **Current Scene:** Detailed information about the immediate setting, characters present, time, and circumstances. This is the most immediate and relevant context for your next response.\n"
         "3.  **Relevant Characters & Groups:** Detailed descriptions, relationships, and statuses of characters and groups pertinent to the current interaction.\n"
         "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
@@ -114,7 +115,7 @@ base_state = {
 
 
 class Summarizer:
-    def __init__(self, config_path: str | None = None):
+    def __init__(self, config_path: PathLike | None = None):
         """Initialize Summarizer, optionally loading config from `config_path`."""
         dss_dir = Path(__file__).parent.parent  # Root directory of the extension
         self.config = self._load_config(config_path or dss_dir / "dss_config.json")
@@ -127,7 +128,7 @@ class Summarizer:
         # )
         self.last: SummarizationContextCache | None = None
 
-    def _load_config(self, config_path: str | Path) -> dict:
+    def _load_config(self, config_path: PathLike) -> dict:
         """Load summarizer configuration from a JSON file at `config_path`."""
         return load_json(config_path) or {"default_summarization_params": {"max_length": 150}}
 
@@ -299,7 +300,7 @@ class Summarizer:
         custom_state = self.retrieve_and_format_context(state, history, **kwargs)
         history_path = self.last.history_path
 
-        next_scene_prefix = "NEXT SCENE:"
+        next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
 
         if self.last:
             if user_input.startswith(next_scene_prefix):
@@ -392,7 +393,8 @@ class Summarizer:
                                 f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
                                 f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
                                 f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
-                                f"7. CRITICAL: Explicitly include an instruction on the writing style of the response (e.g., '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 1st-person prose as \"{name1}\", approximately double the paragraphs as {name1}', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}') in a clear, direct manner.\n\n"
+                                f"7. IMPORTANT: Remind {name2} not to recap the user's input in the response. Even if necessary to clarify the user's intent, remember: Show, don't tell.\n"
+                                f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
                                 f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                             )
 
@@ -502,10 +504,6 @@ class Summarizer:
                 [f"What was the very last exchange?", f"{self.format_dialogue(state, [[user_input, output]])}"]
             )
 
-            data_summarizer = DataSummarizer(
-                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser
-            )
-
             all_subjects_data = {}
             for subject_name in self.last.schema_parser.subjects:
                 subject_path = last_history_path / f"{subject_name}.json"
@@ -524,6 +522,10 @@ class Summarizer:
                 subject_path = last_history_path / f"{subject_name}.json"
                 all_subjects_data[subject_name] = load_json(subject_path) or {}
             print(f"{_DEBUG}All subjects data: {all_subjects_data.keys()}{_RESET}")
+
+            data_summarizer = DataSummarizer(
+                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser, all_subjects_data
+            )
 
             if missing_schemas:
                 print(
@@ -682,6 +684,8 @@ class Summarizer:
         if not self.last.schema_parser:
             raise RuntimeError("Schema parser not initialized in retrieve_and_format_context.")
 
+        print(f"{_BOLD}Retrieving context for {formatted_last_x} messages:", retrieval_context, _RESET)
+        print(f"{_HILITE}General info: {retrieval_context.general_info}{_RESET}")
         # TODO: Add this formatting to subjects_schema.json? Make it dynamic
         # General info
         if retrieval_context.general_info:
@@ -1023,7 +1027,7 @@ class Summarizer:
             example_current_scene_json_str = json.dumps(example_current_scene, indent=2)
 
             # Get all relevant schema definitions recursively for "CurrentScene"
-            all_relevant_definitions = schema_parser.get_relevant_definitions_json("CurrentScene")
+            all_relevant_definitions = schema_parser.get_relevant_json_schema_definitions("CurrentScene")
             all_relevant_definitions_json_str = json.dumps(all_relevant_definitions, indent=2)
 
             char_context = state.get("context")
@@ -1292,7 +1296,7 @@ class Summarizer:
             example_entity_data = schema_to_use.generate_example_json(all_definitions_map=schema_parser.definitions)
             example_entity_json_str = json.dumps(example_entity_data, indent=2)
 
-            all_relevant_entity_definitions = schema_parser.get_relevant_definitions_json(schema_name_for_prompt)
+            all_relevant_entity_definitions = schema_parser.get_relevant_json_schema_definitions(schema_name_for_prompt)
             all_relevant_entity_definitions_json_str = json.dumps(all_relevant_entity_definitions, indent=2)
 
             base_detail_prompt_template = (
@@ -1467,7 +1471,7 @@ Here is the message: """\n{message_content.strip()}\n"""'''
 
 
 class FormattedData:
-    def __init__(self, data: Any, data_type: str, parser: SchemaParser = None):
+    def __init__(self, data: Any, data_type: str, parser: SchemaParser = None, all_subjects_data: dict = None):
         """Initialize and process data for LLM formatting.
 
         Prepares a string representation (`self.st`) for LLM prompts.
@@ -1482,9 +1486,10 @@ class FormattedData:
         self.original_data = data
         self.data_type = data_type
         self.parser = parser
-        self.data = data
+        self.all_subjects_data = all_subjects_data
 
         if self.parser:
+            # TODO: Make dynamic
             actual_data_schema_hint = None
             if data_type == "current_scene":
                 actual_data_schema_hint = self.parser.get_subject_class("current_scene")
@@ -1499,7 +1504,9 @@ class FormattedData:
             elif data_type == "general_info":
                 actual_data_schema_hint = self.parser.get_subject_class("general_info")
 
-            self.data = expand_lists_in_data_for_llm(self.data, actual_data_schema_hint, self.parser)
+            self.data = expand_lists_in_data_for_llm(data, actual_data_schema_hint, self.parser)
+        else:
+            self.data = data
 
         self._str = FormattedData.format_retrieval_data(self.data, self.data_type)
 
@@ -1510,6 +1517,7 @@ class FormattedData:
     @staticmethod
     def format_retrieval_data(data: dict | list, data_type: str) -> str:
         """Format retrieved data based on its type."""
+        # TODO: Generate based on "format schema"
         if not data:
             return ""
 
@@ -1646,6 +1654,7 @@ class FormattedData:
             )
 
         if data_type == "general_info":
+            # TODO: Hardcode more fields via all_subjects_data
             return (
                 f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< general_info.synopsis\n\n"
                 f"Main Objective --- {data.get('main_objective', 'No main objective specified')} <<<<<<<<<<<< general_info.main_objective\n\n"
@@ -1655,7 +1664,7 @@ class FormattedData:
             )
 
         if data_type == "lines":
-            return "\n".join(data.values())
+            return "\n".join(get_values(data))
 
         return "<EMPTY>"  # str(data)
 
@@ -1695,7 +1704,7 @@ class FormattedData:
 
         print(f"{_GRAY}Finding {paths} to mark...{_RESET}")
 
-        def replacer_logic(match_obj):
+        def replacer_logic(match_obj: re.Match[str]):
             path_identifiers_blob = match_obj.group(1)
 
             # Split the blob into individual path identifiers

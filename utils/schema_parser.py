@@ -56,7 +56,7 @@ class ParsedSchemaField:
 
 class ParsedSchemaClass:
     """Represents a class structure parsed from the schema.
-    
+
     This class serves a dual purpose based on the `definition_type` string,
     acting as a container for either a complex object or a single type alias.
 
@@ -449,6 +449,8 @@ class SchemaParser:
         self.schema = self._load_schema()
         self.definitions: dict[str, ParsedSchemaClass] = {}
         self.subjects: dict[str, ParsedSchemaClass | type] = {}
+        self.relative_relevant_json_schemas: dict[Any, dict[str, dict]] = {}
+        self.example_jsons: dict[Any, Any] = {}
         self._parse_definitions()
         self._parse_subjects()
 
@@ -641,33 +643,39 @@ class SchemaParser:
 
         return schema
 
-    def get_relevant_definitions_json(self, root_schema_or_type: ParsedSchemaClass | type) -> dict:
+    def get_relevant_json_schema_definitions(self, root_schema_or_type_hint: ParsedSchemaClass | type | str) -> dict:
         """
         Generates a JSON schema for the given root type (which can be a class name,
         a ParsedSchemaClass, or a generic type hint) and includes all recursively
         referenced definitions.
         """
+        relevant_json_schemas = self.relative_relevant_json_schemas.get(root_schema_or_type_hint)
+        if relevant_json_schemas:
+            return relevant_json_schemas
+
         main_schema: dict = {}
         relevant_definitions: dict[str, dict] = {}
         queue: list[str] = []
         visited: set[str] = set()
         all_definition_keys = set(self.definitions.keys())
 
-        print(f"{_HILITE}Collecting relevant definitions for root '{root_schema_or_type}'...{_RESET}")
+        print(f"{_HILITE}Collecting relevant definitions for root '{root_schema_or_type_hint}'...{_RESET}")
 
         # Convert the root type into a preliminary JSON schema and find initial refs.
-        if isinstance(root_schema_or_type, str) and root_schema_or_type in self.definitions:
-            main_schema = {"$ref": f"#/definitions/{root_schema_or_type}"}
-            queue.append(root_schema_or_type)
-        elif isinstance(root_schema_or_type, ParsedSchemaClass):
-            main_schema = {"$ref": f"#/definitions/{root_schema_or_type.name}"}
-            if root_schema_or_type.name in self.definitions:
-                queue.append(root_schema_or_type.name)
+        if isinstance(root_schema_or_type_hint, str) and root_schema_or_type_hint in self.definitions:
+            main_schema = {"$ref": f"#/definitions/{root_schema_or_type_hint}"}
+            queue.append(root_schema_or_type_hint)
+        elif isinstance(root_schema_or_type_hint, ParsedSchemaClass):
+            main_schema = {"$ref": f"#/definitions/{root_schema_or_type_hint.name}"}
+            if root_schema_or_type_hint.name in self.definitions:
+                queue.append(root_schema_or_type_hint.name)
         else:  # Handle generic types like dict[str, MyClass]
             root_schema_obj = (
-                self.definitions.get(root_schema_or_type.name) if isinstance(root_schema_or_type, ParsedSchemaClass) else None
-            )
-            main_schema = self._type_hint_to_json_schema(root_schema_or_type, root_schema_obj)
+                self.definitions.get(root_schema_or_type_hint.name)
+                if isinstance(root_schema_or_type_hint, ParsedSchemaClass)
+                else None
+            )  # Contradictory, whoops
+            main_schema = self._type_hint_to_json_schema(root_schema_or_type_hint, root_schema_obj)
             # Find initial references from the generated main schema
             self._collect_refs_from_schema_part(main_schema, queue, visited, all_definition_keys)
             # We reset visited here because we only used it to de-duplicate the initial queue.
@@ -691,7 +699,9 @@ class SchemaParser:
             # Scan the generated schema for more references to add to the queue.
             self._collect_refs_from_schema_part(current_schema_json, queue, visited, all_definition_keys)
 
-        return {"main_schema": main_schema, "definitions": relevant_definitions}
+        json_schema = {"main_schema": main_schema, "definitions": relevant_definitions}
+        self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema
+        return json_schema
 
     def _parse_subjects(self):
         """Parse the 'subjects' section, resolving types."""
@@ -709,31 +719,40 @@ class SchemaParser:
         if depth > max_depth:
             return f"<max_depth_reached>"
 
+        example_json = self.example_jsons.get(type_hint)
+        if example_json:
+            return example_json
+
+        value = None
+
         if isinstance(type_hint, ParsedSchemaClass):
-            return type_hint.generate_example_json(self.definitions, depth + 1, max_depth)
+            value = type_hint.generate_example_json(self.definitions, depth + 1, max_depth)
+        else:
+            origin = getattr(type_hint, "__origin__", None)
+            args = getattr(type_hint, "__args__", tuple())
 
-        origin = getattr(type_hint, "__origin__", None)
-        args = getattr(type_hint, "__args__", tuple())
+            if origin is list and args:
+                item_example = self.generate_example_json(args[0], depth + 1, max_depth)
+                value = [item_example]
+            elif origin is dict and len(args) == 2:
+                key_example = "key_example"  # Simplified key example for generics
+                value_example = self.generate_example_json(args[1], depth + 1, max_depth)
+                value = {key_example: value_example}
+            elif type_hint is str:
+                value = "string_example"
+            elif type_hint is int:
+                value = 0
+            elif type_hint is float:
+                value = 0.0
+            elif type_hint is bool:
+                value = True
+            elif type_hint is Any:
+                value = "any_value"
 
-        if origin is list and args:
-            item_example = self.generate_example_json(args[0], depth + 1, max_depth)
-            return [item_example]
-        elif origin is dict and len(args) == 2:
-            key_example = "key_example"  # Simplified key example for generics
-            value_example = self.generate_example_json(args[1], depth + 1, max_depth)
-            return {key_example: value_example}
-        elif type_hint is str:
-            return "string_example"
-        elif type_hint is int:
-            return 0
-        elif type_hint is float:
-            return 0.0
-        elif type_hint is bool:
-            return True
-        elif type_hint is Any:
-            return "any_value"
+            value = f"<unknown_type_{str(type_hint)}>"
 
-        return f"<unknown_type_{str(type_hint)}>"
+        self.example_jsons[type_hint] = value
+        return value
 
     def get_subject_class(self, subject_name: str) -> ParsedSchemaClass | None:
         """Get the parsed class definition for a top-level subject."""

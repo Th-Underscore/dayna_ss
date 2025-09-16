@@ -53,6 +53,7 @@ class DataSummarizer:
         custom_state: dict,
         history_path: Path,
         schema_parser: SchemaParser,
+        all_subjects_data: dict,
     ):
         """Initialize DataSummarizer.
 
@@ -69,7 +70,8 @@ class DataSummarizer:
             f"DataSummarizer initialized with history: {_DEBUG} {json.dumps(self.custom_state['history']['internal'], indent=2)}{_RESET}"
         )
         self.history_path = history_path
-        self.schema_parser = schema_parser  # Store the schema parser instance
+        self.schema_parser = schema_parser
+        self.all_subjects_data = all_subjects_data
 
     def _get_effective_setting(
         self,
@@ -151,7 +153,7 @@ class DataSummarizer:
         """Whether a given action is triggered by any of the current event conditions. Use `_should_update_subject` for a general check."""
         if not schema_class or not schema_class.trigger_map:
             return False
-        for trigger in (event_triggers or self._get_current_event_triggers()):
+        for trigger in event_triggers or self._get_current_event_triggers():
             if action in schema_class.trigger_map.get(trigger, []):
                 return True
         return False
@@ -160,7 +162,7 @@ class DataSummarizer:
         """Whether the subject should be updated at all based on the schema_class's trigger_map. Use `_is_action_triggered` for more fine-grained control."""
         if not schema_class or not schema_class.trigger_map:
             return False
-        for trigger in (event_triggers or self._get_current_event_triggers()):
+        for trigger in event_triggers or self._get_current_event_triggers():
             if schema_class.trigger_map.get(trigger):
                 return True
         return False
@@ -385,7 +387,7 @@ class DataSummarizer:
         if response_text == "NO_UPDATES_REQUIRED":
             print(f"{_INPUT}[{branch_name_for_log}] LLM indicates no updates required.{_RESET}")
             return []
-        
+
         original_response_text = response_text
         response_text = strip_response(response_text)
 
@@ -592,7 +594,7 @@ class DataSummarizer:
                     return updated_fields
         # --- END: Gate Check Logic ---
 
-        # --- START: Full Branch Update (perform_update at current level) ---
+        # --- START: Full Update (perform_update at current level) ---
         update_prompt_for_branch = self._get_effective_setting(
             data, target_schema_class, "update_prompt_template"  # General update template for the branch
         )
@@ -608,11 +610,7 @@ class DataSummarizer:
             )
 
             try:
-                # The update_prompt_template might use {item_name} or {branch_name}
-                # For a full branch update, item_name and branch_name are the same.
                 current_prompt_template_str = update_prompt_for_branch
-                if "{branch_name}" in current_prompt_template_str and "{item_name}" not in current_prompt_template_str:
-                    current_prompt_template_str = current_prompt_template_str.replace("{branch_name}", "{item_name}")
 
             except KeyError as e:
                 print(
@@ -648,7 +646,7 @@ class DataSummarizer:
                         f"{_ERROR}Direct branch update for '{branch_name_for_prompt}' unexpected type: {type(updated_branch_data)}.{_RESET}"
                     )
                 return updated_fields
-        # --- END: Full Branch Update ---
+        # --- END: Full Update ---
 
         # --- START: Branch Query Logic (query_branch_for_changes) ---
         branch_query_prompt_template = self._get_effective_setting(data, target_schema_class, "branch_query_prompt_template")
@@ -1231,7 +1229,7 @@ class DataSummarizer:
             print(f"{_INPUT}Generating schema snippet and example JSON for {target_name}{_RESET}")
             try:
                 schema_snippet_str = lambda: json.dumps(
-                    self.schema_parser.get_relevant_definitions_json(target_schema_or_type), indent=2
+                    self.schema_parser.get_relevant_json_schema_definitions(target_schema_or_type), indent=2
                 )
                 example_json_str = lambda: json.dumps(self.schema_parser.generate_example_json(target_schema_or_type), indent=2)
             except Exception as e:

@@ -1,4 +1,5 @@
 import re
+from os import PathLike
 from types import FunctionType
 from typing import Iterable, Any
 from pathlib import Path
@@ -30,7 +31,7 @@ class TypedKey:
         self.type = type
 
 
-def load_json(file_path: str | Path, verbose: bool = False) -> dict:
+def load_json(file_path: PathLike, verbose: bool = False) -> dict:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             return jsonc.load(f)
@@ -40,7 +41,7 @@ def load_json(file_path: str | Path, verbose: bool = False) -> dict:
         return {}
 
 
-def save_json(data: dict, file_path: str | Path) -> bool:
+def save_json(data: dict, file_path: PathLike) -> bool:
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
@@ -50,11 +51,11 @@ def save_json(data: dict, file_path: str | Path) -> bool:
         return False
 
 
-def validate_path(path: str | Path) -> Path:
+def validate_path(path: PathLike) -> Path | None:
     path = Path(path)
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        return False
+        return None
     return path
 
 
@@ -133,6 +134,7 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
     current_level = data
     length = len(keyList)
     for i, key in enumerate(keyList):
+        print(f"{_HILITE}key: {key}{_BOLD}, current_level: {current_level}{_RESET}")
         if isinstance(key, TypedKey):  # Handle typed keys
             key = key.key
 
@@ -149,9 +151,12 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
                 raise TypeError(f"Cannot use non-integer key '{key}' on a list.")
 
         if i == length - 1:  # Set the final value
+            print("i IS length - 1")
             current_level[key] = value
         else:  # Create nested data structures
+            print("i NOT length - 1")
             if not is_value_exists:
+                print(f"not is_value_exists")
                 next_key = keyList[i + 1]
                 if isinstance(next_key, TypedKey):
                     current_level[key] = next_key.type()
@@ -422,11 +427,19 @@ def strip_thinking(output: str) -> str:
     Exclude the "\\<think> ... \\</think>" tags and their content from a response.
     If \\<think> is present but \\</think> is not, returns an empty string.
     If \\</think> is present but \\<think> is not, returns everything after the first \\</think>.
+
+    Compatible with Seed-OSS <seed:think> tags.
     """
-    if "<think>" in output and "</think>" not in output:
+    # <think> = 1, seed: = 2, </think> = 3
+    match = re.match(r"(?:(<(?:(.*):)?think>).*)?(<\/(?:\2:)?think>)?", output, flags=(re.MULTILINE + re.DOTALL))
+    if not match:
+        return output
+    open_tag = match.group(1)
+    close_tag = match.group(3)
+    if open_tag and not close_tag:
         return ""
 
-    cleaned_output = re.sub(r"(?:<think>.*?)?<\/think>", "", output, flags=(re.MULTILINE + re.DOTALL))
+    cleaned_output = output[match.end(3) :] if close_tag else output
     return cleaned_output.lstrip()
 
 
