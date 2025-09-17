@@ -231,6 +231,11 @@ def create_block_ui():
             interactive=True,
         )
     with gr.Row():
+        dss_shared.gradio["next_scene"] = gr.Checkbox(
+            label="Next scene",
+            value=dss_shared.persistent_ui_state.get("next_scene", False),
+            interactive=True,
+        )
         dss_shared.gradio["summarize"] = gr.Button("Summarize", size="sm")
     with gr.Row():
         dss_shared.gradio["count_tokens"] = gr.Button("Count tokens", size="sm")
@@ -382,16 +387,21 @@ def create_event_handlers():
     dss_shared.gradio["dss_toggle"].change(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     )
-    
+
+    dss_shared.gradio["next_scene"].change(
+        utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
+    )
+
     dss_shared.gradio["summarize"].click(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     ).then(
         summarize_latest_exchange,
         [shared.gradio["interface_state"]],
-        None,
+        [shared.gradio["history"]],
         show_progress=False,
     )
-    
+
+
 def summarize_latest_exchange(state: dict):
     global summarizer
     try:
@@ -401,7 +411,8 @@ def summarize_latest_exchange(state: dict):
         raise TypeError("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
     output = history[-1][1]
     user_input = history[-1][0]
-    return summarizer.summarize_latest_state(output, user_input, state, history)
+    summarizer.summarize_latest_state(output, user_input, state, history)  # history[-1][0] is mutated
+    return {"visible": state["history"]["visible"], "internal": history}
 
 
 def handle_character_menu_change(state, dss_state):

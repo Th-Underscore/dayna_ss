@@ -90,7 +90,7 @@ class SummarizationContextCache:
     detected_new_entities: list | None = None
 
 
-# TODO: Get base_state from config
+# TODO: Get base_state gen params from config (ui_parameters)
 base_state = {
     "name1": "SYSTEM",
     "name2": "DAYNA",
@@ -110,6 +110,7 @@ base_state = {
     ),
     "auto_max_new_tokens": True,
     "temperature": 0.3,
+    "truncation_length": 16384,
     "history": {"internal": [["<|BEGIN-VISIBLE-CHAT|>", "I am ready to receive instructions!"]]},
 }
 
@@ -292,34 +293,42 @@ class Summarizer:
         except Exception as e:
             print(f"{_ERROR}Error processing message chunks for index {index}: {str(e)}{_RESET}")
             traceback.print_exc()
-    
-    def prepare_context(self, user_input: str, state: dict, history: History, **kwargs) -> dict:
+
+    def prepare_context(self, user_input: str, state: dict, history: History, **kwargs):
+        """Retrieve and format context for the prompt, as well as detecting a new scene turn.
+
+        Returns:
+            out (tuple[str, dict]): A tuple of (user_input, custom_state)
+        """
         print(f"{_BOLD}prepare_context{_RESET}")
         custom_state = self.retrieve_and_format_context(state, history, **kwargs)
         if not self.last:
             print(f"{_ERROR}Summarizer.last not available in generate_summary_instr_prompt.{_RESET}")
             raise RuntimeError("Summarizer.last not available in generate_summary_instr_prompt.")
 
-        next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
+        if dss_shared.persistent_ui_state.get("next_scene", False):
+            self.last.is_new_scene_turn = True
 
+        next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
         if user_input.startswith(next_scene_prefix):
             print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in generate_summary_instr_prompt.{_RESET}")
             user_input = user_input[len(next_scene_prefix) :].lstrip()
             self.last.is_new_scene_turn = True
+            # NOTE: Doesn't update Gradio checkbox
+
         if self.last.is_new_scene_turn:
             # Message nodes are 1-indexed and user messages are at turn_idx * 2:
             self.last.new_scene_start_node = f"{len(history) * 2}_1_1"
-            print(
-                f"{_DEBUG}New scene turn flagged. Start message node for new scene: {self.last.new_scene_start_node}{_RESET}"
-            )
+            print(f"{_DEBUG}New scene turn flagged. Start message node for new scene: {self.last.new_scene_start_node}{_RESET}")
 
-        return custom_state
+        return user_input, custom_state
 
     def generate_summary_instr_prompt(
         self, user_input: str, state: dict, history: History, **kwargs
-    ) -> tuple[str, dict, Path, str]:  # Input method
+    ) -> tuple[str, dict, Path, str]:  # After input
         print(f"{_HILITE}generate_summary_instr_prompt{_RESET} {kwargs}")
-        custom_state = self.prepare_context(user_input, state, history, **kwargs)
+        user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
+        custom_state = copy.deepcopy(custom_state_ref)
         history_path = self.last.history_path
 
         if shared.stop_everything:
@@ -405,10 +414,6 @@ class Summarizer:
                                 f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                             )
 
-                            # TODO: Get these from config (ui_parameters)
-                            custom_state["auto_max_new_tokens"] = True
-                            custom_state["truncation_length"] = 16384
-                            custom_state["temperature"] = 0.3
                             instr, _ = self.generate_using_tgwui(
                                 prompt, custom_state
                             )  # TODO: Force start of response via "continue"
@@ -416,17 +421,12 @@ class Summarizer:
                                 print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
                                 return user_input, state, history_path, None
 
-                            # instr += (
-                            #     f"\n\n"
-                            #     f"Style: You are speaking in third person to {name1}"
-                            # )  # TODO: Derive from UI block
                             instructions[input_key] = instr
                             print(f"{_HILITE}Instruction:{_RESET} {instr}")
                             save_json(instructions, instr_path)  # Persist instruction prompt for regenerations
 
                             # # Save the KV cache for this instruction generation if not already saved
                             # self.vram_manager.save_context_cache()
-                            # # Increment position for next generation
                             # self.vram_manager.increment_position()
                     except Exception as e:
                         print(f"{_ERROR}Error generating instruction: {str(e)}{_RESET}")
@@ -436,7 +436,7 @@ class Summarizer:
                 # Generate instruction prompt
                 # TODO: Include additional user instructions from UI blocks
                 full_instr = instr
-                # TODO: Get gen params from UI parameters
+                # TODO: Get output gen params from config (ui_parameters)
                 instr_prompt = (
                     f"{user_input_prompt}\n\n"
                     f'You are to write a reply in character as "{name2}".\n'
@@ -484,7 +484,7 @@ class Summarizer:
                 traceback.print_exc()
                 return user_input, state, history_path, None
 
-    def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # Output method
+    def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # After output
         """Summarize a single message with its context."""
         print(f"{_HILITE}summarize_message{_RESET}")
 
@@ -492,12 +492,13 @@ class Summarizer:
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received before retrieve_and_format_context in summarize_latest_state.{_RESET}")
                 return None
-            self.prepare_context(user_input, state, history[:-1])
+            user_input, custom_state_ref = self.prepare_context(user_input, state, history[:-1])
+            history[-1][0] = user_input  # TODO: Persist next_scene state for this history_path
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after retrieve_and_format_context in summarize_latest_state.{_RESET}")
                 return None
 
-            # self.last should be set by retrieve_and_format_context
+            # self.last should be set by prepare_context
             last_history_path = self.last.history_path
             new_history_path = self.retrieve_history_path(state, history)
             if not new_history_path.exists():
@@ -507,7 +508,7 @@ class Summarizer:
             from extensions.dayna_ss.agents.data_summarizer import DataSummarizer
             output = strip_thinking(output)
 
-            custom_state = copy.deepcopy(self.last.custom_state)
+            custom_state = copy.deepcopy(custom_state_ref)
             custom_state["history"]["internal"].append(
                 [f"What was the very last exchange?", f"{self.format_dialogue(state, [[user_input, output]])}"]
             )
@@ -661,11 +662,13 @@ class Summarizer:
     def retrieve_and_format_context(self, state: dict, history: History, **kwargs) -> dict:
         """Retrieve and format context for instructing model based on history.
 
+        This method generates `custom_state` with an artificial history (DAYNA Mode).
+
         Args:
             state (dict): Original (TGWUI) state
 
         Returns:
-            out (dict): _description_
+            custom_state (dict): custom_state
         """
         global base_state
 
@@ -783,6 +786,8 @@ class Summarizer:
 
         Handles new chats, loads initial world data (from cache or generation),
         sets up session history paths, and loads schemas.
+
+        This method generates `self.last` if it is a fresh input/output.
 
         Args:
             state (dict): Current application state.
@@ -938,7 +943,7 @@ class Summarizer:
         """Deterministically hash a key to a hex string of a given precision using the SHA-1 algorithm.
 
         Args:
-            key (Any): The key to hash.
+            key (Any): The key to hash. This is converted to str() before hashing.
             precision (int, optional): The number of characters to return. Defaults to 24.
 
         Returns:
