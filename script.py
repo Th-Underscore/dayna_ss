@@ -1,8 +1,6 @@
 import re
-from subprocess import Popen
 import ast
 import html
-from pathlib import Path
 import asyncio
 import threading
 import time
@@ -104,7 +102,7 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
 
         index = len(history["internal"]) * 2  # User input index ([:-1].__len__() + 2 - 2)
 
-        instr_prompt, custom_state, history_path, timestamp_str = summarizer.generate_summary_instr_prompt(
+        instr_prompt, custom_state, history_path, timestamp_str = summarizer.generate_instr_prompt(
             user_input, state, history["internal"], **kwargs
         )
         if shared.stop_everything:
