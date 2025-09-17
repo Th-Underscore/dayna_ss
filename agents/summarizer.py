@@ -45,6 +45,7 @@ from extensions.dayna_ss.utils.helpers import (
     Histories,
     load_json,
     save_json,
+    recursive_get,
     expand_lists_in_data_for_llm,
     get_values,
     enumerate_list,
@@ -697,12 +698,21 @@ class Summarizer:
 
         print(f"{_BOLD}Retrieving context for {formatted_last_x} messages:", retrieval_context, _RESET)
         print(f"{_HILITE}General info: {retrieval_context.general_info}{_RESET}")
+
         # TODO: Add this formatting to subjects_schema.json? Make it dynamic
         # General info
         if retrieval_context.general_info:
             formatted_general_info = FormattedData(retrieval_context.general_info, "general_info", self.last.schema_parser).st
             custom_state["context"] += f"\n\n{formatted_general_info}"
-            custom_history.append(["Describe the story in broad strokes.", formatted_general_info])
+            # Additional info
+            formatted_additional_info = FormattedData.format_retrieval_data({}, "additional_info", context_cache=self.last)
+            # formatted_general_info}{f'\n\n{formatted_additional_info}' if formatted_additional_info else ''
+            custom_history.append(
+                [
+                    "Describe the story in broad strokes.",
+                    f"\n\n".join([st for st in (formatted_general_info, formatted_additional_info) if st]),
+                ]
+            )
 
         # Current scene
         if retrieval_context.current_scene:
@@ -1484,7 +1494,14 @@ Here is the message: """\n{message_content.strip()}\n"""'''
 
 
 class FormattedData:
-    def __init__(self, data: Any, data_type: str, parser: SchemaParser = None, all_subjects_data: dict = None):
+    def __init__(
+        self,
+        data: Any,
+        data_type: str,
+        parser: SchemaParser | None = None,
+        context_cache: SummarizationContextCache | None = None,
+        all_subjects_data: dict | None = None,
+    ):
         """Initialize and process data for LLM formatting.
 
         Prepares a string representation (`self.st`) for LLM prompts.
@@ -1499,6 +1516,8 @@ class FormattedData:
         self.original_data = data
         self.data_type = data_type
         self.parser = parser
+        self.context_cache = context_cache
+        self.last = self.context_cache
         self.all_subjects_data = all_subjects_data
 
         if self.parser:
@@ -1521,14 +1540,22 @@ class FormattedData:
         else:
             self.data = data
 
-        self._str = FormattedData.format_retrieval_data(self.data, self.data_type)
+        self._str = FormattedData.format_retrieval_data(
+            self.data, self.data_type, context_cache=self.context_cache, all_subjects_data=self.all_subjects_data
+        )
 
     def __getitem__(self, index):
         """Allow dictionary-like access to the (potentially expanded) data."""
         return self.data[index]
 
     @staticmethod
-    def format_retrieval_data(data: dict | list, data_type: str) -> str:
+    def format_retrieval_data(
+        data: dict | list,
+        data_type: str,
+        prefix: str = "",
+        context_cache: SummarizationContextCache | None = None,
+        all_subjects_data: dict | None = None,
+    ) -> str:
         """Format retrieved data based on its type."""
         # TODO: Generate based on "format schema"
         if not data:
@@ -1552,65 +1579,67 @@ class FormattedData:
 
                 # Format character entries
                 char_entries = [
-                    f"{char_data.get('name', 'Unknown')} @ {char_data.get('location', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}.who.characters[{i}], current_scene.{start_or_now}.who.characters[{i}].name, current_scene.{start_or_now}.who.characters[{i}].location"
+                    f"{char_data.get('name', 'Unknown')} @ {char_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters[{i}], {prefix}current_scene.{start_or_now}.who.characters[{i}].name, {prefix}current_scene.{start_or_now}.who.characters[{i}].location"
                     for i, char_data in enumerate_list(characters)
                 ]
                 formatted_chars = f"\n- ".join(char_entries) if char_entries else "None"
 
                 # Format group entries
                 group_entries = [
-                    f"{group_data.get('name', 'Unknown')} @ {group_data.get('location', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}.who.groups[{i}], current_scene.{start_or_now}.who.groups[{i}].name, current_scene.{start_or_now}.who.groups[{i}].location"
+                    f"{group_data.get('name', 'Unknown')} @ {group_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups[{i}], {prefix}current_scene.{start_or_now}.who.groups[{i}].name, {prefix}current_scene.{start_or_now}.who.groups[{i}].location"
                     for i, group_data in enumerate_list(groups)
                 ]
                 formatted_groups = f"\n- ".join(group_entries) if group_entries else "None"
 
-                formatted_when = f"{when.get('date', 'Unknown')} - {when.get('time', 'Unknown')} ({when.get('specific_time', 'Unknown')}) <<<<<<<<<<<< current_scene.{start_or_now}.when, current_scene.{start_or_now}.when.date, current_scene.{start_or_now}.when.time, current_scene.{start_or_now}.when.specific_time"
+                formatted_when = f"{when.get('date', 'Unknown')} - {when.get('time', 'Unknown')} ({when.get('specific_time', 'Unknown')}) <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.when, current_scene.{start_or_now}.when.date, {prefix}current_scene.{start_or_now}.when.time, {prefix}current_scene.{start_or_now}.when.specific_time"
 
                 # Format why entries
                 why_entries = [
-                    f"{reason_data.get('name', 'Unknown')} -- {reason_data.get('details', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}.why[{i}]"
+                    f"{reason_data.get('name', 'Unknown')} -- {reason_data.get('details', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why[{i}]"
                     for i, reason_data in enumerate_list(why)
                 ]
                 formatted_why = f"\n- ".join(why_entries) if why_entries else "Unknown"
 
                 formatted_str.append(
-                    f"Scene -- {data.get('what', 'Unknown')} <<<<<<<<<<<< current_scene.{start_or_now}, current_scene.what\n\n"
-                    f"Characters -- <<<<<<<<<<<< current_scene.{start_or_now}.who.characters\n- {formatted_chars}\n\n"
-                    f"Groups -- <<<<<<<<<<<< current_scene.{start_or_now}.who.groups\n- {formatted_groups}\n\n"
+                    f"Scene -- {data.get('what', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}, {prefix}current_scene.what\n\n"
+                    f"Characters -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters\n- {formatted_chars}\n\n"
+                    f"Groups -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups\n- {formatted_groups}\n\n"
                     f"When -- {formatted_when}\n\n"
-                    f"Where -- {where} <<<<<<<<<<<< current_scene.{start_or_now}.where\n\n"
-                    f"Why -- <<<<<<<<<<<< current_scene.{start_or_now}.why\n- {formatted_why}"
+                    f"Where -- {where} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.where\n\n"
+                    f"Why -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why\n- {formatted_why}"
                 )
 
             return (
-                f"Current Scene Start --- <<<<<<<<<<<< current_scene.start\n{formatted_str[0]}\n\n"
-                f"Current Scene Now --- <<<<<<<<<<<< current_scene.now\n{formatted_str[1]}"
+                f"Current Scene Start --- <<<<<<<<<<<< {prefix}current_scene.start\n{formatted_str[0]}\n\n"
+                f"Current Scene Now --- <<<<<<<<<<<< {prefix}current_scene.now\n{formatted_str[1]}"
             )
 
         if data_type == "character_list":
             return "\n".join(
-                f"Character --- {char} <<<<<<<<<<<< characters.{char} (key)\n"
-                f"Relationships --- {', '.join(char_data.get('relationships', {}).keys())} <<<<<<<<<<<< characters.{char}.relationships\n"
+                f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
+                f"Relationships --- {', '.join(char_data.get('relationships', {}).keys())} <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
                 for char, char_data in data.items()
             )
 
         if data_type == "characters_list":
-            return f"[{json.dumps(list(data.keys()), indent=None)}] <<<<<<<<<<<< characters"
+            return f"[{json.dumps(list(data.keys()), indent=None)}] <<<<<<<<<<<< {prefix}characters"
 
         if data_type == "characters":
             return "\n\n".join(
-                f"Character --- {char} <<<<<<<<<<<< characters.{char} (key)\n"
-                f"Description --- {nl.join(char_data.get('description', []))} <<<<<<<<<<<< characters.{char}.description\n"
-                f"Relationships --- <<<<<<<<<<<< characters.{char}.relationships\n- {f'{nl}- '.join(f'{rel_char}: {json.dumps(rel_data, indent=None)} <<<<<<<<<<<< characters.{char}.{rel_char} (key), characters.{char}.{rel_char}' for rel_char, rel_data in char_data.get('relationships', {}).items())}\n"
-                f"Group Status --- <<<<<<<<<<<< characters.{char}.status\n- {f'{nl}- '.join(f'{group}: {json.dumps(status, indent=None)} <<<<<<<<<<<< characters.{char}.status.{group} (key), characters.{char}.status.{group}' for group, status in char_data.get('status', {}).items())}"
+                f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
+                f"Description --- {nl.join(char_data.get('description', []))} <<<<<<<<<<<< {prefix}characters.{char}.description\n"
+                f"Relationships --- <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
+                f"- {f'{nl}- '.join(f'{rel_char}: {json.dumps(rel_data, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.{rel_char} (key), {prefix}characters.{char}.{rel_char}' for rel_char, rel_data in char_data.get('relationships', {}).items())}\n"
+                f"Group Status --- <<<<<<<<<<<< {prefix}characters.{char}.status\n"
+                f"- {f'{nl}- '.join(f'{group}: {json.dumps(status, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.status.{group} (key), {prefix}characters.{char}.status.{group}' for group, status in char_data.get('status', {}).items())}"
                 for char, char_data in data.items()
             )
 
         if data_type == "groups" or data_type == "groups_list":
             return "\n\n".join(
-                f"Group --- {group} ({', '.join(get_values(group_data.get('aliases', {})))}) <<<<<<<<<<<< groups.{group} (key), groups.{group}.aliases\n"
-                f"Description --- {nl.join(group_data.get('description', []))} <<<<<<<<<<<< groups.{group}.description\n"
-                f"Specific Events --- {', '.join(get_values(group_data.get('events', {})))} <<<<<<<<<<<< groups.{group}.events\n"
+                f"Group --- {group} ({', '.join(get_values(group_data.get('aliases', {})))}) <<<<<<<<<<<< {prefix}groups.{group} (key), {prefix}groups.{group}.aliases\n"
+                f"Description --- {nl.join(group_data.get('description', []))} <<<<<<<<<<<< {prefix}groups.{group}.description\n"
+                f"Specific Events --- {', '.join(get_values(group_data.get('events', {})))} <<<<<<<<<<<< {prefix}groups.{group}.events\n"
                 for group, group_data in data.items()
             )
 
@@ -1618,23 +1647,24 @@ class FormattedData:
             start = data.get("start", {})
             end = data.get("end", {})
             return (
-                f"Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {data_type}.name\n\n"
-                f"Start --- <<<<<<<<<<<< {data_type}.start\n"
-                f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {data_type}.start.date\n"
-                f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {data_type}.start.time, {data_type}.start.specific_time\n\n"
-                f"End --- <<<<<<<<<<<< {data_type}.end\n"
-                f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {data_type}.end.date\n"
-                f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {data_type}.end.time, {data_type}.end.specific_time\n\n"
-                f"Summary --- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {data_type}.summary"
+                f"Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}, {prefix}{data_type}.name\n\n"
+                f"Start --- <<<<<<<<<<<< {prefix}{data_type}.start\n"
+                f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.start.date\n"
+                f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.start.time, {prefix}{data_type}.start.specific_time\n\n"
+                f"End --- <<<<<<<<<<<< {prefix}{data_type}.end\n"
+                f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.end.date\n"
+                f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.end.time, {prefix}{data_type}.end.specific_time\n\n"
+                f"Summary --- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}{data_type}.summary"
             )
 
         if data_type == "events" or data_type == "events_list":
             formatted_str = []
+
             formatted_str.append(
                 "\n\n".join(
-                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< events.past[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< events.past[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< events.past[{i}].summary"
+                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< {prefix}events.past[{i}], {prefix}events.past[{i}].name\n"
+                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.past[{i}].start.date\n"
+                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.past[{i}].summary"
                     for i, event_data in enumerate_list(data.get("past", []))
                 )
                 or "Empty"
@@ -1642,9 +1672,9 @@ class FormattedData:
 
             formatted_str.append(
                 "\n\n".join(
-                    f"Scene -- {event_data.get('name')} <<<<<<<<<<<< events.scenes[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< events.scenes[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< events.scenes[{i}].summary"
+                    f"Scene -- {event_data.get('name')} <<<<<<<<<<<< {prefix}events.scenes[{i}], {prefix}events.scenes[{i}].name\n"
+                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.scenes[{i}].start.date\n"
+                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.scenes[{i}].summary"
                     for i, event_data in enumerate_list(data.get("scenes", []))
                 )
                 or "Empty"
@@ -1652,28 +1682,52 @@ class FormattedData:
 
             formatted_str.append(
                 "\n\n".join(
-                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< events.events[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< events.events[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< events.events[{i}].summary"
+                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< {prefix}events.events[{i}].name\n"
+                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.events[{i}].start.date\n"
+                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.events[{i}].summary"
                     for i, event_data in enumerate_list(data.get("events", []))
                 )
                 or "Empty"
             )
 
             return (
-                f"Past Events --- <<<<<<<<<<<< events.past\n{formatted_str[0]}\n\n"
-                f"Scenes --- <<<<<<<<<<<< events.scenes\n{formatted_str[1]}\n\n"
-                f"Events --- <<<<<<<<<<<< events.events\n{formatted_str[2]}"
+                f"Past Events --- <<<<<<<<<<<< {prefix}events.past\n{formatted_str[0]}\n\n"
+                f"Scenes --- <<<<<<<<<<<< {prefix}events.scenes\n{formatted_str[1]}\n\n"
+                f"Events --- <<<<<<<<<<<< {prefix}events.events\n{formatted_str[2]}"
             )
 
         if data_type == "general_info":
             # TODO: Hardcode more fields via all_subjects_data
             return (
-                f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< general_info.synopsis\n\n"
-                f"Main Objective --- {data.get('main_objective', 'No main objective specified')} <<<<<<<<<<<< general_info.main_objective\n\n"
-                f"Themes --- {', '.join(get_values(data.get('themes', []))) or 'No themes specified'} <<<<<<<<<<<< general_info.themes\n\n"
-                f"Tone --- {data.get('tone', 'No tone specified')} <<<<<<<<<<<< general_info.tone\n\n"
-                f"Writing Style --- {data.get('writing_style', 'No writing style specified')} <<<<<<<<<<<< general_info.writing_style"
+                f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< {prefix}general_info.synopsis\n\n"
+                f"Main Objective --- {data.get('main_objective', 'No main objective specified')} <<<<<<<<<<<< {prefix}general_info.main_objective\n\n"
+                f"Themes --- {', '.join(get_values(data.get('themes', []))) or 'No themes specified'} <<<<<<<<<<<< {prefix}general_info.themes\n"
+                f"Tone --- {data.get('tone', 'No tone specified')} <<<<<<<<<<<< {prefix}general_info.tone\n\n"
+                f"Writing Style --- {data.get('writing_style', 'No writing style specified')} <<<<<<<<<<<< {prefix}general_info.writing_style"
+            )
+
+        if data_type == "additional_info":
+            last_scene_str = ""
+            scenes = recursive_get(all_subjects_data, ["events", "scenes"], [])
+            num_scenes = len(scenes)
+            if num_scenes:
+                scenes_idx = num_scenes - 1
+                last_scene = scenes[scenes_idx]
+                if last_scene:
+                    last_scene_pref = f"{prefix}events.scenes[{scenes_idx}]"
+                    last_scene_str = (
+                        f"Last Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}, {last_scene_pref}.name, last_scene, last_scene.name\n\n"
+                        f"Start -- <<<<<<<<<<<< {last_scene_pref}.start\n"
+                        f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.start.date\n"
+                        f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.start.time, {last_scene_pref}.start.specific_time\n\n"
+                        f"End -- <<<<<<<<<<<< {last_scene_pref}.end\n"
+                        f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.end.date\n"
+                        f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.end.time, {last_scene_pref}.end.specific_time\n\n"
+                        f"Summary -- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {last_scene_pref}.summary\n\n"
+                    )
+            return (
+                f"{last_scene_str}"
+                f"This chat is currently {context_cache.history_length or 0} messages long in total. <<<<<<<<<<<< {prefix}context_cache.history_length"
             )
 
         if data_type == "lines":
