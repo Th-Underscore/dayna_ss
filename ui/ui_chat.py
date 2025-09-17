@@ -7,8 +7,11 @@ from PIL import Image
 from modules import chat, shared, ui
 
 import extensions.dayna_ss.shared as dss_shared
+from extensions.dayna_ss.agents.summarizer import Summarizer
 from extensions.dayna_ss.ui import utils
 from extensions.dayna_ss.ui.utils import gradio
+
+summarizer = Summarizer()
 
 
 def create_ui():
@@ -228,6 +231,8 @@ def create_block_ui():
             interactive=True,
         )
     with gr.Row():
+        dss_shared.gradio["summarize"] = gr.Button("Summarize", size="sm")
+    with gr.Row():
         dss_shared.gradio["count_tokens"] = gr.Button("Count tokens", size="sm")
     dss_shared.gradio["token_display"] = gr.HTML(value="", elem_classes="token-display")
 
@@ -377,6 +382,26 @@ def create_event_handlers():
     dss_shared.gradio["dss_toggle"].change(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     )
+    
+    dss_shared.gradio["summarize"].click(
+        utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
+    ).then(
+        summarize_latest_exchange,
+        [shared.gradio["interface_state"]],
+        None,
+        show_progress=False,
+    )
+    
+def summarize_latest_exchange(state: dict):
+    global summarizer
+    try:
+        history = state["history"]["internal"]
+    except TypeError as e:
+        gr.Error("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
+        raise TypeError("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
+    output = history[-1][1]
+    user_input = history[-1][0]
+    return summarizer.summarize_latest_state(output, user_input, state, history)
 
 
 def handle_character_menu_change(state, dss_state):

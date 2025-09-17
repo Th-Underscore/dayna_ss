@@ -292,31 +292,38 @@ class Summarizer:
         except Exception as e:
             print(f"{_ERROR}Error processing message chunks for index {index}: {str(e)}{_RESET}")
             traceback.print_exc()
+    
+    def prepare_context(self, user_input: str, state: dict, history: History, **kwargs) -> dict:
+        print(f"{_BOLD}prepare_context{_RESET}")
+        custom_state = self.retrieve_and_format_context(state, history, **kwargs)
+        if not self.last:
+            print(f"{_ERROR}Summarizer.last not available in generate_summary_instr_prompt.{_RESET}")
+            raise RuntimeError("Summarizer.last not available in generate_summary_instr_prompt.")
+
+        next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
+
+        if user_input.startswith(next_scene_prefix):
+            print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in generate_summary_instr_prompt.{_RESET}")
+            user_input = user_input[len(next_scene_prefix) :].lstrip()
+            self.last.is_new_scene_turn = True
+        if self.last.is_new_scene_turn:
+            # Message nodes are 1-indexed and user messages are at turn_idx * 2:
+            self.last.new_scene_start_node = f"{len(history) * 2}_1_1"
+            print(
+                f"{_DEBUG}New scene turn flagged. Start message node for new scene: {self.last.new_scene_start_node}{_RESET}"
+            )
+
+        return custom_state
 
     def generate_summary_instr_prompt(
         self, user_input: str, state: dict, history: History, **kwargs
     ) -> tuple[str, dict, Path, str]:  # Input method
         print(f"{_HILITE}generate_summary_instr_prompt{_RESET} {kwargs}")
-        custom_state = self.retrieve_and_format_context(state, history, **kwargs)
+        custom_state = self.prepare_context(user_input, state, history, **kwargs)
         history_path = self.last.history_path
 
-        next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
-
-        if self.last:
-            if user_input.startswith(next_scene_prefix):
-                print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in generate_summary_instr_prompt.{_RESET}")
-                user_input = user_input[len(next_scene_prefix) :].lstrip()
-                self.last.is_new_scene_turn = True
-            if self.last.is_new_scene_turn:
-                # Message nodes are 0-indexed and user messages are at turn_idx * 2:
-                self.last.new_scene_start_node = f"{len(history) * 2}_1_1"
-                print(
-                    f"{_DEBUG}New scene turn flagged. Start message node for new scene: {self.last.new_scene_start_node}{_RESET}"
-                )
-
         if shared.stop_everything:
-            print(f"{_HILITE}Stop signal received after retrieve_and_format_context in generate_summary_instr_prompt.{_RESET}")
-            # history_path is already correctly set from self.last.history_path
+            print(f"{_HILITE}Stop signal received after prepare_context in generate_summary_instr_prompt.{_RESET}")
             return user_input, state, history_path, None
 
         # Get current timestamp for saving message chunks
@@ -485,7 +492,7 @@ class Summarizer:
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received before retrieve_and_format_context in summarize_latest_state.{_RESET}")
                 return None
-            self.retrieve_and_format_context(state, history[:-1])
+            self.prepare_context(user_input, state, history[:-1])
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after retrieve_and_format_context in summarize_latest_state.{_RESET}")
                 return None
@@ -498,6 +505,7 @@ class Summarizer:
             self.backtrack_history(history, new_history_path)
 
             from extensions.dayna_ss.agents.data_summarizer import DataSummarizer
+            output = strip_thinking(output)
 
             custom_state = copy.deepcopy(self.last.custom_state)
             custom_state["history"]["internal"].append(
