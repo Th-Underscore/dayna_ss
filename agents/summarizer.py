@@ -773,7 +773,7 @@ class Summarizer:
 
         # Append last x messages
         if last_x_messages:
-            custom_history.append([f"What were the last {formatted_last_x} messages?", last_x_messages])
+            custom_history.append([f"What were the last {formatted_last_x} exchanges?", last_x_messages])
 
         # Analysis complete marker TODO: Get this SYSTEM prompt from config
         custom_history.append(
