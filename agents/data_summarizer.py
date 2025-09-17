@@ -24,6 +24,7 @@ from extensions.dayna_ss.utils.helpers import (
     recursive_get,
     expand_lists_in_data_for_llm,
     unexpand_lists_in_data_from_llm,
+    strip_thinking,
     strip_response,
     format_str,
 )
@@ -572,6 +573,7 @@ class DataSummarizer:
                 )
                 if shared.stop_everything:
                     return
+                llm_response_text = strip_thinking(llm_response_text)
                 print(
                     f"{_GRAY}Gate check response for '{gate_check_branch_name}': '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}"
                 )
@@ -687,6 +689,7 @@ class DataSummarizer:
                 )
                 if shared.stop_everything:
                     return
+                llm_response_text = strip_thinking(llm_response_text)
                 print(
                     f"{_GRAY}Query branch '{branch_name_for_prompt}' response: '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}"
                 )

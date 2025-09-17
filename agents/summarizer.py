@@ -304,15 +304,13 @@ class Summarizer:
         print(f"{_BOLD}prepare_context{_RESET}")
         custom_state = self.retrieve_and_format_context(state, history, **kwargs)
         if not self.last:
-            print(f"{_ERROR}Summarizer.last not available in generate_summary_instr_prompt.{_RESET}")
-            raise RuntimeError("Summarizer.last not available in generate_summary_instr_prompt.")
+            print(f"{_ERROR}Summarizer.last not available in prepare_context.{_RESET}")
+            raise RuntimeError("Summarizer.last not available in prepare_context.")
 
-        if dss_shared.persistent_ui_state.get("next_scene", False):
-            self.last.is_new_scene_turn = True
-
+        self.last.is_new_scene_turn = dss_shared.persistent_ui_state.get("next_scene", False)
         next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
         if user_input.startswith(next_scene_prefix):
-            print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in generate_summary_instr_prompt.{_RESET}")
+            print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in prepare_context.{_RESET}")
             user_input = user_input[len(next_scene_prefix) :].lstrip()
             self.last.is_new_scene_turn = True
             # NOTE: Doesn't update Gradio checkbox
@@ -324,16 +322,16 @@ class Summarizer:
 
         return user_input, custom_state
 
-    def generate_summary_instr_prompt(
+    def generate_instr_prompt(
         self, user_input: str, state: dict, history: History, **kwargs
     ) -> tuple[str, dict, Path, str]:  # After input
-        print(f"{_HILITE}generate_summary_instr_prompt{_RESET} {kwargs}")
+        print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
         user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
         custom_state = copy.deepcopy(custom_state_ref)
         history_path = self.last.history_path
 
         if shared.stop_everything:
-            print(f"{_HILITE}Stop signal received after prepare_context in generate_summary_instr_prompt.{_RESET}")
+            print(f"{_HILITE}Stop signal received after prepare_context in generate_instr_prompt.{_RESET}")
             return user_input, state, history_path, None
 
         # Get current timestamp for saving message chunks
