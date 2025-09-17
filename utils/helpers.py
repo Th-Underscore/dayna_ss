@@ -431,15 +431,20 @@ def strip_thinking(output: str) -> str:
     Compatible with Seed-OSS <seed:think> tags.
     """
     # <think> = 1, seed: = 2, </think> = 3
-    match = re.match(r"(?:(<(?:(.*):)?think>).*)?(<\/(?:\2:)?think>)?", output, flags=(re.MULTILINE + re.DOTALL))
-    if not match:
+    open_tag, tag_prefix, close_tag = "", "", ""
+    start = re.search(r"<((?:.+?:)?)think>", output, flags=(re.MULTILINE + re.DOTALL))
+    if start:
+        open_tag = start.group(0)
+        tag_prefix = start.group(1)
+    tag_prefix = tag_prefix or r"(?:.+?:)?"
+    end = re.search(rf"<\/{tag_prefix}think>", output, flags=(re.MULTILINE + re.DOTALL))
+    if end:
+        close_tag = end.group(0)
+    if not start and not end:
         return output
-    open_tag = match.group(1)
-    close_tag = match.group(3)
     if open_tag and not close_tag:
         return ""
-
-    cleaned_output = output[match.end(3) :] if close_tag else output
+    cleaned_output = output[end.end(0) :] if close_tag else output
     return cleaned_output.lstrip()
 
 
