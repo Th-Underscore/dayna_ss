@@ -6,11 +6,12 @@ chunk messages `#chunk_messages()`:
 - [x] include message summary in database
 - [ ] check if any gaps in history
 
+<br>
+
 ui:
 
 - [x] make copies of each original tgwui util/module method
 - [ ] integrate story datetime into metadata (~~integrate time into boogaPlus using shared.message\_data timestamps~~)
-- \[ \]
 
 <br>
 
@@ -28,21 +29,22 @@ ui:
         - [x] Generate example with descriptions of branches and values
             - [x] Maybe only generate “start” and copy to “now”? For now, keep as is
 
-- [ ] Properly update subjects and add new ones when mentioned
+- [x] Properly update subjects and add new ones when mentioned
     - [x] Update current scene “now”, keeping “start” in its original state
     - [x] Give full schema and example like “Handle start of chat”
-        - [ ] Common gen prompt for all fields (not specific) until last line to save context + time + consistency?
+        - [ ] Common gen prompt for all fields (general, unspecific) until last line to save context + time + consistency?
     - [x] Only update when new scene? If last\_x > scene messages (i.e. when relevant messages being truncated), add to data before truncation
-- [ ] Create new scene
+- [x] Create new scene
     - [x] ~~Default to create when new chat~~ <— “Handle start of chat”
     - [x] End scene button or user-input prefix
-    - [ ] Use current\_scene data to generate a new key for “scenes” in Events
+    - [x] Use current\_scene data to generate a new key for “scenes” in Events
         - [ ] Summarize in same history line (keep the previous response in context during summarization)
     - [x] Generate new current\_scene
         - [x] Refactor update\_when + perform\_update format to single perform\_update\_when property
     - [ ] Auto-detect scene end
-    - [ ] Detect important events at end of scene? `events.json` as a whole might be redundant
-- [ ] Add general info
+        - [ ] Decide whether to count user\_input as new scene, or start from output
+    - [ ] Detect important events at end of scene?
+- [x] Add general info
     - [x] writing style (~~editable user+assistant tendencies (e.g. third-person)~~)
         - [ ] Scene length
         - [ ] Sentence length
@@ -54,9 +56,14 @@ ui:
     - [x] themes+tone
     - [x] custom\_state\['context'\]:
         - [x] Always have original state\['context'\] inside
-    - [ ] sum of last scene
-    - [ ] sum of current scene
-- [ ] Finalize message node format (0-indexed, bot vs user, etc.)
+    - [x] sum of last scene
+    - [ ] ~~sum of current scene~~
+- [ ] Finalize message node format (1-indexed, bot vs user, etc.)
+- [ ] More schema/generation flow stuff:
+    - [ ] For most cases, keep all data the same per current\_scene to save tons of time (prompt eval, data summarization, more prompt eval)
+        - [ ] Weigh when extremely important updates need to happen? 
+
+    - [ ] Optionally keep context info (`history_path`) the same until new scene (for prompt eval) 
 
 <br>
 
@@ -75,7 +82,8 @@ Current TODO:
         - [ ] Also detect events
 
 - [ ] last\_x is all messages in current scene
-    - [ ] Also what the LLM decides is relevant from the last scene (e.g. +2 msg context)
+    - [ ] Could be what the LLM decides is relevant from the last scene (e.g. +2 msg context)?
+    - [ ] Could just be specific conditions? When to use full messages vs summarizations
 - [ ] User-defined example message format
 - [x] More sum prompt options (gate check → “YES”, “NO”, “SPECIFIC\_FIELD\_UPDATE” aka query branch fields to change instead of modifications all in one prompt)
 - [ ] Subject data UI (tree)
@@ -100,12 +108,12 @@ Current TODO:
 - [ ] When generating instruction, include possible`user_instr` given by the user
 - [ ] give user instructions for regenerate, maybe separate extension (“Regenerate with instructions” vs “Regenerate with feedback (explicit)”)
 - [ ] “The user’s input is the highest priority; if anything said or done by a character doesn’t match its personality trait in the existing knowledge base, consider whether this should be changed in the knowledge base, or was done intentionally.”
-- [ ] Trigger archive at end of scene (to archive values that aren’t needed in the main subjects files but may still be needed for extra details in the future)?
 - [ ] General info for each subject category (i.e. characters, groups, events)
 - [ ] RAG for each character’s individual memory (most memorable moments for specific scene/event)
     - [ ] Also each relationship (essentially what`"events":`  is for, but better)
 - [ ] Detect edits and compare original vs new to determine what to change in history\_str
 - [ ] Add instructions.json (`instr`) toggle
+- [ ] Refactor `_update_recursive` into more standard recursive style
 
 <br>
 
@@ -138,6 +146,7 @@ Far TODO:
 17. Delete current history\_str (self.last) - for manual edits to data
 18. Update history-context in realtime with DataSummarizer? Will potentially hurt eval time
 19. For events: additional context from the future
+20. Trigger archive at end of scene (to archive values that aren’t needed in the main subjects files but may still be needed for extra details in the future)?
 
   
 
