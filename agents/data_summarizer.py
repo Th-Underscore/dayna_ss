@@ -191,19 +191,12 @@ class DataSummarizer:
             print(f"{_HILITE}Subject type for '{data_type}':{_RESET} {subject_type}")
             unexpanded_formatted_data = FormattedData(data, data_type)
             formatted_data = FormattedData(data, data_type, self.schema_parser)
-            if hasattr(subject_type, "__origin__") and subject_type.__origin__ is dict:
-                # e.g., "characters": "dict[str, Character]"
-                for name, item_data in data.items():
-                    if not item_data:
-                        print(f"{_ERROR}Empty data for {name}, skipping{_RESET}")
-                        continue
-                    self._update_recursive(
-                        name, item_data, formatted_data, unexpanded_formatted_data, target_schema_class
-                    )
-            else:  # e.g., "current_scene": "CurrentScene"
-                self._update_recursive(
-                    data_type, data, formatted_data, unexpanded_formatted_data, target_schema_class
-                )
+            if not isinstance(subject_type, ParsedSchemaClass):
+                raise ValueError(f"Subject '{data_type}' should be a ParsedSchemaClass: {subject_type}")
+
+            self._update_recursive(
+                data_type, data, formatted_data, unexpanded_formatted_data, target_schema_class
+            )
 
             print(f"{_HILITE}Summary for {data_type} completed in {time.time() - start:.2f} seconds.{_RESET}")
             save_json(
@@ -360,7 +353,7 @@ class DataSummarizer:
         """Parses LLM response for field updates.
 
         Expected LLM response formats:
-        - "NO_UPDATES_REQUIRED"
+        - "NO" ("NO_UPDATES_REQUIRED")
         - JSON list: `[{"path": "...", "value": ...}, ...]`
         - Single JSON object: `{"path": "...", "value": ...}`
         - Line-by-line: `path: path.to.field, value: new_value`
@@ -382,7 +375,7 @@ class DataSummarizer:
             print(f"{_GRAY}[{branch_name_for_log}] LLM response empty after stripping END_OF_UPDATES.{_RESET}")
             return []
 
-        if response_text == "NO_UPDATES_REQUIRED":
+        if response_text == "NO":
             print(f"{_INPUT}[{branch_name_for_log}] LLM indicates no updates required.{_RESET}")
             return []
 
@@ -475,9 +468,11 @@ class DataSummarizer:
         data: dict,
         formatted_data: FormattedData,
         unexpanded_formatted_data: FormattedData,
-        target_schema_class: ParsedSchemaClass,
+        target_schema_class: ParsedSchemaClass | type,
+        parent_schema_field: ParsedSchemaField | None = None,
         parent_schema_class: ParsedSchemaClass | None = None,
         keys: list = [],
+        current_key: str | None = None,
     ) -> dict:
         """Recursively update fields based on parsed schema structure.
 
@@ -488,9 +483,11 @@ class DataSummarizer:
             data (dict): The data dictionary to update. When top-level, this is equivalent to `unexpanded_formatted_data.data`. Otherwise, it's a sub-dict.
             formatted_data (FormattedData): Formatted data for LLM context.
             unexpanded_formatted_data (FormattedData): Unformatted data for LLM context.
-            target_schema_class (ParsedSchemaClass): Schema for the current data level.
-            parent_schema_class (ParsedSchemaClass, optional): Schema of the parent. Defaults to None.
+            target_schema_class (ParsedSchemaClass | type): Schema or datatype for the current data level.
+            parent_schema_field (ParsedSchemaField, optional): Parent field of the current schema class. Required for anything other than top level. Defaults to None.
+            parent_schema_class (ParsedSchemaClass, optional): Parent schema class of the current schema class (and of the parent field). Required for anything other than top level. Defaults to None.
             keys (list, optional): Path keys to the current data level. Defaults to [].
+            current_key (str, optional): Current key being processed. Used internally for nested fields. Defaults to None.
 
         Returns:
             out (dict): A dictionary of fields that were updated at the current recursion level.
@@ -500,20 +497,22 @@ class DataSummarizer:
         global defaults_to_inherit
 
         if not isinstance(target_schema_class, ParsedSchemaClass):
-            print(f"{_ERROR}Target class {target_schema_class} is not a ParsedSchemaClass{_RESET}")
-            return
+            print(
+                f"{_BOLD}Updating non-schema class {target_schema_class} at path: {item_name_prefix}{_RESET} (key: {current_key})"
+            )
+            return self._recurse_field(parent_schema_field, item_name_prefix, data, formatted_data, unexpanded_formatted_data, parent_schema_class, keys, current_key)
 
         if shared.stop_everything:
             return
 
         print(
-            f"{_BOLD}Updating {target_schema_class.name} (type: {target_schema_class.definition_type}) at path: {item_name_prefix or target_schema_class.name}{_RESET}"
+            f"{_BOLD}Updating {target_schema_class.name} (type: {target_schema_class.definition_type}) at path: {item_name_prefix or target_schema_class.name}{_RESET} (key: {current_key})"
         )
 
         # Determine current event triggers
         current_event_triggers = self._get_current_event_triggers()
 
-        # --- START: Add New Entries to Dictionary Logic ---
+        # --- START: Add New Entries to Dictionary Logic (add_new) ---
         if target_schema_class.definition_type == "field" and self._is_action_triggered(
             target_schema_class, Action.ADD_NEW, current_event_triggers
         ):
@@ -540,7 +539,7 @@ class DataSummarizer:
                 )
         # --- END: Add New Entries to Dictionary Logic ---
 
-        # --- START: Gate Check Logic ---
+        # --- START: Gate Check Logic (gate_check) ---
         gate_check_prompt_template = self._get_effective_setting(data, target_schema_class, "gate_check_prompt_template")
         if (
             self._is_action_triggered(target_schema_class, Action.PERFORM_GATE_CHECK, current_event_triggers)
@@ -592,7 +591,7 @@ class DataSummarizer:
                     return
         # --- END: Gate Check Logic ---
 
-        # --- START: Full Update (perform_update at current level) ---
+        # --- START: Full Update (perform_update) ---
         update_prompt_for_branch = self._get_effective_setting(
             data, target_schema_class, "update_prompt_template"  # General update template for the branch
         )
@@ -737,204 +736,234 @@ class DataSummarizer:
                     )
                 return  # Branch querying handles the whole branch, no further recursion needed for its fields
         # --- END: Branch Query Logic ---
-        
-        if target_schema_class.definition_type == "field" and isinstance(target_schema_class._field.type, ParsedSchemaClass):
-            field = target_schema_class._field
-            next_nested_field = self._retrieve_nested_field(field.type, defaults_to_inherit, limit=1)
-            print(f"Nested field '{field.name}' (type: {next_nested_field}) {_DEBUG} {next_nested_field} - {next_nested_field.type}")
-            return self._update_recursive(  # For add_new
-                item_name_prefix=item_name_prefix,
-                data=data,
-                formatted_data=formatted_data,
-                unexpanded_formatted_data=unexpanded_formatted_data,
-                target_schema_class=next_nested_field.type,
-                parent_schema_class=field.type,
-                keys=keys,
-            )
 
-        fields_to_iterate = target_schema_class.get_fields()
-
-        if not isinstance(data, dict):
-            return
-
-        for field in fields_to_iterate:
-            field_name = field.name
-            current_item_name = f"{item_name_prefix}.{field_name}"
-            
-            print(f"{_HILITE}Field '{field_name}' (type: {field.type}) -- {field} - {field.type}{_RESET}")
-            
-            if isinstance(field.type, ParsedSchemaClass) and field.type.definition_type == "field":
-                self._update_recursive(  # For add_new
-                    item_name_prefix=current_item_name,
-                    data=data.get(field_name, {}),
-                    formatted_data=formatted_data,
-                    unexpanded_formatted_data=unexpanded_formatted_data,
-                    target_schema_class=field.type,
-                    parent_schema_class=target_schema_class,
-                    keys=[*keys, field_name],
-                )
-                field = self._retrieve_nested_field(field.type, defaults_to_inherit)
-                print(f"Nested field '{field_name}' (type: {field}) {_DEBUG} {field} - {field.type}")
-
-            field_type = field.type
-
-            if field.no_update:
-                print(f"{_INPUT}Skipping update for field '{current_item_name}' and its children as no_update is True.{_RESET}")
-                continue
-
-            if field_name.startswith("_"):  # Skip internal fields if any
-                continue
-
-            # Initialize missing fields based on type hint (basic version)
-            if field_name not in data:
-                if hasattr(field_type, "__origin__") and field_type.__origin__ is list:
-                    data[field_name] = []
-                elif hasattr(field_type, "__origin__") and field_type.__origin__ is dict:
-                    data[field_name] = {}
-                else:
-                    default = field.default
-                    while isinstance(field.type, ParsedSchemaClass) and field.type.definition_type == "field":
-                        field: ParsedSchemaField = field.type._field
-                        default = field.default or default
-                    field_type = field.type
-                    print(f"{_RESET}Initializing missing field '{field_name}' (type: {field_type}) {_DEBUG} {data}{_RESET}")
-                    data[field_name] = (
-                        default or (hasattr(field_type, "__origin__") and field_type.__origin__()) or field_type()
-                    )
-                continue
-
-            field_value = data.get(field_name)
-            print(f"{_RESET}Processing field '{field_name}' (type: {field_type}) {_DEBUG} {field_value}{_RESET}")
-
-            if field_value is None:
-                continue
-
-            # --- Handle different field types based on parsed schema ---
-            field_origin = getattr(field_type, "__origin__", None)
-            field_args = getattr(field_type, "__args__", tuple())
-
-            if field_origin is dict:
-                # Dictionary field
-                value_type = field_args[1] if len(field_args) > 1 else Any
-                if isinstance(value_type, ParsedSchemaClass) and isinstance(field_value, dict):
-                    # Dictionary of nested schema classes
-                    for k, v_dict in field_value.items():
-                        if isinstance(v_dict, dict):
-                            effective_child_schema = self._inherit_defaults_from_parent(
-                                value_type, target_schema_class, defaults_to_inherit
-                            )
-                            effective_child_schema = self._retrieve_nested_dataclass(
-                                effective_child_schema, defaults_to_inherit
-                            )
-
-                            key_list = [*keys, field_name, k]
-                            self._update_recursive(
-                                f"{current_item_name}.{k}",
-                                v_dict,
-                                formatted_data,
-                                unexpanded_formatted_data,
-                                effective_child_schema,
-                                target_schema_class,
-                                keys=key_list,
-                            )
-                            recursive_set(formatted_data.data, key_list, v_dict)
-                        else:
-                            print(f"{_INPUT}Skipping non-dict value in dict field {current_item_name}: {k}={v_dict}{_RESET}")
-                else:
-                    # Regular dictionary (dict where value is not a schema class) - update as a whole field
-                    print(f"Processing regular dictionary field '{field_name}' (type: {field_type}) {_DEBUG} {field_value}")
-                    print(f"{_INPUT}target_schema_class: {target_schema_class}{_RESET}")
-                    self._update_field(
-                        item_name_prefix,
-                        data,
-                        field_name,
-                        field_value,
-                        formatted_data,
-                        target_schema_class,
-                        field,
-                        keys,
-                    )
-
-            elif field_origin is list:
-                # List field
-                item_type = field_args[0] if field_args else Any
-                if isinstance(item_type, ParsedSchemaClass) and isinstance(field_value, list):
-                    # List of nested schema classes
-                    for i, item_dict in enumerate(field_value):
-                        if isinstance(item_dict, dict):
-                            effective_child_schema = self._inherit_defaults_from_parent(
-                                item_type, target_schema_class, defaults_to_inherit
-                            )
-                            effective_child_schema = self._retrieve_nested_dataclass(
-                                effective_child_schema, defaults_to_inherit
-                            )
-
-                            key_list = [*keys, field_name, i]
-                            self._update_recursive(
-                                f"{current_item_name}[{i}]",
-                                item_dict,
-                                formatted_data,
-                                unexpanded_formatted_data,
-                                effective_child_schema,
-                                target_schema_class,
-                                keys=key_list,
-                            )
-                            recursive_set(formatted_data.data, key_list, item_dict)
-                        else:
-                            print(
-                                f"{_INPUT}Skipping non-dict item in list field {current_item_name}: index {i}={item_dict}{_RESET}"
-                            )
-                else:
-                    # Regular list (list where item is not a schema class) - update as a whole field
-                    self._update_field(
-                        item_name_prefix,
-                        data,
-                        field_name,
-                        field_value,
-                        formatted_data,
-                        target_schema_class,
-                        field,
-                        keys,
-                    )
-
-            elif isinstance(field_type, ParsedSchemaClass):
-                # Nested single schema class
-                effective_child_schema = self._inherit_defaults_from_parent(
-                    field_type, target_schema_class, defaults_to_inherit
-                )
-                effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
-
-                key_list = [*keys, field_name]
-                self._update_recursive(
-                    current_item_name,
-                    field_value,
+        if target_schema_class.definition_type == "field":
+            field = self._retrieve_nested_field(target_schema_class, defaults_to_inherit, depth=1)
+            if current_key is None:  # target_schema_class not nested in another field
+                return self._recurse_field(
+                    field,
+                    item_name_prefix,
+                    data,
                     formatted_data,
                     unexpanded_formatted_data,
-                    effective_child_schema,
                     target_schema_class,
-                    keys=key_list,
+                    keys,
                 )
-                recursive_set(formatted_data.data, key_list, field_value)
-
             else:
-                # Simple field (str, int, etc.)
+                return self._update_recursive(
+                    item_name_prefix,
+                    data,
+                    formatted_data,
+                    unexpanded_formatted_data,
+                    field.type,
+                    field,
+                    target_schema_class,
+                    keys,
+                    current_key,
+                )
+
+        for field in target_schema_class.get_fields():
+            self._recurse_field(
+                field,
+                item_name_prefix,
+                data,
+                formatted_data,
+                unexpanded_formatted_data,
+                target_schema_class,
+                keys,
+                current_key,
+            )
+
+    def _recurse_field(
+        self,
+        field: ParsedSchemaField,
+        item_name_prefix: str,
+        data: dict,
+        formatted_data: FormattedData,
+        unexpanded_formatted_data: FormattedData,
+        parent_schema_class: ParsedSchemaClass,
+        keys: list = [],
+        current_key: str | None = None,
+    ) -> None:
+        """Handle and recurse over different field types."""
+        field_name = current_key or field.name
+        current_item_name = f"{item_name_prefix}.{field_name}"
+
+        print(f"{_HILITE}Field '{field_name}' (type: {field.type}) -- {field} - {field.type}{_RESET} (key: {current_key})")
+        
+        if field_name.startswith("_"):  # Skip internal fields if any
+            return
+
+        if isinstance(field.type, ParsedSchemaClass) and field.type.definition_type == "field":
+            nested_field = self._retrieve_nested_field(field.type, defaults_to_inherit)  # FOR DEBUG
+            print(f"Nested field in '{field_name}' (type: {nested_field}) {_DEBUG} {nested_field.type}")
+            return self._update_recursive(  # Loop through for add_new
+                item_name_prefix,
+                data,
+                formatted_data,
+                unexpanded_formatted_data,
+                field.type,
+                field,
+                parent_schema_class,
+                keys,
+                field_name,
+            )
+            field = nested_field
+
+        field_type = field.type
+
+        if field.no_update:
+            print(f"{_INPUT}Skipping update for field '{current_item_name}' and its children as no_update is True.{_RESET}")
+            return
+
+        # Initialize missing fields based on type hint (basic version)
+        if field_name not in data:
+            if getattr(field_type, "__origin__", None) is list:
+                data[field_name] = []
+            elif getattr(field_type, "__args__", tuple()) is dict:
+                data[field_name] = {}
+            else:
+                default = field.default
+                field_type = field.type
+                print(f"{_RESET}Initializing missing field '{field_name}' (type: {field_type}) {_DEBUG} {data}{_RESET}")
+                data[field_name] = (
+                    default or (hasattr(field_type, "__origin__") and field_type.__origin__()) or field_type()
+                )
+            return
+
+        field_value = data.get(field_name)
+        print(f"{_RESET}Processing field '{field_name}' (type: {field_type}) {_DEBUG} {field_value}{_RESET}")
+
+        if field_value is None:
+            return
+        field_origin = getattr(field_type, "__origin__", None)
+        field_args = getattr(field_type, "__args__", tuple())
+
+        if field_origin is dict:
+            # Dictionary field
+            value_type = field_args[1] if len(field_args) > 1 else Any
+            if isinstance(value_type, ParsedSchemaClass) and isinstance(field_value, dict):
+                # Dictionary of nested schema classes
+                for k, v_dict in field_value.items():
+                    if isinstance(v_dict, dict):
+                        effective_child_schema = self._inherit_defaults_from_parent(
+                            value_type, parent_schema_class, defaults_to_inherit
+                        )
+                        effective_child_schema = self._retrieve_nested_dataclass(
+                            effective_child_schema, defaults_to_inherit
+                        )
+
+                        key_list = [*keys, field_name, k]
+                        self._update_recursive(
+                            f"{current_item_name}.{k}",
+                            v_dict,
+                            formatted_data,
+                            unexpanded_formatted_data,
+                            effective_child_schema,
+                            field,
+                            parent_schema_class,
+                            key_list,
+                        )
+                        recursive_set(formatted_data.data, key_list, v_dict)
+                    else:
+                        print(f"{_INPUT}Skipping non-dict value in dict field {current_item_name}: {k}={v_dict}{_RESET}")
+            else:
+                # Regular dictionary (dict where value is not a schema class) - update as a whole field
+                print(f"Processing regular dictionary field '{field_name}' (type: {field_type}) {_DEBUG} {field_value}")
+                print(f"{_INPUT}parent_schema_class: {parent_schema_class}{_RESET}")
                 self._update_field(
                     item_name_prefix,
                     data,
                     field_name,
                     field_value,
                     formatted_data,
-                    target_schema_class,
+                    parent_schema_class,
                     field,
                     keys,
                 )
+
+        elif field_origin is list:
+            # List field
+            item_type = field_args[0] if field_args else Any
+            if isinstance(item_type, ParsedSchemaClass) and isinstance(field_value, list):
+                # List of nested schema classes
+                for i, item_dict in enumerate(field_value):
+                    if isinstance(item_dict, dict):
+                        effective_child_schema = self._inherit_defaults_from_parent(
+                            item_type, parent_schema_class, defaults_to_inherit
+                        )
+                        effective_child_schema = self._retrieve_nested_dataclass(
+                            effective_child_schema, defaults_to_inherit
+                        )
+
+                        key_list = [*keys, field_name, i]
+                        self._update_recursive(
+                            f"{current_item_name}[{i}]",
+                            item_dict,
+                            formatted_data,
+                            unexpanded_formatted_data,
+                            effective_child_schema,
+                            field,
+                            parent_schema_class,
+                            key_list,
+                        )
+                        recursive_set(formatted_data.data, key_list, item_dict)
+                    else:
+                        print(
+                            f"{_INPUT}Skipping non-dict item in list field {current_item_name}: index {i}={item_dict}{_RESET}"
+                        )
+            else:
+                # Regular list (list where item is not a schema class) - update as a whole field
+                self._update_field(
+                    item_name_prefix,
+                    data,
+                    field_name,
+                    field_value,
+                    formatted_data,
+                    parent_schema_class,
+                    field,
+                    keys,
+                )
+
+        elif isinstance(field_type, ParsedSchemaClass):
+            # Nested single schema class
+            effective_child_schema = self._inherit_defaults_from_parent(
+                field_type, parent_schema_class, defaults_to_inherit
+            )
+            effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
+
+            key_list = [*keys, field_name]
+            self._update_recursive(
+                current_item_name,
+                field_value,
+                formatted_data,
+                unexpanded_formatted_data,
+                effective_child_schema,
+                field,
+                parent_schema_class,
+                key_list,
+            )
+            recursive_set(formatted_data.data, key_list, field_value)
+
+        else:
+            # Simple field (str, int, etc.)
+            self._update_field(
+                item_name_prefix,
+                data,
+                field_name,
+                field_value,
+                formatted_data,
+                parent_schema_class,
+                field,
+                keys,
+            )
 
     def _retrieve_nested_field(
         self,
         target_schema_class: ParsedSchemaClass,
         defaults_to_inherit: list[str] | None = None,
         do_inherit_triggers: bool = False,
-        limit: int = -1
+        depth: int = -1
     ):
         """Recursively retrieve nested fields in a parent field, ending on the field holding the final schema field class.
 
@@ -952,7 +981,7 @@ class DataSummarizer:
             effective_child_schema = self._inherit_defaults_from_parent(
                 effective_child_schema._field.type, effective_child_schema, defaults_to_inherit, do_inherit_triggers
             )
-            if i == limit:
+            if i == depth:
                 break
 
         return effective_child_schema._field
@@ -962,7 +991,7 @@ class DataSummarizer:
         target_schema_class: ParsedSchemaClass,
         defaults_to_inherit: list[str] | None = None,
         do_inherit_triggers: bool = False,
-        limit: int = -1
+        depth: int = -1
     ):
         """Recursively retrieve nested fields in a parent field, ending on the final schema field class.
 
@@ -978,7 +1007,7 @@ class DataSummarizer:
             effective_child_schema = self._inherit_defaults_from_parent(
                 effective_child_schema._field.type, effective_child_schema, defaults_to_inherit, do_inherit_triggers
             )
-            if i == limit:
+            if i == depth:
                 break
 
         return effective_child_schema
@@ -1144,7 +1173,7 @@ class DataSummarizer:
         field_value: Any,
         formatted_data: FormattedData,
         parent_schema_class: ParsedSchemaClass,
-        field_schema: ParsedSchemaField,
+        field: ParsedSchemaField,
         keys: list = [],
     ) -> Any:
         """Update a single field using the _generate_field_update method.
@@ -1158,7 +1187,7 @@ class DataSummarizer:
             field_value (Any): Current value of the field.
             formatted_data (FormattedData): Formatted data for LLM context.
             parent_schema_class (ParsedSchemaClass): Schema of the parent object.
-            field_schema (ParsedSchemaField): Schema of the field itself.
+            field (ParsedSchemaField): The field in question.
             keys (list, optional): Path keys to the parent object. Defaults to [].
         """
         prompt_template: str | None = self._get_effective_setting(
@@ -1189,8 +1218,8 @@ class DataSummarizer:
             current_value=field_value,
             formatted_data=formatted_data,
             prompt_template_str=prompt_template,
-            expected_type=field_schema.type,
-            target_schema_or_type=field_schema.type,
+            expected_type=field.type,
+            target_schema_or_type=field.type,
             keys=keys,
         )
 
