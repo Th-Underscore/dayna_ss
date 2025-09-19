@@ -1,4 +1,6 @@
 ﻿# DAYNA Story Summarizer
+<sub>formerly [Super Story Summarizer](https://github.com/Th-Underscore/super_story_summarizer)</sub>
+
 An autonomous agent that acts as your story's intelligent knowledge keeper.
 
 ### The Problem: The Forgetful AI
