@@ -49,7 +49,7 @@
         "importance": "int"
       },
       "defaults": {
-        "description_placeholder": "A list of strings describing a significant achievement or event in the character's life.",
+        "description_placeholder": "A list of strings describing a significant achievement or consequential event in the character's life, either positive or negative.",
         "scenes_placeholder": "A list of scene numbers where this milestone is relevant or occurred.",
         "importance_placeholder": "A numerical value representing the significance of this milestone (0-100). In the real JSON, this would be an integer, not a string."
       }
@@ -75,7 +75,9 @@
         "milestones_placeholder": "A list of significant achievements, events, or turning points in the character's life."
       },
       "triggers": {
-        "always": ["query_branch_for_changes"]
+        "always": [
+          "query_branch_for_changes"
+        ]
       }
     },
     "Characters": {
@@ -87,8 +89,12 @@
         "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new character named '{entry_name}'.\n\nRelevant Schema for a new Character:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Character:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new character."
       },
       "triggers": {
-        "always": ["perform_gate_check"],
-        "on_new_scene": ["add_new"]
+        "always": [
+          "perform_gate_check"
+        ],
+        "on_new_scene": [
+          "add_new"
+        ]
       }
     },
     "GroupCharacterInfo": {
@@ -130,7 +136,9 @@
         "characters_placeholder": "Example_Character_In_Group"
       },
       "triggers": {
-        "always": ["query_branch_for_changes"]
+        "always": [
+          "query_branch_for_changes"
+        ]
       }
     },
     "Groups": {
@@ -138,11 +146,14 @@
       "field": "dict[str, Group]",
       "defaults": {
         "gate_check_prompt_template": "Based on the latest exchange, does the entire '{branch_name}' section/category (all groups) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.",
-        "new_entry_query_prompt_template": "Throughout the last scene, have there been any new groups mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny and all new groups, crowds, etc. should be added to the list, whether named or unnamed.\nIf new groups are identified, provide their names as a JSON list of strings.\n\nExample:\n```json\n[\"The Survivors\", \"Marauder Gang X\"]\n```\n\nIf NO new groups are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
-        "new_entry_prompt_template": "Based on all of the information in the last scene,, generate the full data for the new group named '{entry_name}'.\n\nRelevant Schema for a new Group:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Group:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new group."
+        "new_entry_query_prompt_template": "Throughout the last scene, have there been any new groups mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny and all new groups, small groups, crowds, etc. should be added to the list, whether named or unnamed. If unnamed and/or specific to this one scene, give a specific title belonging to this scene (e.g., 'Medics at Dawn of the Apocalypse'). If named, include the full name of the group (e.g., 'The Guardians').\nIf new groups are identified, provide their names as a JSON list of strings.\n\nExample:\n```json\n[\"The Survivors\", \"Marauder Gang X\"]\n```\n\nIf NO new groups are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new group named '{entry_name}'.\n\nRelevant Schema for a new Group:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Group:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new group."
       },
       "triggers": {
-        "always": ["perform_gate_check", "add_new"]
+        "always": [
+          "perform_gate_check",
+          "add_new"
+        ]
       }
     },
     "SceneCharacter": {
@@ -156,7 +167,9 @@
         "location_placeholder": "The last known location of the character within the scene."
       },
       "triggers": {
-        "always": ["perform_update"]
+        "always": [
+          "perform_update"
+        ]
       }
     },
     "SceneGroup": {
@@ -170,7 +183,9 @@
         "location_placeholder": "The general location or area of operation for the group in the context of the scene."
       },
       "triggers": {
-        "always": ["perform_update"]
+        "always": [
+          "perform_update"
+        ]
       }
     },
     "SceneWho": {
@@ -184,9 +199,17 @@
         "groups_placeholder": "Example_Scene_Group_Name"
       }
     },
+    "Message": {
+      "type": "field",
+      "field": "str",
+      "defaults": {
+        "field_placeholder": "<INTERNAL_FIELD_DO_NOT_UPDATE>"
+      }
+    },
     "SceneWhen": {
       "type": "dataclass",
       "fields": {
+        "_message_node": "Message",
         "date": "str",
         "time": "str",
         "specific_time": "str"
@@ -197,7 +220,9 @@
         "specific_time_placeholder": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
       },
       "triggers": {
-        "always": ["perform_update"]
+        "always": [
+          "perform_update"
+        ]
       }
     },
     "SceneWhy": {
@@ -212,7 +237,10 @@
         "update_prompt_template": "Based on the latest exchange, is {item_name}'s {field_name} reason inaccurate or incomplete?\nRelevant Schema for '{field_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{field_name}':\n```json\n{example_json}\n```\nIf yes, respond with the updated reason.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged reason.\n\nCurrent reason:\n\"\"\"{value}\n\"\"\""
       },
       "triggers": {
-        "always": ["add_new", "perform_update"]
+        "always": [
+          "add_new",
+          "perform_update"
+        ]
       }
     },
     "SceneState": {
@@ -242,13 +270,6 @@
       "type": "field",
       "field": "SceneState"
     },
-    "Message": {
-      "type": "field",
-      "field": "str",
-      "defaults": {
-        "field_placeholder": "<INTERNAL_FIELD_DO_NOT_UPDATE>"
-      }
-    },
     "CurrentScene": {
       "type": "dataclass",
       "fields": {
@@ -272,7 +293,7 @@
         "specific_time": "str"
       },
       "defaults": {
-        "date_placeholder": "The calendar date of the time point (e.g., 'October 15, 2025').",
+        "date_placeholder": "The calendar date of the time point (e.g., 'October 15, 2028').",
         "time_placeholder": "A general description of the time of day for the time point (e.g., 'Pre-dawn hours', 'Afternoon').",
         "specific_time_placeholder": "A precise time for the time point, if applicable (e.g., '05:30', '14:32')."
       }
@@ -286,36 +307,59 @@
         "summary": "str"
       },
       "defaults": {
-        "branch_query_prompt_template": "Based on the latest exchange and the current state of the event '{branch_name}', are there any significant changes, additions, or deletions required for this event's entire entry (name, start, end, messages, summary)? Respond with only 'NO' or 'UNCHANGED' if this event's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of event '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure (e.g., 'summary', 'start.date').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"summary\", \"value\": \"Updated event summary\"}},\n  {{\"path\": \"end.time\", \"value\": \"18:00\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
-        "update_prompt_template": "Based on the latest exchange, is {item_name}'s {field_name} summary inaccurate or incomplete?\nRelevant Schema for '{field_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{field_name}':\n```json\n{example_json}\n```\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\"",
         "name_placeholder": "The unique name or title of the story event.",
         "start_placeholder": "The time point marking the beginning of the event.",
         "end_placeholder": "The time point marking the end of the event.",
         "summary_placeholder": "A textual summary describing the key occurrences and outcomes of the event."
-      },
-      "triggers": {
-        "always": ["query_branch_for_changes"]
       }
     },
     "StoryEvents": {
       "type": "field",
       "field": "dict[str, StoryEvent]",
       "defaults": {
-        "new_entry_query_prompt_template": "Throughout the last scene, have there been any new events (past, scenes, or major story events) mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
-        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
-        "field_placeholder": "Example Key"
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the branch '{branch_name}', are there any significant changes, additions, or deletions required for this entire branch (any event's name, start, end, summary)? Respond with only 'NO' or 'UNCHANGED' if this event's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of branch '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure (e.g., 'Example Event.summary', 'Example Event.start.date').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"Example Event.summary\", \"value\": \"Updated event summary\"}},\n  {{\"path\": \"Example Event.end.specific_time\", \"value\": \"18:00\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "update_prompt_template": "Based on the latest exchange, is {item_name}'s {field_name} summary inaccurate or incomplete?\nRelevant Schema for '{field_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{field_name}':\n```json\n{example_json}\n```\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
       },
       "triggers": {
-        "on_new_scene": ["add_new"]
+        "on_new_scene": [
+          "add_new", "query_branch_for_changes"
+        ]
+      }
+    },
+    "PastEvents": {
+      "type": "field",
+      "field": "StoryEvents",
+      "defaults": {
+        "new_entry_query_prompt_template": "The scene has just completed. Throughout the last scene, have there been any new backstory scenes/events mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nSignificant past events should be added to the list, but only if they're relevant *and* take place outside of the protagonist's perspective and/or before the start of the story. If unnamed in the story, give a generic title (e.g., 'The Founding of the New Order').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"Melissa's Anguish\", \"The Founding of the New Order\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new backstory event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
+        "field_placeholder": "Past_Event_Before_Story_Start"
+      }
+    },
+    "Scenes": {
+      "type": "field",
+      "field": "StoryEvents",
+      "defaults": {
+        "new_entry_query_prompt_template": "The current scene has just completed. List the title of the one (1) new scene that should be added to the '{branch_name}' list.\n\nHere is the current list:\n{branch_list}\n\nOne new scene must be added to this list. Provide its name/title as a JSON array containing a single string.\n\nExample:\n```json\n[\"The First Incursion Erupts\"]\n```\n\nREMEMBER: One (1) scene *must* be added; no more, no less.",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new scene named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Event:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new scene.",
+        "field_placeholder": "Scene_Using_Data_From_Current_Scene"
+      }
+    },
+    "CrucialEvents": {
+      "type": "field",
+      "field": "StoryEvents",
+      "defaults": {
+        "new_entry_query_prompt_template": "The scene has just completed. Throughout the last scene, have there been any new major story events worthy of being added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
+        "field_placeholder": "Very_Important_Event"
       }
     },
     "Events": {
       "type": "dataclass",
       "fields": {
-        "past": "StoryEvents",
-        "scenes": "StoryEvents",
-        "events": "StoryEvents"
+        "past": "PastEvents",
+        "scenes": "Scenes",
+        "events": "CrucialEvents"
       },
       "defaults": {
         "gate_check_prompt_template": "Considering recent events and messages, does the overall '{branch_name}' section (including past events, current scenes, and major story events) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.",
@@ -324,7 +368,20 @@
         "events_placeholder": "Example_Major_Story_Event"
       },
       "triggers": {
-        "always": ["perform_gate_check"]
+        "on_new_scene": [
+          "perform_gate_check"
+        ]
+      }
+    },
+    "Objective": {
+      "type": "dataclass",
+      "fields": {
+        "description": "str",
+        "importance": "int"
+      },
+      "defaults": {
+        "description_placeholder": "A secondary objective the protagonist(s) are trying to achieve. This is not the main objective. Multiple secondary objectives should generally be set before the initial main objective - the main objective will be decided from one of the existing secondary objectives once the story has a clear long-term goal.",
+        "importance_placeholder": "A numerical value representing the relevance/significance of this objective (0-100). In the real JSON, this would be an integer, not a string."
       }
     },
     "GeneralInfo": {
@@ -333,23 +390,29 @@
         "writing_style": "str",
         "tone": "str",
         "themes": "list[str]",
+        "objectives": "list[Objective]",
         "main_objective": "str",
-        "summary": "str"
+        "synopsis": "str"
       },
       "defaults": {
         "branch_query_prompt_template": "Based on the latest exchange and the current state of the story and chat as a whole, are there any significant changes, additions, or deletions required for this general information section (writing style, tone, themes, main objective, summary)? Respond with only 'NO' or 'UNCHANGED' if all the general information is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"description.0\", \"value\": \"Updated first line of description\"}},\n  {{\"path\": \"status.current_location\", \"value\": \"New Location\"}},\n  {{\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"description.0\", \"value\": \"Updated first line of description\"}},\n  {{\"path\": \"status.current_location\", \"value\": \"New Location\"}},\n  {{\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the '{branch_name}' object as a whole.",
         "gate_check_prompt_template": "A new scene has just concluded. Does the summary of this new scene contain information significant enough to warrant updating the overall story's General Info? Respond with only 'YES' or 'NO'.",
         "update_prompt_template": "Given the previous General Info and a summary of the most recently completed scene, generate an updated JSON object for the story's General Info.\n\nPrevious General Info:\n```json\n{value}\n```\n\nSummary of New Scene:\n'''\n{new_scene_summary}\n'''\n\nRespond with ONLY the updated JSON object.",
-        "writing_style_placeholder": "A description of the narrative format to ensure stylistic consistency (e.g., '3rd-person prose, one paragraph per response, no more than one paragraph', '1st-person dialogue with actions in asterisks').",
+        "writing_style_placeholder": "A description of the narrative format to ensure stylistic consistency (e.g., '{{char}}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{{char}}: 1st-person dialogue as \"{{char}}\" with actions in asterisks', '{{char}}: 1st-person prose as \"{{user}}\", approximately double the paragraphs as {{user}}', '{{char}}: 2nd-person prose (speaking to \"{{user}}\"), the same number of paragraphs as {{user}}').\n\nThis is of utmost importance. Check what the user has written so far, as well as what you (as {{char}}) have written so far (particularly the very first message, the greeting, if available). Be specific; this will be followed strictly. If this already exists, keep it as is. Do not change it unless clarifying even further.",
         "tone_placeholder": "The primary emotional tone or mood of the story. This guides the feeling of the narrative (e.g., 'Tense and suspenseful', 'Hopeful but grim', 'Witty and adventurous').",
         "themes_placeholder": "A comma-separated list of the central themes or underlying ideas being explored in the story (e.g., 'The cost of survival', 'Betrayal and redemption', 'Man vs. Nature').",
-        "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague')",
-        "summary_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or unresolved conflict that is driving the story forward."
+        "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
+        "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
       },
       "triggers": {
-        "on_existing_scene": ["query_branch_for_changes"],
-        "on_new_scene": ["perform_gate_check", "perform_update"]
+        "on_existing_scene": [
+          "query_branch_for_changes"
+        ],
+        "on_new_scene": [
+          "perform_gate_check",
+          "perform_update"
+        ]
       }
     }
   },

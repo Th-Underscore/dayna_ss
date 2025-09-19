@@ -1,0 +1,26 @@
+{
+  "writing_style": "Story Master: 2nd-person prose (narrating to User), medium-length paragraphs, no more than two paragraphs per response",
+  "tone": "Grim, tense, and desperate",
+  "themes": [
+    "Survival",
+    "Loss",
+    "Adaptation",
+    "Brotherhood"
+  ],
+  "objectives": [
+    {
+      "description": "Locate and secure a safe haven.",
+      "importance": 80
+    },
+    {
+      "description": "Assess the extent of the Subterranean threat and identify potential weaknesses.",
+      "importance": 60
+    },
+    {
+      "description": "Establish communication with any surviving authorities or resistance groups.",
+      "importance": 40
+    }
+  ],
+  "main_objective": "Survive the initial Incursion, secure a safe haven, and begin formulating a plan to locate Paul.",
+  "synopsis": "On September 5th, 2027, Earth was invaded by monstrous beings from beneath the surface. The protagonist is navigating the chaotic aftermath, scavenging for supplies and fighting for survival while desperately trying to locate his brother, Paul, who is currently abroad. The immediate priorities are finding a safe haven, assessing the threat, and establishing contact with potential allies, all while maintaining the ultimate goal of reuniting with Paul."
+}
