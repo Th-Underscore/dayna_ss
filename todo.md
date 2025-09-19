@@ -23,7 +23,7 @@ ui:
     - [x] Create subjects off of schema
         - [x] Pass schema refs
         - [x] Generate example with descriptions of branches and values
-        - [x] Handle new chars/groups
+        - [ ] Handle new chars/groups
     - [x] Create current\_scene
         - [x] Pass schema refs
         - [x] Generate example with descriptions of branches and values
@@ -34,16 +34,6 @@ ui:
     - [x] Give full schema and example like “Handle start of chat”
         - [ ] Common gen prompt for all fields (general, unspecific) until last line to save context + time + consistency?
     - [x] Only update when new scene? If last\_x > scene messages (i.e. when relevant messages being truncated), add to data before truncation
-- [x] Create new scene
-    - [x] ~~Default to create when new chat~~ <— “Handle start of chat”
-    - [x] End scene button or user-input prefix
-    - [x] Use current\_scene data to generate a new key for “scenes” in Events
-        - [ ] Summarize in same history line (keep the previous response in context during summarization)
-    - [x] Generate new current\_scene
-        - [x] Refactor update\_when + perform\_update format to single perform\_update\_when property
-    - [ ] Auto-detect scene end
-        - [ ] Decide whether to count user\_input as new scene, or start from output
-    - [ ] Detect important events at end of scene?
 - [x] Add general info
     - [x] writing style (~~editable user+assistant tendencies (e.g. third-person)~~)
         - [ ] Scene length
@@ -63,7 +53,9 @@ ui:
     - [ ] For most cases, keep all data the same per current\_scene to save tons of time (prompt eval, data summarization, more prompt eval)
         - [ ] Weigh when extremely important updates need to happen? 
 
-    - [ ] Optionally keep context info (`history_path`) the same until new scene (for prompt eval) 
+    - [ ] Optionally keep context info (`history_path`) the same until new scene (for prompt eval)
+
+- [ ] no\_update “trigger”
 
 <br>
 
@@ -74,13 +66,16 @@ Current TODO:
     - [ ] sum of current\_scene
     - [x] editable user+assistant tendencies (e.g. third-person)
 - [x] Handle start of chat
-- [ ] Create new scene
-    - [ ] End scene button or user-input prefix
-    - [ ] Use current\_scene data to generate a key for “scenes” in Events
+- [x] Create new scene
+    - [x] ~~Default to create when new chat~~ <— “Handle start of chat”
+    - [x] End scene button or user-input prefix
+    - [x] Use current\_scene data to generate a new key for “scenes” in Events
         - [ ] Summarize in same history line (keep the previous response in context during summarization)
+    - [x] Generate new current\_scene
+        - [x] Refactor update\_when + perform\_update format to single perform\_update\_when property
     - [ ] Auto-detect scene end
-        - [ ] Also detect events
-
+        - [ ] Decide whether to count user\_input as new scene, or start from output
+    - [ ] Detect important events at end of scene?
 - [ ] last\_x is all messages in current scene
     - [ ] Could be what the LLM decides is relevant from the last scene (e.g. +2 msg context)?
     - [ ] Could just be specific conditions? When to use full messages vs summarizations
@@ -98,22 +93,27 @@ Current TODO:
         - [ ] Also tool calling mode
     - [ ] Character mode (persona) - Provide as`"context"`  then place in spot
     - [ ] Also parsing/imitation for both modes
-- [ ] Short-term goal for this scene/event
+- [ ] Short-term goal for this scene/event (`general_info`?)
 - [ ] Allow the user to put instructions via "\[\[NOTE HERE\]\]" within the message. Whether to persist this internally in history or remove it is unclear
     - [ ] Also disable sum gen and/or give specific keywords to direct generation? (e.g. “suzie dead by pure accident”)
 - [ ] Update “importance” values throughout
 - [ ] Separate updates into “categories” i.e. “major”, “minor”, “side”
 - [x] Current scene should include current directive and should persist through to the next scene, maybe character motivations would be in characters.json and plot goals would be in current\_scenes+scenes, or perhaps that’s what general\_summarization will be for (general\_context?)
 - [ ] event\_ids + scene\_ids instead of event\_id + scene\_id
-- [ ] When generating instruction, include possible`user_instr` given by the user
+- [ ] When generating instruction, include possible `user_instr` given by the user (for `instr` only, if in a “\[\[NOTE HERE\]\]" format exclude it from the actual message)
 - [ ] give user instructions for regenerate, maybe separate extension (“Regenerate with instructions” vs “Regenerate with feedback (explicit)”)
 - [ ] “The user’s input is the highest priority; if anything said or done by a character doesn’t match its personality trait in the existing knowledge base, consider whether this should be changed in the knowledge base, or was done intentionally.”
 - [ ] General info for each subject category (i.e. characters, groups, events)
 - [ ] RAG for each character’s individual memory (most memorable moments for specific scene/event)
     - [ ] Also each relationship (essentially what`"events":`  is for, but better)
+    - [ ] Maybe new schema type for “Memory”?
 - [ ] Detect edits and compare original vs new to determine what to change in history\_str
 - [ ] Add instructions.json (`instr`) toggle
 - [ ] Refactor `_update_recursive` into more standard recursive style
+- [ ] Save message word count?
+- [ ] What specific branches should be updated then looping those recursively (rather than a gate check)
+    - [ ] Essentially function calling
+- [ ] Message RAG: Include the “speaker” (`char1` vs `char2`) per message (not just per node necessarily) 
 
 <br>
 
@@ -135,9 +135,10 @@ Far TODO:
 8. Send to Notebook
 9. Logs UI (show field updates and creations)
     - Also track updates to show LLM?
-10. Force “YES” gate check for CurrentScene?
+10. Force/emulate “YES” gate check for CurrentScene?
 11. Update character IDs when necessary
-12. Generate subject data with input (manually ask DAYNA to generate something based off of current context)
+    - Maybe also detect when a “past alias” is used when updating data and automatically change it to the new one
+12. Generate subject data with input (manually ask DAYNA to generate something based off of current context + user\_instr)
 13. Show summarization progress
     - Include ETA estimation / progress %
 14. Different prompts depending on always, next scene, first message, etc.
