@@ -391,16 +391,16 @@ class Summarizer:
                             # Generate instruction
                             prompt = (
                                 f"{user_input_prompt}\n\n"
-                                f"You are to generate instructions for {name2}'s response. These instructions will be given directly to {name2}.\n"
+                                f"You are to generate instructions for {name2}'s response to '{name1}'. These instructions will be given directly to {name2}.\n"
                                 f"The instructions must guide {name2} on what to say or do, following the tone of the latest messages, and should be detailed and specific.\n\n"
                                 f"FORMATTING REQUIREMENTS:\n"
                                 f"- Present the instructions as a series of plain text paragraphs.\n"
                                 f"- Each paragraph should represent a distinct part of the response plan.\n"
                                 f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
                                 f"Example of desired output structure (imagine these are the instructions):\n"
-                                f"  First, analyze the user's query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
+                                f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
                                 f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
-                                f"Remember: The above is an example. In a narrative context, acknowledging the user's input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
+                                f"Remember: The above is an example. In a narrative context, acknowledging {name1}'s input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
                                 f"INSTRUCTION CONTENT:\n"
                                 f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
                                 f"2. Be extremely specific, detailing each step.\n"
@@ -408,7 +408,7 @@ class Summarizer:
                                 f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
                                 f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
                                 f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
-                                f"7. IMPORTANT: Remind {name2} not to recap the user's input in the response. Even if necessary to clarify the user's intent, remember: Show, don't tell.\n"
+                                f"7. IMPORTANT: Remind {name2} not to recap {name1}'s input in the response. Even if necessary to clarify {name1}'s intent, remember: Show, don't tell.\n"
                                 f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
                                 f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                             )
@@ -782,7 +782,7 @@ class Summarizer:
         )
 
         print(
-            f"{_HILITE}FORMATTED CONTEXT {_SUCCESS}{json.dumps(custom_history, indent=2)} {_GRAY}{json.dumps(custom_state['history']['internal'], indent=2)}{_RESET}"
+            f"{_HILITE}FORMATTED CONTEXT {_SUCCESS}{json.dumps(custom_history, indent=2)}{_RESET}"
         )
         self.last.history_length = len(custom_history)
         return custom_state
