@@ -230,6 +230,7 @@ def create_extensions_tabs():
 EXTENSION_MAP = {
     "input": partial(_apply_string_extensions, "input_modifier"),
     "output": partial(_apply_string_extensions, "output_modifier"),
+    "output_stream": partial(_apply_string_extensions, "output_stream_modifier"),
     "chat_input": _apply_chat_input_extensions,
     "state": _apply_state_modifier_extensions,
     "history": _apply_history_modifier_extensions,

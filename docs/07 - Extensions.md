@@ -49,6 +49,7 @@ The extensions framework is based on special functions and variables that you ca
 | `def bot_prefix_modifier(string, state)`  | Applied in chat mode to the prefix for the bot's reply. |
 | `def state_modifier(state)`  | Modifies the dictionary containing the UI input parameters before it is used by the text generation functions. |
 | `def history_modifier(history)`  | Modifies the chat history before the text generation in chat mode begins. |
+| `def output_stream_modifier(string, state, is_chat=False)` | Realtime streaming hook. Called for each partial token/chunk while the UI is streaming output. Can be used to observe or modify partial outputs in realtime (e.g., to send them to another service). |
 | `def custom_generate_reply(...)` | Overrides the main text generation function. |
 | `def custom_generate_chat_prompt(...)` | Overrides the prompt generator in chat mode. |
 | `def tokenizer_modifier(state, prompt, input_ids, input_embeds)` | Modifies the `input_ids`/`input_embeds` fed to the model. Should return `prompt`, `input_ids`, `input_embeds`. See the `multimodal` extension for an example. |
@@ -151,6 +152,14 @@ def history_modifier(history):
     Only used in chat mode.
     """
     return history
+
+def stream_modifier(string, state, is_chat=False):
+    """
+    Realtime streaming hook called for each partial token/chunk while the UI is streaming output.
+    `string` is the current partial output. You can inspect it, send it to an external
+    service, or return a modified version to change what gets displayed/streamed.
+    """
+    return string
 
 def state_modifier(state):
     """
