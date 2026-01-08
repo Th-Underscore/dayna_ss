@@ -80,7 +80,7 @@
         ]
       }
     },
-    "Characters": {
+    "CharacterList": {
       "type": "field",
       "field": "dict[str, Character]",
       "defaults": {
@@ -95,6 +95,12 @@
         "on_new_scene": [
           "add_new"
         ]
+      }
+    },
+    "Characters": {
+      "type": "dataclass",
+      "fields": {
+        "characters": "CharacterList"
       }
     },
     "GroupCharacterInfo": {
@@ -141,7 +147,7 @@
         ]
       }
     },
-    "Groups": {
+    "GroupList": {
       "type": "field",
       "field": "dict[str, Group]",
       "defaults": {
@@ -154,6 +160,12 @@
           "perform_gate_check",
           "add_new"
         ]
+      }
+    },
+    "Groups": {
+      "type": "dataclass",
+      "fields": {
+        "groups": "GroupList"
       }
     },
     "SceneCharacter": {
@@ -323,7 +335,8 @@
       },
       "triggers": {
         "on_new_scene": [
-          "add_new", "query_branch_for_changes"
+          "add_new",
+          "query_branch_for_changes"
         ]
       }
     },

@@ -711,7 +711,7 @@ class SchemaParser:
             resolved_type = self._resolve_type_placeholders(parsed_type)
             self.subjects[name] = resolved_type
 
-    def generate_example_json(self, type_hint: Any, depth: int = 0, max_depth: int = 5) -> Any:
+    def generate_example_json(self, type_hint: Any, depth: int = 0, max_depth: int = 8) -> Any:
         """
         Generates an example JSON-like structure for a given type hint, which can be
         a ParsedSchemaClass or a generic type.
@@ -726,10 +726,12 @@ class SchemaParser:
         value = None
 
         if isinstance(type_hint, ParsedSchemaClass):
-            value = type_hint.generate_example_json(self.definitions, depth + 1, max_depth)
+            new_depth = (depth + 1) if type_hint.definition_type == "dataclass" else depth
+            value = type_hint.generate_example_json(self.definitions, new_depth, max_depth)
         else:
             origin = getattr(type_hint, "__origin__", None)
             args = getattr(type_hint, "__args__", tuple())
+            print(f"origin: {origin}, args: {args}")
 
             if origin is list and args:
                 item_example = self.generate_example_json(args[0], depth + 1, max_depth)
@@ -748,8 +750,8 @@ class SchemaParser:
                 value = True
             elif type_hint is Any:
                 value = "any_value"
-
-            value = f"<unknown_type_{str(type_hint)}>"
+            else:
+                value = f"<unknown_type_{str(type_hint)}>"
 
         self.example_jsons[type_hint] = value
         return value

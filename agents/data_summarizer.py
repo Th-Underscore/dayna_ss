@@ -194,9 +194,7 @@ class DataSummarizer:
             if not isinstance(subject_type, ParsedSchemaClass):
                 raise ValueError(f"Subject '{data_type}' should be a ParsedSchemaClass: {subject_type}")
 
-            self._update_recursive(
-                data_type, data, formatted_data, unexpanded_formatted_data, target_schema_class
-            )
+            self._update_recursive(data_type, data, formatted_data, unexpanded_formatted_data, target_schema_class)
 
             print(f"{_HILITE}Summary for {data_type} completed in {time.time() - start:.2f} seconds.{_RESET}")
             save_json(
@@ -500,7 +498,16 @@ class DataSummarizer:
             print(
                 f"{_BOLD}Updating non-schema class {target_schema_class} at path: {item_name_prefix}{_RESET} (key: {current_key})"
             )
-            return self._recurse_field(parent_schema_field, item_name_prefix, data, formatted_data, unexpanded_formatted_data, parent_schema_class, keys, current_key)
+            return self._recurse_field(
+                parent_schema_field,
+                item_name_prefix,
+                data,
+                formatted_data,
+                unexpanded_formatted_data,
+                parent_schema_class,
+                keys,
+                current_key,
+            )
 
         if shared.stop_everything:
             return
@@ -578,17 +585,17 @@ class DataSummarizer:
                 )
 
                 if stop_reason and stop_reason in stopping_strings:
-                    print(f"{_INPUT}Gate check for '{gate_check_branch_name}' returned NO. Skipping branch.{_RESET}")
+                    print(f"{_INPUT}Gate check for '{gate_check_branch_name}' returned {stop_reason}. Skipping branch.{_RESET}")
                     return
                 elif llm_response_text.strip().upper() == "YES" or (stop_reason and stop_reason.upper() == "YES"):
                     print(f"{_INPUT}Gate check for '{gate_check_branch_name}' returned YES. Proceeding.{_RESET}")
-                    skip_current_schema_branch_query = True
                     # NOTE: Could also persist the gate check response in custom state to track the decision, but won't for now
                 else:
                     print(
                         f"{_INPUT}Gate check for '{gate_check_branch_name}' unclear. Assuming NO. Response: '{llm_response_text}'{_RESET}"
                     )
                     return
+                skip_current_schema_branch_query = True
         # --- END: Gate Check Logic ---
 
         # --- START: Full Update (perform_update) ---
@@ -790,7 +797,7 @@ class DataSummarizer:
         current_item_name = f"{item_name_prefix}.{field_name}"
 
         print(f"{_HILITE}Field '{field_name}' (type: {field.type}) -- {field} - {field.type}{_RESET} (key: {current_key})")
-        
+
         if field_name.startswith("_"):  # Skip internal fields if any
             return
 
@@ -826,9 +833,7 @@ class DataSummarizer:
                 default = field.default
                 field_type = field.type
                 print(f"{_RESET}Initializing missing field '{field_name}' (type: {field_type}) {_DEBUG} {data}{_RESET}")
-                data[field_name] = (
-                    default or (hasattr(field_type, "__origin__") and field_type.__origin__()) or field_type()
-                )
+                data[field_name] = default or (hasattr(field_type, "__origin__") and field_type.__origin__()) or field_type()
             return
 
         field_value = data.get(field_name)
@@ -849,9 +854,7 @@ class DataSummarizer:
                         effective_child_schema = self._inherit_defaults_from_parent(
                             value_type, parent_schema_class, defaults_to_inherit
                         )
-                        effective_child_schema = self._retrieve_nested_dataclass(
-                            effective_child_schema, defaults_to_inherit
-                        )
+                        effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
 
                         key_list = [*keys, field_name, k]
                         self._update_recursive(
@@ -892,9 +895,7 @@ class DataSummarizer:
                         effective_child_schema = self._inherit_defaults_from_parent(
                             item_type, parent_schema_class, defaults_to_inherit
                         )
-                        effective_child_schema = self._retrieve_nested_dataclass(
-                            effective_child_schema, defaults_to_inherit
-                        )
+                        effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
 
                         key_list = [*keys, field_name, i]
                         self._update_recursive(
@@ -927,9 +928,7 @@ class DataSummarizer:
 
         elif isinstance(field_type, ParsedSchemaClass):
             # Nested single schema class
-            effective_child_schema = self._inherit_defaults_from_parent(
-                field_type, parent_schema_class, defaults_to_inherit
-            )
+            effective_child_schema = self._inherit_defaults_from_parent(field_type, parent_schema_class, defaults_to_inherit)
             effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
 
             key_list = [*keys, field_name]
@@ -963,7 +962,7 @@ class DataSummarizer:
         target_schema_class: ParsedSchemaClass,
         defaults_to_inherit: list[str] | None = None,
         do_inherit_triggers: bool = False,
-        depth: int = -1
+        depth: int = -1,
     ):
         """Recursively retrieve nested fields in a parent field, ending on the field holding the final schema field class.
 
@@ -991,7 +990,7 @@ class DataSummarizer:
         target_schema_class: ParsedSchemaClass,
         defaults_to_inherit: list[str] | None = None,
         do_inherit_triggers: bool = False,
-        depth: int = -1
+        depth: int = -1,
     ):
         """Recursively retrieve nested fields in a parent field, ending on the final schema field class.
 
@@ -1022,7 +1021,7 @@ class DataSummarizer:
         """Inherit default values from parent schema class to child schema class."""
         effective_child_schema = copy.copy(child_schema_class)
         effective_child_schema.defaults = copy.copy(child_schema_class.defaults)
-        
+
         if do_inherit_triggers:
             effective_child_schema.trigger_map = copy.copy(child_schema_class.trigger_map)
             effective_child_schema.trigger_map.update(parent_schema_class.trigger_map)
@@ -1223,7 +1222,7 @@ class DataSummarizer:
             keys=keys,
         )
 
-        parent_data_object.update(updated_value)
+        parent_data_object.update({ field_name: updated_value })
 
     def _create_update_prompt(
         self,

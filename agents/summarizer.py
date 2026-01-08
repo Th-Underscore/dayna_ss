@@ -505,6 +505,7 @@ class Summarizer:
             self.backtrack_history(history, new_history_path)
 
             from extensions.dayna_ss.agents.data_summarizer import DataSummarizer
+
             output = strip_thinking(output)
 
             custom_state = copy.deepcopy(custom_state_ref)
@@ -563,12 +564,13 @@ class Summarizer:
                     save_json(data, new_history_path / f"{subject_name}.json")
                     return data
 
-                print(f"{_BOLD}{subject_name}{_RESET} {data_summarizer._should_update_subject(schema_class)}")
-                if data_summarizer._should_update_subject(schema_class):
-                    return data_summarizer.generate(subject_name, data, schema_class)
-                else:
-                    save_json(data, new_history_path / f"{subject_name}.json")
-                    return data
+                return data_summarizer.generate(subject_name, data, schema_class)  # Triggers are handled by DataSummarizer... probably
+                # print(f"{_BOLD}{subject_name}{_RESET} {data_summarizer._should_update_subject(schema_class)}")
+                # if data_summarizer._should_update_subject(schema_class):
+                #     return data_summarizer.generate(subject_name, data, schema_class)
+                # else:
+                #     save_json(data, new_history_path / f"{subject_name}.json")
+                #     return data
 
             # Step 2: Dynamically process each subject.
             processed_subjects_data = {}
@@ -781,9 +783,7 @@ class Summarizer:
             ]
         )
 
-        print(
-            f"{_HILITE}FORMATTED CONTEXT {_SUCCESS}{json.dumps(custom_history, indent=2)}{_RESET}"
-        )
+        print(f"{_HILITE}FORMATTED CONTEXT {_SUCCESS}{json.dumps(custom_history, indent=2)}{_RESET}")
         self.last.history_length = len(custom_history)
         return custom_state
 
