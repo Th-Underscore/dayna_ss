@@ -101,7 +101,7 @@ Current TODO:
 - [x] Current scene should include current directive and should persist through to the next scene, maybe character motivations would be in characters.json and plot goals would be in current\_scenes+scenes, or perhaps that’s what general\_summarization will be for (general\_context?)
 - [ ] event\_ids + scene\_ids instead of event\_id + scene\_id
 - [ ] When generating instruction, include possible `user_instr` given by the user (for `instr` only, if in a “\[\[NOTE HERE\]\]" format exclude it from the actual message)
-- [ ] give user instructions for regenerate, maybe separate extension (“Regenerate with instructions” vs “Regenerate with feedback (explicit)”)
+- [ ] give user instructions for regenerate, maybe separate extension (“Regenerate with instructions” vs “Regenerate with user feedback (explicit):”)
 - [ ] “The user’s input is the highest priority; if anything said or done by a character doesn’t match its personality trait in the existing knowledge base, consider whether this should be changed in the knowledge base, or was done intentionally.”
 - [ ] General info for each subject category (i.e. characters, groups, events)
 - [ ] RAG for each character’s individual memory (most memorable moments for specific scene/event)
@@ -109,11 +109,24 @@ Current TODO:
     - [ ] Maybe new schema type for “Memory”?
 - [ ] Detect edits and compare original vs new to determine what to change in history\_str
 - [ ] Add instructions.json (`instr`) toggle
-- [ ] Refactor `_update_recursive` into more standard recursive style
+- [x] Refactor `_update_recursive` into more standard recursive style
 - [ ] Save message word count?
 - [ ] What specific branches should be updated then looping those recursively (rather than a gate check)
     - [ ] Essentially function calling
-- [ ] Message RAG: Include the “speaker” (`char1` vs `char2`) per message (not just per node necessarily) 
+- [ ] Message RAG: Include the “speaker” (`char1` vs `char2`) per message (not just per node necessarily)
+- [x] Triggers with specific defaults (prompt templates), rather than defaults and triggers separate?
+- [ ] `on_new_scene_or_truncate` 
+- [ ] Include `msg_` or first few characters of message when creating `history_str` 
+- [ ] More meaningful “importance”:
+    - [ ] Depending on level, character-specific "thoughts" summary on specific events/relationships
+    - [ ] `100` = Always on their mind
+`60` = Friend
+`30` = Remembers when spoken of
+`20` = Hardly remember when spoken of
+`10` = Struggle to remember
+`5` = Familiar, tip of the tongue
+`0` = Stranger
+    - [ ] “favour” level for negative/positive relationship
 
 <br>
 
@@ -148,8 +161,9 @@ Far TODO:
 18. Update history-context in realtime with DataSummarizer? Will potentially hurt eval time
 19. For events: additional context from the future
 20. Trigger archive at end of scene (to archive values that aren’t needed in the main subjects files but may still be needed for extra details in the future)?
+21. “Notes” LLM can write for future reference (also based off of #5, user-defined story structure/objectives)
 
-  
+
 
 ## OLD TODO (Handle message `#handle_input_output()`)
 
