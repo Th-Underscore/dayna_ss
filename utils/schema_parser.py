@@ -67,7 +67,7 @@ class ParsedSchemaClass:
       - Key Attribute: `self._fields_dict: dict[str, ParsedSchemaField]`\n
           A dictionary mapping field names to their ParsedSchemaField definitions.
 
-    - If `definition_type` is "field":\n
+    - If `definition_type` is "alias":\n
       It represents a type definition or an alias that wraps another single type.
       - Key Attribute: `self._field: ParsedSchemaField`\n
           A single ParsedSchemaField object defining the wrapped type.
@@ -88,7 +88,7 @@ class ParsedSchemaClass:
         _fields_dict: dict[str, ParsedSchemaField]
 
     # A ParsedSchemaClass for a type alias
-    ParsedSchemaClass(definition_type="field"):
+    ParsedSchemaClass(definition_type="alias"):
         _field: ParsedSchemaField
 
     # A field, which defines a type that can be primitive or another schema class
@@ -114,15 +114,15 @@ class ParsedSchemaClass:
         self.trigger_map: dict[Trigger, list[Action]] = triggers or {}
 
         self._fields: dict[str, ParsedSchemaField] | None = None  # Parsed fields for "dataclass" type
-        self._field: ParsedSchemaField | None = None  # Parsed type for "field" type
+        self._field: ParsedSchemaField | None = None  # Parsed type for "alias" type
 
         if self.definition_type == "dataclass":
             if not fields:
                 raise ValueError(f"ParsedSchemaClass '{name}' of type 'dataclass' must have fields defined.")
             self._fields = {f.name: f for f in fields}
-        elif self.definition_type == "field":
+        elif self.definition_type == "alias":
             if not field:
-                raise ValueError(f"ParsedSchemaClass '{name}' of type 'field' must have a field defined.")
+                raise ValueError(f"ParsedSchemaClass '{name}' of type 'alias' must have a field defined.")
             self._field = field
 
         self.no_update: bool = False
@@ -160,13 +160,13 @@ class ParsedSchemaClass:
                         break
 
     def get_fields(self) -> list[ParsedSchemaField]:
-        """Mimics dataclasses.fields() for 'dataclass' type. Returns empty list for 'field' type."""
+        """Mimics dataclasses.fields() for 'dataclass' type. Returns empty list for 'alias' type."""
         if self.definition_type == "dataclass":
             return list(self._fields.values())
         return []
 
     def get_field(self, name: str | None = None) -> ParsedSchemaField:
-        """Get a specific field by name for 'dataclass' type. Returns self._field for 'field' type."""
+        """Get a specific field by name for 'dataclass' type. Always returns self._field for 'alias' type."""
         if self.definition_type == "dataclass":
             return self._fields.get(name)
         return self._field
@@ -233,15 +233,15 @@ class ParsedSchemaClass:
                 schema_dict["required"] = required_fields
             return schema_dict
 
-        elif self.definition_type == "field":
-            # For a 'field' type, the ParsedSchemaClass itself represents the type.
+        elif self.definition_type == "alias":
+            # For an 'alias' type, the ParsedSchemaClass itself represents the type.
             # Its 'name' is the definition name, and its '_field.type' is the actual type.
             if self._field and self._field.type:
                 return self._type_to_json_schema_dict(self._field.type, all_definitions_map, self.name)
             else:
                 # Should not happen if parser is correct
                 print(
-                    f"{_ERROR}Warning: 'field' type ParsedSchemaClass '{self.name}' has no _field.type. Returning empty schema.{_RESET}"
+                    f"{_ERROR}Warning: 'alias' type ParsedSchemaClass '{self.name}' has no _field.type. Returning empty schema.{_RESET}"
                 )
                 return {}
 
@@ -362,7 +362,7 @@ class ParsedSchemaClass:
                         example_obj[field_name] = f"<unknown_type_{str(field_type)}>"
             return example_obj
 
-        elif self.definition_type == "field":
+        elif self.definition_type == "alias":
             if self._field:
                 field_obj = self._field
                 field_type = field_obj.type
@@ -436,8 +436,8 @@ class ParsedSchemaClass:
         return f"<unknown_definition_type_{self.definition_type}_for_{self.name}>"
 
     def __repr__(self):
-        if self.definition_type == "field":
-            return f"ParsedSchemaClass(name='{self.name}', type='field', field_type='{self._field}')"
+        if self.definition_type == "alias":
+            return f"ParsedSchemaClass(name='{self.name}', type='alias', field_type='{self._field}')"
         return f"ParsedSchemaClass(name='{self.name}', type='dataclass')"
 
 
@@ -540,13 +540,13 @@ class SchemaParser:
                 self.definitions[name] = ParsedSchemaClass(
                     name, definition_type="dataclass", parser=self, fields=fields, defaults=defaults, triggers=triggers
                 )
-            elif def_type == "field":
+            elif def_type == "alias":
                 field_type_str = definition.get("field")
                 if not field_type_str:
-                    raise ValueError(f"Definition '{name}' of type 'field' is missing the 'field' attribute.")
+                    raise ValueError(f"Definition '{name}' of type 'alias' is missing the 'field' attribute.")
                 self.definitions[name] = ParsedSchemaClass(
                     name,
-                    definition_type="field",
+                    definition_type="alias",
                     parser=self,
                     field=ParsedSchemaField(name, field_type_str),
                     defaults=defaults,
@@ -564,7 +564,7 @@ class SchemaParser:
                     # Propagate no_update from type to field
                     if isinstance(field_obj.type, ParsedSchemaClass):
                         field_obj.no_update = field_obj.type.no_update
-            elif parsed_class_obj.definition_type == "field":
+            elif parsed_class_obj.definition_type == "alias":
                 field_obj = parsed_class_obj._field
                 if isinstance(field_obj._type, str):
                     field_obj.type = self._parse_type_string(field_obj._type)
@@ -606,7 +606,7 @@ class SchemaParser:
     def _type_hint_to_json_schema(self, type_hint: Any, root_schema_obj: ParsedSchemaClass | None = None) -> dict:
         """Converts a Python type hint to a JSON schema dictionary within the SchemaParser context."""
         schema: dict[str, Any] = {}
-        if root_schema_obj and root_schema_obj.definition_type == "field":
+        if root_schema_obj and root_schema_obj.definition_type == "alias":
             description = root_schema_obj.defaults.get("field_placeholder")
             if description:
                 schema["description"] = description
@@ -804,7 +804,7 @@ class SchemaParser:
                 expected_type = field_def.type
                 errors.extend(self._validate_value_type(value, expected_type, field_path))
 
-        elif schema_definition.definition_type == "field":
+        elif schema_definition.definition_type == "alias":
             expected_type = schema_definition.get_field().type
             errors.extend(self._validate_value_type(data_instance, expected_type, current_path))
 
@@ -881,7 +881,7 @@ if __name__ == "__main__":
             if definition_obj.definition_type == "dataclass":
                 for field in definition_obj.get_fields():
                     print(f"  - {field.name}: {field.type} (default: {field.default})")
-            elif definition_obj.definition_type == "field":
+            elif definition_obj.definition_type == "alias":
                 print(f"  - Field Type: {definition_obj._field}")
             if definition_obj.defaults:
                 print(f"  - Defaults: {definition_obj.defaults}")
@@ -897,7 +897,7 @@ if __name__ == "__main__":
         if characters_subject_def:
             print(f"  Name: {characters_subject_def.name}")
             print(f"  Definition Type: {characters_subject_def.definition_type}")
-            if characters_subject_def.definition_type == "field":
+            if characters_subject_def.definition_type == "alias":
                 print(f"  Parsed Field Type: {characters_subject_def._field}")
             elif characters_subject_def.definition_type == "dataclass":
                 print(f"  Fields: {[f.name for f in characters_subject_def.get_fields()]}")
@@ -907,7 +907,7 @@ if __name__ == "__main__":
         if groups_subject_def:
             print(f"  Name: {groups_subject_def.name}")
             print(f"  Definition Type: {groups_subject_def.definition_type}")
-            if groups_subject_def.definition_type == "field":
+            if groups_subject_def.definition_type == "alias":
                 print(f"  Parsed Field Type: {groups_subject_def._field}")
 
         current_scene_subject_def = parser.get_subject_class("current_scene")

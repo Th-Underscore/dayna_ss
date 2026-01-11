@@ -220,7 +220,7 @@ class DataSummarizer:
     ):
         """Handles querying for and adding new entries to a dictionary-like branch."""
         if not (
-            branch_schema_class.definition_type == "field"
+            branch_schema_class.definition_type == "alias"
             and hasattr(branch_schema_class._field.type, "__origin__")
             and branch_schema_class._field.type.__origin__ is dict
         ):
@@ -466,496 +466,625 @@ class DataSummarizer:
         data: dict,
         formatted_data: FormattedData,
         unexpanded_formatted_data: FormattedData,
-        target_schema_class: ParsedSchemaClass | type,
-        parent_schema_field: ParsedSchemaField | None = None,
-        parent_schema_class: ParsedSchemaClass | None = None,
+        target_schema_class: ParsedSchemaClass,
         keys: list = [],
-        current_key: str | None = None,
     ) -> dict:
-        """Recursively update fields based on parsed schema structure.
-
-        Handles gate checks, full branch updates, branch queries, and individual field updates based on the target_schema_class's trigger_map.
-
-        Args:
-            item_name_prefix (str): Prefix for the current item's name (e.g., "CharacterName.inventory").
-            data (dict): The data dictionary to update. When top-level, this is equivalent to `unexpanded_formatted_data.data`. Otherwise, it's a sub-dict.
-            formatted_data (FormattedData): Formatted data for LLM context.
-            unexpanded_formatted_data (FormattedData): Unformatted data for LLM context.
-            target_schema_class (ParsedSchemaClass | type): Schema or datatype for the current data level.
-            parent_schema_field (ParsedSchemaField, optional): Parent field of the current schema class. Required for anything other than top level. Defaults to None.
-            parent_schema_class (ParsedSchemaClass, optional): Parent schema class of the current schema class (and of the parent field). Required for anything other than top level. Defaults to None.
-            keys (list, optional): Path keys to the current data level. Defaults to [].
-            current_key (str, optional): Current key being processed. Used internally for nested fields. Defaults to None.
-
-        Returns:
-            out (dict): A dictionary of fields that were updated at the current recursion level.
         """
-        keys = keys or []
-        skip_current_schema_branch_query = False
-        global defaults_to_inherit
+        Entry point for processing a specific Schema Class node against a data object.
+        Handles Triggers (Add New, Gate Check, Branch Query) before drilling down.
+        """
+        if shared.stop_everything:
+            return data
 
         if not isinstance(target_schema_class, ParsedSchemaClass):
-            print(
-                f"{_BOLD}Updating non-schema class {target_schema_class} at path: {item_name_prefix}{_RESET} (key: {current_key})"
+            print(f"{_ERROR}Target schema is not a ParsedSchemaClass: {type(target_schema_class)}{_RESET}")
+            return data
+
+        current_event_triggers = self._get_current_event_triggers()
+        branch_name = item_name_prefix or target_schema_class.name
+
+        print(f"{_BOLD}Processing Schema Node: {target_schema_class.name} ({target_schema_class.definition_type}) at '{branch_name}'{_RESET}")
+
+        # 1. TRIGGER: Add New Entries (only valid for Alias types wrapping a dict)
+        if self._is_action_triggered(target_schema_class, Action.ADD_NEW, current_event_triggers):
+            if target_schema_class.definition_type == "alias":
+                field_type = target_schema_class._field.type
+                is_dict = hasattr(field_type, "__origin__") and field_type.__origin__ is dict
+
+                if is_dict:
+                    self._detect_and_add_new_entries_to_branch(
+                        branch_name=branch_name,
+                        data=data,
+                        formatted_data=unexpanded_formatted_data,
+                        branch_schema_class=target_schema_class,
+                        keys=keys
+                    )
+
+        # 2. TRIGGER: Gate Check
+        gate_passed = True
+        gate_template = self._get_effective_setting(data, target_schema_class, "gate_check_prompt_template")
+
+        if self._is_action_triggered(target_schema_class, Action.PERFORM_GATE_CHECK, current_event_triggers) and gate_template:
+            gate_passed = self._perform_gate_check(
+                branch_name,
+                gate_template,
+                target_schema_class,
+                formatted_data,
+                keys
             )
-            return self._recurse_field(
-                parent_schema_field,
-                item_name_prefix,
+
+        if not gate_passed:
+            return data
+
+        # 3. TRIGGER: Full Update ("Overwrite")
+        update_template = self._get_effective_setting(data, target_schema_class, "update_prompt_template")
+        did_full_update = False
+
+        if self._is_action_triggered(target_schema_class, Action.PERFORM_UPDATE, current_event_triggers) and update_template:
+            # Perform update and return early if successful
+            did_full_update = self._perform_full_branch_update(
+                branch_name,
+                data,
+                update_template,
+                formatted_data,
+                target_schema_class,
+                keys
+            )
+            if did_full_update:
+                return data
+
+        # 4. TRIGGER: Branch Query ("Diff")
+        # If gate check passed (or wasn't needed), we proceed.
+        bq_template = self._get_effective_setting(data, target_schema_class, "branch_query_prompt_template")
+        bu_template = self._get_effective_setting(data, target_schema_class, "branch_update_prompt_template")
+
+        branch_query_handled = False
+        if (
+            not did_full_update  # Skip if already did a full update
+            and self._is_action_triggered(target_schema_class, Action.QUERY_BRANCH_FOR_CHANGES, current_event_triggers)
+            and bq_template
+            and bu_template
+        ):
+            self._perform_branch_query(
+                branch_name,
                 data,
                 formatted_data,
-                unexpanded_formatted_data,
-                parent_schema_class,
-                keys,
-                current_key,
+                bq_template,
+                bu_template,
+                target_schema_class,
+                keys
             )
+            branch_query_handled = True
 
-        if shared.stop_everything:
-            return
-
-        print(
-            f"{_BOLD}Updating {target_schema_class.name} (type: {target_schema_class.definition_type}) at path: {item_name_prefix or target_schema_class.name}{_RESET} (key: {current_key})"
-        )
-
-        # Determine current event triggers
-        current_event_triggers = self._get_current_event_triggers()
-
-        # --- START: Add New Entries to Dictionary Logic (add_new) ---
-        if target_schema_class.definition_type == "field" and self._is_action_triggered(
-            target_schema_class, Action.ADD_NEW, current_event_triggers
-        ):
-            new_entry_query_prompt_template = self._get_effective_setting(
-                data, target_schema_class, "new_entry_query_prompt_template"
-            )  # field
-            new_entry_prompt_template = self._get_effective_setting(
-                data, target_schema_class, "new_entry_prompt_template"
-            )  # entry
-
-            if (
-                hasattr(target_schema_class._field.type, "__origin__")
-                and target_schema_class._field.type.__origin__ is dict
-                and new_entry_query_prompt_template
-                and new_entry_prompt_template
-            ):
-                self._detect_and_add_new_entries_to_branch(
-                    branch_name=item_name_prefix,
-                    data=data,
-                    formatted_data=unexpanded_formatted_data,
-                    branch_schema_class=target_schema_class,
-                    new_query_template=new_entry_query_prompt_template,
-                    new_entry_template=new_entry_prompt_template,
-                )
-        # --- END: Add New Entries to Dictionary Logic ---
-
-        # --- START: Gate Check Logic (gate_check) ---
-        gate_check_prompt_template = self._get_effective_setting(data, target_schema_class, "gate_check_prompt_template")
-        if (
-            self._is_action_triggered(target_schema_class, Action.PERFORM_GATE_CHECK, current_event_triggers)
-            and gate_check_prompt_template
-        ):
-
-            gate_check_branch_name = item_name_prefix or target_schema_class.name or "current data category"
-
-            gate_check_prompt = self._create_update_prompt(
-                item_name=gate_check_branch_name,
-                field_name="",  # Not a sub-field, but the branch itself
-                formatted_data=formatted_data,
-                prompt_template_str=gate_check_prompt_template,
-                target_schema_or_type=target_schema_class,
-                keys=keys,
-            )
-
-            if gate_check_prompt:
-                print(f"{_GRAY}Performing gate check for '{gate_check_branch_name}'...{_RESET}")
-                gate_check_full_prompt = f"Current context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix)}\n\n{gate_check_prompt}"
-                current_custom_state = self.custom_state or {}
-                stopping_strings = ["NO", "UNCHANGED"]
-
-                llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
-                    prompt=gate_check_full_prompt,
-                    state=current_custom_state,
-                    history_path=self.history_path,
-                    stopping_strings=[*stopping_strings, "YES"],
-                    match_prefix_only=True,
-                )
-                if shared.stop_everything:
-                    return
-                llm_response_text = strip_thinking(llm_response_text)
-                print(
-                    f"{_GRAY}Gate check response for '{gate_check_branch_name}': '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}"
-                )
-
-                if stop_reason and stop_reason in stopping_strings:
-                    print(f"{_INPUT}Gate check for '{gate_check_branch_name}' returned {stop_reason}. Skipping branch.{_RESET}")
-                    return
-                elif llm_response_text.strip().upper() == "YES" or (stop_reason and stop_reason.upper() == "YES"):
-                    print(f"{_INPUT}Gate check for '{gate_check_branch_name}' returned YES. Proceeding.{_RESET}")
-                    # NOTE: Could also persist the gate check response in custom state to track the decision, but won't for now
-                else:
-                    print(
-                        f"{_INPUT}Gate check for '{gate_check_branch_name}' unclear. Assuming NO. Response: '{llm_response_text}'{_RESET}"
-                    )
-                    return
-                skip_current_schema_branch_query = True
-        # --- END: Gate Check Logic ---
-
-        # --- START: Full Update (perform_update) ---
-        update_prompt_for_branch = self._get_effective_setting(
-            data, target_schema_class, "update_prompt_template"  # General update template for the branch
-        )
-        if (
-            self._is_action_triggered(target_schema_class, Action.PERFORM_UPDATE, current_event_triggers)
-            and update_prompt_for_branch
-            and target_schema_class.definition_type == "dataclass"
-        ):
-
-            branch_name_for_prompt = item_name_prefix or target_schema_class.name or "current data section"
-            print(
-                f"{_INPUT}Attempting direct update for branch '{branch_name_for_prompt}' as 'perform_update' is triggered.{_RESET}"
-            )
-
-            try:
-                current_prompt_template_str = update_prompt_for_branch
-
-            except KeyError as e:
-                print(
-                    f"{_ERROR}Full update prompt for '{branch_name_for_prompt}' missing key: {e}. Template: '{update_prompt_for_branch}'{_RESET}"
-                )
-                current_prompt_template_str = None
-
-            if current_prompt_template_str:
-                # We expect the LLM to return the entire dictionary for 'data'
-                updated_branch_data = self._generate_field_update(
-                    item_name_prefix=item_name_prefix,
-                    field_name="",  # Not a sub-field, but the branch itself
-                    current_value=data,
-                    formatted_data=formatted_data,
-                    prompt_template_str=current_prompt_template_str,
-                    expected_type=dict,
-                    target_schema_or_type=target_schema_class,
-                    keys=keys,
-                    context_marker_path_override=item_name_prefix,
-                )
-
-                if (
-                    updated_branch_data is not None
-                    and isinstance(updated_branch_data, dict)
-                    and not updated_branch_data is data
-                ):
-                    print(f"{_SUCCESS}Applying direct branch update to '{branch_name_for_prompt}'.{_RESET}")
-                    data.update(updated_branch_data)
-                elif updated_branch_data == data or updated_branch_data is None:
-                    print(f"{_GRAY}Direct branch update for '{branch_name_for_prompt}' resulted in no changes.{_RESET}")
-                else:
-                    print(
-                        f"{_ERROR}Direct branch update for '{branch_name_for_prompt}' unexpected type: {type(updated_branch_data)}.{_RESET}"
-                    )
-                return
-        # --- END: Full Update ---
-
-        # --- START: Branch Query Logic (query_branch_for_changes) ---
-        branch_query_prompt_template = self._get_effective_setting(data, target_schema_class, "branch_query_prompt_template")
-        branch_update_prompt_template = self._get_effective_setting(data, target_schema_class, "branch_update_prompt_template")
-
-        if (
-            not skip_current_schema_branch_query
-            and self._is_action_triggered(target_schema_class, Action.QUERY_BRANCH_FOR_CHANGES, current_event_triggers)
-            and branch_query_prompt_template
-            and branch_update_prompt_template
-        ):
-            branch_name_for_prompt = item_name_prefix or target_schema_class.name or "current data section"
-
-            branch_query_prompt = self._create_update_prompt(
-                item_name=branch_name_for_prompt,
-                field_name="",  # Not a sub-field, but the branch itself
-                formatted_data=formatted_data,
-                prompt_template_str=branch_query_prompt_template,
-                target_schema_or_type=target_schema_class,
-                keys=keys,
-            )
-            branch_update_prompt = self._create_update_prompt(
-                item_name=branch_name_for_prompt,
-                field_name="",
-                formatted_data=formatted_data,
-                prompt_template_str=branch_update_prompt_template,
-                target_schema_or_type=target_schema_class,
-                keys=keys,
-            )
-
-            if branch_query_prompt:
-                print(f"{_GRAY}Querying LLM: Does branch '{branch_name_for_prompt}' need updates?{_RESET}")
-                branch_query_full_prompt = f"Current context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix)}\n\n{branch_query_prompt}"
-                current_custom_state = self.custom_state or {}
-                query_stopping_strings = ["NO", "UNCHANGED"]
-                llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
-                    prompt=branch_query_full_prompt,
-                    state=current_custom_state,
-                    history_path=self.history_path,
-                    stopping_strings=[*query_stopping_strings, "YES"],
-                    match_prefix_only=True,
-                )
-                if shared.stop_everything:
-                    return
-                llm_response_text = strip_thinking(llm_response_text)
-                print(
-                    f"{_GRAY}Query branch '{branch_name_for_prompt}' response: '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}"
-                )
-
-                if stop_reason and stop_reason in query_stopping_strings:
-                    print(f"{_INPUT}Skipping updates for branch '{branch_name_for_prompt}' (query returned NO).{_RESET}")
-                    return
-
-                current_custom_state = copy.deepcopy(current_custom_state)
-                current_custom_state["history"]["internal"].append([branch_query_full_prompt, llm_response_text])
-
-                print(
-                    f"{_INPUT}Query for '{branch_name_for_prompt}' suggests changes. Requesting field updates list...{_RESET}"
-                )
-                branch_update_list_full_prompt = f"Current context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix)}\n\n{branch_update_prompt}"
-                update_stopping_strings = ["NO", "END"]
-                llm_update_response_text, _ = self.summarizer.generate_using_tgwui(
-                    prompt=branch_update_list_full_prompt,
-                    state=current_custom_state,
-                    history_path=self.history_path,
-                    stopping_strings=update_stopping_strings,
-                    match_prefix_only=True,
-                )
-                if shared.stop_everything:
-                    return
-
-                parsed_updates = self._parse_llm_field_updates(llm_update_response_text, branch_name_for_prompt)
-                if parsed_updates:
-                    print(f"{_INPUT}Applying {len(parsed_updates)} field update(s) to '{branch_name_for_prompt}'...{_RESET}")
-                    for update_item in parsed_updates:
-                        path_str = update_item["path"]
-                        value = update_item["value"]
-                        keyList_relative_to_branch = split_keys_to_list(path_str)
-                        try:
-                            recursive_set(data, keyList_relative_to_branch, value)
-                            print(f"{_GRAY}[{branch_name_for_prompt}] Applied update: {path_str} = {repr(value)}{_RESET}")
-                        except Exception as e:
-                            print(
-                                f"{_ERROR}[{branch_name_for_prompt}] Failed to apply update {path_str} = {repr(value)}: {e}{_RESET}"
-                            )
-                            traceback.print_exc()
-                else:
-                    print(
-                        f"{_GRAY}No specific field updates applied to '{branch_name_for_prompt}' from branch query response.{_RESET}"
-                    )
-                return  # Branch querying handles the whole branch, no further recursion needed for its fields
-        # --- END: Branch Query Logic ---
-
-        if target_schema_class.definition_type == "field":
-            field = self._retrieve_nested_field(target_schema_class, defaults_to_inherit, depth=1)
-            if current_key is None:  # target_schema_class not nested in another field
-                return self._recurse_field(
-                    field,
-                    item_name_prefix,
-                    data,
-                    formatted_data,
-                    unexpanded_formatted_data,
-                    target_schema_class,
-                    keys,
-                )
-            else:
-                return self._update_recursive(
-                    item_name_prefix,
-                    data,
-                    formatted_data,
-                    unexpanded_formatted_data,
-                    field.type,
-                    field,
-                    target_schema_class,
-                    keys,
-                    current_key,
-                )
-
-        for field in target_schema_class.get_fields():
-            self._recurse_field(
-                field,
-                item_name_prefix,
+        # 6. Drill Down / Recursion
+        if not branch_query_handled:
+            self._traverse_structure(
+                branch_name,
                 data,
                 formatted_data,
                 unexpanded_formatted_data,
                 target_schema_class,
-                keys,
-                current_key,
+                keys
             )
 
-    def _recurse_field(
+        return data
+
+    def _traverse_structure(
         self,
-        field: ParsedSchemaField,
         item_name_prefix: str,
         data: dict,
         formatted_data: FormattedData,
         unexpanded_formatted_data: FormattedData,
+        schema_class: ParsedSchemaClass,
+        keys: list
+    ):
+        """
+        Handles the structural iteration based on definition_type.
+        Unwraps 'alias' types to find the real structure underneath.
+        """
+
+        # --- Case A: Dataclass (object with defined fields) ---
+        if schema_class.definition_type == "dataclass":
+            for field in schema_class.get_fields():
+                self._process_field(
+                    parent_path=item_name_prefix,
+                    parent_data=data,
+                    field_def=field,
+                    formatted_data=formatted_data,
+                    unexpanded_formatted_data=unexpanded_formatted_data,
+                    parent_schema_class=schema_class,
+                    parent_keys=keys
+                )
+
+        # --- Case B: Alias (wrapper around a type) ---
+        elif schema_class.definition_type == "alias" or schema_class.definition_type == "field":
+            wrapped_type = schema_class._field.type
+
+            # 1. Direct nested Schema Class (Alias -> Alias || Alias -> Dataclass)
+            if isinstance(wrapped_type, ParsedSchemaClass):
+                effective_child_schema = self._inherit_defaults_from_parent(
+                    wrapped_type,
+                    schema_class,
+                    defaults_to_inherit
+                )
+
+                # Pass the exact same 'data' and 'keys'
+                self._update_recursive(
+                    item_name_prefix,
+                    data,
+                    formatted_data,
+                    unexpanded_formatted_data,
+                    effective_child_schema,
+                    keys
+                )
+                return
+
+            # 2. List container
+            if hasattr(wrapped_type, "__origin__") and wrapped_type.__origin__ is list:
+                item_type = wrapped_type.__args__[0]
+
+                if isinstance(data, list):
+                    # 2a. List of Schema Classes (Recurse)
+                    if isinstance(item_type, ParsedSchemaClass):
+                        for i, item_data in enumerate(data):
+                            effective_item_schema = self._inherit_defaults_from_parent(
+                                item_type,
+                                schema_class,
+                                defaults_to_inherit
+                            )
+                            # Sync formatted data to keep context fresh
+                            new_keys = [*keys, i]
+                            self._update_recursive(
+                                f"{item_name_prefix}[{i}]",
+                                item_data,
+                                formatted_data,
+                                unexpanded_formatted_data,
+                                effective_item_schema,
+                                new_keys
+                            )
+                            recursive_set(formatted_data.data, new_keys, item_data)
+                    
+                    # 2b. List of Primitives (Leaf update)
+                    else:
+                        # Create a dummy field definition to represent the list item
+                        dummy_field = copy.copy(schema_class._field)
+                        dummy_field.type = item_type
+                        
+                        for i, item_val in enumerate(data):
+                            self._update_field(
+                                parent_item_name_prefix=item_name_prefix,  # Path up to list
+                                parent_data_object=data,                   # The list itself
+                                field_name=i,
+                                field_value=item_val,
+                                formatted_data=formatted_data,
+                                parent_schema_class=schema_class,          # Alias as parent for prompts
+                                field=dummy_field,
+                                keys=keys
+                            )
+
+            # 3. Dict container
+            elif hasattr(wrapped_type, "__origin__") and wrapped_type.__origin__ is dict:
+                # dict[key_type, value_type]
+                value_type = wrapped_type.__args__[1]
+
+                if isinstance(data, dict):
+                    # 3a. Dict of Schema Classes (Recurse)
+                    if isinstance(value_type, ParsedSchemaClass):
+                        for key, val_data in data.items():
+                            effective_val_schema = self._inherit_defaults_from_parent(
+                                value_type,
+                                schema_class,
+                                defaults_to_inherit
+                            )
+
+                            new_keys = [*keys, key]
+                            self._update_recursive(
+                                f"{item_name_prefix}.{key}",
+                                val_data,
+                                formatted_data,
+                                unexpanded_formatted_data,
+                                effective_val_schema,
+                                new_keys
+                            )
+                            recursive_set(formatted_data.data, new_keys, val_data)
+                    
+                    # 3b. Dict of Primitives (Leaf Update)
+                    else:
+                        # Create a dummy field definition to represent the dict value
+                        dummy_field = copy.copy(schema_class._field)
+                        dummy_field.type = value_type
+
+                        for key, val_data in data.items():
+                            self._update_field(
+                                parent_item_name_prefix=item_name_prefix,  # Path up to dict
+                                parent_data_object=data,                   # The dict itself
+                                field_name=key,
+                                field_value=val_data,
+                                formatted_data=formatted_data,
+                                parent_schema_class=schema_class,          # Alias as parent for prompts
+                                field=dummy_field,
+                                keys=keys
+                            )
+
+    def _process_field(
+        self,
+        parent_path: str,
+        parent_data: dict,
+        field_def: ParsedSchemaField,
+        formatted_data: FormattedData,
+        unexpanded_formatted_data: FormattedData,
         parent_schema_class: ParsedSchemaClass,
-        keys: list = [],
-        current_key: str | None = None,
-    ) -> None:
-        """Handle and recurse over different field types."""
-        field_name = current_key or field.name
-        current_item_name = f"{item_name_prefix}.{field_name}"
+        parent_keys: list
+    ):
+        """
+        Decides how to handle a specific field within a parent data object.
+        1. Initializes missing data.
+        2. Checks 'no_update'.
+        3. Branches: Update Leaf (Primitive) OR Recurse (SchemaClass/Container).
+        """
+        field_name = field_def.name
+        full_path = f"{parent_path}.{field_name}" if parent_path else field_name
+        current_keys = [*parent_keys, field_name]
 
-        print(f"{_HILITE}Field '{field_name}' (type: {field.type}) -- {field} - {field.type}{_RESET} (key: {current_key})")
-
-        if field_name.startswith("_"):  # Skip internal fields if any
+        # 1. Skip if internal
+        if field_name.startswith("_"):
             return
 
-        if isinstance(field.type, ParsedSchemaClass) and field.type.definition_type == "field":
-            nested_field = self._retrieve_nested_field(field.type, defaults_to_inherit)  # FOR DEBUG
-            print(f"Nested field in '{field_name}' (type: {nested_field}) {_DEBUG} {nested_field.type}")
-            return self._update_recursive(  # Loop through for add_new
-                item_name_prefix,
-                data,
-                formatted_data,
-                unexpanded_formatted_data,
-                field.type,
-                field,
+        # 2. Check no_update flag
+        if field_def.no_update:
+            return
+
+        # 3. Initialize missing data
+        if field_name not in parent_data:
+            self._initialize_field(parent_data, field_name, field_def)
+
+        current_value = parent_data[field_name]
+        field_type = field_def.type
+
+        # 4. Handle Recursion for nested Schema Classes
+        if isinstance(field_type, ParsedSchemaClass):
+            # Create effective schema for the child (inheriting prompt templates from parent)
+            effective_child_schema = self._inherit_defaults_from_parent(
+                field_type,
                 parent_schema_class,
-                keys,
-                field_name,
+                defaults_to_inherit
             )
-            field = nested_field
 
-        field_type = field.type
-
-        if field.no_update:
-            print(f"{_INPUT}Skipping update for field '{current_item_name}' and its children as no_update is True.{_RESET}")
-            return
-
-        # Initialize missing fields based on type hint (basic version)
-        if field_name not in data:
-            if getattr(field_type, "__origin__", None) is list:
-                data[field_name] = []
-            elif getattr(field_type, "__args__", tuple()) is dict:
-                data[field_name] = {}
-            else:
-                default = field.default
-                field_type = field.type
-                print(f"{_RESET}Initializing missing field '{field_name}' (type: {field_type}) {_DEBUG} {data}{_RESET}")
-                data[field_name] = default or (hasattr(field_type, "__origin__") and field_type.__origin__()) or field_type()
-            return
-
-        field_value = data.get(field_name)
-        print(f"{_RESET}Processing field '{field_name}' (type: {field_type}) {_DEBUG} {field_value}{_RESET}")
-
-        if field_value is None:
-            return
-        field_origin = getattr(field_type, "__origin__", None)
-        field_args = getattr(field_type, "__args__", tuple())
-
-        if field_origin is dict:
-            # Dictionary field
-            value_type = field_args[1] if len(field_args) > 1 else Any
-            if isinstance(value_type, ParsedSchemaClass) and isinstance(field_value, dict):
-                # Dictionary of nested schema classes
-                for k, v_dict in field_value.items():
-                    if isinstance(v_dict, dict):
-                        effective_child_schema = self._inherit_defaults_from_parent(
-                            value_type, parent_schema_class, defaults_to_inherit
-                        )
-                        effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
-
-                        key_list = [*keys, field_name, k]
-                        self._update_recursive(
-                            f"{current_item_name}.{k}",
-                            v_dict,
-                            formatted_data,
-                            unexpanded_formatted_data,
-                            effective_child_schema,
-                            field,
-                            parent_schema_class,
-                            key_list,
-                        )
-                        recursive_set(formatted_data.data, key_list, v_dict)
-                    else:
-                        print(f"{_INPUT}Skipping non-dict value in dict field {current_item_name}: {k}={v_dict}{_RESET}")
-            else:
-                # Regular dictionary (dict where value is not a schema class) - update as a whole field
-                print(f"Processing regular dictionary field '{field_name}' (type: {field_type}) {_DEBUG} {field_value}")
-                print(f"{_INPUT}parent_schema_class: {parent_schema_class}{_RESET}")
-                self._update_field(
-                    item_name_prefix,
-                    data,
-                    field_name,
-                    field_value,
-                    formatted_data,
-                    parent_schema_class,
-                    field,
-                    keys,
-                )
-
-        elif field_origin is list:
-            # List field
-            item_type = field_args[0] if field_args else Any
-            if isinstance(item_type, ParsedSchemaClass) and isinstance(field_value, list):
-                # List of nested schema classes
-                for i, item_dict in enumerate(field_value):
-                    if isinstance(item_dict, dict):
-                        effective_child_schema = self._inherit_defaults_from_parent(
-                            item_type, parent_schema_class, defaults_to_inherit
-                        )
-                        effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
-
-                        key_list = [*keys, field_name, i]
-                        self._update_recursive(
-                            f"{current_item_name}[{i}]",
-                            item_dict,
-                            formatted_data,
-                            unexpanded_formatted_data,
-                            effective_child_schema,
-                            field,
-                            parent_schema_class,
-                            key_list,
-                        )
-                        recursive_set(formatted_data.data, key_list, item_dict)
-                    else:
-                        print(
-                            f"{_INPUT}Skipping non-dict item in list field {current_item_name}: index {i}={item_dict}{_RESET}"
-                        )
-            else:
-                # Regular list (list where item is not a schema class) - update as a whole field
-                self._update_field(
-                    item_name_prefix,
-                    data,
-                    field_name,
-                    field_value,
-                    formatted_data,
-                    parent_schema_class,
-                    field,
-                    keys,
-                )
-
-        elif isinstance(field_type, ParsedSchemaClass):
-            # Nested single schema class
-            effective_child_schema = self._inherit_defaults_from_parent(field_type, parent_schema_class, defaults_to_inherit)
-            effective_child_schema = self._retrieve_nested_dataclass(effective_child_schema, defaults_to_inherit)
-
-            key_list = [*keys, field_name]
             self._update_recursive(
-                current_item_name,
-                field_value,
+                full_path,
+                current_value,
                 formatted_data,
                 unexpanded_formatted_data,
                 effective_child_schema,
-                field,
-                parent_schema_class,
-                key_list,
+                current_keys
             )
-            recursive_set(formatted_data.data, key_list, field_value)
+            recursive_set(formatted_data.data, current_keys, current_value)
+            return
 
+        # 5. Handle List/Dict of Schema Classes (Generics defined directly on a field, not via Alias)
+        # e.g. fields = { "my_list": "list[MyClass]" }
+        origin = getattr(field_type, "__origin__", None)
+        args = getattr(field_type, "__args__", tuple())
+
+        if origin is list and args and isinstance(args[0], ParsedSchemaClass):
+            # List of Objects
+            item_schema = args[0]
+            if isinstance(current_value, list):
+                for i, item in enumerate(current_value):
+                    effective_schema = self._inherit_defaults_from_parent(item_schema, parent_schema_class, defaults_to_inherit)
+                    self._update_recursive(
+                        f"{full_path}[{i}]",
+                        item,
+                        formatted_data,
+                        unexpanded_formatted_data,
+                        effective_schema,
+                        [*current_keys, i]
+                    )
+                    recursive_set(formatted_data.data, [*current_keys, i], item)
+            return
+
+        elif origin is dict and len(args) > 1 and isinstance(args[1], ParsedSchemaClass):
+            # Dict of Objects
+            val_schema = args[1]
+            if isinstance(current_value, dict):
+                for k, v in current_value.items():
+                    effective_schema = self._inherit_defaults_from_parent(val_schema, parent_schema_class, defaults_to_inherit)
+                    self._update_recursive(
+                        f"{full_path}.{k}",
+                        v,
+                        formatted_data,
+                        unexpanded_formatted_data,
+                        effective_schema,
+                        [*current_keys, k]
+                    )
+                    recursive_set(formatted_data.data, [*current_keys, k], v)
+            return
+
+        # 6. Handle Leaf Nodes (Primitives, or Lists/Dicts of Primitives)
+        # Call the LLM to get a simple value update
+        self._update_field(
+            parent_path,
+            parent_data,
+            field_name,
+            current_value,
+            formatted_data,
+            parent_schema_class,
+            field_def,
+            parent_keys
+        )
+
+    def _initialize_field(self, data: dict, field_name: str, field_def: ParsedSchemaField):
+        """Initializes a missing field with a safe default."""
+        field_type = field_def.type
+
+        # Check origin for generics (list, dict)
+        origin = getattr(field_type, "__origin__", None)
+
+        if origin is list:
+            data[field_name] = []
+        elif origin is dict:
+            data[field_name] = {}
+        elif field_def.default is not None:
+             data[field_name] = copy.deepcopy(field_def.default)
+        elif isinstance(field_type, ParsedSchemaClass):
+            # TODO: If it's a class, instantiate a minimal dict for it
+            data[field_name] = {}
         else:
-            # Simple field (str, int, etc.)
-            self._update_field(
-                item_name_prefix,
-                data,
-                field_name,
-                field_value,
-                formatted_data,
-                parent_schema_class,
-                field,
-                keys,
-            )
+            # Primitives
+            if field_type is str: data[field_name] = ""
+            elif field_type is int: data[field_name] = 0
+            elif field_type is float: data[field_name] = 0.0
+            elif field_type is bool: data[field_name] = False
+            else: data[field_name] = None
+
+        print(f"{_GRAY}Initialized missing field '{field_name}'{_RESET}")
+
+    def _perform_gate_check(
+        self,
+        branch_name: str,
+        template: str,
+        schema_class: ParsedSchemaClass,
+        formatted_data: FormattedData,
+        keys: list
+    ) -> bool:
+        """
+        Asks the LLM a Yes/No question to determine if this branch needs processing.
+        Returns:
+            out: `True` if the branch should be processed, `False` if the branch should be skipped.
+        """
+        gate_check_prompt = self._create_update_prompt(
+            item_name=branch_name,
+            field_name="",  # Not a sub-field, but the branch itself
+            formatted_data=formatted_data,
+            prompt_template_str=template,
+            target_schema_or_type=schema_class,
+            keys=keys,
+        )
+
+        if not gate_check_prompt:
+            return True
+
+        print(f"{_GRAY}Performing gate check for '{branch_name}'...{_RESET}")
+
+        # Contextualize the prompt
+        gate_check_full_prompt = (
+            f"Current context for '{branch_name}':\n"
+            f"{formatted_data.mark_field(branch_name)}\n\n"
+            f"{gate_check_prompt}"
+        )
+
+        current_custom_state = self.custom_state or {}
+        stopping_strings = ["NO", "UNCHANGED", "YES"]
+
+        llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
+            prompt=gate_check_full_prompt,
+            state=current_custom_state,
+            history_path=self.history_path,
+            stopping_strings=stopping_strings,
+            match_prefix_only=True,
+        )
+
+        if shared.stop_everything:
+            return False
+
+        llm_response_text = strip_thinking(llm_response_text).strip()
+        stop_reason = stop_reason.upper() if stop_reason else ""
+
+        print(f"{_GRAY}Gate check response for '{branch_name}': '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}")
+
+        # Logic to determine YES vs NO
+        # 1. Check stopping strings logic
+        if stop_reason in ["NO", "UNCHANGED"]:
+            print(f"{_INPUT}Gate check for '{branch_name}' returned {stop_reason}. Skipping branch.{_RESET}")
+            return False
+
+        # 2. Check text content logic
+        is_negative = (
+            llm_response_text.upper().startswith("NO") or
+            "UNCHANGED" in llm_response_text.upper()
+        )
+
+        if is_negative:
+            print(f"{_INPUT}Gate check for '{branch_name}' returned NO/UNCHANGED. Skipping branch.{_RESET}")
+            return False
+
+        # 3. Default to YES (Process the branch)
+        print(f"{_INPUT}Gate check for '{branch_name}' returned YES. Proceeding.{_RESET}")
+        return True
+
+    def _perform_full_branch_update(
+        self,
+        branch_name: str,
+        data: dict,
+        template: str,
+        formatted_data: FormattedData,
+        schema_class: ParsedSchemaClass,
+        keys: list
+    ) -> bool:
+        """
+        Asks the LLM to rewrite the entire JSON object for the branch.
+        Returns:
+            out: True if the branch was updated, False if not.
+        """
+        print(f"{_INPUT}Attempting direct update for branch '{branch_name}'...{_RESET}")
+
+        # We expect the LLM to return the entire dictionary/object
+        updated_branch_data = self._generate_field_update(
+            item_name_prefix=branch_name,
+            field_name="",
+            current_value=data,
+            formatted_data=formatted_data,
+            prompt_template_str=template,
+            expected_type=dict,  # Full update expects a dict structure
+            target_schema_or_type=schema_class,
+            keys=keys,
+            context_marker_path_override=branch_name,
+        )
+
+        if shared.stop_everything:
+            return False
+
+        if (
+            updated_branch_data is not None
+            and isinstance(updated_branch_data, dict)
+            and updated_branch_data is not data
+        ):
+            # Simple equality check to see if it actually changed (set a flag instead?)
+            if updated_branch_data != data:
+                print(f"{_SUCCESS}Applying direct branch update to '{branch_name}'.{_RESET}")
+                data.update(updated_branch_data)
+                return True
+            else:
+                print(f"{_GRAY}Direct branch update for '{branch_name}' resulted in identical data.{_RESET}")
+                return True  # Returned valid data, just no change needed. Stop recursion.
+
+        elif updated_branch_data is None:
+            print(f"{_ERROR}Direct branch update for '{branch_name}' returned None.{_RESET}")
+            return False  # Failed, maybe try recursion?
+
+        return False
+
+    def _perform_branch_query(
+        self,
+        branch_name: str,
+        data: dict,
+        formatted_data: FormattedData,
+        query_template: str,
+        update_template: str,
+        schema_class: ParsedSchemaClass,
+        keys: list
+    ):
+        """
+        Performs the "Diff" strategy:
+        1. Asks "Are there changes?"
+        2. If YES, asks "List the changes (path, value)"
+        3. Applies changes relative to this branch
+        """
+        # --- Step 1: Query ---
+        branch_query_prompt = self._create_update_prompt(
+            item_name=branch_name,
+            field_name="",
+            formatted_data=formatted_data,
+            prompt_template_str=query_template,
+            target_schema_or_type=schema_class,
+            keys=keys,
+        )
+
+        if not branch_query_prompt:
+            return
+
+        print(f"{_GRAY}Querying LLM: Does branch '{branch_name}' need updates?{_RESET}")
+
+        branch_query_full_prompt = (
+            f"Current context for '{branch_name}':\n"
+            f"{formatted_data.mark_field(branch_name)}\n\n"
+            f"{branch_query_prompt}"
+        )
+
+        current_custom_state = self.custom_state or {}
+        query_stopping_strings = ["NO", "UNCHANGED", "YES"]
+
+        llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
+            prompt=branch_query_full_prompt,
+            state=current_custom_state,
+            history_path=self.history_path,
+            stopping_strings=query_stopping_strings,
+            match_prefix_only=True,
+        )
+
+        if shared.stop_everything:
+            return
+
+        llm_response_text = strip_thinking(llm_response_text).strip()
+        stop_reason = stop_reason.upper() if stop_reason else ""
+
+        print(f"{_GRAY}Query branch '{branch_name}' response: '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}")
+
+        # Check if negative response
+        if stop_reason in ["NO", "UNCHANGED"] or llm_response_text.upper() in ["NO", "UNCHANGED", "NO_UPDATES_REQUIRED"]:
+            print(f"{_INPUT}Skipping updates for branch '{branch_name}' (query returned NO).{_RESET}")
+            return
+
+        # --- Step 2: Request List of Changes ---
+        # Simulate a conversation history so the LLM knows it just said "YES"
+        temp_state = copy.deepcopy(current_custom_state)
+        temp_state["history"]["internal"].append([branch_query_full_prompt, llm_response_text])
+
+        branch_update_prompt = self._create_update_prompt(
+            item_name=branch_name,
+            field_name="",
+            formatted_data=formatted_data,
+            prompt_template_str=update_template,
+            target_schema_or_type=schema_class,
+            keys=keys,
+        )
+
+        print(f"{_INPUT}Query for '{branch_name}' suggests changes. Requesting field updates list...{_RESET}")
+
+        branch_update_list_full_prompt = (
+            f"Current context for '{branch_name}':\n"
+            f"{formatted_data.mark_field(branch_name)}\n\n"
+            f"{branch_update_prompt}"
+        )
+
+        update_stopping_strings = ["NO", "END"]
+
+        llm_update_response_text, _ = self.summarizer.generate_using_tgwui(
+            prompt=branch_update_list_full_prompt,
+            state=temp_state,  # Use the temp state with history
+            history_path=self.history_path,
+            stopping_strings=update_stopping_strings,
+            match_prefix_only=True,
+        )
+
+        if shared.stop_everything:
+            return
+
+        # --- Step 3: Parse and Apply ---
+        parsed_updates = self._parse_llm_field_updates(llm_update_response_text, branch_name)
+
+        if parsed_updates:
+            print(f"{_INPUT}Applying {len(parsed_updates)} field update(s) to '{branch_name}'...{_RESET}")
+            for update_item in parsed_updates:
+                path_str = update_item["path"]
+                value = update_item["value"]
+
+                # Convert path string to key list (e.g. "status.0.name" -> ["status", 0, "name"])
+                keyList_relative_to_branch = split_keys_to_list(path_str)
+
+                try:
+                    recursive_set(data, keyList_relative_to_branch, value)  # Modifies 'data' in place
+                    print(f"{_GRAY}[{branch_name}] Applied update: {path_str} = {repr(value)}{_RESET}")
+
+                    # Also keep the 'formatted_data' in sync if needed by future prompts in this run
+                    # (This depends on if your recursive_set handles the wrapper object or just dicts)
+                    # recursive_set(formatted_data.data, [*keys, *keyList_relative_to_branch], value)
+
+                except Exception as e:
+                    print(f"{_ERROR}[{branch_name}] Failed to apply update {path_str} = {repr(value)}: {e}{_RESET}")
+                    # traceback.print_exc()
+        else:
+            print(f"{_GRAY}No specific field updates applied to '{branch_name}' from branch query response.{_RESET}")
 
     def _retrieve_nested_field(
         self,
@@ -967,14 +1096,14 @@ class DataSummarizer:
         """Recursively retrieve nested fields in a parent field, ending on the field holding the final schema field class.
 
         Example:
-            ParsedSchemaClass['field'] -> ParsedSchemaClass['field'] -> ParsedSchemaClass['dataclass'] => ParsedSchemaField[ParsedSchemaClass['dataclass']]
+            ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='dataclass') => ParsedSchemaField(type=ParsedSchemaClass(type='dataclass'))
         """
         effective_child_schema = target_schema_class
         i = 0
         while (
-            effective_child_schema.definition_type == "field"
+            effective_child_schema.definition_type == "alias"
             and isinstance(effective_child_schema._field.type, ParsedSchemaClass)
-            and effective_child_schema._field.type.definition_type == "field"
+            and effective_child_schema._field.type.definition_type == "alias"
         ):
             i += 1
             effective_child_schema = self._inherit_defaults_from_parent(
@@ -995,11 +1124,11 @@ class DataSummarizer:
         """Recursively retrieve nested fields in a parent field, ending on the final schema field class.
 
         Example:
-            ParsedSchemaClass['field'] -> ParsedSchemaClass['field'] -> ParsedSchemaClass['dataclass'] => ParsedSchemaClass['dataclass']
+            ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='dataclass') => ParsedSchemaClass(type='dataclass')
         """
         effective_child_schema = target_schema_class
         i = 0
-        while effective_child_schema.definition_type == "field" and isinstance(
+        while effective_child_schema.definition_type == "alias" and isinstance(
             effective_child_schema._field.type, ParsedSchemaClass
         ):
             i += 1
@@ -1151,7 +1280,10 @@ class DataSummarizer:
                                 f"{_ERROR}LLM response for dict field {context_path_for_marker} is not valid JSON: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
                             )
                             return current_value
-                    return text
+                    try:
+                        return json.loads(text)
+                    except json.JSONDecodeError:
+                        return text
                 except (ValueError, TypeError) as e:
                     print(
                         f"{_ERROR}Could not convert LLM response '{text}' to type {expected_type} for {context_path_for_marker}: {e}{_RESET}"
@@ -1222,6 +1354,7 @@ class DataSummarizer:
             keys=keys,
         )
 
+        print(f"{_INPUT}Updated {parent_item_name_prefix}.{field_name} from '''\n{_RESET}{field_value}{_INPUT}\n''' to '''\n{_BOLD}{updated_value}{_INPUT}\n'''{_RESET}")
         parent_data_object.update({ field_name: updated_value })
 
     def _create_update_prompt(
