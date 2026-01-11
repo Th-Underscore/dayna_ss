@@ -1660,30 +1660,30 @@ class FormattedData:
 
             formatted_str.append(
                 "\n\n".join(
-                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< {prefix}events.past[{i}], {prefix}events.past[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.past[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.past[{i}].summary"
-                    for i, event_data in enumerate_list(data.get("past", []))
+                    f"Event -- {name} <<<<<<<<<<<< {prefix}events.past.{name} (key)\n"
+                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.past.{name}.start.date\n"
+                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.past.{name}.summary"
+                    for name, event_data in data.get("past", {}).items()
                 )
                 or "Empty"
             )
 
             formatted_str.append(
                 "\n\n".join(
-                    f"Scene -- {event_data.get('name')} <<<<<<<<<<<< {prefix}events.scenes[{i}], {prefix}events.scenes[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.scenes[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.scenes[{i}].summary"
-                    for i, event_data in enumerate_list(data.get("scenes", []))
+                    f"Scene -- {name} <<<<<<<<<<<< {prefix}events.scenes.{name} (key)\n"
+                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.scenes.{name}.start.date\n"
+                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.scenes.{name}.summary"
+                    for name, event_data in data.get("scenes", {}).items()
                 )
                 or "Empty"
             )
 
             formatted_str.append(
                 "\n\n".join(
-                    f"Event -- {event_data.get('name')} <<<<<<<<<<<< {prefix}events.events[{i}].name\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.events[{i}].start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.events[{i}].summary"
-                    for i, event_data in enumerate_list(data.get("events", []))
+                    f"Event -- {name} <<<<<<<<<<<< {prefix}events.events.{name} (key)\n"
+                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.events.{name}.start.date\n"
+                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.events.{name}.summary"
+                    for name, event_data in data.get("events", {}).items()
                 )
                 or "Empty"
             )

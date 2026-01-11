@@ -1,3 +1,5 @@
+# TODO: Make subject-relationships dynamic indexing (schema?)
+
 import jsonc
 import re
 from dataclasses import dataclass, field
@@ -134,8 +136,7 @@ class StoryContextRetriever:
         relevant_events = {}
 
         if "scenes" in self.events:
-            for scene in self.events["scenes"]:
-                scene_name = scene.get("name", "")
+            for scene_name, scene in self.events["scenes"].items():
                 # Check if event is mentioned in context
                 if re.search(scene_name, context, flags=re.IGNORECASE):
                     relevant_events[scene_name] = scene
