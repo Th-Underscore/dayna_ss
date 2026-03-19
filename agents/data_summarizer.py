@@ -18,6 +18,7 @@ from extensions.dayna_ss.utils.helpers import (
     _BOLD,
     _RESET,
     _DEBUG,
+    load_json,
     save_json,
     split_keys_to_list,
     recursive_set,
@@ -43,6 +44,8 @@ defaults_to_inherit = [
     "branch_query_prompt_template",
     "branch_update_prompt_template",
     "update_prompt_template",
+    "fallback_interval",
+    "fallback_on",
 ]
 
 
@@ -136,14 +139,32 @@ class DataSummarizer:
         # Boolean flags for actions are now handled by trigger_map.
         return None
 
-    def _get_current_event_triggers(self):
-        """Get the current event triggers based on the last turn, which can be used to determine whether an action is triggered."""
+    def _get_current_event_triggers(self, schema_class: ParsedSchemaClass | None = None) -> list[Trigger]:
+        """Get the current event triggers based on the last turn, which can be used to determine whether an action is triggered.
+        
+        If schema_class is provided and has fallback configuration, checks if the fallback threshold
+        has been reached and adds ON_FALLBACK to the triggers.
+        """
         current_event_triggers = [Trigger.ALWAYS]
         if self.summarizer.last and self.summarizer.last.is_new_scene_turn:
             current_event_triggers.append(Trigger.ON_NEW_SCENE)
+            if schema_class and schema_class.fallback_on == Trigger.ON_NEW_SCENE:
+                schema_class.increment_fallback_count()
         else:
             current_event_triggers.append(Trigger.ON_EXISTING_SCENE)
+            if schema_class and schema_class.fallback_on == Trigger.ON_EXISTING_SCENE:
+                schema_class.increment_fallback_count()
+
+        if schema_class and schema_class.should_trigger_fallback():
+            current_event_triggers.append(Trigger.ON_FALLBACK)
+            print(f"{_INPUT}Fallback triggered for '{schema_class.name}' (count: {schema_class._last_fallback_count}, interval: {schema_class.fallback_interval}){_RESET}")
+
         return current_event_triggers
+
+    def _reset_fallback_count_if_triggered(self, schema_class: ParsedSchemaClass) -> None:
+        """Reset the fallback counter after ON_FALLBACK has been processed."""
+        if schema_class.should_trigger_fallback():
+            schema_class.reset_fallback_count()
 
     def _is_action_triggered(  # TODO?: Also accept overrides?
         self,
@@ -154,7 +175,7 @@ class DataSummarizer:
         """Whether a given action is triggered by any of the current event conditions. Use `_should_update_subject` for a general check."""
         if not schema_class or not schema_class.trigger_map:
             return False
-        for trigger in event_triggers or self._get_current_event_triggers():
+        for trigger in event_triggers or self._get_current_event_triggers(schema_class):
             if action in schema_class.trigger_map.get(trigger, []):
                 return True
         return False
@@ -163,7 +184,7 @@ class DataSummarizer:
         """Whether the subject should be updated at all based on the schema_class's trigger_map. Use `_is_action_triggered` for more fine-grained control."""
         if not schema_class or not schema_class.trigger_map:
             return False
-        for trigger in event_triggers or self._get_current_event_triggers():
+        for trigger in event_triggers or self._get_current_event_triggers(schema_class):
             if schema_class.trigger_map.get(trigger):
                 return True
         return False
@@ -480,7 +501,7 @@ class DataSummarizer:
             print(f"{_ERROR}Target schema is not a ParsedSchemaClass: {type(target_schema_class)}{_RESET}")
             return data
 
-        current_event_triggers = self._get_current_event_triggers()
+        current_event_triggers = self._get_current_event_triggers(target_schema_class)
         branch_name = item_name_prefix or target_schema_class.name
 
         print(f"{_BOLD}Processing Schema Node: {target_schema_class.name} ({target_schema_class.definition_type}) at '{branch_name}'{_RESET}")
@@ -865,11 +886,16 @@ class DataSummarizer:
 
         print(f"{_GRAY}Performing gate check for '{branch_name}'...{_RESET}")
 
+        fallback_note = ""
+        if schema_class.should_trigger_fallback():
+            fallback_note = f"\n\n[FALLBACK: This is a fallback trigger after {schema_class.fallback_interval} scenes without processing. Consider responding YES if any updates may be needed.]\n"
+
         # Contextualize the prompt
         gate_check_full_prompt = (
             f"Current context for '{branch_name}':\n"
             f"{formatted_data.mark_field(branch_name)}\n\n"
             f"{gate_check_prompt}"
+            f"{fallback_note}"
         )
 
         current_custom_state = self.custom_state or {}
@@ -895,6 +921,7 @@ class DataSummarizer:
         # 1. Check stopping strings logic
         if stop_reason in ["NO", "UNCHANGED"]:
             print(f"{_INPUT}Gate check for '{branch_name}' returned {stop_reason}. Skipping branch.{_RESET}")
+            self._reset_fallback_count_if_triggered(schema_class)
             return False
 
         # 2. Check text content logic
@@ -905,6 +932,7 @@ class DataSummarizer:
 
         if is_negative:
             print(f"{_INPUT}Gate check for '{branch_name}' returned NO/UNCHANGED. Skipping branch.{_RESET}")
+            self._reset_fallback_count_if_triggered(schema_class)
             return False
 
         # 3. Default to YES (Process the branch)
@@ -1358,6 +1386,187 @@ class DataSummarizer:
         print(f"{_INPUT}Updated {parent_item_name_prefix}.{field_name} from '''\n{_RESET}{field_value}{_INPUT}\n''' to '''\n{_BOLD}{updated_value}{_INPUT}\n'''{_RESET}")
         parent_data_object.update({ field_name: updated_value })
 
+    def _resolve_cross_branch_reference(self, reference: str) -> str:
+        """Resolve a {subjects.X.Y.Z} style reference to a formatted string.
+        
+        Syntax:
+            {subjects.characters.John.description}      → Formatted
+            {subjects.characters.John.description:raw} → Raw JSON
+            {subjects.events.scenes[-1]}              → Formatted, last scene
+            {subjects.arcs[-1].summary}                 → Formatted, last arc
+        
+        Args:
+            reference: The reference string (including curly braces)
+            
+        Returns:
+            Formatted or raw string value, or error message if not found.
+        """
+        # Remove curly braces
+        ref_content = reference.strip("{}")
+        
+        # Check for :raw suffix
+        raw_format = False
+        if ref_content.endswith(":raw"):
+            raw_format = True
+            ref_content = ref_content[:-5]
+        
+        # Parse path parts
+        parts = ref_content.split(".")
+        
+        if not parts or parts[0] != "subjects":
+            return f"[Invalid reference: {reference}]"
+        
+        # Get subject name (e.g., "characters", "arcs", "events")
+        if len(parts) < 2:
+            return f"[Invalid reference path: {reference}]"
+        
+        subject_name = parts[1]
+        
+        # Load subject data from history_path
+        subject_data = {}
+        subject_path = self.history_path / f"{subject_name}.json"
+        if subject_path.exists():
+            try:
+                subject_data = load_json(subject_path) or {}
+            except Exception as e:
+                print(f"{_ERROR}Error loading subject data for '{subject_name}': {e}{_RESET}")
+                return f"[Error loading {subject_name}]"
+        else:
+            # Subject file doesn't exist yet
+            return f"[{subject_name} not yet initialized]"
+        
+        # Navigate the remaining path
+        value = self._resolve_fuzzy_path(subject_data, parts[2:])
+        
+        if value is None:
+            return f"[{subject_name}: path not found]"
+        
+        # Format the result
+        if raw_format:
+            return json.dumps(value, indent=2)
+        
+        return self._format_for_llm(value)
+
+    def _resolve_fuzzy_path(self, data: dict | list, path_parts: list[str]) -> Any:
+        """Navigate nested structure with fuzzy name matching.
+        
+        Args:
+            data: The data to navigate (dict or list)
+            path_parts: List of path components (e.g., ["John", "description"] or ["-1", "summary"])
+            
+        Returns:
+            The value at the resolved path, or None if not found.
+        """
+        if not path_parts:
+            return data
+        
+        current = data
+        
+        for part in path_parts:
+            if isinstance(current, dict):
+                # Fuzzy match against keys
+                matched_key = self._fuzzy_match(list(current.keys()), part)
+                if matched_key:
+                    current = current[matched_key]
+                else:
+                    return None
+            elif isinstance(current, list):
+                # Handle list indices (including negative)
+                try:
+                    idx = int(part)
+                    current = current[idx]
+                except (ValueError, IndexError):
+                    return None
+            else:
+                return None
+        
+        return current
+
+    def _fuzzy_match(self, keys: list[str], pattern: str) -> str | None:
+        """Match pattern against keys (case-insensitive, partial match).
+        
+        "John" matches "John Smith", "john_doe", "Johnny"
+        Returns first match or original pattern if exact match found.
+        
+        Args:
+            keys: List of available keys
+            pattern: Pattern to match
+            
+        Returns:
+            Matched key or None
+        """
+        pattern_lower = pattern.lower()
+        
+        # First try exact match
+        for key in keys:
+            if key.lower() == pattern_lower:
+                return key
+        
+        # Then try partial match
+        for key in keys:
+            if pattern_lower in key.lower():
+                return key
+        
+        # Return original pattern as fallback (might work for direct access)
+        return pattern if pattern in keys else None
+
+    def _format_for_llm(self, value: Any, max_length: int = 2000) -> str:
+        """Format a value for inclusion in LLM prompts.
+        
+        Args:
+            value: The value to format
+            max_length: Maximum length before truncation
+            
+        Returns:
+            Formatted string representation
+        """
+        if value is None:
+            return "N/A"
+        
+        if isinstance(value, dict):
+            lines = []
+            for k, v in value.items():
+                if isinstance(v, (dict, list)):
+                    v_str = json.dumps(v, indent=2)[:200]
+                else:
+                    v_str = str(v)
+                lines.append(f"- {k}: {v_str}")
+            result = "\n".join(lines) if lines else "Empty"
+        elif isinstance(value, list):
+            if not value:
+                return "Empty"
+            # Format list items
+            lines = []
+            for i, item in enumerate(value[:20]):  # Limit to 20 items
+                if isinstance(item, dict):
+                    lines.append(f"[{i}]: {json.dumps(item, indent=2)[:150]}...")
+                else:
+                    lines.append(f"[{i}]: {str(item)}")
+            result = "\n".join(lines)
+            if len(value) > 20:
+                result += f"\n... and {len(value) - 20} more items"
+        else:
+            result = str(value)
+        
+        # Truncate if too long
+        if len(result) > max_length:
+            result = result[:max_length] + "..."
+        
+        return result
+
+    def _extract_cross_branch_references(self, template: str) -> list[str]:
+        """Extract all {subjects.X.Y.Z} references from a template string.
+        
+        Args:
+            template: The template string to scan
+            
+        Returns:
+            List of reference strings found (including curly braces)
+        """
+        import re
+        pattern = r'\{subjects\.[^}]+\}'
+        return re.findall(pattern, template)
+
     def _create_update_prompt(
         self,
         item_name: str,
@@ -1441,6 +1650,16 @@ class DataSummarizer:
             "{char}": state["name2"],
             **kwargs,
         }
+        
+        # Resolve cross-branch references ({subjects.X.Y.Z})
+        cross_refs = self._extract_cross_branch_references(prompt_template_str)
+        for ref in cross_refs:
+            resolved_value = self._resolve_cross_branch_reference(ref)
+            ref_key = ref.strip("{}")
+            format_kwargs[ref_key] = resolved_value
+            ref_key_compat = ref_key.replace(".", "_")
+            format_kwargs[ref_key_compat] = resolved_value
+        
         if entry_name is not None:
             format_kwargs["entry_name"] = entry_name
 

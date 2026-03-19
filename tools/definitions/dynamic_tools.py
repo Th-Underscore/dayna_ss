@@ -121,6 +121,50 @@ CAUTION: This modifies the knowledge base. Use dss_get_info first to understand 
                     "required": ["path", "value"]
                 }
             }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "dss_close_arc",
+                "description": """Close an active narrative arc, marking it as concluded.
+
+Use this when a narrative arc has reached its natural conclusion and should no longer be considered active.
+An arc's ending scene will be set to the current scene index.
+
+Examples:
+  - arc_title="The Betrayal" - Close the arc titled "The Betrayal"
+  - arc_title="The Hunt", conclusion="The heroes found the artifact" - Close with summary""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "arc_title": {
+                            "type": "string",
+                            "description": "Title of the arc to close (will use fuzzy matching)"
+                        },
+                        "conclusion_summary": {
+                            "type": "string",
+                            "description": "Optional summary of how this arc concluded"
+                        }
+                    },
+                    "required": ["arc_title"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "dss_list_arcs",
+                "description": """List all narrative arcs in the story.
+
+Use this to see existing arcs, their status, and which scenes they're active in.
+
+Examples:
+  - "" or no arguments - List all arcs""",
+                "parameters": {
+                    "type": "object",
+                    "properties": {}
+                }
+            }
         }
     ]
 
@@ -149,11 +193,23 @@ def create_dss_tool_executors(summarizer: "Summarizer") -> dict[str, Callable]:
         result = _set_info(summarizer, path, value)
         return json.dumps(result, indent=2, ensure_ascii=False)
     
+    def dss_close_arc(arguments: dict) -> str:
+        arc_title = arguments.get("arc_title", "")
+        conclusion_summary = arguments.get("conclusion_summary", "")
+        result = _close_arc(summarizer, arc_title, conclusion_summary)
+        return json.dumps(result, indent=2, ensure_ascii=False)
+    
+    def dss_list_arcs(arguments: dict) -> str:
+        result = _list_arcs(summarizer)
+        return json.dumps(result, indent=2, ensure_ascii=False)
+    
     return {
         "dss_get_info": dss_get_info,
         "dss_search_info": dss_search_info,
         "dss_list_paths": dss_list_paths,
         "dss_set_info": dss_set_info,
+        "dss_close_arc": dss_close_arc,
+        "dss_list_arcs": dss_list_arcs,
     }
 
 
@@ -219,7 +275,7 @@ def _search_info(summarizer: "Summarizer", query: str) -> dict:
     query_lower = query.lower()
     results = []
 
-    for attr_name in ["characters", "groups", "events", "general_info", "current_scene"]:
+    for attr_name in ["characters", "groups", "events", "general_info", "current_scene", "arcs"]:
         data = getattr(retrieval_context, attr_name, None)
         if data is not None:
             results.extend(_search_in_dict(data, attr_name, query_lower))
@@ -313,7 +369,7 @@ def _list_paths(summarizer: "Summarizer", path: str) -> dict:
     if not path:
         return {
             "path": "",
-            "paths": ["characters", "groups", "current_scene", "events", "general_info"],
+            "paths": ["characters", "groups", "current_scene", "events", "general_info", "arcs"],
             "description": "Top-level categories in the knowledge base"
         }
 
@@ -393,3 +449,134 @@ def _set_path_value(data: dict, parts: list[str], value: Any) -> None:
         current[final_key] = value
     else:
         raise ValueError(f"Cannot set value on non-dict container at '{final_key}'")
+
+
+def _close_arc(summarizer: "Summarizer", arc_title: str, conclusion_summary: str = "") -> dict:
+    """Close an active narrative arc.
+    
+    Args:
+        summarizer: The Summarizer instance
+        arc_title: Title of the arc to close (fuzzy matched)
+        conclusion_summary: Optional summary of how the arc concluded
+        
+    Returns:
+        Result dict with success status and details
+    """
+    if not summarizer.last or not summarizer.last.history_path:
+        return {"error": "No history path available. Start a conversation first."}
+    
+    arcs_path = summarizer.last.history_path / "arcs.json"
+    
+    try:
+        # Load arcs data
+        if arcs_path.exists():
+            with open(arcs_path, "r", encoding="utf-8") as f:
+                arcs_data = json.load(f)
+        else:
+            arcs_data = []
+        
+        # Find arc by fuzzy matching title
+        arc_title_lower = arc_title.lower()
+        arc_index = None
+        matched_title = None
+        
+        for i, arc in enumerate(arcs_data):
+            arc_title_in_arc = arc.get("title", "").lower()
+            if arc_title_lower in arc_title_in_arc or arc_title_in_arc in arc_title_lower:
+                arc_index = i
+                matched_title = arc.get("title")
+                break
+        
+        if arc_index is None:
+            return {
+                "error": f"Arc '{arc_title}' not found",
+                "available_arcs": [arc.get("title") for arc in arcs_data if arc.get("status") == "active"],
+                "hint": "Use dss_list_arcs() to see available arcs"
+            }
+        
+        # Get current scene index from events
+        current_scene_idx = 0
+        events_path = summarizer.last.history_path / "events.json"
+        if events_path.exists():
+            with open(events_path, "r", encoding="utf-8") as f:
+                events_data = json.load(f)
+                scenes = events_data.get("scenes", {})
+                current_scene_idx = len(scenes) - 1 if scenes else 0
+        
+        # Close the arc
+        arcs_data[arc_index]["ending_scene"] = current_scene_idx
+        arcs_data[arc_index]["status"] = "concluded"
+        
+        if conclusion_summary:
+            arcs_data[arc_index]["summary"] = (
+                arcs_data[arc_index].get("summary", "") + 
+                f"\n\nConclusion: {conclusion_summary}"
+            )
+        
+        # Save arcs data
+        with open(arcs_path, "w", encoding="utf-8") as f:
+            json.dump(arcs_data, f, indent=2)
+        
+        return {
+            "success": True,
+            "arc_title": matched_title,
+            "ending_scene": current_scene_idx,
+            "status": "concluded",
+            "message": f"Arc '{matched_title}' has been closed"
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to close arc: {str(e)}"}
+
+
+def _list_arcs(summarizer: "Summarizer") -> dict:
+    """List all narrative arcs.
+    
+    Args:
+        summarizer: The Summarizer instance
+        
+    Returns:
+        Dict with list of arcs and their details
+    """
+    if not summarizer.last or not summarizer.last.history_path:
+        return {"error": "No history path available. Start a conversation first.", "arcs": []}
+    
+    arcs_path = summarizer.last.history_path / "arcs.json"
+    
+    try:
+        if not arcs_path.exists():
+            return {
+                "arcs": [],
+                "message": "No arcs have been created yet"
+            }
+        
+        with open(arcs_path, "r", encoding="utf-8") as f:
+            arcs_data = json.load(f)
+        
+        # Format arcs for display
+        formatted_arcs = []
+        for arc in arcs_data:
+            formatted_arcs.append({
+                "title": arc.get("title", "Untitled"),
+                "status": arc.get("status", "unknown"),
+                "starting_scene": arc.get("starting_scene"),
+                "ending_scene": arc.get("ending_scene"),
+                "scenes": arc.get("scenes", []),
+                "summary": _truncate_preview(arc.get("summary", ""), max_len=300)
+            })
+        
+        # Group by status
+        active = [a for a in formatted_arcs if a["status"] == "active"]
+        concluded = [a for a in formatted_arcs if a["status"] == "concluded"]
+        
+        return {
+            "total": len(formatted_arcs),
+            "active_count": len(active),
+            "concluded_count": len(concluded),
+            "active_arcs": active,
+            "concluded_arcs": concluded,
+            "all_arcs": formatted_arcs
+        }
+        
+    except Exception as e:
+        return {"error": f"Failed to list arcs: {str(e)}", "arcs": []}

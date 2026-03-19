@@ -1948,6 +1948,19 @@ class FormattedData:
                     f"Events --- <<<<<<<<<<<< {prefix}events.events\n{formatted_str[2]}"
                 )
 
+            if data_type == "arcs" or data_type == "arc_list":
+                if not isinstance(data, list):
+                    data = []
+                return "\n\n".join(
+                    f"Arc [{i}] --- {arc.get('title', 'Untitled')} <<<<<<<<<<<< {prefix}arcs[{i}] (index)\n"
+                    f"Status --- {arc.get('status', 'unknown')} <<<<<<<<<<<< {prefix}arcs[{i}].status\n"
+                    f"Scenes --- {arc.get('scenes', [])} <<<<<<<<<<<< {prefix}arcs[{i}].scenes\n"
+                    f"Summary --- {arc.get('summary', 'No summary')} <<<<<<<<<<<< {prefix}arcs[{i}].summary\n"
+                    f"Character Arcs --- {arc.get('character_arcs', 'N/A')} <<<<<<<<<<<< {prefix}arcs[{i}].character_arcs\n"
+                    f"Relationship Shifts --- {arc.get('relationship_shifts', 'N/A')} <<<<<<<<<<<< {prefix}arcs[{i}].relationship_shifts"
+                    for i, arc in enumerate(data)
+                ) or "No arcs yet."
+
             if data_type == "general_info":
                 # TODO: Hardcode more fields via all_subjects_data
                 return (
