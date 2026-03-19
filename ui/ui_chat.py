@@ -11,6 +11,8 @@ from extensions.dayna_ss.agents.summarizer import Summarizer
 from extensions.dayna_ss.ui import utils
 from extensions.dayna_ss.ui.utils import gradio
 
+from extensions.dayna_ss.utils.helpers import _HILITE, _INPUT, _RESET, History
+
 summarizer = Summarizer()
 
 
@@ -230,16 +232,35 @@ def create_block_ui():
             value=dss_shared.persistent_ui_state.get("dss_toggle", True),
             interactive=True,
         )
+        dss_shared.gradio["do_instr"] = gr.Checkbox(
+            label="Use Instructions",
+            value=dss_shared.persistent_ui_state.get("do_instr", True),
+            interactive=True,
+        )
     with gr.Row():
         dss_shared.gradio["next_scene"] = gr.Checkbox(
             label="Next scene",
             value=dss_shared.persistent_ui_state.get("next_scene", False),
             interactive=True,
         )
-        dss_shared.gradio["summarize"] = gr.Button("Summarize", size="sm")
+        with gr.Column():
+            dss_shared.gradio["generate_instruction"] = gr.Button("in: Generate Instruction", size="sm")
+            dss_shared.gradio["summarize"] = gr.Button("out: Summarize", size="sm")
     with gr.Row():
         dss_shared.gradio["count_tokens"] = gr.Button("Count tokens", size="sm")
     dss_shared.gradio["token_display"] = gr.HTML(value="", elem_classes="token-display")
+
+    with gr.Row():
+        dss_shared.gradio["tool_activity_toggle"] = gr.Checkbox(
+            label="Show Tool Activity",
+            value=False,
+            interactive=True,
+        )
+    with gr.Row():
+        dss_shared.gradio["tool_activity"] = gr.HTML(
+            value="<div class='tool-activity' style='font-family: monospace; font-size: 12px; padding: 10px; background: #1a1a1a; color: #00ff00; border-radius: 5px; min-height: 100px; max-height: 200px; overflow-y: auto;'><em>Tool activity will appear here...</em></div>",
+            elem_classes="tool-activity",
+        )
 
 
 def create_event_handlers():
@@ -387,6 +408,10 @@ def create_event_handlers():
     dss_shared.gradio["dss_toggle"].change(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     )
+    
+    dss_shared.gradio["do_instr"].change(
+        utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
+    )
 
     dss_shared.gradio["next_scene"].change(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
@@ -401,17 +426,39 @@ def create_event_handlers():
         show_progress=False,
     )
 
+    dss_shared.gradio["generate_instruction"].click(
+        utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
+    ).then(
+        generate_instr_for_latest_exchange,
+        [shared.gradio["textbox"], shared.gradio["interface_state"]],
+        [shared.gradio["history"]],
+        show_progress=False,
+    )
+
 
 def summarize_latest_exchange(state: dict):
     global summarizer
     try:
-        history = state["history"]["internal"]
+        history: History = state["history"]["internal"]
     except TypeError as e:
         gr.Error("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
         raise TypeError("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
     output = history[-1][1]
     user_input = history[-1][0]
     summarizer.summarize_latest_state(output, user_input, state, history)  # history[-1][0] is mutated
+    return {"visible": state["history"]["visible"], "internal": history}
+
+
+def generate_instr_for_latest_exchange(textbox: dict, state: dict):
+    global summarizer
+    try:
+        history: History = state["history"]["internal"]
+    except TypeError as e:
+        gr.Error("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
+        raise TypeError("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
+    print(f'{_INPUT}{textbox["text"] or history[-1][0]}{_RESET}')
+    user_input = textbox["text"] or history[-1][0]
+    summarizer.generate_instr_prompt(user_input, state, history)
     return {"visible": state["history"]["visible"], "internal": history}
 
 

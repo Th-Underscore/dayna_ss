@@ -11,6 +11,8 @@ import modules.shared as shared
 
 import extensions.dayna_ss.shared as dss_shared
 from extensions.dayna_ss.agents.summarizer import Summarizer
+import extensions.dayna_ss.tools.tgwui_integration as tgwui_integration
+from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_definitions
 
 from extensions.dayna_ss.utils.helpers import (
     _ERROR,
@@ -85,6 +87,13 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
 
     if not summarizer:
         summarizer = Summarizer(_CONFIG_PATH)
+        tool_defs = create_dss_tool_definitions()
+        tgwui_integration.register_dss_tool_executors(summarizer.dss_tool_executors)
+        tgwui_integration._dss_tool_definitions = tool_defs
+        
+        def dss_enabled_check():
+            return dss_shared.persistent_ui_state.get("dss_toggle", True)
+        tgwui_integration.set_dss_enabled_check(dss_enabled_check)
 
     handle_input(user_input, state, history)
 
@@ -109,6 +118,8 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
             print(f"{_HILITE}Stop signal received after instruction prompt generation.{_RESET}")
             shared.stop_everything = False
             return ""
+        
+        tgwui_integration.add_dss_tools_to_state(custom_state, tgwui_integration._dss_tool_definitions)
         if timestamp_str:
             # TODO: Only rewrite if not _continue or regenerate
             summarizer.save_message_chunks(user_input, index, timestamp_str)

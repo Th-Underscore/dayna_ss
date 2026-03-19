@@ -157,7 +157,9 @@ def list_interface_input_elements():
         "instruction_template_str",
         "chat_template_str",
         "dss_toggle",
+        "do_instr",
         "next_scene",
+        "tool_activity_toggle",
     ]
 
     # Model elements
@@ -175,3 +177,27 @@ def gather_interface_values(*args):
         dss_shared.persistent_ui_state[element] = value
 
     return output
+
+
+def update_tool_activity(tool_name: str, status: str, details: str = "") -> str:
+    """Generate HTML for tool activity display."""
+    color_map = {
+        "executing": "#ffff00",  # Yellow
+        "success": "#00ff00",  # Green
+        "error": "#ff4444",  # Red
+        "info": "#00ffff",  # Cyan
+    }
+    color = color_map.get(status, "#ffffff")
+
+    timestamp = f'<span style="color: #888;">[{__import__("datetime").datetime.now().strftime("%H:%M:%S")}]</span>'
+
+    if status == "executing":
+        html = f'<div style="color: {color}; margin: 5px 0;">{timestamp} <b>Calling:</b> {tool_name} {details}</div>'
+    elif status == "success":
+        html = f'<div style="color: {color}; margin: 5px 0;">{timestamp} <b>Result:</b> {tool_name} - OK</div>'
+    elif status == "error":
+        html = f'<div style="color: {color}; margin: 5px 0;">{timestamp} <b>Error:</b> {tool_name} - {details}</div>'
+    else:
+        html = f'<div style="color: {color}; margin: 5px 0;">{timestamp} {tool_name}: {details}</div>'
+
+    return html

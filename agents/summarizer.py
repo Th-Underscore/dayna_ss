@@ -1,4 +1,4 @@
-from typing import Any, Generator, TextIO, TYPE_CHECKING
+from typing import Any, Callable, Generator, TextIO, TYPE_CHECKING
 from os import PathLike
 import hashlib
 import io
@@ -58,6 +58,13 @@ from extensions.dayna_ss.utils.schema_parser import SchemaParser, ParsedSchemaCl
 from extensions.dayna_ss.utils.background_importer import (
     start_background_import,
     get_imported_attribute,
+)
+
+from extensions.dayna_ss.tools.definitions.dynamic_tools import (
+    create_dss_tool_executors,
+)
+from extensions.dayna_ss.tools.tgwui_integration import (
+    register_dss_tool_executors,
 )
 
 start_background_import("torch", "no_grad")
@@ -129,6 +136,14 @@ class Summarizer:
         #     persist_directory="extensions/dayna_ss/storage/vectors"
         # )
         self.last: SummarizationContextCache | None = None
+        self.dss_tool_executors: dict[str, Callable] = {}
+        self._init_tool_registry()
+
+    def _init_tool_registry(self) -> None:
+        """Initialize DSS tool executors for TGWUI's native tool system."""
+        self.dss_tool_executors = create_dss_tool_executors(self)
+        register_dss_tool_executors(self.dss_tool_executors)
+        print(f"{_SUCCESS}Initialized DSS tool executors: {list(self.dss_tool_executors.keys())}{_RESET}")
 
     def _load_config(self, config_path: PathLike) -> dict:
         """Load summarizer configuration from a JSON file at `config_path`."""
@@ -139,7 +154,7 @@ class Summarizer:
         prompt: str,
         state: dict,
         history_path: Path | None = None,
-        stopping_strings: list[str] | None = ["Unchanged", "unchanged"],
+        stopping_strings: list[str] | None = ["UNCHANGED"],
         match_prefix_only: bool = True,
         **kwargs,
     ) -> tuple[str, str]:
@@ -215,7 +230,7 @@ class Summarizer:
         self,
         prompt: str,
         state: dict,
-        stopping_strings: list[str] | None = ["Unchanged", "unchanged"],
+        stopping_strings: list[str] | None = ["UNCHANGED"],
         match_prefix_only: bool = True,
         **kwargs,
     ) -> Generator[tuple[str, str], Any, None]:
@@ -377,6 +392,7 @@ class Summarizer:
                 input_key = str(state["seed"])
 
                 print(f"{_HILITE}input_key{_RESET}: {input_key}")
+                instr = ""
                 # input_key = self.hash_key(user_input + shared.model_name)
                 if input_key in instructions:
                     instr: str = instructions[input_key]
@@ -388,41 +404,42 @@ class Summarizer:
                             # Create custom state for summary generation
                             print(f"{_SUCCESS}State set{_RESET}")
 
-                            # Generate instruction
-                            prompt = (
-                                f"{user_input_prompt}\n\n"
-                                f"You are to generate instructions for {name2}'s response to '{name1}'. These instructions will be given directly to {name2}.\n"
-                                f"The instructions must guide {name2} on what to say or do, following the tone of the latest messages, and should be detailed and specific.\n\n"
-                                f"FORMATTING REQUIREMENTS:\n"
-                                f"- Present the instructions as a series of plain text paragraphs.\n"
-                                f"- Each paragraph should represent a distinct part of the response plan.\n"
-                                f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
-                                f"Example of desired output structure (imagine these are the instructions):\n"
-                                f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
-                                f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
-                                f"Remember: The above is an example. In a narrative context, acknowledging {name1}'s input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
-                                f"INSTRUCTION CONTENT:\n"
-                                f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
-                                f"2. Be extremely specific, detailing each step.\n"
-                                f"3. You are providing instructions FOR the response, not writing the response itself.\n"
-                                f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
-                                f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
-                                f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
-                                f"7. IMPORTANT: Remind {name2} not to recap {name1}'s input in the response. Even if necessary to clarify {name1}'s intent, remember: Show, don't tell.\n"
-                                f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
-                                f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
-                            )
+                            if kwargs.get("do_instr", False):
+                                # Generate instruction
+                                prompt = (
+                                    f"{user_input_prompt}\n\n"
+                                    f"You are to generate instructions for {name2}'s response to '{name1}'. These instructions will be given directly to {name2}.\n"
+                                    f"The instructions must guide {name2} on what to say or do, following the tone of the latest messages, and should be detailed and specific.\n\n"
+                                    f"FORMATTING REQUIREMENTS:\n"
+                                    f"- Present the instructions as a series of plain text paragraphs.\n"
+                                    f"- Each paragraph should represent a distinct part of the response plan.\n"
+                                    f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
+                                    f"Example of desired output structure (imagine these are the instructions):\n"
+                                    f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
+                                    f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
+                                    f"Remember: The above is an example. In a narrative context, explicitly acknowledging {name1}'s input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
+                                    f"INSTRUCTION CONTENT:\n"
+                                    f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
+                                    f"2. Be specific, detailing each step.\n"
+                                    f"3. You are providing instructions FOR the response, not writing the response itself.\n"
+                                    f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
+                                    f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
+                                    f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
+                                    f"7. IMPORTANT: Remind {name2} not to recap {name1}'s input in the response. Even if necessary to clarify {name1}'s intent, remember: Show, don't tell.\n"
+                                    f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
+                                    f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
+                                )
 
-                            instr, _ = self.generate_using_tgwui(
-                                prompt, custom_state
-                            )  # TODO: Force start of response via "continue"
-                            if shared.stop_everything:
-                                print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
-                                return user_input, state, history_path, None
+                                instr, _ = self.generate_using_tgwui(
+                                    prompt, custom_state
+                                )  # TODO: Force start of response via "continue"
+                                if shared.stop_everything:
+                                    print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
+                                    return user_input, state, history_path, None
 
-                            instructions[input_key] = instr
-                            print(f"{_HILITE}Instruction:{_RESET} {instr}")
-                            save_json(instructions, instr_path)  # Persist instruction prompt for regenerations
+                                instructions[input_key] = instr
+                                print(f"{_HILITE}Instruction:{_RESET} {instr}")
+                                save_json(instructions, instr_path)  # Persist instruction prompt for regenerations
 
                             # # Save the KV cache for this instruction generation if not already saved
                             # self.vram_manager.save_context_cache()
@@ -432,25 +449,35 @@ class Summarizer:
                         traceback.print_exc()
                         return user_input, state, history_path, None
 
-                # Generate instruction prompt
-                # TODO: Include additional user instructions from UI blocks
-                full_instr = instr
                 # TODO: Get output gen params from config (ui_parameters)
-                instr_prompt = (
-                    f"{user_input_prompt}\n\n"
-                    f'You are to write a reply in character as "{name2}".\n'
-                    f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
-                    f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
-                    f"Adhere strictly to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
-                    f"Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
-                    f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
-                )
+                # Generate instruction prompt
+                instr_prompt = ""
+                if kwargs.get("do_instr", False):
+                    # TODO: Include additional user instructions from UI blocks
+                    full_instr = instr
+                    instr_prompt = (
+                        f"{user_input_prompt}\n\n"
+                        f'You are to write a reply in character as "{name2}".\n'
+                        f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
+                        f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
+                        f"Adhere loosely to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
+                        f"Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
+                        f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
+                    )
+                else:
+                    instr_prompt = (
+                        f"{user_input_prompt}\n\n"
+                        f'You are to write a reply in character as "{name2}".\n'
+                        f"Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
+                        f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
+                    )
                 encoded_instr_prompt = (
                     encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
                 )
                 print(
                     f"{_SUCCESS}Encoded instruct prompt: {True if model.__class__.__name__ != 'LlamaServer' else False}{_RESET}"
                 )
+
                 print(f"{_SUCCESS}State set{_RESET}")
 
                 try:
@@ -1559,179 +1586,186 @@ class FormattedData:
         if not data:
             return ""
 
-        nl = "\n"
+        try:
+            nl = "\n"
 
-        if data_type == "current_scene":
-            if (data.get("start") or data.get("now")) is None:
-                print(f"{_ERROR}No current scene data available.{_RESET}")
-                return "<EMPTY>"
+            if data_type == "current_scene":
+                if (data.get("start") or data.get("now")) is None:
+                    print(f"{_ERROR}No current scene data available.{_RESET}")
+                    return "<EMPTY>"
 
-            formatted_str = []
-            for start_or_now in ["start", "now"]:
-                who = data[start_or_now].get("who", {})
-                characters = who.get("characters", {})
-                groups = who.get("groups", {})
-                when = data[start_or_now].get("when", {})
-                where = data[start_or_now].get("where", "Unknown")
-                why = data[start_or_now].get("why", {})
+                formatted_str = []
+                for start_or_now in ["start", "now"]:
+                    who = data[start_or_now].get("who", {})
+                    characters = who.get("characters", {})
+                    groups = who.get("groups", {})
+                    when = data[start_or_now].get("when", {})
+                    where = data[start_or_now].get("where", "Unknown")
+                    why = data[start_or_now].get("why", {})
 
-                # Format character entries
-                char_entries = [
-                    f"{char_data.get('name', 'Unknown')} @ {char_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters[{i}], {prefix}current_scene.{start_or_now}.who.characters[{i}].name, {prefix}current_scene.{start_or_now}.who.characters[{i}].location"
-                    for i, char_data in enumerate_list(characters)
-                ]
-                formatted_chars = f"\n- ".join(char_entries) if char_entries else "None"
+                    # Format character entries
+                    char_entries = [
+                        f"{char_data.get('name', 'Unknown')} @ {char_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters[{i}], {prefix}current_scene.{start_or_now}.who.characters[{i}].name, {prefix}current_scene.{start_or_now}.who.characters[{i}].location"
+                        for i, char_data in enumerate_list(characters)
+                    ]
+                    formatted_chars = f"\n- ".join(char_entries) if char_entries else "None"
 
-                # Format group entries
-                group_entries = [
-                    f"{group_data.get('name', 'Unknown')} @ {group_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups[{i}], {prefix}current_scene.{start_or_now}.who.groups[{i}].name, {prefix}current_scene.{start_or_now}.who.groups[{i}].location"
-                    for i, group_data in enumerate_list(groups)
-                ]
-                formatted_groups = f"\n- ".join(group_entries) if group_entries else "None"
+                    # Format group entries
+                    group_entries = [
+                        f"{group_data.get('name', 'Unknown')} @ {group_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups[{i}], {prefix}current_scene.{start_or_now}.who.groups[{i}].name, {prefix}current_scene.{start_or_now}.who.groups[{i}].location"
+                        for i, group_data in enumerate_list(groups)
+                    ]
+                    formatted_groups = f"\n- ".join(group_entries) if group_entries else "None"
 
-                formatted_when = f"{when.get('date', 'Unknown')} - {when.get('time', 'Unknown')} ({when.get('specific_time', 'Unknown')}) <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.when, current_scene.{start_or_now}.when.date, {prefix}current_scene.{start_or_now}.when.time, {prefix}current_scene.{start_or_now}.when.specific_time"
+                    formatted_when = f"{when.get('date', 'Unknown')} - {when.get('time', 'Unknown')} ({when.get('specific_time', 'Unknown')}) <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.when, current_scene.{start_or_now}.when.date, {prefix}current_scene.{start_or_now}.when.time, {prefix}current_scene.{start_or_now}.when.specific_time"
 
-                # Format why entries
-                why_entries = [
-                    f"{reason_data.get('name', 'Unknown')} -- {reason_data.get('details', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why[{i}]"
-                    for i, reason_data in enumerate_list(why)
-                ]
-                formatted_why = f"\n- ".join(why_entries) if why_entries else "Unknown"
+                    # Format why entries
+                    why_entries = [
+                        f"{reason_data.get('name', 'Unknown')} -- {reason_data.get('details', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why[{i}]"
+                        for i, reason_data in enumerate_list(why)
+                    ]
+                    formatted_why = f"\n- ".join(why_entries) if why_entries else "Unknown"
+
+                    formatted_str.append(
+                        f"Scene -- {data.get('what', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}, {prefix}current_scene.what\n\n"
+                        f"Characters -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters\n- {formatted_chars}\n\n"
+                        f"Groups -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups\n- {formatted_groups}\n\n"
+                        f"When -- {formatted_when}\n\n"
+                        f"Where -- {where} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.where\n\n"
+                        f"Why -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why\n- {formatted_why}"
+                    )
+
+                return (
+                    f"Current Scene Start --- <<<<<<<<<<<< {prefix}current_scene.start\n{formatted_str[0]}\n\n"
+                    f"Current Scene Now --- <<<<<<<<<<<< {prefix}current_scene.now\n{formatted_str[1]}"
+                )
+
+            if data_type == "character_list":
+                return "\n".join(
+                    f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
+                    f"Relationships --- {', '.join(char_data.get('relationships', {}).keys())} <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
+                    for char, char_data in data.get("entries", {}).items()
+                )
+
+            if data_type == "characters_list":
+                return f"[{json.dumps(list(data.get('entries', {}).keys()), indent=None)}] <<<<<<<<<<<< {prefix}characters"
+
+            if data_type == "characters":
+                return "\n\n".join(
+                    f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
+                    f"Description --- {nl.join(char_data.get('description', []))} <<<<<<<<<<<< {prefix}characters.{char}.description\n"
+                    f"Relationships --- <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
+                    f"- {f'{nl}- '.join(f'{rel_char}: {json.dumps(rel_data, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.{rel_char} (key), {prefix}characters.{char}.{rel_char}' for rel_char, rel_data in char_data.get('relationships', {}).items())}\n"
+                    f"Group Status --- <<<<<<<<<<<< {prefix}characters.{char}.status\n"
+                    f"- {f'{nl}- '.join(f'{group}: {json.dumps(status, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.status.{group} (key), {prefix}characters.{char}.status.{group}' for group, status in char_data.get('status', {}).items())}"
+                    for char, char_data in data.get("entries", {}).items()
+                )
+
+            if data_type == "groups" or data_type == "groups_list":
+                return "\n\n".join(
+                    f"Group --- {group} ({', '.join(get_values(group_data.get('aliases', {})))}) <<<<<<<<<<<< {prefix}groups.{group} (key), {prefix}groups.{group}.aliases\n"
+                    f"Description --- {nl.join(group_data.get('description', []))} <<<<<<<<<<<< {prefix}groups.{group}.description\n"
+                    f"Specific Events --- {', '.join(get_values(group_data.get('events', {})))} <<<<<<<<<<<< {prefix}groups.{group}.events\n"
+                    for group, group_data in data.get("entries", {}).items()
+                )
+
+            if data_type == "scene" or data_type == "event":  # StoryEvent
+                start = data.get("start", {})
+                end = data.get("end", {})
+                return (
+                    f"Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}, {prefix}{data_type}.name\n\n"
+                    f"Start --- <<<<<<<<<<<< {prefix}{data_type}.start\n"
+                    f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.start.date\n"
+                    f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.start.time, {prefix}{data_type}.start.specific_time\n\n"
+                    f"End --- <<<<<<<<<<<< {prefix}{data_type}.end\n"
+                    f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.end.date\n"
+                    f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.end.time, {prefix}{data_type}.end.specific_time\n\n"
+                    f"Summary --- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}{data_type}.summary"
+                )
+
+            if data_type == "events" or data_type == "events_list":
+                formatted_str = []
 
                 formatted_str.append(
-                    f"Scene -- {data.get('what', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}, {prefix}current_scene.what\n\n"
-                    f"Characters -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters\n- {formatted_chars}\n\n"
-                    f"Groups -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups\n- {formatted_groups}\n\n"
-                    f"When -- {formatted_when}\n\n"
-                    f"Where -- {where} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.where\n\n"
-                    f"Why -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why\n- {formatted_why}"
-                )
-
-            return (
-                f"Current Scene Start --- <<<<<<<<<<<< {prefix}current_scene.start\n{formatted_str[0]}\n\n"
-                f"Current Scene Now --- <<<<<<<<<<<< {prefix}current_scene.now\n{formatted_str[1]}"
-            )
-
-        if data_type == "character_list":
-            return "\n".join(
-                f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
-                f"Relationships --- {', '.join(char_data.get('relationships', {}).keys())} <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
-                for char, char_data in data.items()
-            )
-
-        if data_type == "characters_list":
-            return f"[{json.dumps(list(data.keys()), indent=None)}] <<<<<<<<<<<< {prefix}characters"
-
-        if data_type == "characters":
-            return "\n\n".join(
-                f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
-                f"Description --- {nl.join(char_data.get('description', []))} <<<<<<<<<<<< {prefix}characters.{char}.description\n"
-                f"Relationships --- <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
-                f"- {f'{nl}- '.join(f'{rel_char}: {json.dumps(rel_data, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.{rel_char} (key), {prefix}characters.{char}.{rel_char}' for rel_char, rel_data in char_data.get('relationships', {}).items())}\n"
-                f"Group Status --- <<<<<<<<<<<< {prefix}characters.{char}.status\n"
-                f"- {f'{nl}- '.join(f'{group}: {json.dumps(status, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.status.{group} (key), {prefix}characters.{char}.status.{group}' for group, status in char_data.get('status', {}).items())}"
-                for char, char_data in data.items()
-            )
-
-        if data_type == "groups" or data_type == "groups_list":
-            return "\n\n".join(
-                f"Group --- {group} ({', '.join(get_values(group_data.get('aliases', {})))}) <<<<<<<<<<<< {prefix}groups.{group} (key), {prefix}groups.{group}.aliases\n"
-                f"Description --- {nl.join(group_data.get('description', []))} <<<<<<<<<<<< {prefix}groups.{group}.description\n"
-                f"Specific Events --- {', '.join(get_values(group_data.get('events', {})))} <<<<<<<<<<<< {prefix}groups.{group}.events\n"
-                for group, group_data in data.items()
-            )
-
-        if data_type == "scene" or data_type == "event":  # StoryEvent
-            start = data.get("start", {})
-            end = data.get("end", {})
-            return (
-                f"Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}, {prefix}{data_type}.name\n\n"
-                f"Start --- <<<<<<<<<<<< {prefix}{data_type}.start\n"
-                f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.start.date\n"
-                f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.start.time, {prefix}{data_type}.start.specific_time\n\n"
-                f"End --- <<<<<<<<<<<< {prefix}{data_type}.end\n"
-                f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.end.date\n"
-                f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.end.time, {prefix}{data_type}.end.specific_time\n\n"
-                f"Summary --- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}{data_type}.summary"
-            )
-
-        if data_type == "events" or data_type == "events_list":
-            formatted_str = []
-
-            formatted_str.append(
-                "\n\n".join(
-                    f"Event -- {name} <<<<<<<<<<<< {prefix}events.past.{name} (key)\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.past.{name}.start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.past.{name}.summary"
-                    for name, event_data in data.get("past", {}).items()
-                )
-                or "Empty"
-            )
-
-            formatted_str.append(
-                "\n\n".join(
-                    f"Scene -- {name} <<<<<<<<<<<< {prefix}events.scenes.{name} (key)\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.scenes.{name}.start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.scenes.{name}.summary"
-                    for name, event_data in data.get("scenes", {}).items()
-                )
-                or "Empty"
-            )
-
-            formatted_str.append(
-                "\n\n".join(
-                    f"Event -- {name} <<<<<<<<<<<< {prefix}events.events.{name} (key)\n"
-                    f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.events.{name}.start.date\n"
-                    f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.events.{name}.summary"
-                    for name, event_data in data.get("events", {}).items()
-                )
-                or "Empty"
-            )
-
-            return (
-                f"Past Events --- <<<<<<<<<<<< {prefix}events.past\n{formatted_str[0]}\n\n"
-                f"Scenes --- <<<<<<<<<<<< {prefix}events.scenes\n{formatted_str[1]}\n\n"
-                f"Events --- <<<<<<<<<<<< {prefix}events.events\n{formatted_str[2]}"
-            )
-
-        if data_type == "general_info":
-            # TODO: Hardcode more fields via all_subjects_data
-            return (
-                f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< {prefix}general_info.synopsis\n\n"
-                f"Main Objective --- {data.get('main_objective', 'No main objective specified')} <<<<<<<<<<<< {prefix}general_info.main_objective\n\n"
-                f"Themes --- {', '.join(get_values(data.get('themes', []))) or 'No themes specified'} <<<<<<<<<<<< {prefix}general_info.themes\n"
-                f"Tone --- {data.get('tone', 'No tone specified')} <<<<<<<<<<<< {prefix}general_info.tone\n\n"
-                f"Writing Style --- {data.get('writing_style', 'No writing style specified')} <<<<<<<<<<<< {prefix}general_info.writing_style"
-            )
-
-        if data_type == "additional_info":
-            last_scene_str = ""
-            scenes = recursive_get(all_subjects_data, ["events", "scenes"], [])
-            num_scenes = len(scenes)
-            if num_scenes:
-                scenes_idx = num_scenes - 1
-                last_scene = scenes[scenes_idx]
-                if last_scene:
-                    last_scene_pref = f"{prefix}events.scenes[{scenes_idx}]"
-                    last_scene_str = (
-                        f"Last Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}, {last_scene_pref}.name, last_scene, last_scene.name\n\n"
-                        f"Start -- <<<<<<<<<<<< {last_scene_pref}.start\n"
-                        f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.start.date\n"
-                        f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.start.time, {last_scene_pref}.start.specific_time\n\n"
-                        f"End -- <<<<<<<<<<<< {last_scene_pref}.end\n"
-                        f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.end.date\n"
-                        f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.end.time, {last_scene_pref}.end.specific_time\n\n"
-                        f"Summary -- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {last_scene_pref}.summary\n\n"
+                    "\n\n".join(
+                        f"Event -- {name} <<<<<<<<<<<< {prefix}events.past.{name} (key)\n"
+                        f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.past.{name}.start.date\n"
+                        f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.past.{name}.summary"
+                        for name, event_data in data.get("past", {}).items()
                     )
-            return (
-                f"{last_scene_str}"
-                f"This chat is currently {context_cache.history_length or 0} messages long in total. <<<<<<<<<<<< {prefix}context_cache.history_length"
-            )
+                    or "Empty"
+                )
 
-        if data_type == "lines":
-            return "\n".join(get_values(data))
+                formatted_str.append(
+                    "\n\n".join(
+                        f"Scene -- {name} <<<<<<<<<<<< {prefix}events.scenes.{name} (key)\n"
+                        f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.scenes.{name}.start.date\n"
+                        f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.scenes.{name}.summary"
+                        for name, event_data in data.get("scenes", {}).items()
+                    )
+                    or "Empty"
+                )
 
-        return "<EMPTY>"  # str(data)
+                formatted_str.append(
+                    "\n\n".join(
+                        f"Event -- {name} <<<<<<<<<<<< {prefix}events.events.{name} (key)\n"
+                        f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.events.{name}.start.date\n"
+                        f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.events.{name}.summary"
+                        for name, event_data in data.get("events", {}).items()
+                    )
+                    or "Empty"
+                )
+
+                return (
+                    f"Past Events --- <<<<<<<<<<<< {prefix}events.past\n{formatted_str[0]}\n\n"
+                    f"Scenes --- <<<<<<<<<<<< {prefix}events.scenes\n{formatted_str[1]}\n\n"
+                    f"Events --- <<<<<<<<<<<< {prefix}events.events\n{formatted_str[2]}"
+                )
+
+            if data_type == "general_info":
+                # TODO: Hardcode more fields via all_subjects_data
+                return (
+                    f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< {prefix}general_info.synopsis\n\n"
+                    f"Main Objective --- {data.get('main_objective', 'No main objective specified')} <<<<<<<<<<<< {prefix}general_info.main_objective\n\n"
+                    f"Themes --- {', '.join(get_values(data.get('themes', []))) or 'No themes specified'} <<<<<<<<<<<< {prefix}general_info.themes\n"
+                    f"Tone --- {data.get('tone', 'No tone specified')} <<<<<<<<<<<< {prefix}general_info.tone\n\n"
+                    f"Writing Style --- {data.get('writing_style', 'No writing style specified')} <<<<<<<<<<<< {prefix}general_info.writing_style"
+                )
+
+            if data_type == "additional_info":
+                last_scene_str = ""
+                scenes = recursive_get(all_subjects_data, ["events", "scenes"], [])
+                num_scenes = len(scenes)
+                if num_scenes:
+                    scenes_idx = num_scenes - 1
+                    last_scene = scenes[scenes_idx]
+                    if last_scene:
+                        last_scene_pref = f"{prefix}events.scenes[{scenes_idx}]"
+                        last_scene_str = (
+                            f"Last Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}, {last_scene_pref}.name, last_scene, last_scene.name\n\n"
+                            f"Start -- <<<<<<<<<<<< {last_scene_pref}.start\n"
+                            f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.start.date\n"
+                            f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.start.time, {last_scene_pref}.start.specific_time\n\n"
+                            f"End -- <<<<<<<<<<<< {last_scene_pref}.end\n"
+                            f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.end.date\n"
+                            f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.end.time, {last_scene_pref}.end.specific_time\n\n"
+                            f"Summary -- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {last_scene_pref}.summary\n\n"
+                        )
+                return (
+                    f"{last_scene_str}"
+                    f"This chat is currently {context_cache.history_length or 0} messages long in total. <<<<<<<<<<<< {prefix}context_cache.history_length"
+                )
+
+            if data_type == "lines":
+                return "\n".join(get_values(data))
+
+            return "<EMPTY>"  # str(data)
+        
+        except Exception as e:
+            print(f"{_ERROR}Error formatting data: {e}{_RESET}")
+            traceback.print_exc()
+            print(f"{_BOLD}{json.dumps(data)}{_RESET}")
+            return "<ERROR>"
 
     @property
     def st(self):
