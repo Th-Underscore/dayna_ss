@@ -39,6 +39,7 @@ from extensions.dayna_ss.utils.helpers import (
     _GRAY,
     _HILITE,
     _BOLD,
+    _WARNING,
     _RESET,
     _DEBUG,
     History,
@@ -66,6 +67,7 @@ from extensions.dayna_ss.tools.definitions.dynamic_tools import (
 from extensions.dayna_ss.tools.tgwui_integration import (
     register_dss_tool_executors,
 )
+from extensions.dayna_ss.tools.tool_registry import ToolRegistry
 
 start_background_import("torch", "no_grad")
 
@@ -137,13 +139,49 @@ class Summarizer:
         # )
         self.last: SummarizationContextCache | None = None
         self.dss_tool_executors: dict[str, Callable] = {}
+        self.tool_registry = ToolRegistry()
         self._init_tool_registry()
 
     def _init_tool_registry(self) -> None:
         """Initialize DSS tool executors for TGWUI's native tool system."""
         self.dss_tool_executors = create_dss_tool_executors(self)
         register_dss_tool_executors(self.dss_tool_executors)
+        
+        from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_definitions
+        from extensions.dayna_ss.tools.tool_registry import Tool
+        
+        tool_defs = create_dss_tool_definitions()
+        for tool_def in tool_defs:
+            func_def = tool_def.get("function", {})
+            tool = Tool(
+                name=func_def.get("name", ""),
+                description=func_def.get("description", ""),
+                parameters=[],
+                handler=self.dss_tool_executors.get(func_def.get("name")),
+            )
+            self.tool_registry.register(tool)
+        
+        self.tool_registry.set_callbacks(
+            on_tool_call=self._on_tool_call,
+            on_tool_result=self._on_tool_result,
+        )
+        
         print(f"{_SUCCESS}Initialized DSS tool executors: {list(self.dss_tool_executors.keys())}{_RESET}")
+
+    def _on_tool_call(self, tool_name: str, arguments: dict) -> None:
+        """Callback when a tool is called."""
+        self.log_activity("Tool Call", f"{tool_name}({arguments})", "info")
+        print(f"{_DEBUG}Tool call: {tool_name} with args {arguments}{_RESET}")
+
+    def _on_tool_result(self, tool_name: str, result: Any, error: str | None) -> None:
+        """Callback when a tool result is ready."""
+        if error:
+            self.log_activity("Tool Error", f"{tool_name}: {error}", "error")
+            print(f"{_ERROR}Tool error: {tool_name}: {error}{_RESET}")
+        else:
+            result_preview = str(result)[:100] + "..." if len(str(result)) > 100 else str(result)
+            self.log_activity("Tool Result", f"{tool_name}: {result_preview}", "success")
+            print(f"{_DEBUG}Tool result: {tool_name}: {result_preview}{_RESET}")
 
     def log_activity(self, event: str, details: str = "", level: str = "info") -> None:
         """Log an activity to the activity logger.
@@ -157,7 +195,31 @@ class Summarizer:
 
     def _load_config(self, config_path: PathLike) -> dict:
         """Load summarizer configuration from a JSON file at `config_path`."""
-        return load_json(config_path) or {"default_summarization_params": {"max_length": 150}}
+        config = load_json(config_path) or {}
+        defaults = {
+            "retrieval_mode": "passive",
+            "max_tool_calls_per_turn": 5,
+            "tool_call_stopping_strings": ["UNCHANGED", "NO_UPDATE"],
+            "default_summarization_params": {"max_length": 150},
+        }
+        for key, value in defaults.items():
+            if key not in config:
+                config[key] = value
+        return config
+
+    @property
+    def retrieval_mode(self) -> str:
+        """Get current retrieval mode: 'passive' or 'active'."""
+        return self.config.get("retrieval_mode", "passive")
+
+    @retrieval_mode.setter
+    def retrieval_mode(self, mode: str) -> None:
+        """Set retrieval mode."""
+        if mode not in ("passive", "active"):
+            raise ValueError(f"Invalid retrieval mode: {mode}. Must be 'passive' or 'active'.")
+        self.config["retrieval_mode"] = mode
+        self.log_activity("Retrieval Mode", f"Switched to {mode} mode", "info")
+        print(f"{_HILITE}Retrieval mode set to: {mode}{_RESET}")
 
     def generate_using_tgwui(
         self,
@@ -209,18 +271,35 @@ class Summarizer:
 
         # Capture the output
         capture_buffer = io.StringIO()
+        use_tool_loop = self.retrieval_mode == "active"
+        
         with redirect_stderr(DualStream(sys.stderr, capture_buffer)):  # redirect_stdout(DualStream(sys.stdout, capture_buffer))
-            for t, s in self.generate_summary_with_streaming(
-                prompt,
-                state,
-                stopping_strings,
-                match_prefix_only=match_prefix_only,
-                **kwargs,
-            ):
-                if shared.stop_everything:
-                    return text, stop
-                text = t
-                stop = s
+            if use_tool_loop:
+                for t, s in self.generate_with_tool_loop(
+                    prompt,
+                    state,
+                    stopping_strings,
+                    match_prefix_only=match_prefix_only,
+                    **kwargs,
+                ):
+                    if shared.stop_everything:
+                        return text, stop
+                    text = t
+                    stop = s
+                    if s and s not in ("tool_call", ""):
+                        break
+            else:
+                for t, s in self.generate_summary_with_streaming(
+                    prompt,
+                    state,
+                    stopping_strings,
+                    match_prefix_only=match_prefix_only,
+                    **kwargs,
+                ):
+                    if shared.stop_everything:
+                        return text, stop
+                    text = t
+                    stop = s
         if shared.stop_everything:
             return text, stop
         text = text.strip()
@@ -288,6 +367,132 @@ class Summarizer:
         except Exception as e:
             print(f"{_ERROR}Error generating summary: {str(e)}{_RESET}")
             traceback.print_exc()
+
+    def generate_with_tool_loop(
+        self,
+        prompt: str,
+        state: dict,
+        stopping_strings: list[str] | None = ["UNCHANGED"],
+        match_prefix_only: bool = True,
+        max_tool_calls: int | None = None,
+        **kwargs,
+    ) -> Generator[tuple[str, str], Any, None]:
+        """Generate with active tool calling loop.
+        
+        In active retrieval mode, the model can call DSS tools to retrieve information
+        before generating its response. This method handles the loop of:
+        1. Generate text
+        2. Check for tool calls
+        3. Execute tools and append results
+        4. Continue generation
+        
+        Args:
+            prompt: The initial prompt
+            state: The state dictionary for context
+            stopping_strings: Strings that stop generation
+            match_prefix_only: Only match prefix for stopping strings
+            max_tool_calls: Maximum tool calls per turn (default from config)
+            **kwargs: Additional arguments passed to streaming generation
+            
+        Yields:
+            Tuples of (text, stop_reason)
+        """
+        if max_tool_calls is None:
+            max_tool_calls = self.config.get("max_tool_calls_per_turn", 5)
+        
+        self.log_activity("Active Retrieval", "Starting tool call loop", "info")
+        print(f"{_HILITE}Starting active retrieval mode with max {max_tool_calls} tool calls{_RESET}")
+        
+        tool_call_stopping_strings = self.config.get("tool_call_stopping_strings", ["UNCHANGED", "NO_UPDATE"])
+        
+        full_response = ""
+        tool_call_count = 0
+        prompt_history = [prompt]
+        
+        while tool_call_count < max_tool_calls:
+            if shared.stop_everything:
+                yield full_response, ""
+                return
+            
+            self.log_activity("Generation", f"Turn {tool_call_count + 1}", "info")
+            print(f"{_DEBUG}Tool call loop turn {tool_call_count + 1}{_RESET}")
+            
+            accumulated_text = ""
+            found_tool_call = False
+            
+            for text, stop_reason in self.generate_summary_with_streaming(
+                prompt_history[-1] if len(prompt_history) > 1 else prompt,
+                state,
+                stopping_strings=tool_call_stopping_strings,
+                match_prefix_only=match_prefix_only,
+                **kwargs,
+            ):
+                accumulated_text = text
+                
+                result = self.tool_registry.parse_tool_calls(text)
+                if result.status.value in ("complete", "error"):
+                    found_tool_call = True
+                    tool_call_result = self.execute_tool_result(result)
+
+                    tool_response = self.tool_registry.format_tool_response(tool_call_result)
+
+                    prompt_history.append(
+                        f"{text}\n\n{self.tool_registry.TOOL_RESPONSE_OPEN}\n{tool_response}\n{self.tool_registry.TOOL_RESPONSE_CLOSE}"
+                    )
+                    
+                    tool_call_count += 1
+                    full_response += text + "\n"
+                    yield text, "tool_call"
+                    
+                    self.log_activity(
+                        "Tool Call Complete",
+                        f"Call #{tool_call_count}: {result.call.tool_name if result.call else 'unknown'}",
+                        "success"
+                    )
+                    break
+                
+                if stop_reason:
+                    if stop_reason in (tool_call_stopping_strings or []):
+                        found_tool_call = False
+                        full_response = text
+                        yield text, stop_reason
+                        return
+                    else:
+                        full_response += text
+                        yield text, stop_reason
+                        return
+                
+                yield text, ""
+            
+            if not found_tool_call:
+                if accumulated_text:
+                    full_response = accumulated_text
+                break
+        
+        if tool_call_count >= max_tool_calls:
+            self.log_activity("Tool Limit", f"Reached max tool calls ({max_tool_calls})", "warning")
+            print(f"{_WARNING}Reached max tool calls ({max_tool_calls}), continuing without more tool calls{_RESET}")
+        
+        full_response = full_response or accumulated_text
+        yield full_response, "tool_limit"
+
+    def execute_tool_result(self, result) -> Any:
+        """Execute a parsed tool call and return the result.
+        
+        Args:
+            result: ToolCallResult from parse_tool_calls
+            
+        Returns:
+            ToolCallResult with output or error
+        """
+        if result.status.value == "error":
+            return result
+        
+        if result.call is None:
+            return result
+        
+        tool_result = self.tool_registry.execute_tool_call(result.call)
+        return tool_result
 
     def save_message_chunks(self, message: str, index: int, current_timestamp: str, path: Path | None = None) -> None:
         """Save message chunks to the history path with timestamp."""
@@ -1603,7 +1808,7 @@ class FormattedData:
         all_subjects_data: dict | None = None,
     ) -> str:
         """Format retrieved data based on its type."""
-        # TODO: Generate based on "format schema"
+        # TODO: Generate based on "format schema" (Jinja template?)
         if not data:
             return ""
 

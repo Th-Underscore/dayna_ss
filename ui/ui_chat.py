@@ -13,7 +13,18 @@ from extensions.dayna_ss.ui.utils import gradio
 
 from extensions.dayna_ss.utils.helpers import _HILITE, _INPUT, _RESET, History
 
-summarizer = Summarizer()
+
+def get_summarizer() -> Summarizer:
+    """Get the summarizer from script.py if available, otherwise create one.
+    
+    This ensures the UI uses the same summarizer instance as the rest of the extension.
+    """
+    import extensions.dayna_ss.script as script_module
+    if hasattr(script_module, 'summarizer') and script_module.summarizer is not None:
+        return script_module.summarizer
+    summarizer = Summarizer()
+    summarizer.retrieval_mode = dss_shared.persistent_ui_state.get("retrieval_mode", "passive")
+    return summarizer
 
 
 def create_ui():
@@ -238,11 +249,19 @@ def create_block_ui():
             interactive=True,
         )
     with gr.Row():
+        dss_shared.gradio["retrieval_mode"] = gr.Radio(
+            choices=["passive", "active"],
+            value=dss_shared.persistent_ui_state.get("retrieval_mode", "passive"),
+            label="Retrieval Mode",
+            info="Active: LLM calls tools to retrieve info. Passive: RAG injects context automatically.",
+            interactive=True,
+        )
         dss_shared.gradio["next_scene"] = gr.Checkbox(
             label="Next scene",
             value=dss_shared.persistent_ui_state.get("next_scene", False),
             interactive=True,
         )
+    with gr.Row():
         with gr.Column():
             dss_shared.gradio["generate_instruction"] = gr.Button("in: Generate Instruction", size="sm")
             dss_shared.gradio["summarize"] = gr.Button("out: Summarize", size="sm")
@@ -414,6 +433,11 @@ def create_event_handlers():
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     )
 
+    dss_shared.gradio["retrieval_mode"].change(
+        update_retrieval_mode,
+        inputs=[dss_shared.gradio["retrieval_mode"]],
+    )
+
     dss_shared.gradio["next_scene"].change(
         utils.gather_interface_values, gradio(dss_shared.input_elements), gradio("interface_state")
     )
@@ -471,8 +495,14 @@ def refresh_activity_feed() -> str:
     return dss_shared.activity_logger.render_html()
 
 
+def update_retrieval_mode(mode: str) -> None:
+    """Update the retrieval mode in the summarizer config."""
+    dss_shared.persistent_ui_state["retrieval_mode"] = mode
+    smr = get_summarizer()
+    smr.retrieval_mode = mode
+
+
 def summarize_latest_exchange(state: dict):
-    global summarizer
     try:
         history: History = state["history"]["internal"]
     except TypeError as e:
@@ -480,12 +510,11 @@ def summarize_latest_exchange(state: dict):
         raise TypeError("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
     output = history[-1][1]
     user_input = history[-1][0]
-    summarizer.summarize_latest_state(output, user_input, state, history)  # history[-1][0] is mutated
+    get_summarizer().summarize_latest_state(output, user_input, state, history)
     return {"visible": state["history"]["visible"], "internal": history}
 
 
 def generate_instr_for_latest_exchange(textbox: dict, state: dict):
-    global summarizer
     try:
         history: History = state["history"]["internal"]
     except TypeError as e:
@@ -493,7 +522,7 @@ def generate_instr_for_latest_exchange(textbox: dict, state: dict):
         raise TypeError("state is currently not set. Switch back and forth between chats to initialize. Error: " + str(e))
     print(f'{_INPUT}{textbox["text"] or history[-1][0]}{_RESET}')
     user_input = textbox["text"] or history[-1][0]
-    summarizer.generate_instr_prompt(user_input, state, history)
+    get_summarizer().generate_instr_prompt(user_input, state, history)
     return {"visible": state["history"]["visible"], "internal": history}
 
 
