@@ -145,6 +145,16 @@ class Summarizer:
         register_dss_tool_executors(self.dss_tool_executors)
         print(f"{_SUCCESS}Initialized DSS tool executors: {list(self.dss_tool_executors.keys())}{_RESET}")
 
+    def log_activity(self, event: str, details: str = "", level: str = "info") -> None:
+        """Log an activity to the activity logger.
+        
+        Args:
+            event: Short name of the event
+            details: Additional details
+            level: Log level - "info", "success", "warning", "error"
+        """
+        dss_shared.activity_logger.log(event, details, level)
+
     def _load_config(self, config_path: PathLike) -> dict:
         """Load summarizer configuration from a JSON file at `config_path`."""
         return load_json(config_path) or {"default_summarization_params": {"max_length": 150}}
@@ -341,6 +351,7 @@ class Summarizer:
         self, user_input: str, state: dict, history: History, **kwargs
     ) -> tuple[str, dict, Path, str]:  # After input
         print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
+        self.log_activity("Generating Instructions", "Preparing context", "info")
         user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
         custom_state = copy.deepcopy(custom_state_ref)
         history_path = self.last.history_path
@@ -499,6 +510,7 @@ class Summarizer:
                     traceback.print_exc()
 
                 print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
+                self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
                 return (
                     encoded_instr_prompt,
                     custom_state,
@@ -507,12 +519,14 @@ class Summarizer:
                 )
             except Exception as e:
                 print(f"{_ERROR}Error in get_summary_state: {str(e)}{_RESET}")
+                self.log_activity("Instruction Gen Failed", str(e), "error")
                 traceback.print_exc()
                 return user_input, state, history_path, None
 
     def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # After output
         """Summarize a single message with its context."""
         print(f"{_HILITE}summarize_message{_RESET}")
+        self.log_activity("Summarizing", "Processing latest exchange", "info")
 
         try:
             if shared.stop_everything:
@@ -601,15 +615,18 @@ class Summarizer:
 
             # Step 2: Dynamically process each subject.
             processed_subjects_data = {}
-            for subject_name, subject_data in all_subjects_data.items():
+            total_subjects = len(all_subjects_data)
+            for idx, (subject_name, subject_data) in enumerate(all_subjects_data.items(), start=1):
                 schema_class = self.last.schema_parser.get_subject_class(subject_name)
                 print(f"{_BOLD}Processing subject: {subject_name}{_RESET} {schema_class}")
                 if not schema_class:  # Redundant but good for safety
                     continue
                 print(f"{subject_name} exists")
 
+                self.log_activity("Update Subject", f"{subject_name} ({idx}/{total_subjects})", "info")
                 updated_data = process_subject_update(subject_name, subject_data, schema_class)
                 processed_subjects_data[subject_name] = updated_data
+                self.log_activity("Subject Updated", subject_name, "success")
 
                 if shared.stop_everything:
                     return None
@@ -627,8 +644,10 @@ class Summarizer:
                 elif scene_time_data.get("date"):
                     current_timestamp_str = scene_time_data["date"]
 
+            self.log_activity("Summarize Messages", f"Message index: {message_idx}", "info")
             msg_summarizer = MessageSummarizer(self, new_history_path, current_timestamp_str)
             msg_summarizer.generate((user_input, output), (message_idx - 1, message_idx))
+            self.log_activity("Messages Summarized", "Message chunks saved", "success")
 
             # --- Update scene_id and event_id for message chunks ---
             if self.last and self.last.context:
@@ -676,10 +695,12 @@ class Summarizer:
             else:
                 print(f"{_ERROR}Cannot update scene/event IDs for chunks: Summarizer.last.context not available.{_RESET}")
 
+            self.log_activity("Summarization Complete", f"Scene saved at {new_history_path.name}", "success")
             return current_timestamp_str
 
         except Exception as e:
             print(f"{_ERROR}Error during summarization or metadata update: {str(e)}{_RESET}")
+            self.log_activity("Summarization Failed", str(e), "error")
             traceback.print_exc()
             return None
 

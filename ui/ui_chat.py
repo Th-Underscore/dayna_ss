@@ -250,16 +250,17 @@ def create_block_ui():
         dss_shared.gradio["count_tokens"] = gr.Button("Count tokens", size="sm")
     dss_shared.gradio["token_display"] = gr.HTML(value="", elem_classes="token-display")
 
-    with gr.Row():
-        dss_shared.gradio["tool_activity_toggle"] = gr.Checkbox(
-            label="Show Tool Activity",
-            value=False,
-            interactive=True,
-        )
-    with gr.Row():
-        dss_shared.gradio["tool_activity"] = gr.HTML(
-            value="<div class='tool-activity' style='font-family: monospace; font-size: 12px; padding: 10px; background: #1a1a1a; color: #00ff00; border-radius: 5px; min-height: 100px; max-height: 200px; overflow-y: auto;'><em>Tool activity will appear here...</em></div>",
-            elem_classes="tool-activity",
+    with gr.Accordion("DSS Activity Log", open=False, elem_id="dss-activity-accordion"):
+        with gr.Row():
+            dss_shared.gradio["activity_toggle"] = gr.Checkbox(
+                label="Show Activity",
+                value=dss_shared.persistent_ui_state.get("activity_toggle", False),
+                interactive=True,
+            )
+            dss_shared.gradio["activity_clear"] = gr.Button("Clear", size="sm", elem_classes="small-button")
+        dss_shared.gradio["activity_feed"] = gr.HTML(
+            value="<div class='dss-activity-empty' style='font-family: monospace; font-size: 12px; color: #888; padding: 10px;'>Expand accordion and enable 'Show Activity' to see DSS operations.</div>",
+            elem_classes="dss-activity-feed",
         )
 
 
@@ -424,6 +425,9 @@ def create_event_handlers():
         [shared.gradio["interface_state"]],
         [shared.gradio["history"]],
         show_progress=False,
+    ).then(
+        refresh_activity_feed,
+        outputs=[dss_shared.gradio["activity_feed"]],
     )
 
     dss_shared.gradio["generate_instruction"].click(
@@ -433,7 +437,38 @@ def create_event_handlers():
         [shared.gradio["textbox"], shared.gradio["interface_state"]],
         [shared.gradio["history"]],
         show_progress=False,
+    ).then(
+        refresh_activity_feed,
+        outputs=[dss_shared.gradio["activity_feed"]],
     )
+
+    # Activity feed handlers
+    if "activity_toggle" in dss_shared.gradio and "activity_feed" in dss_shared.gradio:
+        def update_activity_feed(visible: bool) -> str:
+            if visible:
+                return dss_shared.activity_logger.render_html()
+            return "<div class='dss-activity-empty' style='font-family: monospace; font-size: 12px; color: #888; padding: 10px;'>Activity log is hidden</div>"
+
+        dss_shared.gradio["activity_toggle"].change(
+            update_activity_feed,
+            inputs=[dss_shared.gradio["activity_toggle"]],
+            outputs=[dss_shared.gradio["activity_feed"]],
+        )
+
+        if "activity_clear" in dss_shared.gradio:
+            def clear_activity() -> str:
+                dss_shared.activity_logger.clear()
+                return "<div class='dss-activity-empty' style='font-family: monospace; font-size: 12px; color: #888; padding: 10px;'>Activity log cleared</div>"
+
+            dss_shared.gradio["activity_clear"].click(
+                clear_activity,
+                outputs=[dss_shared.gradio["activity_feed"]],
+            )
+
+
+def refresh_activity_feed() -> str:
+    """Refresh the activity feed HTML."""
+    return dss_shared.activity_logger.render_html()
 
 
 def summarize_latest_exchange(state: dict):

@@ -1,7 +1,10 @@
 import json
 import jsonc
 import os
-from typing import TYPE_CHECKING
+from collections import deque
+from datetime import datetime
+from threading import Lock
+from typing import TYPE_CHECKING, Any
 
 import gradio as gr
 
@@ -120,6 +123,102 @@ banned_prefixes = [
     '"{{char}}:", "{{char}} >>", "(as {{char}})", "({{char}})"',
     '"{{user}}:", "{{user}} >>", "(as {{user}})", "({{user}})"',
 ]
+
+
+class ActivityLogger:
+    """Thread-safe activity logger for tracking DSS agent operations in real-time."""
+    
+    MAX_ENTRIES = 100
+    
+    def __init__(self, max_entries: int = MAX_ENTRIES):
+        self._entries: deque[dict[str, Any]] = deque(maxlen=max_entries)
+        self._lock = Lock()
+    
+    def log(self, event: str, details: str = "", level: str = "info") -> None:
+        """Add an activity entry.
+        
+        Args:
+            event: Short name of the event (e.g., "Summarizing", "Tool Call")
+            details: Additional details about the event
+            level: Log level - "info", "success", "warning", "error"
+        """
+        with self._lock:
+            self._entries.append({
+                "timestamp": datetime.now().isoformat(timespec="seconds"),
+                "event": event,
+                "details": details,
+                "level": level,
+            })
+    
+    def get_entries(self) -> list[dict[str, Any]]:
+        """Get all log entries as a list."""
+        with self._lock:
+            return list(self._entries)
+    
+    def clear(self) -> None:
+        """Clear all log entries."""
+        with self._lock:
+            self._entries.clear()
+    
+    def render_html(self, max_display: int = 50) -> str:
+        """Render entries as HTML for display in Gradio.
+        
+        Args:
+            max_display: Maximum number of entries to display
+            
+        Returns:
+            HTML string for display
+        """
+        entries = self.get_entries()
+        if not entries:
+            return '<div class="dss-activity-empty" style="font-family: monospace; font-size: 12px; color: #888; padding: 10px;">Activity log is empty</div>'
+        
+        entries = entries[-max_display:]
+        
+        lines = [
+            '<div class="dss-activity-feed" style="font-family: monospace; font-size: 12px; background: #1a1a2e; border-radius: 8px; padding: 10px; max-height: 300px; overflow-y: auto; color: #eee;">'
+        ]
+        for entry in entries:
+            lines.append(self._render_entry_html(entry))
+        lines.append('</div>')
+        
+        return '\n'.join(lines)
+    
+    def _render_entry_html(self, entry: dict[str, Any]) -> str:
+        """Render a single entry as HTML."""
+        timestamp = entry["timestamp"].split("T")[1] if "T" in entry["timestamp"] else entry["timestamp"]
+        
+        level_colors = {
+            "info": "#00bfff",
+            "success": "#00ff00",
+            "warning": "#ffaa00",
+            "error": "#ff4444",
+        }
+        level_names = {
+            "info": "INFO",
+            "success": "OK",
+            "warning": "WARN",
+            "error": "ERR",
+        }
+        
+        color = level_colors.get(entry["level"], "#ffffff")
+        level_name = level_names.get(entry["level"], "INFO")
+        
+        details_html = ""
+        if entry["details"]:
+            details_html = f'<span class="dss-activity-details" style="color: #aaa;"> - {entry["details"]}</span>'
+        
+        return (
+            f'<div class="dss-activity-entry" data-level="{entry["level"]}" style="margin: 4px 0; padding: 2px 0; border-bottom: 1px solid #333;">'
+            f'<span class="dss-activity-time" style="color: #666;">[{timestamp}]</span> '
+            f'<span class="dss-activity-level" style="color: {color}; font-weight: bold;">[DSS {level_name}]</span> '
+            f'<span class="dss-activity-event">{entry["event"]}</span>'
+            f'{details_html}'
+            f'</div>'
+        )
+
+
+activity_logger = ActivityLogger()
 
 # settings = {
 #     # Curve shape

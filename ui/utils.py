@@ -4,15 +4,26 @@ from pathlib import Path
 from modules.logging_colors import logger
 
 import extensions.dayna_ss.shared as dss_shared
+import modules.shared as shared
 
 # Helper function to get multiple values from dss_shared.gradio
 
 
 def gradio(*keys):
+    """Get gradio elements from dss_shared.gradio, falling back to shared.gradio for TGWUI elements."""
     if len(keys) == 1 and type(keys[0]) in [list, tuple]:
         keys = keys[0]
 
-    return [dss_shared.gradio[k] for k in keys]
+    result = []
+    for k in keys:
+        if k in dss_shared.gradio:
+            result.append(dss_shared.gradio[k])
+        elif k in shared.gradio:
+            result.append(shared.gradio[k])
+        else:
+            logger.warning(f"Gradio element '{k}' not found in dss_shared.gradio or shared.gradio")
+            result.append(None)
+    return result
 
 
 from modules.utils import (
@@ -159,7 +170,7 @@ def list_interface_input_elements():
         "dss_toggle",
         "do_instr",
         "next_scene",
-        "tool_activity_toggle",
+        "activity_toggle",
     ]
 
     # Model elements
