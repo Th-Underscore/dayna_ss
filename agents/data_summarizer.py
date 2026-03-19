@@ -643,13 +643,13 @@ class DataSummarizer:
                                 new_keys
                             )
                             recursive_set(formatted_data.data, new_keys, item_data)
-                    
+
                     # 2b. List of Primitives (Leaf update)
                     else:
                         # Create a dummy field definition to represent the list item
                         dummy_field = copy.copy(schema_class._field)
                         dummy_field.type = item_type
-                        
+
                         for i, item_val in enumerate(data):
                             self._update_field(
                                 parent_item_name_prefix=item_name_prefix,  # Path up to list
@@ -687,7 +687,7 @@ class DataSummarizer:
                                 new_keys
                             )
                             recursive_set(formatted_data.data, new_keys, val_data)
-                    
+
                     # 3b. Dict of Primitives (Leaf Update)
                     else:
                         # Create a dummy field definition to represent the dict value
@@ -767,7 +767,7 @@ class DataSummarizer:
         args = getattr(field_type, "__args__", tuple())
 
         if origin is list and args and isinstance(args[0], ParsedSchemaClass):
-            # List of Objects
+            # List of objects
             item_schema = args[0]
             if isinstance(current_value, list):
                 for i, item in enumerate(current_value):
@@ -784,7 +784,7 @@ class DataSummarizer:
             return
 
         elif origin is dict and len(args) > 1 and isinstance(args[1], ParsedSchemaClass):
-            # Dict of Objects
+            # Dict of objects
             val_schema = args[1]
             if isinstance(current_value, dict):
                 for k, v in current_value.items():
@@ -801,7 +801,6 @@ class DataSummarizer:
             return
 
         # 6. Handle Leaf Nodes (Primitives, or Lists/Dicts of Primitives)
-        # Call the LLM to get a simple value update
         self._update_field(
             parent_path,
             parent_data,
@@ -850,7 +849,7 @@ class DataSummarizer:
         """
         Asks the LLM a Yes/No question to determine if this branch needs processing.
         Returns:
-            out: `True` if the branch should be processed, `False` if the branch should be skipped.
+            out (bool): `True` if the branch should be processed, `False` if the branch should be skipped.
         """
         gate_check_prompt = self._create_update_prompt(
             item_name=branch_name,
@@ -924,7 +923,7 @@ class DataSummarizer:
         """
         Asks the LLM to rewrite the entire JSON object for the branch.
         Returns:
-            out: True if the branch was updated, False if not.
+            out (bool): `True` if the branch was updated, `False` if not.
         """
         print(f"{_INPUT}Attempting direct update for branch '{branch_name}'...{_RESET}")
 
@@ -1021,7 +1020,7 @@ class DataSummarizer:
         print(f"{_GRAY}Query branch '{branch_name}' response: '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}")
 
         # Check if negative response
-        if stop_reason in ["NO", "UNCHANGED"] or llm_response_text.upper() in ["NO", "UNCHANGED", "NO_UPDATES_REQUIRED"]:
+        if stop_reason in ["NO", "UNCHANGED"] or llm_response_text.upper() in ["NO", "UNCHANGED"]:
             print(f"{_INPUT}Skipping updates for branch '{branch_name}' (query returned NO).{_RESET}")
             return
 
@@ -1073,8 +1072,9 @@ class DataSummarizer:
                 keyList_relative_to_branch = split_keys_to_list(path_str)
 
                 try:
+                    print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(recursive_get(data, keyList_relative_to_branch), indent=None)}{_RESET}")
                     recursive_set(data, keyList_relative_to_branch, value)  # Modifies 'data' in place
-                    print(f"{_GRAY}[{branch_name}] Applied update: {path_str} = {repr(value)}{_RESET}")
+                    print(f"{_GRAY}[{branch_name}] Applied update: {path_str} = {json.dumps(value, indent=None)}{_RESET}")
 
                     # Also keep the 'formatted_data' in sync if needed by future prompts in this run
                     # (This depends on if your recursive_set handles the wrapper object or just dicts)
@@ -1224,6 +1224,7 @@ class DataSummarizer:
                 llm_interaction_prompt,
                 current_custom_state,
                 self.history_path,
+                match_prefix_only=False,
             )
 
             if shared.stop_everything:
@@ -1335,9 +1336,9 @@ class DataSummarizer:
                 f"Relevant Schema for '{{field_name}}':\n```json\n{{schema_snippet}}\n```\n\n"
                 f"Example JSON structure for '{{field_name}}':\n```json\n{{example_json}}\n```\n\n"
                 f"If yes, respond with the updated value for '{{field_name}}'.\n"
-                f'If no, respond "unchanged".\n'
-                f'If unsure, respond "unchanged".\n\n'
-                f'REMEMBER: Respond *only* with the updated value or the word "unchanged". Do not add explanations.'
+                f'If no, respond "UNCHANGED".\n'
+                f'If unsure, respond "UNCHANGED".\n\n'
+                f'REMEMBER: Respond *only* with the updated value or the word "UNCHANGED". Do not add explanations.'
             )
             print(
                 f"{_INPUT}Using default structured prompt template with schema/example for {parent_item_name_prefix}.{field_name}{_RESET}"

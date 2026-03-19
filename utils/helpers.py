@@ -134,7 +134,7 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
     current_level = data
     length = len(keyList)
     for i, key in enumerate(keyList):
-        print(f"{_HILITE}key: {key}{_BOLD}, current_level: {current_level}{_RESET}")
+        print(f"{_HILITE}key: {key}{_RESET}")
         if isinstance(key, TypedKey):  # Handle typed keys
             key = key.key
 
@@ -303,7 +303,7 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | 
                 current_item_schema_type = field_schema.type if field_schema and field_schema.type else None
                 data_copy[k] = unexpand_lists_in_data_from_llm(v, current_item_schema_type, parser)
             return data_copy
-        elif parsed_class_obj.definition_type == "field":
+        elif parsed_class_obj.definition_type == "alias":
             field_type = parsed_class_obj.get_field().type
             if parsed_class_obj.do_expand_into_dict and isinstance(data, dict) and _is_dict_expandable_to_list(data):
                 list_item_schema_type = None
@@ -363,11 +363,8 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | 
 
 def get_values(data: dict | list):
     """Get the values of a potentially expanded list."""
-    print(type(data))
     if isinstance(data, dict):
-        print("is dict")
         return data.values()
-    print("is list")
     return data
 
 

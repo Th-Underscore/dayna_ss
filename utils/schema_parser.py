@@ -52,6 +52,9 @@ class ParsedSchemaField:
         self.type: ParsedSchemaClass | type | None = None  # Will be resolved after parsing
         self.default = default
         self.no_update: bool = False
+    
+    def __repr__(self):
+        return f"ParsedSchemaField(name={self.name}, type={self.type}, default={self.default}, no_update={self.no_update})"
 
 
 class ParsedSchemaClass:
@@ -201,8 +204,8 @@ class ParsedSchemaClass:
                 schema["type"] = "array"
                 schema["items"] = self._type_to_json_schema_dict(args[0], all_definitions_map)
             elif origin is dict and len(args) == 2:
-                # JSON schema for dicts is typically an object with string keys.
-                # For 'additionalProperties', we describe the type of the values.
+                # JSON schema for dicts is typically an object with string keys
+                # For 'additionalProperties', describe the type of the values
                 schema["type"] = "object"
                 schema["additionalProperties"] = self._type_to_json_schema_dict(args[1], all_definitions_map)
         elif type_hint is Any or type_hint is None:
@@ -212,6 +215,10 @@ class ParsedSchemaClass:
             print(
                 f"{_ERROR}Warning: Unhandled type '{type_hint}' in _type_to_json_schema_dict. Returning empty schema.{_RESET}"
             )
+
+        if field_name and field_name.startswith("_"):  # Internal field
+            schema["readOnly"] = True
+
         return schema
 
     def to_json_schema_dict(self, all_definitions_map: dict) -> dict:
@@ -222,11 +229,11 @@ class ParsedSchemaClass:
 
             for field_obj in self.get_fields():
                 properties[field_obj.name] = self._type_to_json_schema_dict(field_obj.type, all_definitions_map, field_obj.name)
-                if field_obj.default is None:  # Basic check for required; could be more sophisticated
-                    # Check if default is None because it was not set, vs. explicitly set to None
-                    is_explicitly_optional = False  # Placeholder for more advanced optionality check
-                    if not is_explicitly_optional:
-                        required_fields.append(field_obj.name)
+                if field_obj.name.startswith("_"):  # Internal fields optional
+                    continue
+                is_explicitly_optional = False  # Placeholder for more advanced optionality check
+                if not is_explicitly_optional:
+                    required_fields.append(field_obj.name)
 
             schema_dict = {"type": "object", "properties": properties}
             if required_fields:
@@ -239,7 +246,6 @@ class ParsedSchemaClass:
             if self._field and self._field.type:
                 return self._type_to_json_schema_dict(self._field.type, all_definitions_map, self.name)
             else:
-                # Should not happen if parser is correct
                 print(
                     f"{_ERROR}Warning: 'alias' type ParsedSchemaClass '{self.name}' has no _field.type. Returning empty schema.{_RESET}"
                 )
@@ -263,6 +269,8 @@ class ParsedSchemaClass:
                 if field_obj.default is not None:
                     pass  # TODO: Handle default values
                     # example_obj[field_name] = copy.copy(field_obj.default)
+                elif field_name.startswith("_"):  # Internal field
+                    continue
                 else:
                     # Try to get description from parent class's defaults to use as example value
                     field_placeholder = self.defaults.get(f"{field_name}_placeholder")
