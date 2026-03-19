@@ -1,0 +1,5 @@
+__pycache__
+.git
+test.py
+user_data/history
+*.code-workspace
