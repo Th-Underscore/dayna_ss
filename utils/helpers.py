@@ -12,7 +12,7 @@ from functools import reduce
 _ERROR = "\033[1;31m"
 _SUCCESS = "\033[1;32m"
 _INPUT = "\033[0;33m"
-_GRAY = "\033[0;30m"
+_GRAY = "\033[0;90m"
 _HILITE = "\033[0;36m"
 _BILITE = "\033[1;36m"
 _BOLD = "\033[1;37m"

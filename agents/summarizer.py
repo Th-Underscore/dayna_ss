@@ -61,13 +61,9 @@ from extensions.dayna_ss.utils.background_importer import (
     get_imported_attribute,
 )
 
-from extensions.dayna_ss.tools.definitions.dynamic_tools import (
-    create_dss_tool_executors,
-)
-from extensions.dayna_ss.tools.tgwui_integration import (
-    register_dss_tool_executors,
-)
-from extensions.dayna_ss.tools.tool_registry import ToolRegistry
+from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_executors, create_dss_tool_definitions
+from extensions.dayna_ss.tools.tgwui_integration import register_dss_tool_executors
+from extensions.dayna_ss.tools.tool_registry import Tool, ToolRegistry
 
 start_background_import("torch", "no_grad")
 
@@ -146,10 +142,7 @@ class Summarizer:
         """Initialize DSS tool executors for TGWUI's native tool system."""
         self.dss_tool_executors = create_dss_tool_executors(self)
         register_dss_tool_executors(self.dss_tool_executors)
-        
-        from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_definitions
-        from extensions.dayna_ss.tools.tool_registry import Tool
-        
+
         tool_defs = create_dss_tool_definitions()
         for tool_def in tool_defs:
             func_def = tool_def.get("function", {})

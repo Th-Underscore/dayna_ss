@@ -85,16 +85,6 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
     if not shared.model or not dss_shared.persistent_ui_state.get("dss_toggle", True):
         return generate_chat_prompt(user_input, state, **kwargs)
 
-    if not summarizer:
-        summarizer = Summarizer(_CONFIG_PATH)
-        tool_defs = create_dss_tool_definitions()
-        tgwui_integration.register_dss_tool_executors(summarizer.dss_tool_executors)
-        tgwui_integration._dss_tool_definitions = tool_defs
-        
-        def dss_enabled_check():
-            return dss_shared.persistent_ui_state.get("dss_toggle", True)
-        tgwui_integration.set_dss_enabled_check(dss_enabled_check)
-
     handle_input(user_input, state, history)
 
     try:
@@ -238,7 +228,13 @@ def setup():
     # Initialize summarizer
     summarizer = Summarizer(_CONFIG_PATH)
     story_rag = True
-    # story_rag = summarizer.story_rag
+
+    tool_defs = create_dss_tool_definitions()
+    tgwui_integration._dss_tool_definitions = tool_defs
+
+    def dss_enabled_check():
+        return dss_shared.persistent_ui_state.get("dss_toggle", True)
+    tgwui_integration.set_dss_enabled_check(dss_enabled_check)
 
 
 def run_async(coro: Coroutine) -> asyncio.Future | None:
