@@ -85,6 +85,14 @@ class StoryContextRetriever:
         self.general_info = self._load_json(self.general_info_path)
         self.current_scene = self._load_json(self.current_scene_path)
 
+        print(f"{_DEBUG}StoryContextRetriever loaded:")
+        print(f"  history_path: {history_path}")
+        print(f"  characters keys: {list(self.characters.keys()) if self.characters else 'empty'}")
+        print(f"  groups keys: {list(self.groups.keys()) if self.groups else 'empty'}")
+        print(f"  events keys: {list(self.events.keys()) if self.events else 'empty'}")
+        print(f"  general_info keys: {list(self.general_info.keys()) if self.general_info else 'empty'}")
+        print(f"  current_scene keys: {list(self.current_scene.keys()) if self.current_scene else 'empty'}{_RESET}")
+
         self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene)
 
         # Create character name patterns for recognition
@@ -115,8 +123,9 @@ class StoryContextRetriever:
     def _get_relevant_groups(self, characters: list[str], context: str) -> dict[str, dict]:
         """Get groups relevant to the current context and characters."""
         relevant_groups = {}
+        groups_data = self.groups.get("entries", self.groups)
 
-        for group_name, group_data in self.groups.items():
+        for group_name, group_data in groups_data.items():
             # Check if group is mentioned in context
             if re.search(group_name, context, flags=re.IGNORECASE) or any(
                 alias for alias in group_data.get("aliases", []) if re.search(alias, context, flags=re.IGNORECASE)
@@ -130,7 +139,7 @@ class StoryContextRetriever:
                     relevant_groups[group_name] = group_data
                     break
 
-        return relevant_groups
+        return {"entries": relevant_groups}
 
     def _get_relevant_events(self, characters: list[str], groups: dict[str, dict], context: str) -> dict[str, dict]:
         """Get events relevant to the current context and groups."""
@@ -196,10 +205,11 @@ class StoryContextRetriever:
 
     def _get_character_important_relationships(self, char_name: str, importance_threshold: int = 75) -> dict[str, list[dict]]:
         """Get a character's important relationships."""
-        if char_name not in self.characters:
+        characters_data = self.characters.get("entries", self.characters)
+        if char_name not in characters_data:
             return {}
 
-        char_data = self.characters[char_name]
+        char_data = characters_data[char_name]
         rels = {}
 
         if "relationships" in char_data:
@@ -215,10 +225,11 @@ class StoryContextRetriever:
         self, char1: str, char2: str, correlation_threshold: int = 0
     ) -> dict[str, list[dict]]:
         """Get relationships between two characters in the same scene, regardless of importance."""
-        if char1 not in self.characters or char2 not in self.characters:
+        characters_data = self.characters.get("entries", self.characters)
+        if char1 not in characters_data or char2 not in characters_data:
             return {}
 
-        char_data = self.characters[char1]
+        char_data = characters_data[char1]
         rels = {}
 
         if "relationships" in char_data and char2 in char_data["relationships"]:
@@ -238,11 +249,12 @@ class StoryContextRetriever:
         """Get all relevant relationships for characters, including both important and scene-based relationships."""
         result = {}
         processed_chars = []
+        characters_data = self.characters.get("entries", self.characters)
 
         # First pass: Get important relationships for all characters
         for char_name in scene_characters:
-            if char_name in self.characters:
-                char_data = self.characters[char_name].copy()  # Copy to avoid modifying original
+            if char_name in characters_data:
+                char_data = characters_data[char_name].copy()  # Copy to avoid modifying original
 
                 # Get important relationships
                 important_rels = self._get_character_important_relationships(char_name, importance_threshold)
@@ -255,7 +267,7 @@ class StoryContextRetriever:
 
                 # Add related characters to be processed
                 for related_char in important_rels:
-                    if related_char in self.characters and related_char not in scene_characters:
+                    if related_char in characters_data and related_char not in scene_characters:
                         scene_characters.append(related_char)
 
         # Second pass: Get scene-based relationships between characters
@@ -271,12 +283,13 @@ class StoryContextRetriever:
                             result[char1]["relationships"] = {}
                         result[char1]["relationships"].update(scene_rels)
 
-        return result
+        return {"entries": result}
 
     def retrieve_context(self, current_context: str, last_x_messages: list[str]) -> RetrievalContext:
         """Main method to retrieve all relevant context based on current state."""
         result = RetrievalContext(general_info=self.general_info)
         current_scene = self.get_current_scene()
+        result.current_scene = current_scene
 
         # Get characters from current scene and context
         scene_characters = []
@@ -294,10 +307,16 @@ class StoryContextRetriever:
                 scene_characters.append(char)
 
         try:
+            print(f"{_DEBUG}retrieve_context try block starting. general_info type: {type(result.general_info)}, is empty: {not result.general_info}{_RESET}")
+            print(f"{_DEBUG}scene_characters to look up: {scene_characters}{_RESET}")
+            print(f"{_DEBUG}self.characters keys: {list(self.characters.keys()) if self.characters else 'empty'}{_RESET}")
             # Get character relationships and related data
             result.characters = self._get_all_relevant_character_relationships(scene_characters)
+            print(f"{_DEBUG}characters retrieved: {type(result.characters)}, count: {len(result.characters) if result.characters else 0}{_RESET}")
             result.groups = self._get_relevant_groups(scene_characters, context_to_search)
+            print(f"{_DEBUG}groups retrieved: {type(result.groups)}, count: {len(result.groups) if result.groups else 0}{_RESET}")
             result.events = self._get_relevant_events(scene_characters, result.groups, context_to_search)
+            print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
 
             # Get messages using both retrieval methods
             # scene_messages = self._get_message_chunks()  # Index-based retrieval
@@ -322,7 +341,8 @@ class StoryContextRetriever:
             result.messages_metadata = all_metadata
 
         except Exception as e:
-            print(f"Error in context retrieval: {str(e)}")
+            print(f"{_ERROR}EXCEPTION in retrieve_context: {str(e)}{_RESET}")
+            print(f"{_ERROR}general_info is: {result.general_info}{_RESET}")
             traceback.print_exc()
 
         return result
@@ -712,6 +732,7 @@ class MessageChunker:
                         "characters_present": scene_active_characters,
                         "subjects_referenced": subjects_referenced,
                         "scene_id": None,  # To be filled later
+                        "scene_number": self.current_scene_data.get("_scene_number"),
                         "event_id": None,  # To be filled later
                     }
                 )
@@ -813,6 +834,7 @@ class MessageChunker:
                 "characters_present": chunk.get("characters_present", []),
                 "subjects_referenced": chunk.get("subjects_referenced", {}),
                 "scene_id": chunk.get("scene_id"),  # Will be None initially
+                "scene_number": chunk.get("scene_number"),  # Will be None initially
                 "event_id": chunk.get("event_id"),  # Will be None initially
                 "is_summary": chunk.get("is_summary", False),
             }

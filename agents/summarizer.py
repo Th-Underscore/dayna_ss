@@ -220,7 +220,7 @@ class Summarizer:
         prompt: str,
         state: dict,
         history_path: Path | None = None,
-        stopping_strings: list[str] | None = ["UNCHANGED"],
+        stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
         match_prefix_only: bool = True,
         **kwargs,
     ) -> tuple[str, str]:
@@ -790,6 +790,15 @@ class Summarizer:
                     )
                     all_subjects_data["current_scene"]["_start_message_node"] = str(self.last.new_scene_start_node)
 
+                    events_data = all_subjects_data.get("events", {})
+                    scenes_count = len(events_data.get("scenes", {})) if events_data else 0
+                    new_scene_number = scenes_count + 1
+                    current_scene_number = all_subjects_data["current_scene"].get("_scene_number")
+                    if current_scene_number is not None:
+                        new_scene_number = current_scene_number + 1
+                    all_subjects_data["current_scene"]["_scene_number"] = new_scene_number
+                    print(f"{_DEBUG}Setting '_scene_number' to {new_scene_number} for new scene.{_RESET}")
+
             print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
             # Copy static data to the new history path
@@ -948,7 +957,14 @@ class Summarizer:
             raise RuntimeError("Schema parser not initialized in retrieve_and_format_context.")
 
         print(f"{_BOLD}Retrieving context for {formatted_last_x} messages:", retrieval_context, _RESET)
-        print(f"{_HILITE}General info: {retrieval_context.general_info}{_RESET}")
+        print(f"{_HILITE}RetrievalContext attributes:")
+        print(f"  general_info: {retrieval_context.general_info}")
+        print(f"  current_scene: {retrieval_context.current_scene}")
+        print(f"  characters: {retrieval_context.characters}")
+        print(f"  groups: {retrieval_context.groups}")
+        print(f"  events: {retrieval_context.events}")
+        print(f"  messages: {retrieval_context.messages}")
+        print(f"  messages_metadata: {retrieval_context.messages_metadata}{_RESET}")
 
         context_order = FormattedData.get_context_order()
         context_attr_map = {
@@ -965,15 +981,23 @@ class Summarizer:
             data_type = item.get("type")
             prompt = item.get("prompt", "")
             to_context = item.get("to_context", False)
-            
+
             attr_name = context_attr_map.get(data_type)
             if not attr_name:
                 continue
-            
+
             data = getattr(retrieval_context, attr_name, None)
             if data is None:
                 continue
-            
+
+            attr_name = context_attr_map.get(data_type)
+            if not attr_name:
+                continue
+
+            data = getattr(retrieval_context, attr_name, None)
+            if data is None:
+                continue
+
             if data_type == "lines":
                 lines_data = {
                     "messages": data,
@@ -982,19 +1006,19 @@ class Summarizer:
                 scene_names = getattr(retrieval_context.events, "get", lambda k, d={}: d.get(k, "Unknown"))("scenes", {})
                 scene_name_map = {name.lower(): name for name in scene_names.keys()} if isinstance(scene_names, dict) else {}
                 extra_context = {"scene_names": scene_name_map}
-                formatted = FormattedData(lines_data, data_type, self.last.schema_parser, extra_context=extra_context).st
+                formatted = FormattedData(lines_data, data_type, parser=None, extra_context=extra_context).st
             else:
                 formatted = FormattedData(data, data_type, self.last.schema_parser).st
-            
+
             if to_context:
                 custom_state["context"] += f"\n\n{formatted}"
-            
+
             if prompt and formatted:
                 custom_history.append([prompt, formatted])
 
         # Append last x messages
         if last_x_messages:
-            custom_history.append([f"What were the last {formatted_last_x} exchanges?", last_x_messages])
+            custom_history.append([f"What were the last {formatted_last_x} exchanges (pairs of messages)?", last_x_messages])
 
         # Analysis complete marker TODO: Get this SYSTEM prompt from config
         custom_history.append(
@@ -1779,7 +1803,7 @@ class FormattedData:
         """Load format templates from the templates JSON file."""
         if FormattedData._format_templates_cache is not None:
             return FormattedData._format_templates_cache
-        
+
         try:
             dss_dir = Path(__file__).parent.parent
             template_path = dss_dir / "user_data" / "example" / "format_templates.json"
@@ -1825,9 +1849,7 @@ class FormattedData:
         try:
             jinja_env = ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True)
             template = jinja_env.from_string(template_str)
-            
-            print(f"{_BOLD}Rendering Jinja template for {_HILITE}{data_type}{_RESET}")
-            
+
             context = {
                 "data": data,
                 "path": path_prefix,
@@ -1835,7 +1857,7 @@ class FormattedData:
 
             if parser:
                 context["defaults"] = parser.defaults
-            
+
             if extra_context:
                 context.update(extra_context)
 
