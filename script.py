@@ -225,7 +225,6 @@ def setup():
     global summarizer, story_rag
     print("Loaded DAYNA Story Summarizer!")
 
-    # Initialize summarizer
     summarizer = Summarizer(_CONFIG_PATH)
     story_rag = True
 
@@ -260,7 +259,7 @@ def run_async(coro: Coroutine) -> asyncio.Future | None:
 
 import gradio as gr
 
-from extensions.dayna_ss.ui import ui_chat, ui_file_saving, ui_parameters, utils
+from extensions.dayna_ss.ui import ui_chat, ui_file_saving, ui_parameters, ui_templates, utils
 
 params["is_tab"] = True
 print(f"{_BOLD}Initial params: {_RESET}{params['is_tab']} ({params})")
@@ -274,17 +273,18 @@ def ui():
 
     print(f"{_BOLD}Creating UI: {_RESET}{tab_created} - {params['is_tab']} ({params})")
 
-    if not tab_created:
+    if not tab_created:  # Tab
         params["is_tab"] = True
         dss_shared.gradio["interface_state"] = gr.State({k: None for k in dss_shared.input_elements})
 
         ui_file_saving.create_ui()
         ui_chat.create_ui()
         ui_parameters.create_ui(dss_shared.settings["preset"])
+        ui_templates.create_ui()
 
         params["is_tab"] = False
         tab_created = True
-    else:
+    else:  # Block under chat
         params["is_tab"] = False
         ui_chat.create_block_ui()
         params["is_tab"] = True
@@ -293,6 +293,7 @@ def ui():
         ui_chat.create_event_handlers()
         ui_file_saving.create_event_handlers()
         ui_parameters.create_event_handlers()
+        ui_templates.create_event_handlers()
 
 
 is_final_output = False
