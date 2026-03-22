@@ -66,7 +66,7 @@
       },
       "defaults": {
         "branch_query_prompt_template": "Based on the latest exchange and the current state of the character '{branch_name}', are there any significant changes, additions, or deletions required for this character's entire entry (description, traits, attributes, status, relationships, milestones)? Respond with only 'NO' or 'UNCHANGED' if this character's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"description.0\", \"value\": \"Updated first line of description\"}},\n  {{\"path\": \"status.current_location\", \"value\": \"New Location\"}},\n  {{\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {\"path\": \"description.0\", \"value\": \"Updated first line of description\"},\n  {\"path\": \"status.current_location\", \"value\": \"New Location\"},\n  {\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
         "description_placeholder": "A detailed textual description of the character, potentially spanning multiple lines.",
         "traits_placeholder": "A list of defining characteristics, personality aspects, or physical features of the character.",
         "attributes_placeholder": "A list of character's abilities, skills, or quantifiable characteristics, often with a brief explanation (e.g., 'Raw strength: Greatly above average').",
@@ -134,7 +134,7 @@
       },
       "defaults": {
         "branch_query_prompt_template": "Considering the overall story context and the current details for the group '{branch_name}', does this group's entire information (aliases, description, events, relationships, characters involved) need a review for potential updates? Respond with only 'NO' or 'UNCHANGED' if no updates are needed. Otherwise, respond with 'YES'.",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"aliases.0\", \"value\": \"New Alias for Group\"}},\n  {{\"path\": \"description.1\", \"value\": \"Additional detail for group description\"}},\n  {{\"path\": \"characters.Alice.position.0\", \"value\": \"Leader\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\n\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {\"path\": \"aliases.0\", \"value\": \"New Alias for Group\"},\n  {\"path\": \"description.1\", \"value\": \"Additional detail for group description\"},\n  {\"path\": \"characters.Alice.position.0\", \"value\": \"Leader\"}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
         "aliases_placeholder": "Alternative names or shorthand for the group.",
         "description_placeholder": "A detailed textual description of the group, its purpose, and characteristics.",
         "events_placeholder": "A list of significant events the group has been involved in.",
@@ -335,7 +335,7 @@
       "field": "dict[str, StoryEvent]",
       "defaults": {
         "branch_query_prompt_template": "Based on the latest exchange and the current state of the branch '{branch_name}', are there any significant changes, additions, or deletions required for this entire branch (any event's name, start, end, summary)? Respond with only 'NO' or 'UNCHANGED' if this event's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of branch '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure (e.g., 'Example Event.summary', 'Example Event.start.date').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"Example Event.summary\", \"value\": \"Updated event summary\"}},\n  {{\"path\": \"Example Event.end.specific_time\", \"value\": \"18:00\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of branch '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\n\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure (e.g., 'Example Event.summary', 'Example Event.start.date').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {\"path\": \"Example Event.summary\", \"value\": \"Updated event summary\"},\n  {\"path\": \"Example Event.end.specific_time\", \"value\": \"18:00\"}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
         "update_prompt_template": "Based on the latest exchange, is {item_name}'s {field_name} summary inaccurate or incomplete?\nRelevant Schema for '{field_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{field_name}':\n```json\n{example_json}\n```\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
       },
       "triggers": {
@@ -370,6 +370,61 @@
         "new_entry_query_prompt_template": "The scene has just completed. Throughout the last scene, have there been any new major story events worthy of being added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
         "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
         "field_placeholder": "Very_Important_Event"
+      }
+    },
+    "Arc": {
+      "type": "dataclass",
+      "fields": {
+        "title": "str",
+        "starting_scene": "int",
+        "ending_scene": "int",
+        "scenes": "list[int]",
+        "summary": "str",
+        "character_arcs": "str",
+        "relationship_shifts": "str",
+        "plot_threads": "list[str]",
+        "status": "str"
+      },
+      "defaults": {
+        "title_placeholder": "A short, evocative title for this narrative arc (e.g., 'The Betrayal', 'The Hunt Begins').",
+        "starting_scene_placeholder": "The scene index where this arc began.",
+        "ending_scene_placeholder": "The scene index where this arc concluded, or null if still active.",
+        "scenes_placeholder": "List of scene indices where this arc was active or referenced.",
+        "summary_placeholder": "A 1-2 paragraph summary of what this arc is about - the core conflict, stakes, and progression.",
+        "character_arcs_placeholder": "How have the main characters involved in this arc changed or been revealed?",
+        "relationship_shifts_placeholder": "How have relationships between characters shifted during this arc?",
+        "plot_threads_placeholder": "What plot threads or mysteries are associated with this arc?",
+        "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
+        "update_prompt_template": "Based on the latest scene, update the arc '{branch_name}'.\n\nArc Data:\n{value}\n\nLatest Scene:\n{subjects.events.scenes[-1]}\n\nCharacter Changes:\n{subjects.characters}\n\nHas this arc concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON."
+      },
+      "triggers": {
+        "always": [
+          "query_branch_for_changes"
+        ],
+        "on_new_scene": [
+          "perform_update"
+        ]
+      }
+    },
+    "Arcs": {
+      "type": "alias",
+      "field": "list[Arc]",
+      "defaults": {
+        "fallback_interval": 4,
+        "fallback_on": "ON_NEW_SCENE",
+        "field_placeholder": "Arc_Title",
+        "gate_check_prompt_template": "Should we process the narrative arcs?\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nActive Arcs (ending_scene == null):\n{formatted_data}\n\nRespond YES if:\n- A new narrative arc should begin\n- An active arc has concluded or shifted significantly\n- This is a fallback trigger (after {fallback_interval} scenes)\n\nOtherwise respond NO.",
+        "new_entry_query_prompt_template": "Should we create a new narrative arc?\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nActive Arcs:\n{formatted_data}\n\nRespond with arc title if a new arc is needed, otherwise respond NO.",
+        "new_entry_prompt_template": "Generate arc data for:\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nCharacters involved:\n{subjects.characters}\n\nArc should capture:\n- What narrative thread is this?\n- Who are the key characters?\n- What's the current status?\n\nSchema:\n{schema_snippet}\n\nExample:\n{example_json}"
+      },
+      "triggers": {
+        "on_new_scene": [
+          "perform_gate_check",
+          "add_new"
+        ],
+        "on_fallback": [
+          "perform_gate_check"
+        ]
       }
     },
     "Events": {
@@ -414,7 +469,7 @@
       },
       "defaults": {
         "branch_query_prompt_template": "Based on the latest exchange and the current state of the story and chat as a whole, are there any significant changes, additions, or deletions required for this general information section (writing style, tone, themes, main objective, summary)? Respond with only 'NO' or 'UNCHANGED' if all the general information is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {{\"path\": \"description.0\", \"value\": \"Updated first line of description\"}},\n  {{\"path\": \"status.current_location\", \"value\": \"New Location\"}},\n  {{\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the '{branch_name}' object as a whole.",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{branch_name}'.\nRelevant Schema for '{branch_name}':\n```json\n{schema_snippet}\n```\nExample JSON structure for '{branch_name}':\n```json\n{example_json}\n```\n\nIf any specific fields within '{branch_name}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{branch_name}':\n[\n  {\"path\": \"description.0\", \"value\": \"Updated first line of description\"},\n  {\"path\": \"status.current_location\", \"value\": \"New Location\"},\n  {\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}\n]\n\nIf NO updates are required for the entire '{branch_name}', respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the '{branch_name}' object as a whole.",
         "gate_check_prompt_template": "A new scene has just concluded. Does the summary of this new scene contain information significant enough to warrant updating the overall story's General Info? Respond with only 'YES' or 'NO'.",
         "update_prompt_template": "Given the previous General Info and a summary of the most recently completed scene, generate an updated JSON object for the story's General Info.\n\nPrevious General Info:\n```json\n{value}\n```\n\nSummary of New Scene:\n'''\n{new_scene_summary}\n'''\n\nRespond with ONLY the updated JSON object.",
         "writing_style_placeholder": "A description of the narrative format to ensure stylistic consistency (e.g., '{{char}}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{{char}}: 1st-person dialogue as \"{{char}}\" with actions in asterisks', '{{char}}: 1st-person prose as \"{{user}}\", approximately double the paragraphs as {{user}}', '{{char}}: 2nd-person prose (speaking to \"{{user}}\"), the same number of paragraphs as {{user}}').\n\nThis is of utmost importance. Check what the user has written so far, as well as what you (as {{char}}) have written so far (particularly the very first message, the greeting, if available). Be specific; this will be followed strictly. If this already exists, keep it as is. Do not change it unless clarifying even further.",
@@ -439,6 +494,7 @@
     "groups": "Groups",
     "current_scene": "CurrentScene",
     "events": "Events",
-    "general_info": "GeneralInfo"
+    "general_info": "GeneralInfo",
+    "arcs": "Arcs"
   }
 }

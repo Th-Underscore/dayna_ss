@@ -1,19 +1,20 @@
 from typing import Any, Callable, Generator, TextIO, TYPE_CHECKING
 from os import PathLike
+import copy
 import hashlib
 import io
 import json
 import jsonc
-from contextlib import redirect_stdout, redirect_stderr
-import copy
-from datetime import datetime
-from pathlib import Path
 import random
 import re
 import shutil
 import sys
 import traceback
+from contextlib import redirect_stdout, redirect_stderr
+from pathlib import Path
 from dataclasses import dataclass
+from datetime import datetime
+from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 if TYPE_CHECKING:
     from torch import no_grad
@@ -153,12 +154,12 @@ class Summarizer:
                 handler=self.dss_tool_executors.get(func_def.get("name")),
             )
             self.tool_registry.register(tool)
-        
+
         self.tool_registry.set_callbacks(
             on_tool_call=self._on_tool_call,
             on_tool_result=self._on_tool_result,
         )
-        
+
         print(f"{_SUCCESS}Initialized DSS tool executors: {list(self.dss_tool_executors.keys())}{_RESET}")
 
     def _on_tool_call(self, tool_name: str, arguments: dict) -> None:
@@ -178,7 +179,7 @@ class Summarizer:
 
     def log_activity(self, event: str, details: str = "", level: str = "info") -> None:
         """Log an activity to the activity logger.
-        
+
         Args:
             event: Short name of the event
             details: Additional details
@@ -265,7 +266,7 @@ class Summarizer:
         # Capture the output
         capture_buffer = io.StringIO()
         use_tool_loop = self.retrieval_mode == "active"
-        
+
         with redirect_stderr(DualStream(sys.stderr, capture_buffer)):  # redirect_stdout(DualStream(sys.stdout, capture_buffer))
             if use_tool_loop:
                 for t, s in self.generate_with_tool_loop(
@@ -371,14 +372,14 @@ class Summarizer:
         **kwargs,
     ) -> Generator[tuple[str, str], Any, None]:
         """Generate with active tool calling loop.
-        
+
         In active retrieval mode, the model can call DSS tools to retrieve information
         before generating its response. This method handles the loop of:
         1. Generate text
         2. Check for tool calls
         3. Execute tools and append results
         4. Continue generation
-        
+
         Args:
             prompt: The initial prompt
             state: The state dictionary for context
@@ -386,33 +387,33 @@ class Summarizer:
             match_prefix_only: Only match prefix for stopping strings
             max_tool_calls: Maximum tool calls per turn (default from config)
             **kwargs: Additional arguments passed to streaming generation
-            
+
         Yields:
             Tuples of (text, stop_reason)
         """
         if max_tool_calls is None:
             max_tool_calls = self.config.get("max_tool_calls_per_turn", 5)
-        
+
         self.log_activity("Active Retrieval", "Starting tool call loop", "info")
         print(f"{_HILITE}Starting active retrieval mode with max {max_tool_calls} tool calls{_RESET}")
-        
+
         tool_call_stopping_strings = self.config.get("tool_call_stopping_strings", ["UNCHANGED", "NO_UPDATE"])
-        
+
         full_response = ""
         tool_call_count = 0
         prompt_history = [prompt]
-        
+
         while tool_call_count < max_tool_calls:
             if shared.stop_everything:
                 yield full_response, ""
                 return
-            
+
             self.log_activity("Generation", f"Turn {tool_call_count + 1}", "info")
             print(f"{_DEBUG}Tool call loop turn {tool_call_count + 1}{_RESET}")
-            
+
             accumulated_text = ""
             found_tool_call = False
-            
+
             for text, stop_reason in self.generate_summary_with_streaming(
                 prompt_history[-1] if len(prompt_history) > 1 else prompt,
                 state,
@@ -421,7 +422,7 @@ class Summarizer:
                 **kwargs,
             ):
                 accumulated_text = text
-                
+
                 result = self.tool_registry.parse_tool_calls(text)
                 if result.status.value in ("complete", "error"):
                     found_tool_call = True
@@ -432,18 +433,18 @@ class Summarizer:
                     prompt_history.append(
                         f"{text}\n\n{self.tool_registry.TOOL_RESPONSE_OPEN}\n{tool_response}\n{self.tool_registry.TOOL_RESPONSE_CLOSE}"
                     )
-                    
+
                     tool_call_count += 1
                     full_response += text + "\n"
                     yield text, "tool_call"
-                    
+
                     self.log_activity(
                         "Tool Call Complete",
                         f"Call #{tool_call_count}: {result.call.tool_name if result.call else 'unknown'}",
                         "success"
                     )
                     break
-                
+
                 if stop_reason:
                     if stop_reason in (tool_call_stopping_strings or []):
                         found_tool_call = False
@@ -454,36 +455,36 @@ class Summarizer:
                         full_response += text
                         yield text, stop_reason
                         return
-                
+
                 yield text, ""
-            
+
             if not found_tool_call:
                 if accumulated_text:
                     full_response = accumulated_text
                 break
-        
+
         if tool_call_count >= max_tool_calls:
             self.log_activity("Tool Limit", f"Reached max tool calls ({max_tool_calls})", "warning")
             print(f"{_WARNING}Reached max tool calls ({max_tool_calls}), continuing without more tool calls{_RESET}")
-        
+
         full_response = full_response or accumulated_text
         yield full_response, "tool_limit"
 
     def execute_tool_result(self, result) -> Any:
         """Execute a parsed tool call and return the result.
-        
+
         Args:
             result: ToolCallResult from parse_tool_calls
-            
+
         Returns:
             ToolCallResult with output or error
         """
         if result.status.value == "error":
             return result
-        
+
         if result.call is None:
             return result
-        
+
         tool_result = self.tool_registry.execute_tool_call(result.call)
         return tool_result
 
@@ -622,7 +623,7 @@ class Summarizer:
                                     f"FORMATTING REQUIREMENTS:\n"
                                     f"- Present the instructions as a series of plain text paragraphs.\n"
                                     f"- Each paragraph should represent a distinct part of the response plan.\n"
-                                    f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
+                                    # f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
                                     f"Example of desired output structure (imagine these are the instructions):\n"
                                     f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
                                     f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
@@ -670,14 +671,14 @@ class Summarizer:
                         f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
                         f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
                         f"Adhere loosely to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
-                        f"Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
+                        f"Your reply must be natural-sounding prose.\n\n" #ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
                         f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
                     )
                 else:
                     instr_prompt = (
                         f"{user_input_prompt}\n\n"
                         f'You are to write a reply in character as "{name2}".\n'
-                        f"Your reply must be natural-sounding prose. ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
+                        f"Your reply must be natural-sounding prose.\n\n" #ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
                         f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
                     )
                 encoded_instr_prompt = (
@@ -791,10 +792,14 @@ class Summarizer:
 
             print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
-            # Copy subjects_schema.json to the new history path
+            # Copy static data to the new history path
             save_json(
                 load_json(last_history_path / "subjects_schema.json"),
                 new_history_path / "subjects_schema.json",
+            )
+            save_json(
+                load_json(last_history_path / "format_templates.json"),
+                new_history_path / "format_templates.json",
             )
 
             def process_subject_update(subject_name: str, data: dict, schema_class: ParsedSchemaClass) -> dict:
@@ -945,77 +950,47 @@ class Summarizer:
         print(f"{_BOLD}Retrieving context for {formatted_last_x} messages:", retrieval_context, _RESET)
         print(f"{_HILITE}General info: {retrieval_context.general_info}{_RESET}")
 
-        # TODO: Add this formatting to subjects_schema.json? Make it dynamic
-        # General info
-        if retrieval_context.general_info:
-            formatted_general_info = FormattedData(retrieval_context.general_info, "general_info", self.last.schema_parser).st
-            custom_state["context"] += f"\n\n{formatted_general_info}"
-            # Additional info
-            formatted_additional_info = FormattedData.format_retrieval_data({}, "additional_info", context_cache=self.last)
-            # formatted_general_info}{f'\n\n{formatted_additional_info}' if formatted_additional_info else ''
-            custom_history.append(
-                [
-                    "Describe the story in broad strokes.",
-                    f"\n\n".join([st for st in (formatted_general_info, formatted_additional_info) if st]),
-                ]
-            )
+        context_order = FormattedData.get_context_order()
+        context_attr_map = {
+            "general_info": "general_info",
+            "current_scene": "current_scene",
+            "character_list": "characters",
+            "characters": "characters",
+            "groups": "groups",
+            "events": "events",
+            "lines": "messages",
+        }
 
-        # Current scene
-        if retrieval_context.current_scene:
-            formatted_current_scene = FormattedData(
-                retrieval_context.current_scene, "current_scene", self.last.schema_parser
-            ).st
-            custom_history.append(["What is the current scene in the story?", formatted_current_scene])
-
-        # Format and append retrieved information
-        if retrieval_context.characters:
-            formatted_character_list = FormattedData(retrieval_context.characters, "character_list", self.last.schema_parser).st
-            custom_history.append(
-                [
-                    "What are the relevant details? Start with a list of relevant characters.",
-                    formatted_character_list,
-                ]
-            )
-
-        if retrieval_context.groups:
-            formatted_groups = FormattedData(retrieval_context.groups, "groups", self.last.schema_parser).st
-            custom_history.append(
-                [
-                    "Now, relevant groups.",
-                    formatted_groups,
-                ]
-            )
-
-        if retrieval_context.events:
-            formatted_events = FormattedData(retrieval_context.events, "events", self.last.schema_parser).st
-            custom_history.append(
-                [
-                    "Now, relevant events.",
-                    formatted_events,
-                ]
-            )
-
-        if retrieval_context.characters:
-            formatted_characters = FormattedData(retrieval_context.characters, "characters", self.last.schema_parser).st
-            custom_history.append(
-                [
-                    "Now, describe each of the relevant characters.",
-                    formatted_characters,
-                ]
-            )
-
-        if retrieval_context.messages:
-            formatted_lines = FormattedData(retrieval_context.messages, "lines", self.last.schema_parser).st
-            custom_history.append(
-                [
-                    "Now, retrieve specific lines earlier in the story that might be relevant:",
-                    formatted_lines,
-                ]
-            )
-
-        # Repeat current scene for context
-        if retrieval_context.current_scene:  # formatted_current_scene is already defined
-            custom_history.append(["Repeat the details of the current scene.", formatted_current_scene])
+        for item in context_order:
+            data_type = item.get("type")
+            prompt = item.get("prompt", "")
+            to_context = item.get("to_context", False)
+            
+            attr_name = context_attr_map.get(data_type)
+            if not attr_name:
+                continue
+            
+            data = getattr(retrieval_context, attr_name, None)
+            if data is None:
+                continue
+            
+            if data_type == "lines":
+                lines_data = {
+                    "messages": data,
+                    "metadata": getattr(retrieval_context, "messages_metadata", []),
+                }
+                scene_names = getattr(retrieval_context.events, "get", lambda k, d={}: d.get(k, "Unknown"))("scenes", {})
+                scene_name_map = {name.lower(): name for name in scene_names.keys()} if isinstance(scene_names, dict) else {}
+                extra_context = {"scene_names": scene_name_map}
+                formatted = FormattedData(lines_data, data_type, self.last.schema_parser, extra_context=extra_context).st
+            else:
+                formatted = FormattedData(data, data_type, self.last.schema_parser).st
+            
+            if to_context:
+                custom_state["context"] += f"\n\n{formatted}"
+            
+            if prompt and formatted:
+                custom_history.append([prompt, formatted])
 
         # Append last x messages
         if last_x_messages:
@@ -1745,17 +1720,21 @@ class FormattedData:
         parser: SchemaParser | None = None,
         context_cache: SummarizationContextCache | None = None,
         all_subjects_data: dict | None = None,
+        extra_context: dict | None = None,
     ):
         """Initialize and process data for LLM formatting.
 
         Prepares a string representation (`self.st`) for LLM prompts.
 
-        If schema parser is provided, expands lists to dicts with string keys if schema indicates.
+        If schema parser is provided, expands lists to dicts with schema indicates.
 
         Args:
             data (Any): Data to process (dict, list, primitive).
             data_type (str): Type hint (e.g., "current_scene", "characters").
             parser (SchemaParser, optional): For schema-based list expansion.
+            context_cache: SummarizationContextCache for schema access.
+            all_subjects_data: Additional subject data.
+            extra_context: Extra context to pass to templates (e.g., scene_names).
         """
         self.original_data = data
         self.data_type = data_type
@@ -1763,6 +1742,7 @@ class FormattedData:
         self.context_cache = context_cache
         self.last = self.context_cache
         self.all_subjects_data = all_subjects_data
+        self.extra_context = extra_context or {}
 
         if self.parser:
             # TODO: Make dynamic
@@ -1785,12 +1765,87 @@ class FormattedData:
             self.data = data
 
         self._str = FormattedData.format_retrieval_data(
-            self.data, self.data_type, context_cache=self.context_cache, all_subjects_data=self.all_subjects_data
+            self.data, self.data_type, context_cache=self.context_cache, all_subjects_data=self.all_subjects_data, extra_context=self.extra_context
         )
 
     def __getitem__(self, index):
         """Allow dictionary-like access to the (potentially expanded) data."""
         return self.data[index]
+
+    _format_templates_cache: dict | None = None
+
+    @staticmethod
+    def _load_format_templates() -> dict:
+        """Load format templates from the templates JSON file."""
+        if FormattedData._format_templates_cache is not None:
+            return FormattedData._format_templates_cache
+        
+        try:
+            dss_dir = Path(__file__).parent.parent
+            template_path = dss_dir / "user_data" / "example" / "format_templates.json"
+            templates = load_json(template_path) or {}
+            FormattedData._format_templates_cache = templates
+            print(f"{_DEBUG}Loaded {len(templates)} format templates{_RESET}")
+            return templates
+        except Exception as e:
+            print(f"{_WARNING}Failed to load format templates: {e}{_RESET}")
+            return {}
+
+    @staticmethod
+    def get_context_order() -> list[dict]:
+        """Get the context order configuration from templates."""
+        templates = FormattedData._load_format_templates()
+        return templates.get("_context_order", [])
+
+    @staticmethod
+    def _render_jinja_template(
+        template_str: str,
+        data: dict | list,
+        data_type: str,
+        path_prefix: str = "",
+        parser=None,
+        extra_context: dict | None = None,
+    ) -> str:
+        """Render a Jinja2 template with the given data.
+
+        Args:
+            template_str: The Jinja2 template string
+            data: The data to render
+            data_type: The data type (used to determine schema class)
+            path_prefix: The prefix for path markers
+            parser: SchemaParser for getting schema defaults
+            extra_context: Additional context to pass to the template
+
+        Returns:
+            Rendered string or empty string if rendering fails
+        """
+        if not template_str:
+            return ""
+
+        try:
+            jinja_env = ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True)
+            template = jinja_env.from_string(template_str)
+            
+            print(f"{_BOLD}Rendering Jinja template for {_HILITE}{data_type}{_RESET}")
+            
+            context = {
+                "data": data,
+                "path": path_prefix,
+            }
+
+            if parser:
+                context["defaults"] = parser.defaults
+            
+            if extra_context:
+                context.update(extra_context)
+
+            rendered = template.render(**context)
+            return rendered.strip()
+
+        except Exception as e:
+            print(f"{_WARNING}Jinja template rendering failed for {data_type}: {e}{_RESET}")
+            traceback.print_exc()
+            return ""
 
     @staticmethod
     def format_retrieval_data(
@@ -1799,200 +1854,37 @@ class FormattedData:
         prefix: str = "",
         context_cache: SummarizationContextCache | None = None,
         all_subjects_data: dict | None = None,
+        extra_context: dict | None = None,
     ) -> str:
         """Format retrieved data based on its type."""
-        # TODO: Generate based on "format schema" (Jinja template?)
         if not data:
             return ""
 
         try:
-            nl = "\n"
+            parser = context_cache.schema_parser if context_cache else None
+            import extensions.dayna_ss.shared as dss_shared
 
-            if data_type == "current_scene":
-                if (data.get("start") or data.get("now")) is None:
-                    print(f"{_ERROR}No current scene data available.{_RESET}")
-                    return "<EMPTY>"
-
-                formatted_str = []
-                for start_or_now in ["start", "now"]:
-                    who = data[start_or_now].get("who", {})
-                    characters = who.get("characters", {})
-                    groups = who.get("groups", {})
-                    when = data[start_or_now].get("when", {})
-                    where = data[start_or_now].get("where", "Unknown")
-                    why = data[start_or_now].get("why", {})
-
-                    # Format character entries
-                    char_entries = [
-                        f"{char_data.get('name', 'Unknown')} @ {char_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters[{i}], {prefix}current_scene.{start_or_now}.who.characters[{i}].name, {prefix}current_scene.{start_or_now}.who.characters[{i}].location"
-                        for i, char_data in enumerate_list(characters)
-                    ]
-                    formatted_chars = f"\n- ".join(char_entries) if char_entries else "None"
-
-                    # Format group entries
-                    group_entries = [
-                        f"{group_data.get('name', 'Unknown')} @ {group_data.get('location', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups[{i}], {prefix}current_scene.{start_or_now}.who.groups[{i}].name, {prefix}current_scene.{start_or_now}.who.groups[{i}].location"
-                        for i, group_data in enumerate_list(groups)
-                    ]
-                    formatted_groups = f"\n- ".join(group_entries) if group_entries else "None"
-
-                    formatted_when = f"{when.get('date', 'Unknown')} - {when.get('time', 'Unknown')} ({when.get('specific_time', 'Unknown')}) <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.when, current_scene.{start_or_now}.when.date, {prefix}current_scene.{start_or_now}.when.time, {prefix}current_scene.{start_or_now}.when.specific_time"
-
-                    # Format why entries
-                    why_entries = [
-                        f"{reason_data.get('name', 'Unknown')} -- {reason_data.get('details', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why[{i}]"
-                        for i, reason_data in enumerate_list(why)
-                    ]
-                    formatted_why = f"\n- ".join(why_entries) if why_entries else "Unknown"
-
-                    formatted_str.append(
-                        f"Scene -- {data.get('what', 'Unknown')} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}, {prefix}current_scene.what\n\n"
-                        f"Characters -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.characters\n- {formatted_chars}\n\n"
-                        f"Groups -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.who.groups\n- {formatted_groups}\n\n"
-                        f"When -- {formatted_when}\n\n"
-                        f"Where -- {where} <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.where\n\n"
-                        f"Why -- <<<<<<<<<<<< {prefix}current_scene.{start_or_now}.why\n- {formatted_why}"
-                    )
-
-                return (
-                    f"Current Scene Start --- <<<<<<<<<<<< {prefix}current_scene.start\n{formatted_str[0]}\n\n"
-                    f"Current Scene Now --- <<<<<<<<<<<< {prefix}current_scene.now\n{formatted_str[1]}"
+            user_template = dss_shared.settings.get(f"template_{data_type}")
+            if user_template:
+                rendered = FormattedData._render_jinja_template(
+                    user_template, data, data_type, prefix, parser, extra_context
                 )
+                if rendered:
+                    print(f"{_DEBUG}Using user template for {data_type}{_RESET}")
+                    return rendered
 
-            if data_type == "character_list":
-                return "\n".join(
-                    f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
-                    f"Relationships --- {', '.join(char_data.get('relationships', {}).keys())} <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
-                    for char, char_data in data.get("entries", {}).items()
+            templates = FormattedData._load_format_templates()
+            template_str = templates.get(data_type)
+            if template_str:
+                rendered = FormattedData._render_jinja_template(
+                    template_str, data, data_type, prefix, parser, extra_context
                 )
-
-            if data_type == "characters_list":
-                return f"[{json.dumps(list(data.get('entries', {}).keys()), indent=None)}] <<<<<<<<<<<< {prefix}characters"
-
-            if data_type == "characters":
-                return "\n\n".join(
-                    f"Character --- {char} <<<<<<<<<<<< {prefix}characters.{char} (key)\n"
-                    f"Description --- {nl.join(char_data.get('description', []))} <<<<<<<<<<<< {prefix}characters.{char}.description\n"
-                    f"Relationships --- <<<<<<<<<<<< {prefix}characters.{char}.relationships\n"
-                    f"- {f'{nl}- '.join(f'{rel_char}: {json.dumps(rel_data, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.{rel_char} (key), {prefix}characters.{char}.{rel_char}' for rel_char, rel_data in char_data.get('relationships', {}).items())}\n"
-                    f"Group Status --- <<<<<<<<<<<< {prefix}characters.{char}.status\n"
-                    f"- {f'{nl}- '.join(f'{group}: {json.dumps(status, indent=None)} <<<<<<<<<<<< {prefix}characters.{char}.status.{group} (key), {prefix}characters.{char}.status.{group}' for group, status in char_data.get('status', {}).items())}"
-                    for char, char_data in data.get("entries", {}).items()
-                )
-
-            if data_type == "groups" or data_type == "groups_list":
-                return "\n\n".join(
-                    f"Group --- {group} ({', '.join(get_values(group_data.get('aliases', {})))}) <<<<<<<<<<<< {prefix}groups.{group} (key), {prefix}groups.{group}.aliases\n"
-                    f"Description --- {nl.join(group_data.get('description', []))} <<<<<<<<<<<< {prefix}groups.{group}.description\n"
-                    f"Specific Events --- {', '.join(get_values(group_data.get('events', {})))} <<<<<<<<<<<< {prefix}groups.{group}.events\n"
-                    for group, group_data in data.get("entries", {}).items()
-                )
-
-            if data_type == "scene" or data_type == "event":  # StoryEvent
-                start = data.get("start", {})
-                end = data.get("end", {})
-                return (
-                    f"Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}, {prefix}{data_type}.name\n\n"
-                    f"Start --- <<<<<<<<<<<< {prefix}{data_type}.start\n"
-                    f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.start.date\n"
-                    f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.start.time, {prefix}{data_type}.start.specific_time\n\n"
-                    f"End --- <<<<<<<<<<<< {prefix}{data_type}.end\n"
-                    f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {prefix}{data_type}.end.date\n"
-                    f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {prefix}{data_type}.end.time, {prefix}{data_type}.end.specific_time\n\n"
-                    f"Summary --- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}{data_type}.summary"
-                )
-
-            if data_type == "events" or data_type == "events_list":
-                formatted_str = []
-
-                formatted_str.append(
-                    "\n\n".join(
-                        f"Event -- {name} <<<<<<<<<<<< {prefix}events.past.{name} (key)\n"
-                        f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.past.{name}.start.date\n"
-                        f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.past.{name}.summary"
-                        for name, event_data in data.get("past", {}).items()
-                    )
-                    or "Empty"
-                )
-
-                formatted_str.append(
-                    "\n\n".join(
-                        f"Scene -- {name} <<<<<<<<<<<< {prefix}events.scenes.{name} (key)\n"
-                        f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.scenes.{name}.start.date\n"
-                        f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.scenes.{name}.summary"
-                        for name, event_data in data.get("scenes", {}).items()
-                    )
-                    or "Empty"
-                )
-
-                formatted_str.append(
-                    "\n\n".join(
-                        f"Event -- {name} <<<<<<<<<<<< {prefix}events.events.{name} (key)\n"
-                        f"When -- {event_data.get('start', {}).get('date', 'Unknown')} <<<<<<<<<<<< {prefix}events.events.{name}.start.date\n"
-                        f"Summary -- {event_data.get('summary', 'No summary available')} <<<<<<<<<<<< {prefix}events.events.{name}.summary"
-                        for name, event_data in data.get("events", {}).items()
-                    )
-                    or "Empty"
-                )
-
-                return (
-                    f"Past Events --- <<<<<<<<<<<< {prefix}events.past\n{formatted_str[0]}\n\n"
-                    f"Scenes --- <<<<<<<<<<<< {prefix}events.scenes\n{formatted_str[1]}\n\n"
-                    f"Events --- <<<<<<<<<<<< {prefix}events.events\n{formatted_str[2]}"
-                )
-
-            if data_type == "arcs" or data_type == "arc_list":
-                if not isinstance(data, list):
-                    data = []
-                return "\n\n".join(
-                    f"Arc [{i}] --- {arc.get('title', 'Untitled')} <<<<<<<<<<<< {prefix}arcs[{i}] (index)\n"
-                    f"Status --- {arc.get('status', 'unknown')} <<<<<<<<<<<< {prefix}arcs[{i}].status\n"
-                    f"Scenes --- {arc.get('scenes', [])} <<<<<<<<<<<< {prefix}arcs[{i}].scenes\n"
-                    f"Summary --- {arc.get('summary', 'No summary')} <<<<<<<<<<<< {prefix}arcs[{i}].summary\n"
-                    f"Character Arcs --- {arc.get('character_arcs', 'N/A')} <<<<<<<<<<<< {prefix}arcs[{i}].character_arcs\n"
-                    f"Relationship Shifts --- {arc.get('relationship_shifts', 'N/A')} <<<<<<<<<<<< {prefix}arcs[{i}].relationship_shifts"
-                    for i, arc in enumerate(data)
-                ) or "No arcs yet."
-
-            if data_type == "general_info":
-                # TODO: Hardcode more fields via all_subjects_data
-                return (
-                    f"Synopsis --- {data.get('synopsis', 'No synopsis available')} <<<<<<<<<<<< {prefix}general_info.synopsis\n\n"
-                    f"Main Objective --- {data.get('main_objective', 'No main objective specified')} <<<<<<<<<<<< {prefix}general_info.main_objective\n\n"
-                    f"Themes --- {', '.join(get_values(data.get('themes', []))) or 'No themes specified'} <<<<<<<<<<<< {prefix}general_info.themes\n"
-                    f"Tone --- {data.get('tone', 'No tone specified')} <<<<<<<<<<<< {prefix}general_info.tone\n\n"
-                    f"Writing Style --- {data.get('writing_style', 'No writing style specified')} <<<<<<<<<<<< {prefix}general_info.writing_style"
-                )
-
-            if data_type == "additional_info":
-                last_scene_str = ""
-                scenes = recursive_get(all_subjects_data, ["events", "scenes"], [])
-                num_scenes = len(scenes)
-                if num_scenes:
-                    scenes_idx = num_scenes - 1
-                    last_scene = scenes[scenes_idx]
-                    if last_scene:
-                        last_scene_pref = f"{prefix}events.scenes[{scenes_idx}]"
-                        last_scene_str = (
-                            f"Last Scene --- {data.get('name', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}, {last_scene_pref}.name, last_scene, last_scene.name\n\n"
-                            f"Start -- <<<<<<<<<<<< {last_scene_pref}.start\n"
-                            f"- Date: {start.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.start.date\n"
-                            f"- Time: {start.get('time', 'Unknown')} ({start.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.start.time, {last_scene_pref}.start.specific_time\n\n"
-                            f"End -- <<<<<<<<<<<< {last_scene_pref}.end\n"
-                            f"- Date: {end.get('date', 'Unknown')} <<<<<<<<<<<< {last_scene_pref}.end.date\n"
-                            f"- Time: {end.get('time', 'Unknown')} ({end.get('specific_time', 'no specific time')}) <<<<<<<<<<<< {last_scene_pref}.end.time, {last_scene_pref}.end.specific_time\n\n"
-                            f"Summary -- {data.get('summary', 'No summary available')} <<<<<<<<<<<< {last_scene_pref}.summary\n\n"
-                        )
-                return (
-                    f"{last_scene_str}"
-                    f"This chat is currently {context_cache.history_length or 0} messages long in total. <<<<<<<<<<<< {prefix}context_cache.history_length"
-                )
-
-            if data_type == "lines":
-                return "\n".join(get_values(data))
+                if rendered:
+                    print(f"{_DEBUG}Using file template for {data_type}{_RESET}")
+                    return rendered
 
             return "<EMPTY>"  # str(data)
-        
+
         except Exception as e:
             print(f"{_ERROR}Error formatting data: {e}{_RESET}")
             traceback.print_exc()

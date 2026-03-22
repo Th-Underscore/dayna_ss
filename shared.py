@@ -16,6 +16,18 @@ if TYPE_CHECKING:
     from extensions.dayna_ss.agents.summarizer import Summarizer
 import modules.shared as shared
 
+from extensions.dayna_ss.utils.helpers import (
+    _ERROR,
+    _SUCCESS,
+    _INPUT,
+    _GRAY,
+    _HILITE,
+    _BOLD,
+    _WARNING,
+    _RESET,
+    _DEBUG,
+)
+
 global current_character
 current_character: str = shared.settings["character"]
 
@@ -116,6 +128,22 @@ settings = {
     "chat_template_str": "{%- for message in messages %}\n    {%- if message['role'] == 'system' -%}\n        {%- if message['content'] -%}\n            {{- message['content'] + '\\n\\n' -}}\n        {%- endif -%}\n        {%- if user_bio -%}\n            {{- user_bio + '\\n\\n' -}}\n        {%- endif -%}\n    {%- else -%}\n        {%- if message['role'] == 'user' -%}\n            {{- name1 + ': ' + message['content'] + '\\n'-}}\n        {%- else -%}\n            {{- name2 + ': ' + message['content'] + '\\n' -}}\n        {%- endif -%}\n    {%- endif -%}\n{%- endfor -%}",
     "banned_prefixes": '"{{char}}:", "(as {{char}})"',
 }
+
+def _init_template_settings():
+    """Initialize template settings from format_templates.json."""
+    try:
+        from pathlib import Path
+        from extensions.dayna_ss.utils.helpers import load_json
+        dss_dir = Path(__file__).parent
+        template_path = dss_dir / "user_data" / "example" / "format_templates.json"
+        templates = load_json(template_path) or {}
+        for key in templates:
+            settings[f"template_{key}"] = ""
+        print(f"{_DEBUG}Initialized {len(templates)} template settings{_RESET}")
+    except Exception as e:
+        print(f"{_WARNING}Failed to initialize template settings: {e}{_RESET}")
+
+_init_template_settings()
 
 persistent_ui_state = {}
 custom_state = gr.State()

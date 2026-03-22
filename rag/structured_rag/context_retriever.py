@@ -61,6 +61,7 @@ class RetrievalContext:
     events: dict[str, dict] = field(default_factory=dict)
     general_info: dict[str, dict] = field(default_factory=dict)
     messages: list[str] = field(default_factory=list)
+    messages_metadata: list[dict] = field(default_factory=list)
 
 
 class StoryContextRetriever:
@@ -167,10 +168,16 @@ class StoryContextRetriever:
 
         return messages
 
-    def query_messages(self, query: str, n_results: int = 5) -> list[str]:
-        """Query messages using semantic search."""
+    def query_messages(self, query: str, n_results: int = 5) -> tuple[list[str], list[dict]]:
+        """Query messages using semantic search.
+        
+        Returns:
+            tuple of (messages, metadata)
+        """
         results = self.chunker.query_similar(query, n_results=n_results)
-        return results["documents"] if results else []
+        messages = results.get("documents", []) if results else []
+        metadata = results.get("metadatas", []) if results else []
+        return messages, metadata
 
     def _load_json(self, path: Path) -> dict:
         """Load and parse a JSON file."""
@@ -294,10 +301,11 @@ class StoryContextRetriever:
 
             # Get messages using both retrieval methods
             # scene_messages = self._get_message_chunks()  # Index-based retrieval
-            semantic_messages = self.query_messages(context_to_search, n_results=5)  # Semantic search
+            semantic_messages, semantic_metadata = self.query_messages(context_to_search, n_results=5)  # Semantic search
 
             # Combine and deduplicate messages
             all_messages = []
+            all_metadata = []
 
             # # First add scene messages to maintain chronological order
             # for msg in scene_messages:
@@ -305,11 +313,13 @@ class StoryContextRetriever:
             #         all_messages.append(msg)
 
             # Then add semantically relevant messages
-            for msg in semantic_messages:
+            for i, msg in enumerate(semantic_messages):
                 if msg not in all_messages:
                     all_messages.append(msg)
+                    all_metadata.append(semantic_metadata[i] if i < len(semantic_metadata) else {})
 
             result.messages = all_messages
+            result.messages_metadata = all_metadata
 
         except Exception as e:
             print(f"Error in context retrieval: {str(e)}")
