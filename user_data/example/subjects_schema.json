@@ -293,7 +293,6 @@
         "what": "str",
         "start": "SceneStart",
         "now": "SceneNow",
-        "_start_message_node": "Message",
         "_scene_number": "int"
       },
       "defaults": {
@@ -350,8 +349,8 @@
       "type": "alias",
       "field": "StoryEvents",
       "defaults": {
-        "new_entry_query_prompt_template": "The scene has just completed. Throughout the last scene, have there been any new backstory scenes/events mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nSignificant past events should be added to the list, but only if they're relevant *and* take place outside of the protagonist's perspective and/or before the start of the story. If unnamed in the story, give a generic title (e.g., 'The Founding of the New Order').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"Melissa's Anguish\", \"The Founding of the New Order\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
-        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new backstory event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
+        "new_entry_query_prompt_template": "The scene has just completed. Throughout the last scene, have there been any new backstory scenes/events mentioned or implied that should be added to the '{branch_name}' list?\n\nHere is the current list:\n{branch_list}\n\nSignificant past events should be added to the list, but only if they're relevant *and* take place outside of the protagonist's perspective and/or before the start of the story. If unnamed in the story, give a generic title (e.g., 'The Founding of the New Order').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"Melissa's Anguish\", \"The Founding of the New Order\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new backstory event named '{entry_name}'.\n\nCurrent message node: {current_message_node}\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
         "field_placeholder": "Past_Event_Before_Story_Start"
       }
     },
@@ -360,7 +359,7 @@
       "field": "StoryEvents",
       "defaults": {
         "new_entry_query_prompt_template": "The current scene has just completed. List the title of the one (1) new scene that should be added to the '{branch_name}' list.\n\nHere is the current list:\n{branch_list}\n\nOne new scene must be added to this list. Provide its name/title as a JSON array containing a single string.\n\nExample:\n```json\n[\"The First Incursion Erupts\"]\n```\n\nREMEMBER: One (1) scene *must* be added; no more, no less.",
-        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new scene named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Event:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new scene.",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new scene named '{entry_name}'.\n\nCurrent message node: {current_message_node}\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new Event:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new scene.",
         "field_placeholder": "Scene_Using_Data_From_Current_Scene"
       }
     },
@@ -368,8 +367,8 @@
       "type": "alias",
       "field": "StoryEvents",
       "defaults": {
-        "new_entry_query_prompt_template": "The scene has just completed. Throughout the last scene, have there been any new major story events worthy of being added to the '{branch_name}' list?\n\nHere is the full list:\n{branch_list}\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
-        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new event named '{entry_name}'.\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
+        "new_entry_query_prompt_template": "The scene has just completed. Throughout the last scene, have there been any new major story events worthy of being added to the '{branch_name}' list?\n\nHere is the current list:\n{branch_list}\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nIf NO new events are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new event named '{entry_name}'.\n\nCurrent message node: {current_message_node}\n\nRelevant Schema for a new StoryEvent:\n```json\n{schema_snippet}\n```\n\nExample JSON structure for a new StoryEvent:\n```json\n{example_json}\n```\n\nPlease provide your response as a complete JSON object for this new event.",
         "field_placeholder": "Very_Important_Event"
       }
     },

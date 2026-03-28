@@ -12,6 +12,7 @@
       ]
     },
     "when": {
+      "_message_node": "140_1_1",
       "date": "October 15, 2028",
       "time": "Pre-dawn hours",
       "specific_time": "05:30"
@@ -43,6 +44,7 @@
       ]
     },
     "when": {
+      "_message_node": null,
       "date": "October 15, 2028",
       "time": "Dawn breaking",
       "specific_time": "06:15"
@@ -58,6 +60,5 @@
         "details": "Angelina Kristi secretly collecting information for potential infiltration, while John Jones leads the primary mission"
       }
     ]
-  },
-  "_start_message_node": null
+  }
 }

@@ -351,6 +351,12 @@ class DataSummarizer:
                 stripped_entry_json = strip_response(llm_entry_response)
                 new_entry_data = jsonc.loads(stripped_entry_json)
                 if isinstance(new_entry_data, dict):
+                    history_internal = self.custom_state.get("history", {}).get("internal", [])
+                    current_message_node = f"{len(history_internal) * 2}_1_1"
+                    if "start" in new_entry_data:
+                        new_entry_data["start"]["_message_node"] = current_message_node
+                    print(f"{_DEBUG}Auto-set '_message_node' to '{current_message_node}' for new entry '{entry_name}'.{_RESET}")
+                    
                     data[entry_name] = new_entry_data
                     expanded_data: dict = recursive_get(formatted_data.data, keys, default=None)
                     expanded_data[entry_name] = new_entry_data
@@ -1634,6 +1640,9 @@ class DataSummarizer:
             )
 
         state = self.summarizer.last.state
+        history_internal = self.custom_state.get("history", {}).get("internal", [])
+        current_message_node = f"{len(history_internal) * 2}_1_1"
+        
         format_kwargs = {
             "branch_name": item_name,
             "item_name": item_name,
@@ -1648,6 +1657,7 @@ class DataSummarizer:
             "exchange": lambda: self.summarizer.format_dialogue(self.custom_state, [[self.user_input, self.output]]),
             "{user}": state["name1"],
             "{char}": state["name2"],
+            "current_message_node": current_message_node,
             **kwargs,
         }
         
