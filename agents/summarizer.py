@@ -53,6 +53,7 @@ from extensions.dayna_ss.utils.helpers import (
     enumerate_list,
     strip_thinking,
     strip_response,
+    _get_jinja_env,
 )
 
 from extensions.dayna_ss.utils.schema_parser import SchemaParser, ParsedSchemaClass
@@ -1855,7 +1856,7 @@ class FormattedData:
             return ""
 
         try:
-            jinja_env = ImmutableSandboxedEnvironment(trim_blocks=True, lstrip_blocks=True)
+            jinja_env = _get_jinja_env()
             template = jinja_env.from_string(template_str)
 
             context = {
