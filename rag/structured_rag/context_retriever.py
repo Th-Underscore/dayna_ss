@@ -59,6 +59,8 @@ class RetrievalContext:
     characters: dict[str, dict] = field(default_factory=dict)
     groups: dict[str, dict] = field(default_factory=dict)
     events: dict[str, dict] = field(default_factory=dict)
+    chapters: dict[str, dict] = field(default_factory=dict)
+    arcs: dict[str, dict] = field(default_factory=dict)
     general_info: dict[str, dict] = field(default_factory=dict)
     messages: list[str] = field(default_factory=list)
     messages_metadata: list[dict] = field(default_factory=list)
@@ -78,12 +80,14 @@ class StoryContextRetriever:
         self.groups_path = history_path / "groups.json"
         self.general_info_path = history_path / "general_info.json"
         self.current_scene_path = history_path / "current_scene.json"
+        self.arcs_path = history_path / "arcs.json"
 
         self.characters = self._load_json(self.characters_path)
         self.groups = self._load_json(self.groups_path)
         self.events = self._load_json(self.events_path)
         self.general_info = self._load_json(self.general_info_path)
         self.current_scene = self._load_json(self.current_scene_path)
+        self.arcs = self._load_json(self.arcs_path)
 
         print(f"{_DEBUG}StoryContextRetriever loaded:")
         print(f"  history_path: {history_path}")
@@ -91,7 +95,8 @@ class StoryContextRetriever:
         print(f"  groups keys: {list(self.groups.keys()) if self.groups else 'empty'}")
         print(f"  events keys: {list(self.events.keys()) if self.events else 'empty'}")
         print(f"  general_info keys: {list(self.general_info.keys()) if self.general_info else 'empty'}")
-        print(f"  current_scene keys: {list(self.current_scene.keys()) if self.current_scene else 'empty'}{_RESET}")
+        print(f"  current_scene keys: {list(self.current_scene.keys()) if self.current_scene else 'empty'}")
+        print(f"  arcs count: {len(self.arcs) if self.arcs else 0}{_RESET}")
 
         self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene)
 
@@ -317,6 +322,15 @@ class StoryContextRetriever:
             print(f"{_DEBUG}groups retrieved: {type(result.groups)}, count: {len(result.groups) if result.groups else 0}{_RESET}")
             result.events = self._get_relevant_events(scene_characters, result.groups, context_to_search)
             print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
+            
+            if self.arcs:
+                result.arcs = self.arcs
+                print(f"{_DEBUG}arcs retrieved: {type(result.arcs)}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
+            
+            chapters_data = self.events.get("chapters", {})
+            if chapters_data:
+                result.chapters = chapters_data
+                print(f"{_DEBUG}chapters retrieved: {type(result.chapters)}, count: {len(result.chapters) if result.chapters else 0}{_RESET}")
 
             # Get messages using both retrieval methods
             # scene_messages = self._get_message_chunks()  # Index-based retrieval
@@ -733,6 +747,7 @@ class MessageChunker:
                         "subjects_referenced": subjects_referenced,
                         "scene_id": None,  # To be filled later
                         "scene_number": self.current_scene_data.get("_scene_number"),
+                        "chapter_number": self.current_scene_data.get("_chapter_number"),
                         "event_id": None,  # To be filled later
                     }
                 )
@@ -835,6 +850,7 @@ class MessageChunker:
                 "subjects_referenced": chunk.get("subjects_referenced", {}),
                 "scene_id": chunk.get("scene_id"),  # Will be None initially
                 "scene_number": chunk.get("scene_number"),  # Will be None initially
+                "chapter_number": chunk.get("chapter_number"),  # Will be None initially
                 "event_id": chunk.get("event_id"),  # Will be None initially
                 "is_summary": chunk.get("is_summary", False),
             }

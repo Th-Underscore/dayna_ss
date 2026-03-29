@@ -63,6 +63,8 @@ def chat_input_modifier(text: str, visible_text: str, state: dict):
         return text, visible_text
 
     next_scene_prefix = "NEXT SCENE:"
+    force_chapter_prefix = "NEXT CHAPTER:"
+    force_arc_prefix = "NEXT ARC:"
 
     if summarizer and not summarizer.last:
         current_context = state["context"]
@@ -72,9 +74,22 @@ def chat_input_modifier(text: str, visible_text: str, state: dict):
         print(f"{_DEBUG}Found '{next_scene_prefix}' in user input.{_RESET}")
         summarizer.last.is_new_scene_turn = True
         text = text[len(next_scene_prefix) :].lstrip()
-        visible_text = visible_text[len(next_scene_prefix) :].lstrip()  # Assuming visible_text prefix is the same
+        visible_text = visible_text[len(next_scene_prefix) :].lstrip()
 
-    # TODO: Wait until summarization over
+    if text.startswith(force_chapter_prefix) and summarizer and summarizer.last:
+        print(f"{_DEBUG}Found '{force_chapter_prefix}' in user input.{_RESET}")
+        summarizer.last.is_new_scene_turn = True
+        summarizer.last.force_next_chapter = True
+        text = text[len(force_chapter_prefix) :].lstrip()
+        visible_text = visible_text[len(force_chapter_prefix) :].lstrip()
+
+    if text.startswith(force_arc_prefix) and summarizer and summarizer.last:
+        print(f"{_DEBUG}Found '{force_arc_prefix}' in user input.{_RESET}")
+        summarizer.last.is_new_scene_turn = True
+        summarizer.last.force_next_arc = True
+        text = text[len(force_arc_prefix) :].lstrip()
+        visible_text = visible_text[len(force_arc_prefix) :].lstrip()
+
     return text, visible_text
 
 
@@ -108,7 +123,7 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
             print(f"{_HILITE}Stop signal received after instruction prompt generation.{_RESET}")
             shared.stop_everything = False
             return ""
-        
+
         tgwui_integration.add_dss_tools_to_state(custom_state, tgwui_integration._dss_tool_definitions)
         if timestamp_str:
             # TODO: Only rewrite if not _continue or regenerate

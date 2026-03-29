@@ -293,7 +293,9 @@
         "what": "str",
         "start": "SceneStart",
         "now": "SceneNow",
-        "_scene_number": "int"
+        "_scene_number": "int",
+        "_chapter_number": "int",
+        "_arc_number": "int"
       },
       "defaults": {
         "what_placeholder": "A brief summary or title describing the overall current scene or situation.",
@@ -376,9 +378,9 @@
       "type": "dataclass",
       "fields": {
         "title": "str",
-        "starting_scene": "int",
-        "ending_scene": "int",
-        "scenes": "list[int]",
+        "starting_chapter": "int",
+        "ending_chapter": "int",
+        "chapters": "list[int]",
         "summary": "str",
         "character_arcs": "str",
         "relationship_shifts": "str",
@@ -387,15 +389,15 @@
       },
       "defaults": {
         "title_placeholder": "A short, evocative title for this narrative arc (e.g., 'The Betrayal', 'The Hunt Begins').",
-        "starting_scene_placeholder": "The scene index where this arc began.",
-        "ending_scene_placeholder": "The scene index where this arc concluded, or null if still active.",
-        "scenes_placeholder": "List of scene indices where this arc was active or referenced.",
+        "starting_chapter_placeholder": "The chapter index where this arc began.",
+        "ending_chapter_placeholder": "The chapter index where this arc concluded, or null if still active.",
+        "chapters_placeholder": "List of chapter indices where this arc was active or referenced.",
         "summary_placeholder": "A 1-2 paragraph summary of what this arc is about - the core conflict, stakes, and progression.",
         "character_arcs_placeholder": "How have the main characters involved in this arc changed or been revealed?",
         "relationship_shifts_placeholder": "How have relationships between characters shifted during this arc?",
         "plot_threads_placeholder": "What plot threads or mysteries are associated with this arc?",
         "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
-        "update_prompt_template": "Based on the latest scene, update the arc '{branch_name}'.\n\nArc Data:\n{value}\n\nLatest Scene:\n{subjects.events.scenes[-1]}\n\nCharacter Changes:\n{subjects.characters}\n\nHas this arc concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON."
+        "update_prompt_template": "Based on the latest chapter, update the arc '{branch_name}'.\n\nArc Data:\n{value}\n\nLatest Chapter:\n{subjects.events.chapters[-1]}\n\nCharacter Changes:\n{subjects.characters}\n\nHas this arc concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON."
       },
       "triggers": {
         "always": [
@@ -410,20 +412,78 @@
       "type": "alias",
       "field": "list[Arc]",
       "defaults": {
-        "fallback_interval": 4,
-        "fallback_on": "ON_NEW_SCENE",
+        "suggested_min_chapters": 2,
+        "suggested_max_chapters": 5,
+        "max_chapters_before_required": 8,
         "field_placeholder": "Arc_Title",
-        "gate_check_prompt_template": "Should we process the narrative arcs?\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nActive Arcs (ending_scene == null):\n{formatted_data}\n\nRespond YES if:\n- A new narrative arc should begin\n- An active arc has concluded or shifted significantly\n- This is a fallback trigger (after {fallback_interval} scenes)\n\nOtherwise respond NO.",
-        "new_entry_query_prompt_template": "Should we create a new narrative arc?\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nActive Arcs:\n{formatted_data}\n\nRespond with arc title if a new arc is needed, otherwise respond NO.",
-        "new_entry_prompt_template": "Generate arc data for:\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nCharacters involved:\n{subjects.characters}\n\nArc should capture:\n- What narrative thread is this?\n- Who are the key characters?\n- What's the current status?\n\nSchema:\n{schema_snippet}\n\nExample:\n{example_json}"
+        "gate_check_prompt_template": "A new chapter has just completed. Chapter {chapter_in_arc} of {chapters_in_arc} in this arc (absolute chapter {current_chapter_number} of {chapters_count}).\n\nSuggested range: {suggested_min}-{suggested_max} chapters per arc.\nMaximum chapters before mandatory aggregation: {max_chapters_before_required}.\n\nRecent Chapter:\n{subjects.events.chapters[-1]}\n\nShould we finalize this arc and start a new one? Consider:\n- Has a major narrative shift occurred that warrants a new arc?\n- Is the chapter count approaching the suggested maximum?\n- Has a core conflict or plot thread been resolved?\n\nRespond YES if a new arc should be created, otherwise respond NO.",
+        "new_entry_query_prompt_template": "Should we create a new narrative arc?\n\nRecent Chapter:\n{subjects.events.chapters[-1]}\n\nActive Arcs:\n{formatted_data}\n\nRespond with arc title if a new arc is needed, otherwise respond NO.",
+        "new_entry_prompt_template": "Generate arc data for:\n\nRecent Chapter:\n{subjects.events.chapters[-1]}\n\nCharacters involved:\n{subjects.characters}\n\nArc should capture:\n- What narrative thread is this?\n- Who are the key characters?\n- What's the current status?\n\nSchema:\n{schema_snippet}\n\nExample:\n{example_json}"
       },
       "triggers": {
         "on_new_scene": [
           "perform_gate_check",
           "add_new"
+        ]
+      }
+    },
+    "KeyChange": {
+      "type": "dataclass",
+      "fields": {
+        "description": "str",
+        "scene": "str"
+      },
+      "defaults": {
+        "description_placeholder": "A description of a significant change that occurred during this chapter (e.g., 'John learned the truth about his father', 'The alliance was formed').",
+        "scene_placeholder": "The scene name where this change occurred (e.g., 'The Revelation at Dawn')."
+      }
+    },
+    "Chapter": {
+      "type": "dataclass",
+      "fields": {
+        "title": "str",
+        "starting_scene": "int",
+        "ending_scene": "int",
+        "scenes": "list[int]",
+        "summary": "str",
+        "key_changes": "list[KeyChange]",
+        "status": "str"
+      },
+      "defaults": {
+        "title_placeholder": "A short title for this chapter (e.g., 'The Betrayal Unfolds', 'The Journey Begins').",
+        "starting_scene_placeholder": "The absolute scene index where this chapter began (e.g., scene 1 of the story).",
+        "ending_scene_placeholder": "The absolute scene index where this chapter concluded, or null if still active.",
+        "scenes_placeholder": "List of absolute scene indices in this chapter (e.g., [1, 2, 3, 4, 5]).",
+        "summary_placeholder": "A concise summary of what happened in this chapter - the core narrative beats and progression.",
+        "key_changes_placeholder": "A list of significant changes, each with a description and the scene where it occurred.",
+        "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
+        "update_prompt_template": "Based on the latest scene, update the chapter '{branch_name}'.\n\nChapter Data:\n{value}\n\nLatest Scene:\n{subjects.events.scenes[-1]}\n\nHas this chapter concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON."
+      },
+      "triggers": {
+        "always": [
+          "query_branch_for_changes"
         ],
-        "on_fallback": [
-          "perform_gate_check"
+        "on_new_scene": [
+          "perform_update"
+        ]
+      }
+    },
+    "Chapters": {
+      "type": "alias",
+      "field": "list[Chapter]",
+      "defaults": {
+        "suggested_min_scenes": 4,
+        "suggested_max_scenes": 8,
+        "max_scenes_before_required": 10,
+        "field_placeholder": "Chapter_Title",
+        "gate_check_prompt_template": "A new scene has just completed. Scene {scene_in_chapter} of {scenes_in_chapter} in this chapter (absolute scene {current_scene_number} of {scenes_count}).\n\nSuggested range: {suggested_min}-{suggested_max} scenes per chapter.\nMaximum scenes before mandatory aggregation: {max_scenes_before_required}.\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nShould we finalize this chapter and start a new one? Consider:\n- Has a significant narrative shift occurred that warrants a new chapter?\n- Is the scene count approaching the suggested maximum?\n- Has the current narrative arc reached a natural conclusion point?\n\nRespond YES if a new chapter should be created, otherwise respond NO.",
+        "new_entry_query_prompt_template": "Should we create a new chapter?\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nActive Chapters:\n{formatted_data}\n\nRespond with chapter title if a new chapter is needed, otherwise respond NO.",
+        "new_entry_prompt_template": "Generate chapter data for:\n\nRecent Scene:\n{subjects.events.scenes[-1]}\n\nCharacters involved:\n{subjects.characters}\n\nChapter should capture:\n- What narrative thread is this?\n- Who are the key characters?\n- What significant changes occurred?\n\nSchema:\n{schema_snippet}\n\nExample:\n{example_json}"
+      },
+      "triggers": {
+        "on_new_scene": [
+          "perform_gate_check",
+          "add_new"
         ]
       }
     },
@@ -432,13 +492,15 @@
       "fields": {
         "past": "PastEvents",
         "scenes": "Scenes",
-        "events": "CrucialEvents"
+        "events": "CrucialEvents",
+        "chapters": "Chapters"
       },
       "defaults": {
-        "gate_check_prompt_template": "Considering recent events and messages, does the overall '{branch_name}' section (including past events, current scenes, and major story events) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.",
+        "gate_check_prompt_template": "Considering recent events and messages, does the overall '{branch_name}' section (including past events, current scenes, major story events, and chapters) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.",
         "past_placeholder": "Example_Past_Event_Before_Story_Start",
         "scenes_placeholder": "Example_Story_Scene",
-        "events_placeholder": "Example_Major_Story_Event"
+        "events_placeholder": "Example_Major_Story_Event",
+        "chapters_placeholder": "Example_Chapter"
       },
       "triggers": {
         "on_new_scene": [

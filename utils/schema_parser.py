@@ -42,7 +42,6 @@ class Trigger(IntEnum):
     ALWAYS = 0
     ON_NEW_SCENE = 1
     ON_EXISTING_SCENE = 2
-    ON_FALLBACK = 3  # Fires when fallback_interval is reached for fallback_on trigger
 
 
 class ParsedSchemaField:
@@ -139,11 +138,6 @@ class ParsedSchemaClass:
         self.new_entry_prompt_template: str | None = None
         self.do_expand_into_dict: bool = True
 
-        # Fallback trigger configuration
-        self.fallback_interval: int | None = None  # Number of fallback_on triggers before ON_FALLBACK fires
-        self.fallback_on: Trigger | None = None  # Which trigger to count as fallback
-        self._last_fallback_count: int = 0  # Track count of fallback_on triggers since last ON_FALLBACK
-
         # Add default values to fields where applicable and parse specific flags/templates from defaults
         for field_name_or_flag, value in self.defaults.items():
             if field_name_or_flag == "no_update":
@@ -162,21 +156,6 @@ class ParsedSchemaClass:
                 self.update_prompt_template = str(value)
             elif field_name_or_flag == "do_expand_into_dict":
                 self.do_expand_into_dict = bool(value)
-            elif field_name_or_flag == "fallback_interval":
-                self.fallback_interval = int(value) if value is not None else None
-            elif field_name_or_flag == "fallback_on":
-                # Parse trigger name like "ON_NEW_SCENE" -> Trigger.ON_NEW_SCENE
-                if isinstance(value, str):
-                    try:
-                        self.fallback_on = Trigger[value.upper()]
-                    except KeyError:
-                        print(f"{_WARNING}Unknown fallback_on trigger: {value}{_RESET}")
-                        self.fallback_on = None
-                elif isinstance(value, int):
-                    try:
-                        self.fallback_on = Trigger(value)
-                    except ValueError:
-                        self.fallback_on = None
             # Field-specific defaults (like descriptions)
             elif self.definition_type == "dataclass" and fields:
                 for field_obj in fields:
@@ -195,23 +174,6 @@ class ParsedSchemaClass:
         if self.definition_type == "dataclass":
             return self._fields.get(name)
         return self._field
-
-    def should_trigger_fallback(self) -> bool:
-        """Check if ON_FALLBACK should trigger based on fallback_interval and fallback_on settings.
-        
-        Returns True if fallback_interval is configured and _last_fallback_count >= fallback_interval.
-        """
-        if self.fallback_interval is None or self.fallback_interval <= 0:
-            return False
-        return self._last_fallback_count >= self.fallback_interval
-
-    def increment_fallback_count(self) -> None:
-        """Increment the fallback counter when fallback_on trigger fires."""
-        self._last_fallback_count += 1
-
-    def reset_fallback_count(self) -> None:
-        """Reset the fallback counter after ON_FALLBACK fires."""
-        self._last_fallback_count = 0
 
     def _type_to_json_schema_dict(
         self, type_hint: ParsedSchemaClass | type, all_definitions_map: dict, field_name: str | None = None

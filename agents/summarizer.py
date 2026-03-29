@@ -95,6 +95,8 @@ class SummarizationContextCache:
     is_new_scene_turn: bool = False
     new_scene_start_node: int | None = None
     detected_new_entities: list | None = None
+    force_next_chapter: bool = False
+    force_next_arc: bool = False
 
 
 # TODO: Get base_state gen params from config (ui_parameters)
@@ -794,6 +796,16 @@ class Summarizer:
                     all_subjects_data["current_scene"]["_scene_number"] = new_scene_number
                     print(f"{_DEBUG}Setting '_scene_number' to {new_scene_number} for new scene.{_RESET}")
 
+                    # Initialize _chapter_number if not set
+                    if "_chapter_number" not in all_subjects_data["current_scene"]:
+                        all_subjects_data["current_scene"]["_chapter_number"] = 1
+                        print(f"{_DEBUG}Setting initial '_chapter_number' to 1.{_RESET}")
+
+                    # Initialize _arc_number if not set
+                    if "_arc_number" not in all_subjects_data["current_scene"]:
+                        all_subjects_data["current_scene"]["_arc_number"] = 1
+                        print(f"{_DEBUG}Setting initial '_arc_number' to 1.{_RESET}")
+
             print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
             # Copy static data to the new history path
@@ -837,6 +849,19 @@ class Summarizer:
 
                 if shared.stop_everything:
                     return None
+
+            # Adjust importance scores after all character updates
+            self.log_activity("Importance Adjustment", "Adjusting relationship/milestone importance", "info")
+            data_summarizer.adjust_importance_scores()
+            self.log_activity("Importance Adjustment", "Complete", "success")
+
+            if self.last and self.last.is_new_scene_turn:
+                self.log_activity("Chapter Check", "Checking chapter boundary", "info")
+                data_summarizer.check_and_archive_chapter()
+                self.log_activity("Chapter Check", "Complete", "success")
+                self.log_activity("Arc Check", "Checking arc boundary", "info")
+                data_summarizer.check_and_archive_arc()
+                self.log_activity("Arc Check", "Complete", "success")
 
             # --- Summarize New Messages ---
             message_idx = len(history) * 2 - 1  # history was passed as history[:-1] to retrieve_and_format_context
@@ -969,6 +994,8 @@ class Summarizer:
             "characters": "characters",
             "groups": "groups",
             "events": "events",
+            "chapters": "chapters",
+            "arcs": "arcs",
             "lines": "messages",
         }
 
@@ -976,14 +1003,6 @@ class Summarizer:
             data_type = item.get("type")
             prompt = item.get("prompt", "")
             to_context = item.get("to_context", False)
-
-            attr_name = context_attr_map.get(data_type)
-            if not attr_name:
-                continue
-
-            data = getattr(retrieval_context, attr_name, None)
-            if data is None:
-                continue
 
             attr_name = context_attr_map.get(data_type)
             if not attr_name:

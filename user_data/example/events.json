@@ -99,5 +99,6 @@
       "summary": "",
       "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
     }
-  }
+  },
+  "chapters": {}
 }
