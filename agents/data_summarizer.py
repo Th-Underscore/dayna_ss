@@ -28,6 +28,8 @@ from extensions.dayna_ss.utils.helpers import (
     strip_thinking,
     strip_response,
     format_str,
+    render_jinja_template,
+    format_str_or_jinja,
 )
 from extensions.dayna_ss.utils.schema_parser import (
     SchemaParser,
@@ -338,7 +340,7 @@ class DataSummarizer:
                     if "start" in new_entry_data:
                         new_entry_data["start"]["_message_node"] = current_message_node
                     print(f"{_DEBUG}Auto-set '_message_node' to '{current_message_node}' for new entry '{entry_name}'.{_RESET}")
-                    
+
                     data[entry_name] = new_entry_data
                     expanded_data: dict = recursive_get(formatted_data.data, keys, default=None)
                     expanded_data[entry_name] = new_entry_data
@@ -357,10 +359,10 @@ class DataSummarizer:
 
     def check_and_archive_chapter(self):
         """Check if the current chapter should be archived and create a new one if needed.
-        
+
         This is called after scene archival to determine if a chapter boundary
         should be crossed based on LLM-driven decision making.
-        
+
         Can be forced via summarizer.last.force_next_chapter = True
         """
         if shared.stop_everything:
@@ -375,78 +377,67 @@ class DataSummarizer:
         force_chapter = self.summarizer.last and self.summarizer.last.force_next_chapter
         if force_chapter:
             print(f"{_BOLD}Force next chapter requested. Skipping LLM check.{_RESET}")
-        
+
         # Get current chapter info
         current_scene_data = self.all_subjects_data.get("current_scene", {})
         current_chapter_number = current_scene_data.get("_chapter_number", 1)
-        
+
         # Count scenes in current chapter
         scenes = events_data.get("scenes", {})
         scene_names = list(scenes.keys())
         total_scenes = len(scene_names)
         scenes_in_chapter = total_scenes  # For simplicity's sake
-        
+
         # Get chapter configuration from schema
         chapters_schema = self.schema_parser.get_subject_class("chapters")
         if not chapters_schema:
             chapters_schema = self.schema_parser.definitions.get("Chapters")
-        
+
         suggested_min = 4
         suggested_max = 8
         max_hard = 10
-        
+        gate_check_prompt = None
+
         if chapters_schema:
             defaults = chapters_schema.defaults if hasattr(chapters_schema, 'defaults') else {}
             suggested_min = defaults.get("suggested_min_scenes", 4)
             suggested_max = defaults.get("suggested_max_scenes", 8)
             max_hard = defaults.get("max_scenes_before_required", 10)
+            gate_check_prompt = chapters_schema.gate_check_prompt_template
 
         if not force_chapter and scenes_in_chapter < suggested_min:
             print(f"{_GRAY}Chapter has {scenes_in_chapter} scenes (min suggested: {suggested_min}). Skipping chapter check.{_RESET}")
             return
-        
+
         if force_chapter:
             should_archive = True
             print(f"{_BOLD}Forcing chapter transition.{_RESET}")
-        else:
-            # Create the LLM prompt to decide if chapter should close
-            recent_scene_name = scene_names[-1] if scene_names else "Unknown"
-            recent_scene_summary = scenes[recent_scene_name].get("summary", "No summary") if recent_scene_name in scenes else ""
-            
-            chapters_dict = events_data.get("chapters", {})
-            chapters_list = list(chapters_dict.values()) if isinstance(chapters_dict, dict) else []
-            
-            chapters_text = "\n".join([
-                f"- {ch.get('title', 'Untitled')}: {ch.get('summary', 'No summary')}"
-                for ch in chapters_list[-3:]  # Last 3 chapters for context
-            ]) if chapters_list else "No chapters yet."
-            
-            gate_prompt = f"""A new scene has just completed. This chapter currently has {scenes_in_chapter} scenes.
+        elif gate_check_prompt:
+            # Use the schema template
+            scene_in_chapter = scenes_in_chapter
+            chapters_count = len(events_data.get("chapters", {}))
 
-Suggested range: {suggested_min}-{suggested_max} scenes per chapter.
-Maximum scenes before mandatory aggregation: {max_hard}.
+            gate_prompt = render_jinja_template(
+                gate_check_prompt,
+                scenes_count=total_scenes,
+                chapters_count=chapters_count,
+                current_scene_number=current_scene_data.get("_scene_number", 1),
+                current_chapter_number=current_chapter_number,
+                current_arc_number=current_scene_data.get("_arc_number", 1),
+                scenes_in_chapter=scenes_in_chapter,
+                scene_in_chapter=scene_in_chapter,
+                chapters_in_arc=chapters_count,
+                chapter_in_arc=current_chapter_number,
+                suggested_min=suggested_min,
+                suggested_max=suggested_max,
+                max_scenes_before_required=max_hard,
+            )
 
-Recent Scene: "{recent_scene_name}"
-Summary: {recent_scene_summary}
-
-Current chapters:
-{chapters_text}
-
-Should we finalize this chapter and start a new one? Consider:
-- Has a significant narrative shift occurred that warrants a new chapter?
-- Is the scene count approaching the suggested maximum?
-- Has the current narrative arc reached a natural conclusion point?
-
-Respond with:
-- "YES" followed by a brief reason if a new chapter should be created
-- "NO" if the current chapter should continue
-"""
-            
             if shared.stop_everything:
                 return
-            
+
             print(f"{_INPUT}Checking if chapter should be archived (scenes: {scenes_in_chapter})...{_RESET}")
-            
+
             current_custom_state = self.custom_state or {}
             llm_response, stop_reason = self.summarizer.generate_using_tgwui(
                 prompt=gate_prompt,
@@ -455,29 +446,32 @@ Respond with:
                 stopping_strings=["YES", "NO"],
                 match_prefix_only=True,
             )
-            
+
             if shared.stop_everything:
                 return
-            
+
             response_upper = strip_response(llm_response).upper().strip()
             should_archive = (
                 "YES" in response_upper
                 or scenes_in_chapter >= max_hard
                 or (stop_reason and "YES" in stop_reason.upper())
             )
-            
+
             if not should_archive:
                 print(f"{_GRAY}Chapter continues (response: {llm_response[:50]}...).{_RESET}")
                 return
-        
+        else:
+            print(f"{_ERROR}No gate_check_prompt_template for chapters. Skipping.{_RESET}")
+            return
+
         if force_chapter and self.summarizer.last:
             self.summarizer.last.force_next_chapter = False
-        
+
         recent_scene_name = scene_names[-1] if scene_names else "Unknown"
         recent_scene_summary = scenes[recent_scene_name].get("summary", "No summary") if recent_scene_name in scenes else ""
-        
+
         print(f"{_SUCCESS}Archiving chapter {current_chapter_number} and creating new one.{_RESET}")
-        
+
         # Generate chapter data
         chapter_title = f"Chapter {current_chapter_number}"
         chapter_generation_prompt = f"""Based on all the scenes in the current chapter, generate the full data for the chapter named '{chapter_title}'.
@@ -510,16 +504,16 @@ Schema for Chapter:
 }}
 
 Respond with ONLY the JSON object for this chapter."""
-        
+
         chapter_response, _ = self.summarizer.generate_using_tgwui(
             prompt=chapter_generation_prompt,
             state=current_custom_state,
             history_path=self.history_path,
         )
-        
+
         if shared.stop_everything:
             return
-        
+
         try:
             chapter_data = jsonc.loads(strip_response(chapter_response))
             if isinstance(chapter_data, dict):
@@ -536,26 +530,26 @@ Respond with ONLY the JSON object for this chapter."""
                     chapter_data["scenes"] = list(range(1, total_scenes + 1))
                 if "key_changes" not in chapter_data:
                     chapter_data["key_changes"] = []
-                
+
                 # Add chapter to events (dict format, keyed by title)
                 if "chapters" not in events_data:
                     events_data["chapters"] = {}
-                
+
                 events_data["chapters"][chapter_data["title"]] = chapter_data
-                
+
                 new_chapter_number = current_chapter_number + 1
                 current_scene_data["_chapter_number"] = new_chapter_number
                 print(f"{_SUCCESS}Archived chapter {current_chapter_number} and set new chapter number to {new_chapter_number}.{_RESET}")
-                
+
         except json.JSONDecodeError as e:
             print(f"{_ERROR}Failed to parse chapter data: {e}. Chapter response: {chapter_response[:200]}...{_RESET}")
 
     def check_and_archive_arc(self):
         """Check if the current arc should be archived and create a new one if needed.
-        
+
         This is called after chapter archival to determine if an arc boundary
         should be crossed based on LLM-driven decision making.
-        
+
         Can be forced via summarizer.last.force_next_arc = True
         """
         if shared.stop_everything:
@@ -570,79 +564,71 @@ Respond with ONLY the JSON object for this chapter."""
         force_arc = self.summarizer.last and self.summarizer.last.force_next_arc
         if force_arc:
             print(f"{_BOLD}Force next arc requested. Skipping LLM check.{_RESET}")
-        
+
         # Get current arc info
         current_scene_data = self.all_subjects_data.get("current_scene", {})
+        current_chapter_number = current_scene_data.get("_chapter_number", 1)
         current_arc_number = current_scene_data.get("_arc_number", 1)
-        
+
         # Load arcs data
         arcs_path = self.history_path / "arcs.json"
         arcs_data = load_json(arcs_path) or []
-        
+
         # Count chapters in current arc
         chapters_dict = events_data.get("chapters", {})
         total_chapters = len(chapters_dict) if chapters_dict else 0
-        chapters_in_arc = total_chapters  # Simplified - in reality would need tracking
-        
+        chapters_in_arc = total_chapters  # TODO: Calculate
+
         # Get arc configuration from schema
         arcs_schema = self.schema_parser.get_subject_class("arcs")
         if not arcs_schema:
             arcs_schema = self.schema_parser.definitions.get("Arcs")
-        
+
         suggested_min = 3
         suggested_max = 6
-        max_hard = 8
-        
+        max_hard = 12
+        gate_check_prompt = None
+
         if arcs_schema:
             defaults = arcs_schema.defaults if hasattr(arcs_schema, 'defaults') else {}
             suggested_min = defaults.get("suggested_min_chapters", 3)
             suggested_max = defaults.get("suggested_max_chapters", 6)
-            max_hard = defaults.get("max_chapters_before_required", 8)
+            max_hard = defaults.get("max_chapters_before_required", 12)
+            gate_check_prompt = arcs_schema.gate_check_prompt_template
 
         if not force_arc and chapters_in_arc < suggested_min:
             print(f"{_GRAY}Arc has {chapters_in_arc} chapters (min suggested: {suggested_min}). Skipping arc check.{_RESET}")
             return
-        
+
         if force_arc:
             should_archive = True
             print(f"{_BOLD}Forcing arc transition.{_RESET}")
-        else:
-            # Create the LLM prompt to decide if arc should close
-            recent_chapter_name = list(chapters_dict.keys())[-1] if chapters_dict else "Unknown"
-            recent_chapter = chapters_dict.get(recent_chapter_name, {})
-            recent_chapter_summary = recent_chapter.get("summary", "No summary")
-            
-            arcs_text = "\n".join([
-                f"- {arc.get('title', 'Untitled')}: {arc.get('summary', 'No summary')}"
-                for arc in arcs_data[-3:]  # Last 3 arcs for context
-            ]) if arcs_data else "No arcs yet."
-            
-            gate_prompt = f"""A new chapter has just completed. This arc currently has {chapters_in_arc} chapters.
+        elif gate_check_prompt:
+            # Use the schema template
+            chapter_in_arc = chapters_in_arc
+            scenes_count = len(events_data.get("scenes", {}))
 
-Suggested range: {suggested_min}-{suggested_max} chapters per arc.
-Maximum chapters before mandatory aggregation: {max_hard}.
+            gate_prompt = render_jinja_template(
+                gate_check_prompt,
+                scenes_count=scenes_count,
+                chapters_count=total_chapters,
+                current_scene_number=current_scene_data.get("_scene_number", 1),
+                current_chapter_number=current_chapter_number,
+                current_arc_number=current_arc_number,
+                scenes_in_chapter=scenes_count,
+                scene_in_chapter=current_scene_data.get("_scene_number", 1),
+                chapters_in_arc=chapters_in_arc,
+                chapter_in_arc=chapter_in_arc,
+                suggested_min=suggested_min,
+                suggested_max=suggested_max,
+                max_chapters_before_required=max_hard,
+            )
 
-Recent Chapter: "{recent_chapter_name}"
-Summary: {recent_chapter_summary}
-
-Current arcs:
-{arcs_text}
-
-Should we finalize this arc and start a new one? Consider:
-- Has a major narrative arc reached its conclusion?
-- Is the chapter count approaching the suggested maximum?
-- Has the primary conflict or story thread been resolved?
-
-Respond with:
-- "YES" followed by a brief reason if a new arc should be created
-- "NO" if the current arc should continue
-"""
-            
             if shared.stop_everything:
                 return
-            
+
             print(f"{_INPUT}Checking if arc should be archived (chapters: {chapters_in_arc})...{_RESET}")
-            
+
             current_custom_state = self.custom_state or {}
             llm_response, stop_reason = self.summarizer.generate_using_tgwui(
                 prompt=gate_prompt,
@@ -651,29 +637,32 @@ Respond with:
                 stopping_strings=["YES", "NO"],
                 match_prefix_only=True,
             )
-            
+
             if shared.stop_everything:
                 return
-            
+
             response_upper = strip_response(llm_response).upper().strip()
             should_archive = (
                 "YES" in response_upper
                 or chapters_in_arc >= max_hard
                 or (stop_reason and "YES" in stop_reason.upper())
             )
-            
+
             if not should_archive:
                 print(f"{_GRAY}Arc continues (response: {llm_response[:50]}...).{_RESET}")
                 return
-        
+        else:
+            print(f"{_ERROR}No gate_check_prompt_template for arcs. Skipping.{_RESET}")
+            return
+
         if force_arc and self.summarizer.last:
             self.summarizer.last.force_next_arc = False
-        
+
         recent_chapter_name = list(chapters_dict.keys())[-1] if chapters_dict else "Unknown"
         recent_chapter_summary = chapters_dict[recent_chapter_name].get("summary", "No summary") if recent_chapter_name in chapters_dict else ""
-        
+
         print(f"{_SUCCESS}Archiving arc {current_arc_number} and creating new one.{_RESET}")
-        
+
         # Generate arc data
         arc_title = f"Arc {current_arc_number}"
         arc_generation_prompt = f"""Based on all the chapters in the current arc, generate the full data for the arc named '{arc_title}'.
@@ -705,16 +694,16 @@ Schema for Arc:
 }}
 
 Respond with ONLY the JSON object for this arc."""
-        
+
         arc_response, _ = self.summarizer.generate_using_tgwui(
             prompt=arc_generation_prompt,
             state=current_custom_state,
             history_path=self.history_path,
         )
-        
+
         if shared.stop_everything:
             return
-        
+
         try:
             arc_data = jsonc.loads(strip_response(arc_response))
             if isinstance(arc_data, dict):
@@ -737,24 +726,24 @@ Respond with ONLY the JSON object for this arc."""
                     arc_data["plot_threads"] = []
                 if "summary" not in arc_data:
                     arc_data["summary"] = recent_chapter_summary
-                
+
                 # Add arc to list
                 arcs_data.append(arc_data)
                 save_json(arcs_data, arcs_path)
-                
+
                 new_arc_number = current_arc_number + 1
                 current_scene_data["_arc_number"] = new_arc_number
                 print(f"{_SUCCESS}Archived arc {current_arc_number} and set new arc number to {new_arc_number}.{_RESET}")
-                
+
         except json.JSONDecodeError as e:
             print(f"{_ERROR}Failed to parse arc data: {e}. Arc response: {arc_response[:200]}...{_RESET}")
 
     def adjust_importance_scores(self):
         """Adjust importance scores for relationships and milestones.
-        
+
         Applies decay to relationships/milestones not mentioned in recent scenes
         and prompts LLM for promotion of actively involved relationships.
-        
+
         This is called after character updates to ensure importance reflects
         current narrative relevance.
         """
@@ -765,10 +754,10 @@ Respond with ONLY the JSON object for this arc."""
         if not characters_data:
             print(f"{_GRAY}No characters data available. Skipping importance adjustment.{_RESET}")
             return
-        
+
         current_scene_data = self.all_subjects_data.get("current_scene", {})
         current_scene_number = current_scene_data.get("_scene_number", 1)
-        
+
         # Get characters involved in current scene
         scene_characters = []
         now_data = current_scene_data.get("now", {})
@@ -778,15 +767,15 @@ Respond with ONLY the JSON object for this arc."""
                 scene_characters.append(char["name"])
             elif isinstance(char, str):
                 scene_characters.append(char)
-        
+
         if not scene_characters:
             print(f"{_GRAY}No characters in current scene. Skipping importance adjustment.{_RESET}")
             return
-        
+
         # Process each character
         entries = characters_data.get("entries", characters_data)
         adjustments_made = 0
-        
+
         for char_name, char_data in entries.items():
             if isinstance(char_data, dict):
                 # Adjust relationship importance
@@ -796,7 +785,7 @@ Respond with ONLY the JSON object for this arc."""
                         importance = rel_data.get("importance", 50)
                         events = rel_data.get("events", [])
                         scenes = rel_data.get("scenes", [])
-                        
+
                         # Decay: Reduce importance if not mentioned in recent scenes
                         if scenes:
                             last_scene = max(scenes) if isinstance(scenes[0], (int, float)) else current_scene_number
@@ -808,7 +797,7 @@ Respond with ONLY the JSON object for this arc."""
                                     rel_data["importance"] = new_importance
                                     adjustments_made += 1
                                     print(f"{_DEBUG}Decayed importance for {char_name}.{related_char}: {importance} -> {new_importance}{_RESET}")
-                        
+
                         # Promotion: Boost importance if relationship is active
                         if related_char in scene_characters and importance < 90:
                             new_importance = min(100, importance + 10)  # Boost by 10
@@ -816,14 +805,14 @@ Respond with ONLY the JSON object for this arc."""
                                 rel_data["importance"] = new_importance
                                 adjustments_made += 1
                                 print(f"{_DEBUG}Boosted importance for {char_name}.{related_char}: {importance} -> {new_importance}{_RESET}")
-                
+
                 # Adjust milestone importance (simpler - just decay old ones)
                 milestones = char_data.get("milestones", [])
                 for milestone in milestones:
                     if isinstance(milestone, dict):
                         importance = milestone.get("importance", 50)
                         milestone_scenes = milestone.get("scenes", [])
-                        
+
                         if milestone_scenes:
                             last_scene = max(milestone_scenes) if isinstance(milestone_scenes[0], (int, float)) else current_scene_number
                             scenes_since_last = current_scene_number - last_scene
@@ -834,7 +823,7 @@ Respond with ONLY the JSON object for this arc."""
                                     milestone["importance"] = new_importance
                                     adjustments_made += 1
                                     print(f"{_DEBUG}Decayed milestone importance: {importance} -> {new_importance}{_RESET}")
-        
+
         if adjustments_made > 0:
             print(f"{_SUCCESS}Made {adjustments_made} importance score adjustments.{_RESET}")
 
@@ -1852,40 +1841,40 @@ Respond with ONLY the JSON object for this arc."""
 
     def _resolve_cross_branch_reference(self, reference: str) -> str:
         """Resolve a {subjects.X.Y.Z} style reference to a formatted string.
-        
+
         Syntax:
             {subjects.characters.John.description}      → Formatted
             {subjects.characters.John.description:raw} → Raw JSON
             {subjects.events.scenes[-1]}              → Formatted, last scene
             {subjects.arcs[-1].summary}                 → Formatted, last arc
-        
+
         Args:
             reference: The reference string (including curly braces)
-            
+
         Returns:
             Formatted or raw string value, or error message if not found.
         """
         # Remove curly braces
         ref_content = reference.strip("{}")
-        
+
         # Check for :raw suffix
         raw_format = False
         if ref_content.endswith(":raw"):
             raw_format = True
             ref_content = ref_content[:-5]
-        
+
         # Parse path parts
         parts = ref_content.split(".")
-        
+
         if not parts or parts[0] != "subjects":
             return f"[Invalid reference: {reference}]"
-        
+
         # Get subject name (e.g., "characters", "arcs", "events")
         if len(parts) < 2:
             return f"[Invalid reference path: {reference}]"
-        
+
         subject_name = parts[1]
-        
+
         # Load subject data from history_path
         subject_data = {}
         subject_path = self.history_path / f"{subject_name}.json"
@@ -1898,34 +1887,34 @@ Respond with ONLY the JSON object for this arc."""
         else:
             # Subject file doesn't exist yet
             return f"[{subject_name} not yet initialized]"
-        
+
         # Navigate the remaining path
         value = self._resolve_fuzzy_path(subject_data, parts[2:])
-        
+
         if value is None:
             return f"[{subject_name}: path not found]"
-        
+
         # Format the result
         if raw_format:
             return json.dumps(value, indent=2)
-        
+
         return self._format_for_llm(value)
 
     def _resolve_fuzzy_path(self, data: dict | list, path_parts: list[str]) -> Any:
         """Navigate nested structure with fuzzy name matching.
-        
+
         Args:
             data: The data to navigate (dict or list)
             path_parts: List of path components (e.g., ["John", "description"] or ["-1", "summary"])
-            
+
         Returns:
             The value at the resolved path, or None if not found.
         """
         if not path_parts:
             return data
-        
+
         current = data
-        
+
         for part in path_parts:
             if isinstance(current, dict):
                 # Fuzzy match against keys
@@ -1943,50 +1932,50 @@ Respond with ONLY the JSON object for this arc."""
                     return None
             else:
                 return None
-        
+
         return current
 
     def _fuzzy_match(self, keys: list[str], pattern: str) -> str | None:
         """Match pattern against keys (case-insensitive, partial match).
-        
+
         "John" matches "John Smith", "john_doe", "Johnny"
         Returns first match or original pattern if exact match found.
-        
+
         Args:
             keys: List of available keys
             pattern: Pattern to match
-            
+
         Returns:
             Matched key or None
         """
         pattern_lower = pattern.lower()
-        
+
         # First try exact match
         for key in keys:
             if key.lower() == pattern_lower:
                 return key
-        
+
         # Then try partial match
         for key in keys:
             if pattern_lower in key.lower():
                 return key
-        
+
         # Return original pattern as fallback (might work for direct access)
         return pattern if pattern in keys else None
 
     def _format_for_llm(self, value: Any, max_length: int = 2000) -> str:
         """Format a value for inclusion in LLM prompts.
-        
+
         Args:
             value: The value to format
             max_length: Maximum length before truncation
-            
+
         Returns:
             Formatted string representation
         """
         if value is None:
             return "N/A"
-        
+
         if isinstance(value, dict):
             lines = []
             for k, v in value.items():
@@ -2011,19 +2000,19 @@ Respond with ONLY the JSON object for this arc."""
                 result += f"\n... and {len(value) - 20} more items"
         else:
             result = str(value)
-        
+
         # Truncate if too long
         if len(result) > max_length:
             result = result[:max_length] + "..."
-        
+
         return result
 
     def _extract_cross_branch_references(self, template: str) -> list[str]:
         """Extract all {subjects.X.Y.Z} references from a template string.
-        
+
         Args:
             template: The template string to scan
-            
+
         Returns:
             List of reference strings found (including curly braces)
         """
@@ -2100,20 +2089,20 @@ Respond with ONLY the JSON object for this arc."""
         state = self.summarizer.last.state
         history_internal = self.custom_state.get("history", {}).get("internal", [])
         current_message_node = f"{len(history_internal) * 2}_1_1"
-        
+
         # Calculate counts for context
         events_data = self.all_subjects_data.get("events", {})
         scenes_dict = events_data.get("scenes", {}) if events_data else {}
         chapters_dict = events_data.get("chapters", {}) if events_data else {}
-        
+
         scenes_count = len(scenes_dict)  # Total scenes in story
         chapters_count = len(chapters_dict)  # Total chapters in story
-        
+
         current_scene_data = self.all_subjects_data.get("current_scene", {})
         current_scene_number = current_scene_data.get("_scene_number", 1)
         current_chapter_number = current_scene_data.get("_chapter_number", 1)
         current_arc_number = current_scene_data.get("_arc_number", 1)
-        
+
         # Calculate relative counts (within current chapter/arc)
         # For scenes in current chapter: count scenes since last chapter transition
         scenes_in_chapter = 1
@@ -2123,9 +2112,9 @@ Respond with ONLY the JSON object for this arc."""
                 last_chapter = chapters_list[-1] if chapters_list else {}
                 last_chapter_ending_scene = last_chapter.get("ending_scene", 0)
                 scenes_in_chapter = max(1, scenes_count - last_chapter_ending_scene)
-        
+
         scene_in_chapter = scenes_in_chapter  # Current scene position within chapter
-        
+
         # For chapters in current arc: count chapters since last arc transition
         chapters_in_arc = chapters_count
         arcs_data = self.all_subjects_data.get("arcs", [])
@@ -2133,9 +2122,9 @@ Respond with ONLY the JSON object for this arc."""
             last_arc = arcs_data[-1] if arcs_data else {}
             last_arc_ending_chapter = last_arc.get("ending_chapter", 0)
             chapters_in_arc = max(1, chapters_count - last_arc_ending_chapter)
-        
+
         chapter_in_arc = chapters_in_arc  # Current chapter position within arc
-        
+
         format_kwargs = {
             "branch_name": item_name,
             "item_name": item_name,
@@ -2164,7 +2153,7 @@ Respond with ONLY the JSON object for this arc."""
             "chapter_in_arc": chapter_in_arc,
             **kwargs,
         }
-        
+
         # Resolve cross-branch references ({subjects.X.Y.Z})
         cross_refs = self._extract_cross_branch_references(prompt_template_str)
         for ref in cross_refs:
@@ -2173,12 +2162,12 @@ Respond with ONLY the JSON object for this arc."""
             format_kwargs[ref_key] = resolved_value
             ref_key_compat = ref_key.replace(".", "_")
             format_kwargs[ref_key_compat] = resolved_value
-        
+
         if entry_name is not None:
             format_kwargs["entry_name"] = entry_name
 
         try:
-            return format_str(prompt_template_str, **format_kwargs)
+            return format_str_or_jinja(prompt_template_str, **format_kwargs)
         except KeyError as e:
             print(
                 f"{_ERROR}Missing key in prompt template formatting: {e}. Template: '{prompt_template_str}', Args: {format_kwargs}{_RESET}"

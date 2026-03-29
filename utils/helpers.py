@@ -8,6 +8,9 @@ import jsonc
 import traceback
 from functools import reduce
 
+from jinja2.sandbox import ImmutableSandboxedEnvironment
+import jinja2
+
 # Colour codes
 _ERROR = "\033[1;31m"
 _SUCCESS = "\033[1;32m"
@@ -399,6 +402,80 @@ def format_str(string: str, **kwargs) -> str:
                 value = value()
             string = string.replace(f"{{{key}}}", str(value))
     return string
+
+
+_jinja_env = None
+
+def _get_jinja_env():
+    """Get or create a cached Jinja environment."""
+    global _jinja_env
+    if _jinja_env is None:
+        _jinja_env = ImmutableSandboxedEnvironment(
+            trim_blocks=True,
+            lstrip_blocks=True,
+            undefined=jinja2.Undefined,
+        )
+    return _jinja_env
+
+
+def render_jinja_template(template_str: str, **kwargs) -> str:
+    """Render a Jinja2 template string with the given context variables.
+
+    Args:
+        template_str: The Jinja2 template string (e.g., "Scene {{ scene_number }}")
+        **kwargs: Context variables for the template
+
+    Returns:
+        str: The rendered string
+
+    Examples:
+        >>> render_jinja_template("Scene {{ scene_number }}", scene_number=5)
+        'Scene 5'
+        >>> render_jinja_template("{{ min }}-{{ max }}", min=4, max=8)
+        '4-8'
+    """
+    if not template_str:
+        return ""
+
+    # Call any lazy functions in kwargs
+    resolved_kwargs = {}
+    for key, value in kwargs.items():
+        if isinstance(value, FunctionType):
+            resolved_kwargs[key] = value()
+        else:
+            resolved_kwargs[key] = value
+
+    try:
+        env = _get_jinja_env()
+        template = env.from_string(template_str)
+        return template.render(**resolved_kwargs).strip()
+    except Exception as e:
+        print(f"{_WARNING}Jinja template rendering failed: {e}{_RESET}")
+        return template_str
+
+
+def format_str_or_jinja(template_str: str, **kwargs) -> str:
+    """Render a template string using either Jinja syntax or legacy Python format syntax.
+
+    Detects whether the template uses Jinja syntax ({{ }}) or Python format syntax ({ }),
+    and renders accordingly. This provides backward compatibility.
+
+    Args:
+        template_str: The template string
+        **kwargs: Context variables
+
+    Returns:
+        str: The rendered string
+    """
+    if not template_str:
+        return ""
+
+    # Check if template uses Jinja syntax
+    if "{{ " in template_str or "{%" in template_str:
+        return render_jinja_template(template_str, **kwargs)
+    else:
+        # Legacy Python format syntax
+        return format_str(template_str, **kwargs)
 
 
 # --- LLM response parsing ---
