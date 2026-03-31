@@ -83,40 +83,48 @@ class DataSummarizer:
         schema_definition: ParsedSchemaClass,
         base_setting_name: str,
         field_name_context: str | None = None,
+        override_config: dict | None = None,
     ):
         """
         Gets an effective setting value, primarily for prompt templates.
 
         Priority:
-        1. Direct override for base_setting_name in data._overrides.
-        2. For templates, field-specific override in data._overrides (e.g., description_prompt_template).
-        3. Schema attribute on schema_definition (e.g., schema_definition.gate_check_prompt_template).
-        4. For templates, field-specific template from schema_definition.defaults.
-        5. General base_setting_name from schema_definition.defaults (if not already an attribute) or schema attribute.
-        6. Fallback to None for templates.
+        1. Override config from trigger entry (highest priority).
+        2. Direct override for base_setting_name in data._overrides.
+        3. For templates, field-specific override in data._overrides (e.g., description_prompt_template).
+        4. Schema attribute on schema_definition (e.g., schema_definition.gate_check_prompt_template).
+        5. For templates, field-specific template from schema_definition.defaults.
+        6. General base_setting_name from schema_definition.defaults (if not already an attribute) or schema attribute.
+        7. Fallback to None for templates.
 
         Args:
             data (dict): The actual data dictionary that might contain _overrides.
             schema_definition (ParsedSchemaClass): The schema definition for this data.
             base_setting_name (str): The name of the setting to get (e.g., "update_prompt_template").
             field_name_context (str, optional): For field-specific templates, e.g., "description". Defaults to None.
+            override_config (dict, optional): Action-specific overrides from trigger entry. Defaults to None.
         """
+
+        # 1. Check override_config
+        if override_config and base_setting_name in override_config:
+            return override_config[base_setting_name]
+
         overrides = data.get("_overrides", {})
 
-        # 1. Direct override for the base_setting_name
+        # 2. Direct override for the base_setting_name
         if base_setting_name in overrides:
             return overrides[base_setting_name]
 
-        # 2. For prompt templates, check for field-specific override
+        # 3. For prompt templates, check for field-specific override
         if field_name_context and base_setting_name.endswith("_prompt_template"):
             field_specific_override_key = f"{field_name_context}_prompt_template"
             if field_specific_override_key in overrides:
                 return overrides[field_specific_override_key]
 
-        # 3. Get from schema_definition attributes (e.g., schema_definition.gate_check_prompt_template)
+        # 4. Get from schema_definition attributes (e.g., schema_definition.gate_check_prompt_template)
         schema_attr_value = getattr(schema_definition, base_setting_name, None)
 
-        # 4. For prompt templates, field-specific template from schema_definition.defaults
+        # 5. For prompt templates, field-specific template from schema_definition.defaults
         if field_name_context and base_setting_name.endswith("_prompt_template"):
             field_specific_schema_key = f"{field_name_context}_prompt_template"
             if field_specific_schema_key in schema_definition.defaults:
@@ -126,13 +134,13 @@ class DataSummarizer:
             if base_setting_name in schema_definition.defaults:
                 return schema_definition.defaults[base_setting_name]
 
-        # 5. If not a field-specific template context, or if it was but not found:
+        # 6. If not a field-specific template context, or if it was but not found:
         if schema_attr_value is not None:
             return schema_attr_value
         if base_setting_name in schema_definition.defaults:
             return schema_definition.defaults[base_setting_name]
 
-        # 6. Fallback default (primarily for templates)
+        # 7. Fallback default (primarily for templates)
         if base_setting_name.endswith("_prompt_template"):
             return None
 
@@ -150,19 +158,116 @@ class DataSummarizer:
 
         return current_event_triggers
 
-    def _is_action_triggered(  # TODO?: Also accept overrides?
+    def _get_triggered_configs(
+        self,
+        schema_class: ParsedSchemaClass,
+        action: Action,
+        event_triggers: list[Trigger] = [],
+    ) -> list[tuple[Action, dict | None]]:
+        """Get all matching trigger configs for a given action.
+        
+        Returns a list of (action, override_config) tuples where override_config
+        may contain action-specific overrides like 'prompt_template'.
+        """
+        matching = []
+        if not schema_class or not schema_class.trigger_map:
+            return matching
+        for trigger in event_triggers or self._get_current_event_triggers(schema_class):
+            for trigger_action, config in schema_class.trigger_map.get(trigger, []):
+                if trigger_action == action:
+                    matching.append((trigger_action, config))
+        return matching
+
+    def _is_action_triggered(
         self,
         schema_class: ParsedSchemaClass,
         action: Action,
         event_triggers: list[Trigger] = [],
     ) -> bool:
         """Whether a given action is triggered by any of the current event conditions. Use `_should_update_subject` for a general check."""
-        if not schema_class or not schema_class.trigger_map:
-            return False
-        for trigger in event_triggers or self._get_current_event_triggers(schema_class):
-            if action in schema_class.trigger_map.get(trigger, []):
-                return True
-        return False
+        return len(self._get_triggered_configs(schema_class, action, event_triggers)) > 0
+
+    def _execute_action(
+        self,
+        action: Action,
+        config: dict | None,
+        branch_name: str,
+        data: dict,
+        formatted_data: FormattedData,
+        unexpanded_formatted_data: FormattedData,
+        target_schema_class: ParsedSchemaClass,
+        keys: list,
+    ) -> tuple[bool, bool]:
+        """Execute a single action with the given config.
+        
+        Returns:
+            out (tuple[bool, bool]): (stop_processing, gate_failed)
+            - stop_processing: True if full update succeeded (stop further actions)
+            - gate_failed: True if gate check failed (branch should be skipped)
+        """
+        if shared.stop_everything:
+            return (True, False)
+
+        if action == Action.ADD_NEW:
+            if target_schema_class.definition_type == "alias":
+                field_type = target_schema_class._field.type
+                is_dict = hasattr(field_type, "__origin__") and field_type.__origin__ is dict
+                if is_dict:
+                    new_query_template = config.get("new_entry_query_prompt_template") if config else None
+                    new_entry_template = config.get("new_entry_prompt_template") if config else None
+                    self._detect_and_add_new_entries_to_branch(
+                        branch_name=branch_name,
+                        data=data,
+                        formatted_data=unexpanded_formatted_data,
+                        branch_schema_class=target_schema_class,
+                        new_query_template=new_query_template,
+                        new_entry_template=new_entry_template,
+                        keys=keys
+                    )
+
+        elif action == Action.PERFORM_GATE_CHECK:
+            gate_template = self._get_effective_setting(
+                data, target_schema_class, "gate_check_prompt_template", override_config=config
+            )
+            if gate_template:
+                if not self._perform_gate_check(
+                    branch_name, gate_template, target_schema_class, formatted_data, keys
+                ):
+                    return (False, True)  # Gate check failed
+
+        elif action == Action.PERFORM_UPDATE:
+            update_template = self._get_effective_setting(
+                data, target_schema_class, "update_prompt_template", override_config=config
+            )
+            if update_template:
+                if self._perform_full_branch_update(
+                    branch_name, data, update_template, formatted_data, target_schema_class, keys
+                ):
+                    return (True, False)  # Full update succeeded, stop processing
+
+        elif action == Action.QUERY_BRANCH_FOR_CHANGES:
+            update_template_key = "branch_update_prompt_template"
+            if config and "prompt_template" in config:
+                update_template_key = config["prompt_template"]
+
+            # Derive query template name from update template name
+            if "_update" in update_template_key:
+                query_template_key = update_template_key.replace("_update", "_query")
+            else:
+                query_template_key = "branch_query_prompt_template"
+
+            bq_template = self._get_effective_setting(
+                data, target_schema_class, query_template_key, override_config=config
+            )
+            bu_template = self._get_effective_setting(
+                data, target_schema_class, update_template_key, override_config=config
+            )
+            if bq_template and bu_template:
+                self._perform_branch_query(
+                    branch_name, data, formatted_data, bq_template, bu_template, target_schema_class, keys
+                )
+
+        return (False, False)  # Continue processing
 
     def _should_update_subject(self, schema_class: ParsedSchemaClass, event_triggers: list[Trigger] = []) -> bool:
         """Whether the subject should be updated at all based on the schema_class's trigger_map. Use `_is_action_triggered` for more fine-grained control."""
@@ -966,87 +1071,57 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_BOLD}Processing Schema Node: {target_schema_class.name} ({target_schema_class.definition_type}) at '{branch_name}'{_RESET}")
 
-        # 1. TRIGGER: Add New Entries (only valid for Alias types wrapping a dict)
-        if self._is_action_triggered(target_schema_class, Action.ADD_NEW, current_event_triggers):
-            if target_schema_class.definition_type == "alias":
-                field_type = target_schema_class._field.type
-                is_dict = hasattr(field_type, "__origin__") and field_type.__origin__ is dict
+        # Collect all triggered configs in order (respecting schema array order)
+        all_triggered_configs = []
+        print(f"trigger map: {_GRAY}{target_schema_class.trigger_map}{_RESET}")
+        for trigger in current_event_triggers:
+            if trigger in target_schema_class.trigger_map:
+                for action, config in target_schema_class.trigger_map[trigger]:
+                    all_triggered_configs.append((action, config))
 
-                if is_dict:
-                    self._detect_and_add_new_entries_to_branch(
-                        branch_name=branch_name,
-                        data=data,
-                        formatted_data=unexpanded_formatted_data,
-                        branch_schema_class=target_schema_class,
-                        keys=keys
-                    )
+        # Execute actions in schema order
+        i = 0
+        while i < len(all_triggered_configs):
+            action, config = all_triggered_configs[i]
+            when_condition = config.get("when") if config else None
+            
+            # Skip conditional actions until their condition is met
+            if when_condition == "gate_check_fail":
+                i += 1
+                continue
 
-        # 2. TRIGGER: Gate Check
-        gate_passed = True
-        gate_template = self._get_effective_setting(data, target_schema_class, "gate_check_prompt_template")
-
-        if self._is_action_triggered(target_schema_class, Action.PERFORM_GATE_CHECK, current_event_triggers) and gate_template:
-            gate_passed = self._perform_gate_check(
-                branch_name,
-                gate_template,
-                target_schema_class,
-                formatted_data,
-                keys
+            stop_processing, gate_failed = self._execute_action(
+                action, config, branch_name, data,
+                formatted_data, unexpanded_formatted_data,
+                target_schema_class, keys
             )
 
-        if not gate_passed:
-            return data
-
-        # 3. TRIGGER: Full Update ("Overwrite")
-        update_template = self._get_effective_setting(data, target_schema_class, "update_prompt_template")
-        did_full_update = False
-
-        if self._is_action_triggered(target_schema_class, Action.PERFORM_UPDATE, current_event_triggers) and update_template:
-            # Perform update and return early if successful
-            did_full_update = self._perform_full_branch_update(
-                branch_name,
-                data,
-                update_template,
-                formatted_data,
-                target_schema_class,
-                keys
-            )
-            if did_full_update:
+            if gate_failed:
+                # Execute remaining conditional actions for gate_check_fail
+                for j in range(i + 1, len(all_triggered_configs)):
+                    cond_action, cond_config = all_triggered_configs[j]
+                    if cond_config and cond_config.get("when") == "gate_check_fail":
+                        self._execute_action(
+                            cond_action, cond_config, branch_name, data,
+                            formatted_data, unexpanded_formatted_data,
+                            target_schema_class, keys
+                        )
                 return data
 
-        # 4. TRIGGER: Branch Query ("Diff")
-        # If gate check passed (or wasn't needed), we proceed.
-        bq_template = self._get_effective_setting(data, target_schema_class, "branch_query_prompt_template")
-        bu_template = self._get_effective_setting(data, target_schema_class, "branch_update_prompt_template")
+            if stop_processing:
+                return data
 
-        branch_query_handled = False
-        if (
-            not did_full_update  # Skip if already did a full update
-            and self._is_action_triggered(target_schema_class, Action.QUERY_BRANCH_FOR_CHANGES, current_event_triggers)
-            and bq_template
-            and bu_template
-        ):
-            self._perform_branch_query(
-                branch_name,
-                data,
-                formatted_data,
-                bq_template,
-                bu_template,
-                target_schema_class,
-                keys
-            )
-            branch_query_handled = True
+            i += 1
 
-        # 6. Drill Down / Recursion
-        if not branch_query_handled:
-            self._traverse_structure(
-                branch_name,
-                data,
-                formatted_data,
-                unexpanded_formatted_data,
-                target_schema_class,
-                keys
-            )
+        # Drill Down / Recursion
+        self._traverse_structure(
+            branch_name,
+            data,
+            formatted_data,
+            unexpanded_formatted_data,
+            target_schema_class,
+            keys
+        )
 
         return data
 

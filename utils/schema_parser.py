@@ -109,13 +109,13 @@ class ParsedSchemaClass:
         fields: list[ParsedSchemaField] | None = None,
         field: ParsedSchemaField | None = None,
         defaults: dict[str, Any] | None = None,
-        triggers: dict[Trigger, list[Action]] | None = None,
+        triggers: dict[Trigger, list[tuple[Action, dict | None]]] | None = None,
     ):
         self.name = name
         self.definition_type = definition_type
         self.parser = parser
         self.defaults = defaults or {}
-        self.trigger_map: dict[Trigger, list[Action]] = triggers or {}
+        self.trigger_map = triggers or {}  # tuple of (Action, optional override_config dict)
 
         self._fields: dict[str, ParsedSchemaField] | None = None  # Parsed fields for "dataclass" type
         self._field: ParsedSchemaField | None = None  # Parsed type for "alias" type
@@ -453,7 +453,7 @@ class ParsedSchemaClass:
 class SchemaParser:
     """Loads and parses the subjects JSON schema."""
 
-    def __init__(self, schema_path: Union[str, Path]):
+    def __init__(self, schema_path: str | Path):
         self.schema_path = Path(schema_path)
         self.schema = self._load_schema()
         self.definitions: dict[str, ParsedSchemaClass] = {}
@@ -533,10 +533,25 @@ class SchemaParser:
             defaults = definition.get("defaults", {})
             triggers_data = definition.get("triggers", {})
 
-            triggers = {
-                getattr(Trigger, trigger.upper()): [getattr(Action, action.upper()) for action in actions]
-                for trigger, actions in triggers_data.items()
-            }
+            # String: "query_branch_for_changes" -> (Action.QUERY_BRANCH_FOR_CHANGES, None)
+            # Dict: {"action": "query_branch_for_changes", "prompt_template": "..."}
+            #       -> (Action.QUERY_BRANCH_FOR_CHANGES, {"prompt_template": "..."})
+            parsed_triggers = {}
+            for trigger_key, actions in triggers_data.items():
+                trigger_enum = getattr(Trigger, trigger_key.upper())
+                action_list = []
+                for action_entry in actions:
+                    if isinstance(action_entry, str):
+                        action_list.append((getattr(Action, action_entry.upper()), None))
+                    elif isinstance(action_entry, dict):
+                        action_name = action_entry.get("action")
+                        if not action_name:
+                            raise ValueError(f"Trigger action dict missing 'action' key: {action_entry}")
+                        action = getattr(Action, action_name.upper())
+                        override_config = { k: v for k, v in action_entry.items() if k != "action" }
+                        action_list.append((action, override_config))
+                parsed_triggers[trigger_enum] = action_list
+            triggers = parsed_triggers
 
             if def_type == "dataclass":
                 fields_data = definition.get("fields", {})
