@@ -165,7 +165,7 @@ class DataSummarizer:
         event_triggers: list[Trigger] = [],
     ) -> list[tuple[Action, dict | None]]:
         """Get all matching trigger configs for a given action.
-        
+
         Returns a list of (action, override_config) tuples where override_config
         may contain action-specific overrides like 'prompt_template'.
         """
@@ -199,7 +199,7 @@ class DataSummarizer:
         keys: list,
     ) -> tuple[bool, bool]:
         """Execute a single action with the given config.
-        
+
         Returns:
             out (tuple[bool, bool]): (stop_processing, gate_failed)
             - stop_processing: True if full update succeeded (stop further actions)
@@ -843,95 +843,6 @@ Respond with ONLY the JSON object for this arc."""
         except json.JSONDecodeError as e:
             print(f"{_ERROR}Failed to parse arc data: {e}. Arc response: {arc_response[:200]}...{_RESET}")
 
-    def adjust_importance_scores(self):
-        """Adjust importance scores for relationships and milestones.
-
-        Applies decay to relationships/milestones not mentioned in recent scenes
-        and prompts LLM for promotion of actively involved relationships.
-
-        This is called after character updates to ensure importance reflects
-        current narrative relevance.
-        """
-        if shared.stop_everything:
-            return
-
-        characters_data = self.all_subjects_data.get("characters", {})
-        if not characters_data:
-            print(f"{_GRAY}No characters data available. Skipping importance adjustment.{_RESET}")
-            return
-
-        current_scene_data = self.all_subjects_data.get("current_scene", {})
-        current_scene_number = current_scene_data.get("_scene_number", 1)
-
-        # Get characters involved in current scene
-        scene_characters = []
-        now_data = current_scene_data.get("now", {})
-        who_data = now_data.get("who", {})
-        for char in who_data.get("characters", []):
-            if isinstance(char, dict) and "name" in char:
-                scene_characters.append(char["name"])
-            elif isinstance(char, str):
-                scene_characters.append(char)
-
-        if not scene_characters:
-            print(f"{_GRAY}No characters in current scene. Skipping importance adjustment.{_RESET}")
-            return
-
-        # Process each character
-        entries = characters_data.get("entries", characters_data)
-        adjustments_made = 0
-
-        for char_name, char_data in entries.items():
-            if isinstance(char_data, dict):
-                # Adjust relationship importance
-                relationships = char_data.get("relationships", {})
-                for related_char, rel_data in relationships.items():
-                    if isinstance(rel_data, dict):
-                        importance = rel_data.get("importance", 50)
-                        events = rel_data.get("events", [])
-                        scenes = rel_data.get("scenes", [])
-
-                        # Decay: Reduce importance if not mentioned in recent scenes
-                        if scenes:
-                            last_scene = max(scenes) if isinstance(scenes[0], (int, float)) else current_scene_number
-                            scenes_since_last = current_scene_number - last_scene
-                            if scenes_since_last > 3:  # Decay after 3 scenes of inactivity
-                                decay = min(10, scenes_since_last * 2)  # Max 10 points decay
-                                new_importance = max(0, importance - decay)
-                                if new_importance != importance:
-                                    rel_data["importance"] = new_importance
-                                    adjustments_made += 1
-                                    print(f"{_DEBUG}Decayed importance for {char_name}.{related_char}: {importance} -> {new_importance}{_RESET}")
-
-                        # Promotion: Boost importance if relationship is active
-                        if related_char in scene_characters and importance < 90:
-                            new_importance = min(100, importance + 10)  # Boost by 10
-                            if new_importance != importance:
-                                rel_data["importance"] = new_importance
-                                adjustments_made += 1
-                                print(f"{_DEBUG}Boosted importance for {char_name}.{related_char}: {importance} -> {new_importance}{_RESET}")
-
-                # Adjust milestone importance (simpler - just decay old ones)
-                milestones = char_data.get("milestones", [])
-                for milestone in milestones:
-                    if isinstance(milestone, dict):
-                        importance = milestone.get("importance", 50)
-                        milestone_scenes = milestone.get("scenes", [])
-
-                        if milestone_scenes:
-                            last_scene = max(milestone_scenes) if isinstance(milestone_scenes[0], (int, float)) else current_scene_number
-                            scenes_since_last = current_scene_number - last_scene
-                            if scenes_since_last > 5:  # Decay after 5 scenes of inactivity
-                                decay = min(15, scenes_since_last * 3)  # Max 15 points decay
-                                new_importance = max(0, importance - decay)
-                                if new_importance != importance:
-                                    milestone["importance"] = new_importance
-                                    adjustments_made += 1
-                                    print(f"{_DEBUG}Decayed milestone importance: {importance} -> {new_importance}{_RESET}")
-
-        if adjustments_made > 0:
-            print(f"{_SUCCESS}Made {adjustments_made} importance score adjustments.{_RESET}")
-
     # --- Helper methods for parsing and applying LLM updates ---
     def _parse_llm_field_updates(self, llm_response_text: str, branch_name_for_log: str) -> list[dict[str, Any]]:
         """Parses LLM response for field updates.
@@ -1084,7 +995,7 @@ Respond with ONLY the JSON object for this arc."""
         while i < len(all_triggered_configs):
             action, config = all_triggered_configs[i]
             when_condition = config.get("when") if config else None
-            
+
             # Skip conditional actions until their condition is met
             if when_condition == "gate_check_fail":
                 i += 1

@@ -20,6 +20,22 @@
         "events_placeholder": "A list of significant events related to the character under this specific status."
       }
     },
+    "Importance": {
+      "type": "dataclass",
+      "fields": {
+        "score": "int",
+        "reason": "str"
+      },
+      "defaults": {
+        "score_placeholder": "A numerical value representing the significance (0-100). Higher values mean more important to the story/narrative. In the real JSON, this would be an integer, not a string.",
+        "reason_placeholder": "A brief explanation of why this importance level is appropriate for this item."
+      },
+      "triggers": {
+        "on_new_scene": [
+          "perform_update"
+        ]
+      }
+    },
     "CharacterRelationship": {
       "type": "dataclass",
       "fields": {
@@ -27,14 +43,13 @@
         "status": "str",
         "aliases": "list[str]",
         "events": "list[str]",
-        "importance": "int"
+        "importance": "Importance"
       },
       "defaults": {
         "relation_placeholder": "A single word to describe the relationship between these two characters for this specific status (e.g., 'brother', 'boss', 'subordinate')",
         "status_placeholder": "The connection these two characters have for this relationship (e.g., 'Family', 'School', 'Army')",
-        "aliases_placeholder": "Nicknames or alternative terms for the related character in the context of this specific relationship (e.g., 'Bro').",
-        "events_placeholder": "A list of events relevant to this specific relationship between the characters.",
-        "importance_placeholder": "A numerical value representing the significance of this relationship to the character (0-100). Higher values are more important. In the real JSON, this would be an integer, not a string."
+        "aliases_placeholder": "A list of nicknames or alternative terms for the related character in the context of this specific relationship (e.g., 'Bro').",
+        "events_placeholder": "A list of events relevant to this specific relationship between the characters."
       }
     },
     "CharacterRelationships": {
@@ -46,12 +61,11 @@
       "fields": {
         "title": "str",
         "scenes": "list[int]",
-        "importance": "int"
+        "importance": "Importance"
       },
       "defaults": {
         "description_placeholder": "A list of strings describing a significant achievement or consequential event in the character's life, either positive or negative.",
-        "scenes_placeholder": "A list of scene numbers where this milestone is relevant or occurred.",
-        "importance_placeholder": "A numerical value representing the significance of this milestone (0-100). In the real JSON, this would be an integer, not a string."
+        "scenes_placeholder": "A list of scene numbers where this milestone is relevant or occurred."
       }
     },
     "Character": {
@@ -86,11 +100,14 @@
       "defaults": {
         "gate_check_prompt_template": "Based on the latest exchange, does the entire '{{ branch_name }}' section/category require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.",
         "new_entry_query_prompt_template": "Throughout the last scene, have there been any new characters mentioned or implied that should be added to the '{{ branch_name }}' list?\n\nHere is the full list:\n{{ branch_list }}\n\nAny new characters should be added to the list. If a character is named: Always add them. If a character is unnamed: Add them as long as they have a direct interaction with another named character, are important to a named character or are relevant to the story in general.\n\nIf new characters are identified, provide their names as a JSON list of strings.\n\nExample:\n```json\n[\"David Smith\", \"Mysterious Stranger\", \"The Captain\"]\n```\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nREMEMBER: _Any_ relevant character should be added to the list, groups and crowds excluded.",
-        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new character named '{{ entry_name }}'.\n\nRelevant Schema for a new Character:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for a new Character:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for this new character."
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new character named '{{ entry_name }}'.\n\nRelevant Schema for a new Character:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for a new Character:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for this new character.",
+        "importance_query_prompt_template": "Has there been a significant change in importance for any character's relationships since the last update? Respond with only 'YES' or 'NO'.",
+        "importance_update_prompt_template": "Review the importance scores for all characters' relationships.\n\nCurrent characters and their relationships:\n{% if value is mapping %}{% for char_name, char_data in value.items() %}\n{{ char_name }}:\n{% if char_data.relationships is mapping %}{% for rel_name, rel_list in char_data.relationships.items() %}{% if rel_list is sequence and rel_list is not string %}{% for rel in rel_list %}  - {{ rel_name }} ({{ rel.relation }}): Score {{ rel.importance.score if rel.importance is mapping else rel.importance }} - {{ rel.importance.reason if rel.importance is mapping else 'No reason given' }}\n{% endfor %}{% endif %}{% endfor %}{% endif %}\n{% endfor %}{% endif %}\nProvide the updated importance scores with paths and values for any changes.\nExample output:\n[\n  {\"path\": \"John.relationships.Bob.0.importance\", \"value\": {\"score\": 80, \"reason\": \"Revised reason\"}}\n]\n\nIf NO updates are required, respond with NO_UPDATES_REQUIRED."
       },
       "triggers": {
         "always": [
-          "perform_gate_check"
+          "perform_gate_check",
+          {"action": "query_branch_for_changes", "prompt_template": "importance_update_prompt_template", "when": "gate_check_fail"}
         ],
         "on_new_scene": [
           "add_new"
@@ -323,7 +340,8 @@
         "name": "str",
         "start": "TimePoint",
         "end": "TimePoint",
-        "summary": "str"
+        "summary": "str",
+        "importance": "Importance"
       },
       "defaults": {
         "name_placeholder": "The unique name or title of the story event.",
@@ -338,12 +356,15 @@
       "defaults": {
         "branch_query_prompt_template": "Based on the latest exchange and the current state of the branch '{{ branch_name }}', are there any significant changes, additions, or deletions required for this entire branch (any event's name, start, end, summary)? Respond with only 'NO' or 'UNCHANGED' if this event's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
         "branch_update_prompt_template": "Based on the latest exchange, review the current state of branch '{{ branch_name }}'.\nRelevant Schema for '{{ branch_name }}':\n```json\n{{ schema_snippet }}\n```\nExample JSON structure for '{{ branch_name }}':\n```json\n{{ example_json }}\n```\n\nIf any specific fields within '{{ branch_name }}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure (e.g., 'Example Event.summary', 'Example Event.start.date').\n\nExample of expected output if updates are needed for '{{ branch_name }}':\n[\n  {\"path\": \"Example Event.summary\", \"value\": \"Updated event summary\"},\n  {\"path\": \"Example Event.end.specific_time\", \"value\": \"18:00\"}\n]\n\nIf NO updates are required for the entire '{{ branch_name }}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
-        "update_prompt_template": "Based on the latest exchange, is {{ item_name }}'s {{ field_name }} summary inaccurate or incomplete?\nRelevant Schema for '{{ field_name }}':\n```json\n{{ schema_snippet }}\n```\nExample JSON structure for '{{ field_name }}':\n```json\n{{ example_json }}\n```\nIf yes, respond with the updated summary.\nIf no, respond \"UNCHANGED\".\nIf unsure, respond \"UNCHANGED\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{{ value }}\"\"\""
+        "update_prompt_template": "Based on the latest exchange, is {{ item_name }}'s {{ field_name }} summary inaccurate or incomplete?\nRelevant Schema for '{{ field_name }}':\n```json\n{{ schema_snippet }}\n```\nExample JSON structure for '{{ field_name }}':\n```json\n{{ example_json }}\n```\nIf yes, respond with the updated summary.\nIf no, respond \"UNCHANGED\".\nIf unsure, respond \"UNCHANGED\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{{ value }}\"\"\"",
+        "importance_query_prompt_template": "Has there been a significant change in importance for any event? Respond with only 'YES' or 'NO'.",
+        "importance_update_prompt_template": "Review the importance scores for all events in '{{ branch_name }}'.\n\nCurrent events and their importance:\n{% if value is mapping %}{% for event_name, event_data in value.items() %}\n- {{ event_name }}: Score {{ event_data.importance.score if event_data.importance is mapping else event_data.importance }} - {{ event_data.importance.reason if event_data.importance is mapping else 'No reason given' }}\n{% endfor %}{% endif %}\nProvide the updated importance scores with paths and values for any changes.\nExample output:\n[\n  {\"path\": \"Example Event.importance\", \"value\": {\"score\": 80, \"reason\": \"Revised reason\"}}\n]\n\nIf NO updates are required, respond with NO_UPDATES_REQUIRED."
       },
       "triggers": {
         "on_new_scene": [
           "add_new",
-          "query_branch_for_changes"
+          "query_branch_for_changes",
+          {"action": "query_branch_for_changes", "prompt_template": "importance_update_prompt_template", "when": "gate_check_fail"}
         ]
       }
     },
@@ -512,11 +533,18 @@
       "type": "dataclass",
       "fields": {
         "description": "str",
-        "importance": "int"
+        "importance": "Importance"
       },
       "defaults": {
         "description_placeholder": "A secondary objective the protagonist(s) are trying to achieve. This is not the main objective. Multiple secondary objectives should generally be set before the initial main objective - the main objective will be decided from one of the existing secondary objectives once the story has a clear long-term goal.",
-        "importance_placeholder": "A numerical value representing the relevance/significance of this objective (0-100). In the real JSON, this would be an integer, not a string."
+        "importance_update_prompt_template": "Review the importance score for this objective.\n\nCurrent importance: {{ value.importance.score if value.importance is mapping else value.importance }} - {{ value.importance.reason if value.importance is mapping else 'No reason given' }}\n\nBased on the latest exchange, has the significance of this objective changed?\n\nIf YES, provide the updated importance score (0-100) and reason.\nExample of expected output if updates are needed for '{{ branch_name }}':\n[\n  {\"path\": \"importance\", \"value\": {\"score\": 80, \"reason\": \"Revised reason\"}}\n]\n\nIf NO, respond with NO_UPDATES_REQUIRED."
+      },
+      "triggers": {
+        "always": [
+          "perform_gate_check",
+          "query_branch_for_changes",
+          {"action": "query_branch_for_changes", "prompt_template": "importance_update_prompt_template", "when": "gate_check_fail"}
+        ]
       }
     },
     "GeneralInfo": {

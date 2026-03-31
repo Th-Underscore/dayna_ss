@@ -851,11 +851,6 @@ class Summarizer:
                 if shared.stop_everything:
                     return None
 
-            # Adjust importance scores after all character updates
-            self.log_activity("Importance Adjustment", "Adjusting relationship/milestone importance", "info")
-            data_summarizer.adjust_importance_scores()
-            self.log_activity("Importance Adjustment", "Complete", "success")
-
             if self.last and self.last.is_new_scene_turn:
                 self.log_activity("Chapter Check", "Checking chapter boundary", "info")
                 data_summarizer.check_and_archive_chapter()
