@@ -138,7 +138,6 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
     current_level = data
     length = len(keyList)
     for i, key in enumerate(keyList):
-        print(f"{_HILITE}key: {key}{_RESET}")
         if isinstance(key, TypedKey):  # Handle typed keys
             key = key.key
 
@@ -155,12 +154,9 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
                 raise TypeError(f"Cannot use non-integer key '{key}' on a list.")
 
         if i == length - 1:  # Set the final value
-            print("i IS length - 1")
             current_level[key] = value
         else:  # Create nested data structures
-            print("i NOT length - 1")
             if not is_value_exists:
-                print(f"not is_value_exists")
                 next_key = keyList[i + 1]
                 if isinstance(next_key, TypedKey):
                     current_level[key] = next_key.type()
@@ -469,13 +465,9 @@ def format_str_or_jinja(template_str: str, **kwargs) -> str:
     """
     if not template_str:
         return ""
-
-    # Check if template uses Jinja syntax
     if "{{ " in template_str or "{%" in template_str:
         return render_jinja_template(template_str, **kwargs)
-    else:
-        # Legacy Python format syntax
-        return format_str(template_str, **kwargs)
+    return format_str(template_str, **kwargs)
 
 
 # --- LLM response parsing ---

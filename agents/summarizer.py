@@ -53,6 +53,7 @@ from extensions.dayna_ss.utils.helpers import (
     enumerate_list,
     strip_thinking,
     strip_response,
+    format_str_or_jinja,
     _get_jinja_env,
 )
 
@@ -1137,9 +1138,8 @@ class Summarizer:
                     raise
 
                 is_new_scene = True
-                # Populate current_scene.json, characters.json, groups.json using LLM (stubs for now)
-                self._populate_initial_current_scene_llm(initial_world_data_path, initial_schema_parser, state)
-                self._populate_initial_entities_llm(initial_world_data_path, initial_schema_parser, state)
+                # Populate initial data using schema-driven approach
+                self._populate_from_schema(initial_world_data_path, initial_schema_parser, state)
                 print(f"{_SUCCESS}Initial world data populated in cache: {initial_world_data_path}{_RESET}")
 
             # Phase 1: Session history_path Generation & Creation
@@ -1278,196 +1278,191 @@ class Summarizer:
             history.pop(i)
         history.append([user_input, output])
 
-    def _populate_initial_current_scene_llm(
-        self, initial_world_data_path: Path, schema_parser: SchemaParser, state: dict
+    def _populate_subject_direct(
+        self,
+        initial_world_data_path: Path,
+        schema_parser: SchemaParser,
+        state: dict,
+        subject_name: str,
+        population_config: dict,
     ) -> None:
         """
-        Uses LLM interaction to populate current_scene.json based on state['context'] and state['greeting'].
-        Saves to initial_world_data_path / "current_scene.json".
+        Populates a single subject using direct LLM interaction.
+
+        Args:
+            initial_world_data_path: Path to save the populated data
+            schema_parser: Schema parser instance
+            state: Current state
+            subject_name: Name of the subject to populate
+            population_config: Configuration dict with 'target_file' and 'prompt_template'
         """
         global base_state
 
-        print(f"{_DEBUG}Attempting to populate initial current_scene.json for {initial_world_data_path}{_RESET}")
-        current_scene_target_path = initial_world_data_path / "current_scene.json"
+        target_file = population_config.get("target_file", f"{subject_name}.json")
+        prompt_template = population_config.get("prompt_template", "")
+
+        print(f"{_DEBUG}Attempting to populate '{subject_name}' for {initial_world_data_path}{_RESET}")
+        target_path = initial_world_data_path / target_file
 
         try:
-            current_scene_schema_def = schema_parser.get_subject_class("current_scene")
-            if not current_scene_schema_def:
-                print(f"{_ERROR}Could not retrieve schema definition for 'current_scene'. Aborting population.{_RESET}")
-                save_json({}, current_scene_target_path)  # Save empty as fallback
+            schema_def = schema_parser.get_subject_class(subject_name)
+            if not schema_def:
+                print(f"{_ERROR}Could not retrieve schema definition for '{subject_name}'. Aborting.{_RESET}")
+                save_json({}, target_path)
                 return
 
-            example_current_scene = current_scene_schema_def.generate_example_json(
-                all_definitions_map=schema_parser.definitions
-            )
-            example_current_scene_json_str = json.dumps(example_current_scene, indent=2)
+            example_json = schema_def.generate_example_json(all_definitions_map=schema_parser.definitions)
+            example_json_str = json.dumps(example_json, indent=2)
 
-            # Get all relevant schema definitions recursively for "CurrentScene"
-            all_relevant_definitions = schema_parser.get_relevant_json_schema_definitions("CurrentScene")
-            all_relevant_definitions_json_str = json.dumps(all_relevant_definitions, indent=2)
+            all_definitions = schema_parser.get_relevant_json_schema_definitions(subject_name)
+            all_definitions_str = json.dumps(all_definitions, indent=2)
 
-            char_context = state.get("context")
+            char_context = state.get("context", "")
             char_context_str = f'Character Context:\n"""\n{char_context}\n"""\n\n' if char_context else ""
-            user_bio = state.get("user_bio")
-            # user_bio_str = f'User Bio:\n"""\n{user_bio}\n"""\n\n' if user_bio else ""
-            char_greeting = state["history"]["internal"][0][1]  # state.get("greeting")
+            char_greeting = state["history"]["internal"][0][1]
             char_greeting_str = f'Initial Greeting:\n"""\n{char_greeting}\n"""\n\n'
 
-            base_prompt_template = (
-                f"You are an expert data extractor. Based on the provided character context and initial greeting, "
-                f"populate the fields for an initial CurrentScene object. "
-                f"You MUST strictly adhere to the provided JSON schemas. The primary object to generate is 'CurrentScene'. "
-                f"All necessary schema definitions are provided under the 'definitions' key.\n\n"
-                f"Focus on the 'start' state. The 'greeting' often sets the immediate scene. "
-                f"If information for a specific field is not present, use sensible defaults (empty string, empty list, null) "
-                f"or omit the field if optional, ensuring the output strictly adheres to the schema.\n\n"
-                f"{char_context_str}"
-                # f"{user_bio_str}"
-                f"{char_greeting_str}"
-                f"Complete JSON Schema Definitions (including CurrentScene and all its dependencies):\n```json\n{all_relevant_definitions_json_str}\n```\n\n"
-                f"Example of the expected JSON structure for CurrentScene:\n```json\n{example_current_scene_json_str}\n```\n\n"
-                f"{{retry_feedback_placeholder}}"
-                f"Your output must be a single valid JSON object for 'CurrentScene' matching the schema and mirroring the structure of the example.\n\n"
-                f"REMEMBER: Do not add anything else to the response. Only respond with the JSON object."
+            # Format the prompt template with context variables using Jinja
+            prompt = format_str_or_jinja(
+                prompt_template,
+                char_context_str=char_context_str,
+                char_greeting_str=char_greeting_str,
+                all_relevant_definitions_json_str=all_definitions_str,
+                example_json=example_json_str,
+                retry_feedback_placeholder="",
             )
 
-            prompt = base_prompt_template.replace("{retry_feedback_placeholder}", "")
-
-            # Prepare a minimal state for generate_using_tgwui
-            # It needs 'seed', and other generation params can be default or from self.config
             custom_state = copy.deepcopy(state)
             custom_state.update(copy.deepcopy(base_state))
-            # custom_state = {
-            #     "seed": state.get("seed", -1), # Use existing seed or default
-            #     "max_new_tokens": 1024, # Sensible default for JSON generation
-            #     "temperature": 0.5, # Moderate temperature for factual extraction
-            #     # Add other necessary default parameters from shared.settings or self.config if needed
-            # }
-            # Ensure seed is randomized if -1, similar to other generation calls
 
             max_retries = 2
             populated_data = None
 
             for attempt in range(max_retries + 1):
-                print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate CurrentScene data...{_RESET}")
-                if attempt > 0:  # This is a retry
-                    print(f"{_INPUT}Retrying LLM prompt for CurrentScene with validation feedback.{_RESET}")
+                print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate '{subject_name}' data...{_RESET}")
+                if attempt > 0:
+                    print(f"{_INPUT}Retrying LLM prompt for '{subject_name}' with validation feedback.{_RESET}")
 
-                llm_response_text, _ = self.generate_using_tgwui(
+                response_text, _ = self.generate_using_tgwui(
                     prompt=prompt,
                     state=custom_state,
-                    history_path=initial_world_data_path,  # For dump.txt logging
+                    history_path=initial_world_data_path,
                     match_prefix_only=False,
                 )
 
                 if shared.stop_everything:
-                    print(f"{_HILITE}Stop signal received during CurrentScene LLM generation.{_RESET}")
-                    save_json({}, current_scene_target_path)
+                    print(f"{_HILITE}Stop signal received during '{subject_name}' generation.{_RESET}")
+                    save_json({}, target_path)
                     return
 
-                print(f"{_DEBUG}LLM response for CurrentScene (Attempt {attempt + 1}): {llm_response_text[:300]}...{_RESET}")
-                cleaned_response_text = strip_response(llm_response_text)
+                print(f"{_DEBUG}LLM response for '{subject_name}' (Attempt {attempt + 1}): {response_text[:300]}...{_RESET}")
+                cleaned_response = strip_response(response_text)
 
                 try:
-                    current_populated_data = jsonc.loads(cleaned_response_text)
-                    validation_errors = schema_parser.validate_data(current_populated_data, "CurrentScene")
+                    current_data = jsonc.loads(cleaned_response)
+                    validation_errors = schema_parser.validate_data(current_data, subject_name)
 
                     if not validation_errors:
-                        populated_data = current_populated_data
-                        print(f"{_SUCCESS}CurrentScene data validated successfully on attempt {attempt + 1}.{_RESET}")
-                        break  # Successful validation
+                        populated_data = current_data
+                        print(f"{_SUCCESS}'{subject_name}' data validated successfully on attempt {attempt + 1}.{_RESET}")
+                        break
                     else:
-                        print(f"{_ERROR}Validation errors for CurrentScene on attempt {attempt + 1}:{_RESET}")
-                        for error_msg in validation_errors:
-                            print(f"{_ERROR}- {error_msg}{_RESET}")
+                        print(f"{_ERROR}Validation errors for '{subject_name}' on attempt {attempt + 1}:{_RESET}")
+                        for err in validation_errors:
+                            print(f"{_ERROR}- {err}{_RESET}")
 
                         if attempt < max_retries:
-                            error_feedback = "The previous attempt to generate the JSON failed with the following validation errors. Please correct these issues in your new response:\n"
+                            error_feedback = f"The previous attempt to generate JSON for '{subject_name}' failed with validation errors:\n"
                             for err in validation_errors:
                                 error_feedback += f"- {err}\n"
-                            prompt = base_prompt_template.replace("{retry_feedback_placeholder}", error_feedback + "\n\n")
-                        else:
-                            print(f"{_ERROR}Maximum retries reached for CurrentScene. Persistent validation failure.{_RESET}")
-
+                            prompt = format_str_or_jinja(
+                                prompt_template,
+                                char_context_str=char_context_str,
+                                char_greeting_str=char_greeting_str,
+                                all_relevant_definitions_json_str=all_definitions_str,
+                                example_json=example_json_str,
+                                retry_feedback_placeholder=error_feedback + "\n",
+                            )
                 except json.JSONDecodeError as e:
-                    print(
-                        f"{_ERROR}Failed to parse LLM response for CurrentScene as JSON on attempt {attempt + 1}: {e}{_RESET}"
-                    )
-                    print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_response_text}{_RESET}")
+                    print(f"{_ERROR}Failed to parse LLM response for '{subject_name}' as JSON: {e}{_RESET}")
+                    print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_response}{_RESET}")
                     if attempt < max_retries:
-                        error_feedback = "The previous attempt to generate the JSON was not valid JSON. Please ensure your output is a single, valid JSON object.\n"
-                        prompt = base_prompt_template.replace("{retry_feedback_placeholder}", error_feedback + "\n\n")
-                    else:
-                        print(f"{_ERROR}Maximum retries reached. Failed to parse JSON for CurrentScene.{_RESET}")
+                        error_feedback = f"The previous JSON was invalid. Ensure valid JSON output.\n"
+                        prompt = format_str_or_jinja(
+                            prompt_template,
+                            char_context_str=char_context_str,
+                            char_greeting_str=char_greeting_str,
+                            all_relevant_definitions_json_str=all_definitions_str,
+                            example_json=example_json_str,
+                            retry_feedback_placeholder=error_feedback,
+                        )
                 except Exception as e:
-                    print(
-                        f"{_ERROR}An unexpected error occurred during CurrentScene processing on attempt {attempt + 1}: {e}{_RESET}"
-                    )
+                    print(f"{_ERROR}Unexpected error during '{subject_name}' processing on attempt {attempt + 1}: {e}{_RESET}")
                     traceback.print_exc()
-                    if attempt == max_retries:
-                        print(f"{_ERROR}Maximum retries reached. Unexpected error for CurrentScene.{_RESET}")
-                    # No specific prompt update here unless we want to tell LLM about generic error
 
-            # After loop, save whatever data we have (valid or last attempt if all failed)
             if populated_data:
-                save_json(populated_data, current_scene_target_path)
-                print(f"{_SUCCESS}Successfully populated and saved current_scene.json at {current_scene_target_path}{_RESET}")
+                save_json(populated_data, target_path)
+                print(f"{_SUCCESS}Successfully populated and saved '{target_file}' at {target_path}{_RESET}")
             else:
-                print(f"{_ERROR}Failed to populate CurrentScene data after all retries. Saving empty JSON.{_RESET}")
-                save_json({}, current_scene_target_path)
+                print(f"{_ERROR}Failed to populate '{subject_name}' after all retries. Saving empty JSON.{_RESET}")
+                save_json({}, target_path)
 
         except Exception as e:
-            print(f"{_ERROR}Error in _populate_initial_current_scene_llm: {e}{_RESET}")
+            print(f"{_ERROR}Error in _populate_subject_direct for '{subject_name}': {e}{_RESET}")
             traceback.print_exc()
-            save_json({}, current_scene_target_path)
+            save_json({}, target_path)
 
-    def _populate_initial_entities_llm(self, initial_world_data_path: Path, schema_parser: SchemaParser, state: dict) -> None:
+    def _populate_subject_identify(
+        self,
+        initial_world_data_path: Path,
+        schema_parser: SchemaParser,
+        state: dict,
+        subject_name: str,
+        population_config: dict,
+    ) -> None:
         """
-        Uses LLM interaction to populate characters.json and groups.json based on state['context'] and state['greeting'].
-        Saves to initial_world_data_path / "characters.json" and "groups.json".
+        Populates multiple subjects using identify-then-populate pattern.
+
+        Args:
+            initial_world_data_path: Path to save the populated data
+            schema_parser: Schema parser instance
+            state: Current state
+            subject_name: Name of the subject (used as the primary, e.g., "Characters")
+            population_config: Configuration dict with 'identification_prompt', 'population_prompt', etc.
         """
         global base_state
 
-        print(f"{_DEBUG}Attempting to populate initial entities (characters & groups) for {initial_world_data_path}{_RESET}")
-        characters_target_path = initial_world_data_path / "characters.json"
-        groups_target_path = initial_world_data_path / "groups.json"
+        target_files = population_config.get("target_files", [])
+        identification_prompt_template = population_config.get("identification_prompt", "")
+        population_prompt_template = population_config.get("population_prompt", "")
+
+        print(f"{_DEBUG}Attempting to populate entities via identification for '{subject_name}'{_RESET}")
 
         char_context = state.get("context", "")
-        char_greeting = state["history"]["internal"][0][1]  # state.get("greeting", "")
+        char_greeting = state["history"]["internal"][0][1]
 
         custom_state = copy.deepcopy(state)
         custom_state.update(copy.deepcopy(base_state))
 
-        # --- Step A: Identification ---
-        identification_prompt = (
-            f"From the provided character context and greeting, identify and list all distinct character names and group names. "
-            f"For each, provide a brief one-sentence descriptor if available in the text. "
-            f"Output as a JSON list of objects, each with 'type' ('character' or 'group'), 'name' (string), and 'descriptor' (string).\n\n"
-            f'Character Context:\n"""\n{char_context}\n"""\n\n'
-            f'Initial Greeting:\n"""\n{char_greeting}\n"""\n\n'
-            f"Example Output:\n"
-            f"```json\n"
-            f"[\n"
-            f'  {{"type": "character", "name": "Elara", "descriptor": "A young sorceress searching for ancient artifacts."}},\n'
-            f'  {{"type": "group", "name": "The Silver Hand", "descriptor": "A secretive guild of mages."}}\n'
-            f"]\n"
-            f"```\n\n"
-            f"Identify and list all distinct character names and group names. For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('character' or 'group'), 'name' (string), and 'descriptor' (string).\n\n"
-            f"REMEMBER: Do not add anything else to the response. Only respond with the JSON list."
+        # Step 1: Identification
+        identification_prompt = format_str_or_jinja(
+            identification_prompt_template,
+            char_context=char_context,
+            char_greeting=char_greeting,
         )
 
         print(f"{_DEBUG}Prompting LLM for entity identification...{_RESET}")
         identification_response_text, _ = self.generate_using_tgwui(
             prompt=identification_prompt,
             state=custom_state,
-            history_path=initial_world_data_path,  # For dump.txt
+            history_path=initial_world_data_path,
             match_prefix_only=False,
         )
 
         if shared.stop_everything:
             print(f"{_HILITE}Stop signal received during entity identification.{_RESET}")
-            save_json({}, characters_target_path)
-            save_json({}, groups_target_path)
+            for tf in target_files:
+                save_json({}, initial_world_data_path / tf)
             return
 
         print(f"{_DEBUG}LLM response for entity identification: {identification_response_text[:300]}...{_RESET}")
@@ -1491,188 +1486,186 @@ class Summarizer:
 
         if not identified_entities:
             print(f"{_INPUT}No entities identified by LLM or parsing failed. Saving empty files.{_RESET}")
-            save_json({}, characters_target_path)
-            save_json({}, groups_target_path)
+            for tf in target_files:
+                save_json({}, initial_world_data_path / tf)
             return
 
         print(f"{_SUCCESS}Identified {len(identified_entities)} entities. Proceeding to detail extraction.{_RESET}")
 
-        all_characters_data, all_groups_data = self._extract_entity_details_llm(
-            initial_world_data_path,
-            schema_parser,
-            custom_state,
-            identified_entities,
-            char_context,
-            char_greeting,
-        )
-
-        # Save the accumulated data
-        save_json(all_characters_data, characters_target_path)
-        save_json(all_groups_data, groups_target_path)
-        print(f"{_SUCCESS}Saved populated characters.json and groups.json at {initial_world_data_path}{_RESET}")
-
-    def _extract_entity_details_llm(
-        self,
-        initial_world_data_path: Path,
-        schema_parser: SchemaParser,
-        custom_state: dict,
-        identified_entities: list[dict],
-        char_context: str,
-        char_greeting: str,
-    ) -> tuple[dict, dict]:
-        """Extracts detailed information for each identified entity using LLM interaction."""
-        all_characters_data = {}
-        all_groups_data = {}
+        # Step 2: Populate each entity
+        entity_data = {tf.replace(".json", ""): {} for tf in target_files}
 
         for entity in identified_entities:
             entity_name = entity["name"]
             entity_type = entity["type"]
             entity_descriptor = entity["descriptor"]
 
-            schema_to_use = None
-            data_dict_to_update = None
-            schema_name_for_prompt = ""
-
-            if entity_type == "character":
-                schema_class_definition = schema_parser.get_subject_class("characters")
-                if (
-                    schema_class_definition
-                    and hasattr(schema_class_definition, "__args__")
-                    and len(schema_class_definition.__args__) == 2
-                ):
-                    schema_to_use = schema_class_definition.__args__[1]
-                data_dict_to_update = all_characters_data
-                schema_name_for_prompt = "Character"
-            elif entity_type == "group":
-                schema_class_definition = schema_parser.get_subject_class("groups")
-                if (
-                    schema_class_definition
-                    and hasattr(schema_class_definition, "__args__")
-                    and len(schema_class_definition.__args__) == 2
-                ):
-                    schema_to_use = schema_class_definition.__args__[1]
-                data_dict_to_update = all_groups_data
-                schema_name_for_prompt = "Group"
-            else:
+            # Determine which target file to use
+            target_key = entity_type + "s"  # "character" -> "characters", "group" -> "groups"
+            if target_key not in entity_data:
                 print(f"{_ERROR}Unknown entity type '{entity_type}' for '{entity_name}'. Skipping.{_RESET}")
                 continue
 
-            if not schema_to_use or not isinstance(schema_to_use, ParsedSchemaClass):
-                print(
-                    f"{_ERROR}Could not retrieve valid schema definition for {entity_type} '{entity_name}'. Skipping. {_GRAY}{_RESET}"
-                )
-                continue
+            schema_name = entity_type.capitalize()  # "character" -> "Character"
+            try:
+                # Get the inner schema from definitions (e.g., "Group" from definitions map)
+                schema_to_use = schema_parser.definitions.get(schema_name)
 
-            example_entity_data = schema_to_use.generate_example_json(all_definitions_map=schema_parser.definitions)
-            example_entity_json_str = json.dumps(example_entity_data, indent=2)
+                if schema_to_use and isinstance(schema_to_use, ParsedSchemaClass):
+                    example_json = schema_to_use.generate_example_json(all_definitions_map=schema_parser.definitions)
+                    example_json_str = json.dumps(example_json, indent=2)
+                    schema_definition_json = json.dumps(schema_parser.get_relevant_json_schema_definitions(schema_name), indent=2)
 
-            all_relevant_entity_definitions = schema_parser.get_relevant_json_schema_definitions(schema_name_for_prompt)
-            all_relevant_entity_definitions_json_str = json.dumps(all_relevant_entity_definitions, indent=2)
+                    population_prompt = format_str_or_jinja(
+                        population_prompt_template,
+                        entity_type=entity_type,
+                        entity_name=entity_name,
+                        descriptor=entity_descriptor,
+                        schema_definition_json=schema_definition_json,
+                        example_json=example_json_str,
+                        char_context=char_context,
+                        char_greeting=char_greeting,
+                    )
 
-            base_detail_prompt_template = (
-                f"Based on the character context, greeting, and focusing on the {entity_type} '{entity_name}' (described as: '{entity_descriptor}'), "
-                f"populate the fields for a {schema_name_for_prompt} object. "
-                f"You MUST strictly adhere to the provided JSON schemas. The primary object to generate is '{schema_name_for_prompt}'. "
-                f"All necessary schema definitions are provided under the 'definitions' key.\n\n"
-                f"Prioritize fields like 'description' (as a list of strings), and 'traits' (for characters). "
-                f"If information is missing for a field, use sensible defaults (empty list, empty string, null) or omit if optional, adhering to the schema. "
-                f"Output a single valid JSON object for this {entity_type}.\n\n"
-                f'Character Context:\n"""\n{char_context}\n"""\n\n'
-                f'Initial Greeting:\n"""\n{char_greeting}\n"""\n\n'
-                f"Complete JSON Schema Definitions (including {schema_name_for_prompt} and all its dependencies):\n```json\n{all_relevant_entity_definitions_json_str}\n```\n\n"
-                f"Example of the expected JSON structure for {schema_name_for_prompt} ('{entity_name}'):\n```json\n{example_entity_json_str}\n```\n\n"
-                f"{{retry_feedback_placeholder}}"  # Placeholder for validation error feedback
-                f"Your output must be a single valid JSON object for '{schema_name_for_prompt}' matching the schema and mirroring the structure of the example."
-            )
+                    custom_state_detail = copy.deepcopy(custom_state)
+                    max_retries = 2
+                    entity_data_validated = None
 
-            detail_prompt = base_detail_prompt_template.replace("{retry_feedback_placeholder}", "")
-            custom_state_detail = copy.deepcopy(custom_state)
-            max_retries = 2
-            entity_data_validated = None
+                    for attempt in range(max_retries + 1):
+                        print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate details for {entity_type} '{entity_name}'...{_RESET}")
+                        if attempt > 0:
+                            print(f"{_INPUT}Retrying LLM prompt for '{entity_name}' with validation feedback.{_RESET}")
 
-            for attempt in range(max_retries + 1):
-                print(
-                    f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate details for {entity_type} '{entity_name}'...{_RESET}"
-                )
-                if attempt > 0:
-                    print(f"{_INPUT}Retrying LLM prompt for '{entity_name}' with validation feedback.{_RESET}")
+                        detail_response_text, _ = self.generate_using_tgwui(
+                            prompt=population_prompt,
+                            state=custom_state_detail,
+                            history_path=initial_world_data_path,
+                            match_prefix_only=False,
+                        )
 
-                detail_response_text, _ = self.generate_using_tgwui(
-                    prompt=detail_prompt,
-                    state=custom_state_detail,
-                    history_path=initial_world_data_path,
-                    match_prefix_only=False,
-                )
+                        if shared.stop_everything:
+                            print(f"{_HILITE}Stop signal received during detail extraction for '{entity_name}'.{_RESET}")
+                            break
+
+                        print(f"{_DEBUG}LLM response for '{entity_name}' (Attempt {attempt+1}): {detail_response_text[:300]}...{_RESET}")
+                        cleaned_detail_response = strip_response(detail_response_text)
+
+                        try:
+                            current_entity_data = jsonc.loads(cleaned_detail_response)
+
+                            # # Handle case where LLM returns full structure with "entries" wrapper
+                            # if isinstance(current_entity_data, dict) and "entries" in current_entity_data:
+                            #     entries = current_entity_data["entries"]
+                            #     if isinstance(entries, dict) and entity_name in entries:
+                            #         current_entity_data = entries[entity_name]
+                            #         print(f"{_DEBUG}Unwrapped 'entries' wrapper for '{entity_name}'.{_RESET}")
+
+                            validation_errors = schema_parser.validate_data(current_entity_data, schema_name)
+
+                            if not validation_errors:
+                                entity_data_validated = current_entity_data
+                                print(f"{_SUCCESS}Details for {entity_type} '{entity_name}' validated successfully on attempt {attempt + 1}.{_RESET}")
+                                break
+                            else:
+                                print(f"{_ERROR}Validation errors for '{entity_name}' on attempt {attempt + 1}:{_RESET}")
+                                for err in validation_errors:
+                                    print(f"{_ERROR}- {err}{_RESET}")
+
+                                if attempt < max_retries:
+                                    error_feedback = f"The previous attempt to generate JSON for '{entity_name}' failed validation. Correct these issues:\n"
+                                    for err in validation_errors:
+                                        error_feedback += f"- {err}\n"
+                                    population_prompt = format_str_or_jinja(
+                                        population_prompt_template,
+                                        entity_type=entity_type,
+                                        entity_name=entity_name,
+                                        descriptor=entity_descriptor,
+                                        schema_definition_json=schema_definition_json,
+                                        example_json=example_json_str,
+                                        char_context=char_context,
+                                        char_greeting=char_greeting,
+                                    ) + "\n" + error_feedback
+                        except json.JSONDecodeError as e:
+                            print(f"{_ERROR}Failed to parse LLM response for '{entity_name}' as JSON: {e}{_RESET}")
+                            print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_detail_response}{_RESET}")
+                            if attempt < max_retries:
+                                population_prompt = format_str_or_jinja(
+                                    population_prompt_template,
+                                    entity_type=entity_type,
+                                    entity_name=entity_name,
+                                    descriptor=entity_descriptor,
+                                    schema_definition_json=schema_definition_json,
+                                    example_json=example_json_str,
+                                    char_context=char_context,
+                                    char_greeting=char_greeting,
+                                ) + "\nThe previous JSON was invalid. Ensure valid JSON output.\n"
+                        except Exception as e:
+                            print(f"{_ERROR}Unexpected error processing '{entity_name}' on attempt {attempt + 1}: {e}{_RESET}")
+                            traceback.print_exc()
+
+                    if entity_data_validated:
+                        entity_data[target_key][entity_name] = entity_data_validated
+                        print(f"{_SUCCESS}Successfully populated and stored details for {entity_type} '{entity_name}'.{_RESET}")
+                    else:
+                        print(f"{_ERROR}Failed to populate valid details for {entity_type} '{entity_name}' after all retries.{_RESET}")
 
                 if shared.stop_everything:
-                    print(f"{_HILITE}Stop signal received during detail extraction for '{entity_name}'.{_RESET}")
+                    print(f"{_HILITE}Stop signal received after processing for '{entity_name}'. Aborting.{_RESET}")
                     break
+            except Exception as e:
+                print(f"{_ERROR}Error populating entity '{entity_name}': {e}{_RESET}")
+                traceback.print_exc()
 
-                print(
-                    f"{_DEBUG}LLM response for '{entity_name}' (Attempt {attempt+1}): {detail_response_text[:300]}...{_RESET}"
+        # Save all populated data
+        for tf in target_files:
+            key = tf.replace(".json", "")
+            save_json(entity_data.get(key, {}), initial_world_data_path / tf)
+            print(f"{_SUCCESS}Saved '{tf}' at {initial_world_data_path}{_RESET}")
+
+    def _populate_from_schema(
+        self,
+        initial_world_data_path: Path,
+        schema_parser: SchemaParser,
+        state: dict,
+    ) -> None:
+        """
+        Dynamically populates initial data based on schema definitions.
+
+        Iterates through all schema classes and populates those with
+        'initial_population' defined in their defaults.
+        """
+        global base_state
+
+        print(f"{_DEBUG}Starting schema-driven initial population...{_RESET}")
+
+        for subject_name, schema_def in schema_parser.get_subject_classes().items():
+            population_config = schema_def.defaults.get("initial_population")
+            if not population_config:
+                continue
+
+            mode = population_config.get("mode", "direct")
+            print(f"{_DEBUG}Populating '{subject_name}' using mode '{mode}'...{_RESET}")
+
+            if mode == "direct":
+                self._populate_subject_direct(
+                    initial_world_data_path,
+                    schema_parser,
+                    state,
+                    subject_name,
+                    population_config,
                 )
-                cleaned_detail_response = strip_response(detail_response_text)
-
-                try:
-                    current_entity_data = jsonc.loads(cleaned_detail_response)
-                    validation_errors = schema_parser.validate_data(current_entity_data, schema_name_for_prompt)
-
-                    if not validation_errors:
-                        entity_data_validated = current_entity_data
-                        print(
-                            f"{_SUCCESS}Details for {entity_type} '{entity_name}' validated successfully on attempt {attempt + 1}.{_RESET}"
-                        )
-                        break  # Successful validation
-                    else:
-                        print(f"{_ERROR}Validation errors for '{entity_name}' on attempt {attempt + 1}:{_RESET}")
-                        for error_msg in validation_errors:
-                            print(f"{_ERROR}- {error_msg}{_RESET}")
-
-                        if attempt < max_retries:
-                            error_feedback = f"The previous attempt to generate JSON for '{entity_name}' failed validation. Correct these issues:\n"
-                            for err in validation_errors:
-                                error_feedback += f"- {err}\n"
-                            detail_prompt = base_detail_prompt_template.replace(
-                                "{retry_feedback_placeholder}", error_feedback + "\n\n"
-                            )
-                        else:
-                            print(
-                                f"{_ERROR}Maximum retries reached for '{entity_name}'. Persistent validation failure.{_RESET}"
-                            )
-
-                except json.JSONDecodeError as e:
-                    print(
-                        f"{_ERROR}Failed to parse LLM response for '{entity_name}' as JSON on attempt {attempt + 1}: {e}{_RESET}"
-                    )
-                    print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_detail_response}{_RESET}")
-                    if attempt < max_retries:
-                        error_feedback = f"The previous JSON for '{entity_name}' was invalid. Ensure valid JSON output.\n"
-                        detail_prompt = base_detail_prompt_template.replace(
-                            "{retry_feedback_placeholder}", error_feedback + "\n\n"
-                        )
-                    else:
-                        print(f"{_ERROR}Maximum retries reached. Failed to parse JSON for '{entity_name}'.{_RESET}")
-                except Exception as e:
-                    print(f"{_ERROR}Unexpected error processing '{entity_name}' on attempt {attempt + 1}: {e}{_RESET}")
-                    traceback.print_exc()
-                    if attempt == max_retries:
-                        print(f"{_ERROR}Maximum retries reached. Unexpected error for '{entity_name}'.{_RESET}")
-
-            if entity_data_validated:
-                data_dict_to_update[entity_name] = entity_data_validated
-                print(f"{_SUCCESS}Successfully populated and stored details for {entity_type} '{entity_name}'.{_RESET}")
+            elif mode == "identify":
+                self._populate_subject_identify(
+                    initial_world_data_path,
+                    schema_parser,
+                    state,
+                    subject_name,
+                    population_config,
+                )
             else:
-                print(
-                    f"{_ERROR}Failed to populate valid details for {entity_type} '{entity_name}' after all retries. It will be omitted.{_RESET}"
-                )
+                print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
 
-            if shared.stop_everything:  # Check again in case stop happened during the last attempt's processing
-                print(
-                    f"{_HILITE}Stop signal received after processing for '{entity_name}'. Aborting further entity processing.{_RESET}"
-                )
-                break
-
-        return all_characters_data, all_groups_data
+        print(f"{_SUCCESS}Schema-driven initial population complete.{_RESET}")
 
 
 class MessageSummarizer:

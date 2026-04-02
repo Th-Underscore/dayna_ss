@@ -137,6 +137,7 @@ class ParsedSchemaClass:
         self.new_entry_query_prompt_template: str | None = None
         self.new_entry_prompt_template: str | None = None
         self.do_expand_into_dict: bool = True
+        self.initial_population: dict[str, Any] | None = None
 
         # Add default values to fields where applicable and parse specific flags/templates from defaults
         for field_name_or_flag, value in self.defaults.items():
@@ -156,6 +157,8 @@ class ParsedSchemaClass:
                 self.update_prompt_template = str(value)
             elif field_name_or_flag == "do_expand_into_dict":
                 self.do_expand_into_dict = bool(value)
+            elif field_name_or_flag == "initial_population":
+                self.initial_population = value
             # Field-specific defaults (like descriptions)
             elif self.definition_type == "dataclass" and fields:
                 for field_obj in fields:
@@ -666,6 +669,9 @@ class SchemaParser:
             schema["type"] = "string"  # Fallback
 
         return schema
+    
+    def get_subject_classes(self) -> dict[str, type | ParsedSchemaClass]:
+        return self.subjects
 
     def get_relevant_json_schema_definitions(self, root_schema_or_type_hint: ParsedSchemaClass | type | str) -> dict:
         """

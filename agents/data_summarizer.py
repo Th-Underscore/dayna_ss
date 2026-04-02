@@ -1665,19 +1665,6 @@ Respond with ONLY the JSON object for this arc."""
             out: The potentially updated value, or the original value if no update or an error.
         """
         try:
-            prompt = self._create_update_prompt(
-                item_name=item_name_prefix,
-                field_name=field_name,
-                formatted_data=formatted_data,
-                prompt_template_str=prompt_template_str,
-                target_schema_or_type=target_schema_or_type,
-                entry_name=entry_name_for_prompt,
-                keys=keys,
-                indent=2,
-            )
-
-            current_custom_state = self.custom_state or {}
-
             context_path_for_marker = context_marker_path_override
             if context_path_for_marker is None:
                 if isinstance(current_value, (dict, list)):
@@ -1685,22 +1672,47 @@ Respond with ONLY the JSON object for this arc."""
                 else:
                     context_path_for_marker = f"{item_name_prefix}.{field_name}"
 
-            llm_interaction_prompt = f"Context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix, context_path_for_marker)}\n\n{prompt}"
+            base_prompt = prompt_template_str
+            max_retries = 2
+            last_error = None
 
-            text, stop = self.summarizer.generate_using_tgwui(
-                llm_interaction_prompt,
-                current_custom_state,
-                self.history_path,
-                match_prefix_only=False,
-            )
+            for attempt in range(max_retries + 1):
+                if attempt > 0 and last_error:
+                    error_feedback = f"\n\nThe previous attempt failed validation: {last_error}\nPlease correct the response."
+                    effective_prompt = base_prompt + error_feedback
+                else:
+                    effective_prompt = base_prompt
 
-            if shared.stop_everything:
-                print(
-                    f"{_HILITE}Stop signal received during LLM value update generation for '{context_path_for_marker}'.{_RESET}"
+                prompt = self._create_update_prompt(
+                    item_name=item_name_prefix,
+                    field_name=field_name,
+                    formatted_data=formatted_data,
+                    prompt_template_str=effective_prompt,
+                    target_schema_or_type=target_schema_or_type,
+                    entry_name=entry_name_for_prompt,
+                    keys=keys,
+                    indent=2,
                 )
-                return current_value
 
-            if not stop:
+                current_custom_state = self.custom_state or {}
+                llm_interaction_prompt = f"Context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix, context_path_for_marker)}\n\n{prompt}"
+
+                text, stop = self.summarizer.generate_using_tgwui(
+                    llm_interaction_prompt,
+                    current_custom_state,
+                    self.history_path,
+                    match_prefix_only=False,
+                )
+
+                if shared.stop_everything:
+                    print(
+                        f"{_HILITE}Stop signal received during LLM value update generation for '{context_path_for_marker}'.{_RESET}"
+                    )
+                    return current_value
+
+                if stop:
+                    return current_value
+
                 try:
                     if expected_type == int:
                         return int(text)
@@ -1708,57 +1720,70 @@ Respond with ONLY the JSON object for this arc."""
                         return float(text)
                     if expected_type == bool:
                         return text.strip().lower() in ["true", "yes", "1"]
-                    stripped_text = ""
+
                     if expected_type == list or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is list):
+                        stripped_text = strip_response(text)
                         try:
-                            stripped_text = strip_response(text)
                             parsed_list = jsonc.loads(stripped_text)
                             if isinstance(parsed_list, list):
                                 return parsed_list
                             else:
-                                print(
-                                    f"{_ERROR}LLM response for list field {context_path_for_marker} was valid JSON but not a list: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
-                                )
-                                return current_value  # Fallback to original
+                                last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
+                                print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
+                                continue
                         except json.JSONDecodeError:
-                            # Only try comma-separated for lists of strings as a fallback
                             is_list_of_str = False
                             if hasattr(expected_type, "__args__") and len(expected_type.__args__) == 1:
                                 if expected_type.__args__[0] == str:
                                     is_list_of_str = True
                             if is_list_of_str:
                                 return [item.strip() for item in text.split(",")]
-                            print(
-                                f"{_ERROR}LLM response for list field {context_path_for_marker} is not valid JSON and type is not list[str]: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
-                            )
-                            return current_value
+                            last_error = f"Response is not valid JSON and type is not list[str]: '{stripped_text}'"
+                            print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
+                            continue
+
                     if expected_type == dict or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is dict):
+                        stripped_text = strip_response(text)
                         try:
-                            stripped_text = strip_response(text)
                             parsed_dict = jsonc.loads(stripped_text)
                             if isinstance(parsed_dict, dict):
                                 return parsed_dict
                             else:
-                                print(
-                                    f"{_ERROR}LLM response for dict field {context_path_for_marker} was valid JSON but not a dict: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
-                                )
-                                return current_value
+                                last_error = f"Response was valid JSON but not a dict: '{stripped_text}'"
+                                print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
+                                continue
                         except json.JSONDecodeError:
-                            print(
-                                f"{_ERROR}LLM response for dict field {context_path_for_marker} is not valid JSON: '{text}'\n\nStripped: '{stripped_text}'{_RESET}"
-                            )
-                            return current_value
+                            last_error = f"Response is not valid JSON: '{stripped_text}'"
+                            print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
+                            continue
+
+                    # Try to parse as JSON for complex types
+                    stripped_text = strip_response(text)
                     try:
-                        return json.loads(text)
+                        parsed_value = jsonc.loads(stripped_text)
+
+                        if isinstance(target_schema_or_type, ParsedSchemaClass):
+                            validation_errors = self.summarizer.last.schema_parser.validate_data(parsed_value, target_schema_or_type.name)
+                            if validation_errors:
+                                error_msg = "; ".join(validation_errors[:3])
+                                last_error = f"Validation failed: {error_msg}"
+                                print(f"{_ERROR}Validation errors for {context_path_for_marker}: {validation_errors}{_RESET}")
+                                if attempt < max_retries:
+                                    continue
+                                else:
+                                    print(f"{_ERROR}Max retries reached, accepting value with warnings.{_RESET}")
+                                    return parsed_value
+                        return parsed_value
                     except json.JSONDecodeError:
                         return text
+
                 except (ValueError, TypeError) as e:
-                    print(
-                        f"{_ERROR}Could not convert LLM response '{text}' to type {expected_type} for {context_path_for_marker}: {e}{_RESET}"
-                    )
-                    return current_value
-            else:
-                return current_value
+                    last_error = f"Could not convert response to type {expected_type}: {e}"
+                    print(f"{_ERROR}Could not convert LLM response '{text}' to type {expected_type} for {context_path_for_marker}: {e}{_RESET}")
+                    if attempt >= max_retries:
+                        return current_value
+
+            return current_value
         except Exception as e:
             print(f"{_ERROR}Error in _generate_field_update for {item_name_prefix}.{field_name}: {e}{_RESET}")
             traceback.print_exc()
