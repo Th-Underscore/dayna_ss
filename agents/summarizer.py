@@ -1278,6 +1278,23 @@ class Summarizer:
             history.pop(i)
         history.append([user_input, output])
 
+    def _set_internal_fields(self, data: Any, message_node: str = "1_1_1") -> None:
+        """Recursively set internal fields (prefixed with _) in data structure.
+        
+        Args:
+            data: The data structure to process (dict, list, or other)
+            message_node: The message_node value to set for _message_node fields
+        """
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if key == "_message_node":
+                    data[key] = message_node
+                else:
+                    self._set_internal_fields(value, message_node)
+        elif isinstance(data, list):
+            for item in data:
+                self._set_internal_fields(item, message_node)
+
     def _populate_subject_direct(
         self,
         initial_world_data_path: Path,
@@ -1311,10 +1328,11 @@ class Summarizer:
                 save_json({}, target_path)
                 return
 
+            schema_class_name = schema_def.name
             example_json = schema_def.generate_example_json(all_definitions_map=schema_parser.definitions)
             example_json_str = json.dumps(example_json, indent=2)
 
-            all_definitions = schema_parser.get_relevant_json_schema_definitions(subject_name)
+            all_definitions = schema_parser.get_relevant_json_schema_definitions(schema_class_name)
             all_definitions_str = json.dumps(all_definitions, indent=2)
 
             char_context = state.get("context", "")
@@ -1360,7 +1378,9 @@ class Summarizer:
 
                 try:
                     current_data = jsonc.loads(cleaned_response)
-                    validation_errors = schema_parser.validate_data(current_data, subject_name)
+                    self._set_internal_fields(current_data, message_node="1_1_1")
+                    
+                    validation_errors = schema_parser.validate_data(current_data, schema_class_name)
 
                     if not validation_errors:
                         populated_data = current_data
@@ -1433,6 +1453,7 @@ class Summarizer:
         global base_state
 
         target_files = population_config.get("target_files", [])
+        wrapper_key = population_config.get("target_key", "entries")  # Key to wrap entity data (e.g., "entries")
         identification_prompt_template = population_config.get("identification_prompt", "")
         population_prompt_template = population_config.get("population_prompt", "")
 
@@ -1496,9 +1517,9 @@ class Summarizer:
         entity_data = {tf.replace(".json", ""): {} for tf in target_files}
 
         for entity in identified_entities:
-            entity_name = entity["name"]
-            entity_type = entity["type"]
-            entity_descriptor = entity["descriptor"]
+            entity_name: str = entity["name"]
+            entity_type: str = entity["type"]
+            entity_descriptor: str = entity["descriptor"]
 
             # Determine which target file to use
             target_key = entity_type + "s"  # "character" -> "characters", "group" -> "groups"
@@ -1506,9 +1527,10 @@ class Summarizer:
                 print(f"{_ERROR}Unknown entity type '{entity_type}' for '{entity_name}'. Skipping.{_RESET}")
                 continue
 
-            schema_name = entity_type.capitalize()  # "character" -> "Character"
+            # Use plural schema name for validation (e.g., "Groups" not "Group")
+            schema_name = target_key.capitalize()  # "groups" -> "Groups"
             try:
-                # Get the inner schema from definitions (e.g., "Group" from definitions map)
+                # Get the schema from definitions (e.g., "Groups" which has "entries" field)
                 schema_to_use = schema_parser.definitions.get(schema_name)
 
                 if schema_to_use and isinstance(schema_to_use, ParsedSchemaClass):
@@ -1560,6 +1582,8 @@ class Summarizer:
                             #         current_entity_data = entries[entity_name]
                             #         print(f"{_DEBUG}Unwrapped 'entries' wrapper for '{entity_name}'.{_RESET}")
 
+                            self._set_internal_fields(current_entity_data, message_node="1_1_1")
+                            
                             validation_errors = schema_parser.validate_data(current_entity_data, schema_name)
 
                             if not validation_errors:
@@ -1604,7 +1628,10 @@ class Summarizer:
                             traceback.print_exc()
 
                     if entity_data_validated:
-                        entity_data[target_key][entity_name] = entity_data_validated
+                        if isinstance(entity_data_validated, dict) and wrapper_key in entity_data_validated:
+                            entity_data[target_key].update(entity_data_validated[wrapper_key])
+                        else:
+                            entity_data[target_key][entity_name] = entity_data_validated
                         print(f"{_SUCCESS}Successfully populated and stored details for {entity_type} '{entity_name}'.{_RESET}")
                     else:
                         print(f"{_ERROR}Failed to populate valid details for {entity_type} '{entity_name}' after all retries.{_RESET}")
@@ -1616,10 +1643,12 @@ class Summarizer:
                 print(f"{_ERROR}Error populating entity '{entity_name}': {e}{_RESET}")
                 traceback.print_exc()
 
-        # Save all populated data
+        # Save all populated data with wrapper_key wrapper
         for tf in target_files:
             key = tf.replace(".json", "")
-            save_json(entity_data.get(key, {}), initial_world_data_path / tf)
+            raw_data = entity_data.get(key, {})
+            wrapped_data = {wrapper_key: raw_data} if wrapper_key else raw_data
+            save_json(wrapped_data, initial_world_data_path / tf)
             print(f"{_SUCCESS}Saved '{tf}' at {initial_world_data_path}{_RESET}")
 
     def _populate_from_schema(
