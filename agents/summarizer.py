@@ -1378,11 +1378,10 @@ class Summarizer:
 
                 try:
                     current_data = jsonc.loads(cleaned_response)
-                    self._set_internal_fields(current_data, message_node="1_1_1")
-                    
                     validation_errors = schema_parser.validate_data(current_data, schema_class_name)
 
                     if not validation_errors:
+                        self._set_internal_fields(current_data, message_node="1_1_1")
                         populated_data = current_data
                         print(f"{_SUCCESS}'{subject_name}' data validated successfully on attempt {attempt + 1}.{_RESET}")
                         break
@@ -1582,11 +1581,10 @@ class Summarizer:
                             #         current_entity_data = entries[entity_name]
                             #         print(f"{_DEBUG}Unwrapped 'entries' wrapper for '{entity_name}'.{_RESET}")
 
-                            self._set_internal_fields(current_entity_data, message_node="1_1_1")
-                            
                             validation_errors = schema_parser.validate_data(current_entity_data, schema_name)
 
                             if not validation_errors:
+                                self._set_internal_fields(current_entity_data, message_node="1_1_1")
                                 entity_data_validated = current_entity_data
                                 print(f"{_SUCCESS}Details for {entity_type} '{entity_name}' validated successfully on attempt {attempt + 1}.{_RESET}")
                                 break

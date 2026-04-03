@@ -820,6 +820,8 @@ class SchemaParser:
 
             # Check for required fields
             for field_def in schema_definition.get_fields():
+                if field_def.name.startswith("_"):  # Skip internal fields (auto-set)
+                    continue
                 if field_def.default is None and field_def.name not in data_instance:
                     errors.append(f"Missing required field '{field_def.name}' at '{current_path}'.")
 
