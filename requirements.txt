@@ -3,3 +3,4 @@ llama-index-embeddings-huggingface==0.5.*
 sentence-transformers>=5.1.0
 spacy>=3.8.7
 json-with-comments>=1.2.10
+jinja2>=3.1.0
