@@ -322,6 +322,11 @@ class Summarizer:
 
             for t, s in gen:
                 if shared.stop_everything:
+                    self._update_queue.publish({
+                        "type": "step_done",
+                        "phase": {"id": phase_id},
+                        "step": {"id": step_id, "message": "Stopped", "status": "done"},
+                    })
                     return text, stop
                 text = t
                 stop = s
@@ -995,12 +1000,18 @@ class Summarizer:
                 pm.start_phase("chapter_check", "Chapter Boundary Check")
                 self.log_activity("Chapter Check", "Checking chapter boundary", "info")
                 data_summarizer.check_and_archive_chapter()
+                if shared.stop_everything:
+                    pm.end_session()
+                    return None
                 self.log_activity("Chapter Check", "Complete", "success")
                 pm.done_phase("chapter_check")
 
                 pm.start_phase("arc_check", "Arc Boundary Check")
                 self.log_activity("Arc Check", "Checking arc boundary", "info")
                 data_summarizer.check_and_archive_arc()
+                if shared.stop_everything:
+                    pm.end_session()
+                    return None
                 self.log_activity("Arc Check", "Complete", "success")
                 pm.done_phase("arc_check")
             else:
@@ -1024,6 +1035,9 @@ class Summarizer:
             self.log_activity("Summarize Messages", f"Message index: {message_idx}", "info")
             msg_summarizer = MessageSummarizer(self, new_history_path, current_timestamp_str)
             msg_summarizer.generate((user_input, output), (message_idx - 1, message_idx))
+            if shared.stop_everything:
+                pm.end_session()
+                return None
             self.log_activity("Messages Summarized", "Message chunks saved", "success")
             pm.done_phase("message_summary")
 

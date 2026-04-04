@@ -431,7 +431,7 @@ class PhaseManager:
                 - weighted_total (float): Sum of all phase weights.
         """
         total = len(self._phases)
-        completed = len(self._completed_phases)
+        completed = sum(1 for p in self._completed_phases if p in self._phase_lookup)
         percent = (self._completed_weight / self._total_weight * 100) if self._total_weight > 0 else 0
 
         return {
