@@ -306,6 +306,36 @@ class PhaseManager:
         else:
             logger.warning("update_step: no matching step found for phase_id='%s', step_id='%s'", phase_id, step_id)
 
+    def warn_step(self, phase_id: str, step_id: str, message: str, data: dict | None = None) -> None:
+        """
+        Mark a step with a warning status and publish a `step_update` event.
+
+        Parameters:
+            phase_id (str): Identifier of the phase that contains the step.
+            step_id (str): Identifier of the step to warn.
+            message (str): Warning message to set on the step.
+            data (dict, optional): Additional payload to include in the published event.
+        """
+        steps = self._phase_steps.get(phase_id, [])
+        step = None
+        for s in reversed(steps):
+            if s["id"] == step_id:
+                step = s
+                break
+
+        if step:
+            step["status"] = "warning"
+            step["message"] = message
+            self._queue.publish({
+                "type": "step_update",
+                "phase": self._get_phase_info(phase_id),
+                "step": step,
+                "progress": self._get_progress(),
+                "data": data,
+            })
+        else:
+            logger.warning("warn_step: no matching step found for phase_id='%s', step_id='%s'", phase_id, step_id)
+
     def done_step(self, phase_id: str, step_id: str, message: str | None = None, data: dict | None = None) -> None:
         """
         Mark a phase sub-step as completed and publish a `step_done` event.

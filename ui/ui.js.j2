@@ -180,6 +180,10 @@
                 }
                 updateStepMessage(pid, sid, step.message);
             }
+            if (ev.step && ev.step.status === 'warning') {
+                step.status = 'warning';
+                markStepWarning(pid, sid);
+            }
             if (ev.data) {
                 step.data = ev.data;
                 updateStepDataContent(pid, sid, ev.data);
@@ -445,6 +449,13 @@
         if (icon) icon.textContent = '\u2705';
     }
 
+    function markStepWarning(pid, sid) {
+        var safePid = sanitizeId(pid);
+        var safeSid = sanitizeId(sid);
+        var icon = document.getElementById('dss-step-icon-' + safePid + '-' + safeSid);
+        if (icon) icon.textContent = '\u26A0\uFE0F';
+    }
+
     function updateStepElapsed(pid, sid, elapsed) {
         var safePid = sanitizeId(pid);
         var safeSid = sanitizeId(sid);
@@ -536,6 +547,9 @@
                 }
                 if (step.status === 'done') {
                     markStepDone(pid, step.id);
+                }
+                if (step.status === 'warning') {
+                    markStepWarning(pid, step.id);
                 }
                 if (step.elapsed) {
                     updateStepElapsed(pid, step.id, step.elapsed);

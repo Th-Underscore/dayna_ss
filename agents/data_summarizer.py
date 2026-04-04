@@ -1825,7 +1825,7 @@ Respond with ONLY the JSON object for this arc."""
                 if attempt > 0 and last_error:
                     error_feedback = f"\n\nThe previous attempt failed validation: {last_error}\nPlease correct the response."
                     effective_prompt = base_prompt + error_feedback
-                    pm.update_step(field_phase_id, "perform_update", f"Retry {attempt}/2: {last_error}")
+                    pm.warn_step(field_phase_id, "perform_update", f"Retry {attempt}/2: {last_error}")
                 else:
                     effective_prompt = base_prompt
                     pm.update_step(field_phase_id, "perform_update", "Assembling prompt...")
@@ -1885,7 +1885,7 @@ Respond with ONLY the JSON object for this arc."""
                             else:
                                 last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
                                 print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
-                                pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
+                                pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                                 continue
                         except json.JSONDecodeError:
                             is_list_of_str = False
@@ -1897,7 +1897,7 @@ Respond with ONLY the JSON object for this arc."""
                                 return [item.strip() for item in text.split(",")]
                             last_error = f"Response is not valid JSON and type is not list[str]: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
-                            pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
+                            pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                             continue
 
                     if expected_type == dict or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is dict):
@@ -1910,12 +1910,12 @@ Respond with ONLY the JSON object for this arc."""
                             else:
                                 last_error = f"Response was valid JSON but not a dict: '{stripped_text}'"
                                 print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
-                                pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
+                                pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                                 continue
                         except json.JSONDecodeError:
                             last_error = f"Response is not valid JSON: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
-                            pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
+                            pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                             continue
 
                     # Try to parse as JSON for complex types
@@ -1929,7 +1929,7 @@ Respond with ONLY the JSON object for this arc."""
                                 error_msg = "; ".join(validation_errors[:3])
                                 last_error = f"Validation failed: {error_msg}"
                                 print(f"{_ERROR}Validation errors for {context_path_for_marker}: {validation_errors}{_RESET}")
-                                pm.update_step(field_phase_id, "perform_update", f"Validation error: {error_msg}")
+                                pm.warn_step(field_phase_id, "perform_update", f"Validation error: {error_msg}")
                                 if attempt < max_retries:
                                     continue
                                 else:
@@ -1945,7 +1945,7 @@ Respond with ONLY the JSON object for this arc."""
                 except (ValueError, TypeError) as e:
                     last_error = f"Could not convert response to type {expected_type}: {e}"
                     print(f"{_ERROR}Could not convert LLM response '{text}' to type {expected_type} for {context_path_for_marker}: {e}{_RESET}")
-                    pm.update_step(field_phase_id, "perform_update", f"Type error: {last_error}")
+                    pm.warn_step(field_phase_id, "perform_update", f"Type error: {last_error}")
                     if attempt >= max_retries:
                         _done_field_phase()
                         return current_value
