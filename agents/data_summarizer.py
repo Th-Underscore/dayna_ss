@@ -1145,18 +1145,16 @@ Respond with ONLY the JSON object for this arc."""
                             new_keys = [*keys, i]
                             sub_phase_id = f"{item_name_prefix}[{i}]".lower().replace(" ", "_")
                             pm.start_phase(sub_phase_id, f"{item_name_prefix}[{i}]")
-                            try:
-                                self._update_recursive(
-                                    f"{item_name_prefix}[{i}]",
-                                    item_data,
-                                    formatted_data,
-                                    unexpanded_formatted_data,
-                                    effective_item_schema,
-                                    new_keys
-                                )
-                                recursive_set(formatted_data.data, new_keys, item_data)
-                            finally:
-                                pm.done_phase(sub_phase_id)
+                            self._update_recursive(
+                                f"{item_name_prefix}[{i}]",
+                                item_data,
+                                formatted_data,
+                                unexpanded_formatted_data,
+                                effective_item_schema,
+                                new_keys
+                            )
+                            recursive_set(formatted_data.data, new_keys, item_data)
+                            pm.done_phase(sub_phase_id)
 
                     # 2b. List of Primitives (Leaf update)
                     else:
@@ -1196,18 +1194,16 @@ Respond with ONLY the JSON object for this arc."""
                             pm.start_phase(sub_phase_id, f"{item_name_prefix}.{key}")
 
                             new_keys = [*keys, key]
-                            try:
-                                self._update_recursive(
-                                    f"{item_name_prefix}.{key}",
-                                    val_data,
-                                    formatted_data,
-                                    unexpanded_formatted_data,
-                                    effective_val_schema,
-                                    new_keys
-                                )
-                                recursive_set(formatted_data.data, new_keys, val_data)
-                            finally:
-                                pm.done_phase(sub_phase_id)
+                            self._update_recursive(
+                                f"{item_name_prefix}.{key}",
+                                val_data,
+                                formatted_data,
+                                unexpanded_formatted_data,
+                                effective_val_schema,
+                                new_keys
+                            )
+                            recursive_set(formatted_data.data, new_keys, val_data)
+                            pm.done_phase(sub_phase_id)
 
                     # 3b. Dict of Primitives (Leaf Update)
                     else:
@@ -1287,18 +1283,16 @@ Respond with ONLY the JSON object for this arc."""
             sub_phase_id = full_path.lower().replace(" ", "_")
             pm = self._phase_manager
             pm.start_phase(sub_phase_id, full_path)
-            try:
-                self._update_recursive(
-                    full_path,
-                    current_value,
-                    formatted_data,
-                    unexpanded_formatted_data,
-                    effective_child_schema,
-                    current_keys
-                )
-                recursive_set(formatted_data.data, current_keys, current_value)
-            finally:
-                pm.done_phase(sub_phase_id)
+            self._update_recursive(
+                full_path,
+                current_value,
+                formatted_data,
+                unexpanded_formatted_data,
+                effective_child_schema,
+                current_keys
+            )
+            recursive_set(formatted_data.data, current_keys, current_value)
+            pm.done_phase(sub_phase_id)
             return
 
         # 5. Handle List/Dict of Schema Classes (Generics defined directly on a field, not via Alias)
@@ -1315,18 +1309,16 @@ Respond with ONLY the JSON object for this arc."""
                     effective_schema = self._inherit_defaults_from_parent(item_schema, parent_schema_class, defaults_to_inherit)
                     sub_phase_id = f"{full_path}[{i}]".lower().replace(" ", "_")
                     pm.start_phase(sub_phase_id, f"{full_path}[{i}]")
-                    try:
-                        self._update_recursive(
-                            f"{full_path}[{i}]",
-                            item,
-                            formatted_data,
-                            unexpanded_formatted_data,
-                            effective_schema,
-                            [*current_keys, i]
-                        )
-                        recursive_set(formatted_data.data, [*current_keys, i], item)
-                    finally:
-                        pm.done_phase(sub_phase_id)
+                    self._update_recursive(
+                        f"{full_path}[{i}]",
+                        item,
+                        formatted_data,
+                        unexpanded_formatted_data,
+                        effective_schema,
+                        [*current_keys, i]
+                    )
+                    recursive_set(formatted_data.data, [*current_keys, i], item)
+                    pm.done_phase(sub_phase_id)
             return
 
         elif origin is dict and len(args) > 1 and isinstance(args[1], ParsedSchemaClass):
@@ -1338,18 +1330,16 @@ Respond with ONLY the JSON object for this arc."""
                     effective_schema = self._inherit_defaults_from_parent(val_schema, parent_schema_class, defaults_to_inherit)
                     sub_phase_id = f"{full_path}.{k}".lower().replace(" ", "_")
                     pm.start_phase(sub_phase_id, f"{full_path}.{k}")
-                    try:
-                        self._update_recursive(
-                            f"{full_path}.{k}",
-                            v,
-                            formatted_data,
-                            unexpanded_formatted_data,
-                            effective_schema,
-                            [*current_keys, k]
-                        )
-                        recursive_set(formatted_data.data, [*current_keys, k], v)
-                    finally:
-                        pm.done_phase(sub_phase_id)
+                    self._update_recursive(
+                        f"{full_path}.{k}",
+                        v,
+                        formatted_data,
+                        unexpanded_formatted_data,
+                        effective_schema,
+                        [*current_keys, k]
+                    )
+                    recursive_set(formatted_data.data, [*current_keys, k], v)
+                    pm.done_phase(sub_phase_id)
             return
 
         # 6. Handle Leaf Nodes (Primitives, or Lists/Dicts of Primitives)
@@ -1811,14 +1801,14 @@ Respond with ONLY the JSON object for this arc."""
             last_error = None
             phase_id = item_name_prefix.lower().replace(" ", "_")
             pm = self._phase_manager
-            field_phase_id = f"{phase_id}.{field_name}".lower() if field_name else phase_id
-            field_phase_name = f"{item_name_prefix}.{field_name}" if field_name else item_name_prefix
+            field_phase_id = f"{phase_id}.{field_name}".lower() if field_name is not None else phase_id
+            field_phase_name = f"{item_name_prefix}.{field_name}" if field_name is not None else item_name_prefix
 
             def _done_field_phase(msg=None):
-                if field_name:
+                if field_name is not None:
                     pm.done_phase(field_phase_id, msg)
 
-            if field_name:
+            if field_name is not None:
                 pm.start_phase(field_phase_id, field_phase_name)
 
             for attempt in range(max_retries + 1):
