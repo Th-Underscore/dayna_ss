@@ -129,7 +129,20 @@ base_state = {
 
 class Summarizer:
     def __init__(self, config_path: PathLike | None = None):
-        """Initialize Summarizer, optionally loading config from `config_path`."""
+        """
+        Create a Summarizer and initialize its configuration, tool registry, and UI integration.
+        
+        If `config_path` is provided, load configuration from that path; otherwise load the default
+        `dss_config.json` from the extension root. Initializes internal state used by the summarizer:
+        - `self.last` (context cache),
+        - tool executors and the tool registry,
+        - real-time UI update queue and phase manager.
+        
+        Parameters:
+            config_path (PathLike | None): Path to a JSON configuration file. When `None`, the
+                default configuration at the extension root (`extensions/dayna_ss/dss_config.json`)
+                is loaded.
+        """
         dss_dir = Path(__file__).parent.parent  # Root directory of the extension
         self.config = self._load_config(config_path or dss_dir / "dss_config.json")
 
@@ -230,20 +243,45 @@ class Summarizer:
         state: dict,
         history_path: Path | None = None,
         stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
+def generate_using_tgwui(
+        self,
+        prompt: str,
+        state: dict,
+        history_path: Path | None = None,
+        stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
         match_prefix_only: bool = True,
         **kwargs,
     ) -> tuple[str, str]:
-        """Generate a message using TGWUI's shared model.
-
-        Args:
+        """
+        Generate a response from the configured TGWUI model, using the active tool loop or passive summarization stream based on retrieval mode.
+        
+        This captures model stderr output to a temporary buffer and appends an internal debug dump (context, history, prompt, final text, and trailing stderr) to a dump.txt file adjacent to the provided history path when available. Generation stops when a configured stopping string is emitted, a tool call handoff occurs, the tool-call limit is reached, or global cancellation is requested.
+        
+        Parameters:
             prompt (str): The prompt to give to the LLM.
             state (dict): The state dictionary to generate context with.
-            history_path (Path, optional): The history path.
-            stopping_strings (list[str], optional): The optional stopping strings.
-            match_prefix_only (bool, optional): Whether to match prefix only for stopping strings.
-
+            history_path (Path | None): Directory used for writing debug dump files; defaults to the last known history path.
+            stopping_strings (list[str] | None): Strings that, when produced by the model, signal generation should stop; comparisons may be prefix-only depending on match_prefix_only.
+            match_prefix_only (bool): If True, stopping strings are matched only against the start of the generated text (after left-stripping); if False, stopping strings are searched anywhere in the text.
+            **kwargs: Additional arguments forwarded to the underlying generation routine.
+        
         Returns:
-            out (tuple[str, str]): A tuple of (response_text, stop_reason)
+            tuple[str, str]: (response_text, stop_reason) where `response_text` is the final trimmed generated text, and `stop_reason` is the stopping token that terminated generation or an empty string if none.
+        """
+        **kwargs,
+    ) -> tuple[str, str]:
+        """
+        Generate a response from the configured TGWUI model, using the active tool loop or passive summarization stream based on retrieval mode.
+        
+        This captures model stderr output to a temporary buffer and appends an internal debug dump (context, history, prompt, final text, and trailing stderr) to a dump.txt file adjacent to the provided history path when available. Generation stops when a configured stopping string is emitted, a tool call handoff occurs, the tool-call limit is reached, or global cancellation is requested.
+        
+        Parameters:
+        	history_path (Path | None): Directory used for writing debug dump files; defaults to the last known history path.
+        	stopping_strings (list[str] | None): Strings that, when produced by the model, signal generation should stop; comparisons may be prefix-only depending on match_prefix_only.
+        	match_prefix_only (bool): If True, stopping strings are matched only against the start of the generated text (after left-stripping); if False, stopping strings are searched anywhere in the text.
+        
+        Returns:
+        	(response_text, stop_reason): response_text is the final trimmed generated text; stop_reason is the stopping token that terminated generation or an empty string if none.
         """
         if not history_path:
             history_path = self.last.history_path
@@ -329,22 +367,23 @@ class Summarizer:
         match_prefix_only: bool = True,
         **kwargs,
     ) -> tuple[str, str]:
-        """Generate with token-level SSE streaming to the UI.
-
-        Each token is pushed to the UpdateQueue as a step_update event,
-        allowing the frontend to display live LLM output.
-
-        Args:
-            prompt (str): The prompt to give to the LLM.
-            state (dict): The state dictionary for context.
-            phase_id (str): The current phase ID (e.g., "characters").
-            step_id (str): The current step ID (e.g., "perform_gate_check").
-            history_path (Path, optional): Optional history path for logging.
-            stopping_strings (list[str], optional): Strings that stop generation.
-            match_prefix_only (bool=True, optional): Only match prefix for stopping strings.
-
+        """
+        Stream model output as token-level step updates to the UI update queue.
+        
+        Publishes step lifecycle events (prompt assembly, generation start, incremental token snippets, errors, and completion) to self._update_queue while driving generation either through the tool loop or standard streaming generator. Throttles token emissions to avoid flooding the UI and returns the final aggregated output and the stopping reason.
+        
+        Parameters:
+            prompt (str): The assembled prompt passed to the model.
+            state (dict): Runtime state used for generation and context.
+            phase_id (str): Identifier for the current PhaseManager phase sent with updates.
+            step_id (str): Identifier for the current step sent with updates.
+            history_path (Path | None): Optional history path for logging/debug dumps; when None, uses the cached last history path.
+            stopping_strings (list[str] | None): Strings that, when produced by the model, are treated as a stop condition.
+            match_prefix_only (bool): If true, only matches stopping strings against the start of the generated text.
+            **kwargs: Additional arguments forwarded to the underlying generation routine.
+        
         Returns:
-            out (tuple[str, str]): A tuple of (response_text, stop_reason).
+            tuple[str, str]: `response_text` — the final generated text (trimmed); `stop_reason` — the stopping string that ended generation or an empty string if none.
         """
         if not history_path:
             history_path = self.last.history_path
@@ -447,7 +486,18 @@ class Summarizer:
         match_prefix_only: bool = True,
         **kwargs,
     ) -> Generator[tuple[str, str], Any, None]:
-        """Generate a summary using the loaded TGWUI model with custom stopping strings."""
+        """
+        Stream partial generated text chunks from the configured model and signal when a configured stopping marker is reached.
+        
+        Yields incremental (text, stop_reason) tuples as the model produces output; when a stopping marker is detected the generator yields the text containing the marker and the matching stopping string as stop_reason and then stops. The generator may yield empty stop_reason for intermediate partial outputs.
+        
+        Parameters:
+            stopping_strings (list[str] | None): List of marker strings that, when detected in the generated text, cause the generator to stop and return that marker as the stop_reason. If None or empty, no automatic stopping based on markers is performed.
+            match_prefix_only (bool): If True, a stopping marker is considered matched only when it appears at the start of the generated text after left-stripping whitespace; if False, the marker is matched anywhere in the generated text.
+        
+        Returns:
+            tuple[str, str]: Streamed tuples where the first element is the current generated text chunk and the second element is the stop reason — the matching stopping string when generation ended, or an empty string for ongoing partial outputs.
+        """
         # if stopping_strings:
         #     quoted_tokens = [f'"{token}"' for token in stopping_strings]
         #     custom_state['custom_token_bans'] = ', '.join(quoted_tokens) if custom_state['custom_token_bans'] else ', '.join(quoted_tokens)
@@ -673,6 +723,30 @@ class Summarizer:
     def generate_instr_prompt(
         self, user_input: str, state: dict, history: History, **kwargs
     ) -> tuple[str, dict, Path, str]:  # After input
+        """
+        Builds the instruction prompt used to steer the model's character response and returns that prompt plus a snapshot of state, the history path, and a scene timestamp.
+        
+        The function prepares retrieval context, optionally generates or loads a cached set of plain-text instruction paragraphs (when `do_instr` is true), composes a final prompt for the character, and encodes it when required by the model. It also records a deep-copied custom state and derives a current-scene timestamp to be used for subsequent summarization and chunking.
+        
+        Parameters:
+            user_input (str): The latest user message to be incorporated into the instruction prompt.
+            state (dict): The current session state/configuration (may be mutated internally for seed handling).
+            history (History): Conversation history used to compute message indices and the history path.
+            **kwargs: Optional flags and generation options. Recognized keys include:
+                do_instr (bool): If true, generate detailed instruction paragraphs and persist them to instructions.json.
+        
+        Returns:
+            tuple[str, dict, Path, str]:
+                instr_prompt — The instruction prompt ready for model consumption; encoded string when required by the backend, or the original `user_input` on early stop/failure.
+                custom_state — A deep-copied snapshot of the state used for generating the instruction prompt.
+                history_path — Path to the session's history directory containing cached artifacts.
+                current_timestamp_str — ISO-8601 timestamp string for the current scene (derived from retrieval context when available); `None` when generation was stopped or failed.
+        
+        Side effects:
+            - May persist generated instruction text to <history_path>/instructions.json.
+            - Writes a diagnostic dump file (dump.txt) next to the history directory.
+            - Logs activity and updates phase/step tracking for UI telemetry.
+        """
         print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
         self.log_activity("Generating Instructions", "Preparing context", "info")
 
@@ -864,7 +938,20 @@ class Summarizer:
                 return user_input, state, history_path, None
 
     def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # After output
-        """Summarize a single message with its context."""
+        """
+        Summarizes the latest user/assistant exchange into the session's structured subject data and message chunks.
+        
+        Prepares retrieval context, runs subject-level summarization and any chapter/arc boundary checks needed for a new scene, generates a concise message summary saved as one or more message chunks, and updates chunk metadata (scene_id and event_id) based on processed events. The method manages PhaseManager phases for each major step and ends the phase session on completion, early stop, or error.
+        
+        Parameters:
+            output (str): The assistant's text output to be summarized.
+            user_input (str): The user's input corresponding to the output.
+            state (dict): Current session/generation state used for context and persistence.
+            history (History): Conversation history (list-like of exchanges); the last entry is the exchange being summarized.
+        
+        Returns:
+            str or None: ISO-8601 timestamp string associated with the processed message (derived from scene time when available) on success, or `None` if summarization was aborted or failed.
+        """
         print(f"{_HILITE}summarize_message{_RESET}")
         self.log_activity("Summarizing", "Processing latest exchange", "info")
 
@@ -1109,7 +1196,24 @@ class Summarizer:
             return None
 
     def backtrack_history(self, history: History, history_path: Path) -> bool:
-        """Placeholder for history backtracking logic. Currently does nothing."""
+        """
+        Attempt to reconcile and repair a session's history on disk by backtracking through prior state and restoring or copying missing/inconsistent history files.
+        
+        This is a placeholder hook intended to:
+        - detect discrepancies between the in-memory `history` and files under `history_path`,
+        - create or restore any missing subject/state files, and
+        - return whether any changes were made.
+        
+        Parameters:
+            history (History): In-memory history list of exchanges for the session.
+            history_path (Path): Path to the session's history directory on disk.
+        
+        Returns:
+            bool: `True` if backtracking made or persisted any changes to disk, `False` if no changes were necessary.
+        
+        Note:
+            The current implementation is a no-op and should be implemented to perform the reconciliation described above.
+        """
         pass
 
     def retrieve_and_format_context(self, state: dict, history: History, **kwargs) -> dict:

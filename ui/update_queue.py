@@ -20,6 +20,12 @@ class UpdateQueue:
     """
 
     def __init__(self, max_buffer: int = 1000):
+        """
+        Create a thread-safe UpdateQueue with an optional bounded event buffer.
+        
+        Parameters:
+            max_buffer (int): Maximum number of past events to retain in the internal buffer; older events are discarded when the buffer exceeds this size. Default is 1000.
+        """
         self._subscribers: dict[str, asyncio.Queue] = {}
         self._buffer: list[dict] = []
         self._max_buffer = max_buffer
@@ -33,10 +39,13 @@ class UpdateQueue:
         }
 
     def publish(self, event: dict) -> None:
-        """Publish an event from any thread.
-
-        Args:
-            event: Event dict with at least 'type' and 'phase' keys
+        """
+        Publish an event to the queue, update the shared state snapshot, and notify all subscribers.
+        
+        Ensures the event has an `id` and `timestamp` (they are added if missing), appends the event to the internal bounded buffer, updates the derived `_state` based on the event `type`, and enqueues the JSON-serialized event to each subscriber's asyncio queue without blocking; subscriber queues that are full are skipped.
+        
+        Parameters:
+            event (dict): Event dictionary. Must include a `"type"` key and typically a `"phase"` mapping; if `"id"` or `"timestamp"` are absent they will be generated.
         """
         event["id"] = event.get("id", str(uuid.uuid4())[:8])
         event["timestamp"] = event.get("timestamp", time.time())
@@ -62,12 +71,14 @@ class UpdateQueue:
         print(f"[DSS Queue] Published. Buffer: {len(self._buffer)}, Subscribers: {len(self._subscribers)}")
 
     def subscribe(self, subscriber_id: str = None) -> "SubscriberContext":
-        """Subscribe to events. Returns a context manager.
-
-        Usage:
-            async with queue.subscribe() as sub:
-                async for event_json in sub:
-                    # process event
+        """
+        Register a new subscriber and return an async context manager that yields the subscriber's serialized events.
+        
+        Parameters:
+            subscriber_id (str, optional): Custom identifier for the subscriber. If omitted, an 8-character UUID suffix is generated.
+        
+        Returns:
+            SubscriberContext: An async context manager and async iterator that yields serialized JSON event strings for the subscriber and automatically unregisters the subscriber when exited or cancelled.
         """
         sub_id = subscriber_id or str(uuid.uuid4())[:8]
         queue: asyncio.Queue = asyncio.Queue(maxsize=500)
@@ -78,22 +89,49 @@ class UpdateQueue:
         return SubscriberContext(self, sub_id, queue)
 
     def unsubscribe(self, subscriber_id: str) -> None:
-        """Remove a subscriber."""
+        """
+        Unregisters a subscriber so it no longer receives published events.
+        
+        Parameters:
+            subscriber_id (str): The subscriber identifier assigned when subscribing; if the id is not registered this call has no effect.
+        """
         with self._lock:
             self._subscribers.pop(subscriber_id, None)
 
     def get_buffered_events(self) -> list[str]:
-        """Get all buffered events as serialized JSON strings."""
+        """
+        Return a snapshot of the internal event buffer as JSON-serialized strings.
+        
+        Returns:
+            list[str]: JSON-serialized representations of the buffered event dictionaries, in the same order they appear in the buffer.
+        """
         with self._lock:
             return [json.dumps(e, default=str) for e in self._buffer]
 
     def get_state(self) -> dict:
-        """Get current state snapshot."""
+        """
+        Return a thread-safe deep copy of the queue's shared UI state snapshot.
+        
+        The returned dictionary contains the current values for:
+        - `active_phases` (list): phases currently in progress
+        - `completed_phases` (list): finished phases (errors may be marked on phase dicts)
+        - `pending_phases` (list): phases queued to run
+        - `progress` (number or mapping): progress counters or metrics
+        - `running` (bool): whether a session is active
+        
+        Returns:
+            dict: A deep-copied snapshot of the internal state.
+        """
         with self._lock:
             return json.loads(json.dumps(self._state, default=str))
 
     def clear(self) -> None:
-        """Clear all buffered events and reset state."""
+        """
+        Clear all buffered events and reset the shared state to its initial empty defaults.
+        
+        This operation removes every event from the internal buffer and resets `active_phases`, `completed_phases`,
+        `pending_phases`, `progress` (to zeros), and `running` (to False). The reset is performed under the instance lock.
+        """
         with self._lock:
             self._buffer.clear()
             self._state = {
@@ -105,7 +143,26 @@ class UpdateQueue:
             }
 
     def _update_state(self, event: dict) -> None:
-        """Update internal state based on event type."""
+        """
+        Update the queue's shared UI state snapshot based on an incoming event.
+        
+        Modifies the instance's internal `_state` (keys: `running`, `active_phases`, `completed_phases`,
+        `pending_phases`, `progress`) according to `event["type"]` and `event.get("phase", {}).get("id")`:
+        
+        - `session_start`: sets `running` to True, clears `active_phases` and `completed_phases`,
+          sets `pending_phases` from `event["queue"]` (if present), and updates `progress`.
+        - `phase_start`: ensures the phase (by id) is not duplicated in `active_phases`, appends
+          `event["phase"]` to `active_phases`, and removes the phase from `pending_phases`.
+        - `phase_done`: removes the phase from `active_phases`, appends `event["phase"]` to
+          `completed_phases`, and updates `progress`.
+        - `phase_error`: marks the provided phase dict with `error = True`, removes it from
+          `active_phases`, and appends it to `completed_phases`.
+        - `session_end`: sets `running` to False and updates `progress`.
+        
+        Parameters:
+            event (dict): Event dictionary expected to include a `"type"` key and, for phase-related
+                events, a `"phase"` dict with an `"id"`. Optional keys: `"queue"` and `"progress"`.
+        """
         etype = event.get("type", "")
         phase_id = event.get("phase", {}).get("id", "")
 
@@ -153,20 +210,56 @@ class SubscriberContext:
     """Async context manager for SSE subscribers."""
 
     def __init__(self, queue: UpdateQueue, sub_id: str, event_queue: asyncio.Queue):
+        """
+        Initialize the SubscriberContext that wraps a single subscriber's asyncio event queue.
+        
+        Parameters:
+            queue (UpdateQueue): Parent UpdateQueue used to unregister the subscriber on exit.
+            sub_id (str): Unique identifier for the subscriber.
+            event_queue (asyncio.Queue): Per-subscriber asyncio.Queue that yields serialized event strings.
+        """
         self._queue = queue
         self._sub_id = sub_id
         self._event_queue = event_queue
 
     async def __aenter__(self):
+        """
+        Enter the async context and return the subscriber context for consumption.
+        
+        Returns:
+            self (SubscriberContext): The context manager instance used to iterate and receive events.
+        """
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """
+        Unregister the subscriber from the parent UpdateQueue when exiting the async context.
+        
+        This method always removes the subscriber identified by `self._sub_id` from the parent queue; it does not suppress or modify any exception raised within the context.
+        """
         self._queue.unsubscribe(self._sub_id)
 
     async def __aiter__(self):
+        """
+        Make the object usable as an asynchronous iterator.
+        
+        Returns:
+            The async iterator instance (`self`) for use in `async for` loops.
+        """
         return self
 
     async def __anext__(self):
+        """
+        Return the next serialized event string from the subscriber's internal queue.
+        
+        If the awaiting task is cancelled, the subscriber is automatically unsubscribed and iteration stops.
+        
+        Returns:
+            event (str): The next JSON-serialized event string from the subscriber queue.
+        
+        Raises:
+            StopAsyncIteration: Raised when the subscriber's task is cancelled to terminate iteration.
+        """
         try:
             return await self._event_queue.get()
         except asyncio.CancelledError:
@@ -179,7 +272,14 @@ _update_queue: UpdateQueue | None = None
 
 
 def get_update_queue() -> UpdateQueue:
-    """Get the singleton UpdateQueue instance."""
+    """
+    Return the module-level singleton UpdateQueue, creating it if necessary.
+    
+    Lazily instantiates the singleton on first call and returns the same instance on subsequent calls.
+    
+    Returns:
+        UpdateQueue: The shared UpdateQueue instance.
+    """
     global _update_queue
     if _update_queue is None:
         _update_queue = UpdateQueue()
@@ -187,7 +287,11 @@ def get_update_queue() -> UpdateQueue:
 
 
 def reset_update_queue() -> None:
-    """Reset the singleton (for testing or re-initialization)."""
+    """
+    Reset the module-level UpdateQueue singleton.
+    
+    If a singleton instance exists, this calls its `clear()` method and removes the module reference so that a subsequent `get_update_queue()` will create a new instance. Intended for testing and re-initialization.
+    """
     global _update_queue
     if _update_queue:
         _update_queue.clear()
