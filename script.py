@@ -13,6 +13,7 @@ import extensions.dayna_ss.shared as dss_shared
 from extensions.dayna_ss.agents.summarizer import Summarizer
 import extensions.dayna_ss.tools.tgwui_integration as tgwui_integration
 from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_definitions
+from extensions.dayna_ss.ui.sse_server import start_sse_server, stop_sse_server
 
 from extensions.dayna_ss.utils.helpers import (
     _ERROR,
@@ -30,7 +31,12 @@ from extensions.dayna_ss.utils.helpers import (
     strip_thinking,
 )
 
-params = {"display_name": "DSS", "is_tab": True}
+params = {
+    "display_name": "DSS",
+    "is_tab": True,
+    "sse_internal_port": 7861,
+    "sse_external_path": ":7861",
+}
 
 # === Internal constants (don't change these without good reason) ===
 _CONFIG_PATH = "extensions/dayna_ss/dss_config.json"
@@ -235,9 +241,12 @@ def ensure_background_loop():
         _loop_thread.start()
 
 
+_sse_port = 7861  # Default SSE port
+
+
 def setup():
     """Initialize the extension"""
-    global summarizer, story_rag
+    global summarizer, story_rag, _sse_port
     print("Loaded DAYNA Story Summarizer!")
 
     summarizer = Summarizer(_CONFIG_PATH)
@@ -249,6 +258,12 @@ def setup():
     def dss_enabled_check():
         return dss_shared.persistent_ui_state.get("dss_toggle", True)
     tgwui_integration.set_dss_enabled_check(dss_enabled_check)
+
+    _sse_port = start_sse_server(host="127.0.0.1", port=params["sse_internal_port"])
+    if _sse_port > 0:
+        print(f"{_SUCCESS}DSS SSE server started on port {_sse_port}{_RESET}")
+    else:
+        print(f"{_ERROR}Failed to start DSS SSE server{_RESET}")
 
 
 def run_async(coro: Coroutine) -> asyncio.Future | None:
@@ -276,6 +291,39 @@ import gradio as gr
 
 from extensions.dayna_ss.ui import ui_chat, ui_file_saving, ui_parameters, ui_templates, utils
 
+# HTML + JS for the real-time SSE status panel
+_SSE_PANEL_HTML = """<div id="dss-status-panel" style="font-family: monospace; font-size: 13px; background: #0d1117; color: #c9d1d9; border-radius: 8px; padding: 16px; min-height: 200px; max-height: 600px; overflow-y: auto;">
+    <div id="dss-debug" style="color: #ff4444; font-size: 11px; margin-bottom: 8px;">JS NOT LOADED</div>
+    <div id="dss-session-info" style="margin-bottom: 12px; color: #8b949e; font-size: 12px;">
+        Waiting for summarization...
+    </div>
+    <div id="dss-progress-wrap" style="margin-bottom: 12px;">
+        <div style="background: #21262d; border-radius: 4px; height: 8px; overflow: hidden;">
+            <div id="dss-progress-bar" style="background: linear-gradient(90deg, #238636, #2ea043); height: 100%; width: 0%; transition: width 0.3s;"></div>
+        </div>
+        <span id="dss-progress-text" style="font-size: 11px; color: #8b949e;">0%</span>
+    </div>
+    <div id="dss-queue-section" style="margin-bottom: 8px;">
+        <div style="color: #8b949e; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">Queue</div>
+        <div id="dss-queue-list"></div>
+    </div>
+    <div id="dss-phases"></div>
+</div>"""
+
+
+def custom_js():
+    """Returns JavaScript for SSE client - injected via TGWUI's custom_js hook."""
+    import os
+    from jinja2 import Environment, FileSystemLoader
+    js_path = os.path.join(os.path.dirname(__file__), "ui")
+    try:
+        env = Environment(loader=FileSystemLoader(js_path))
+        template = env.get_template("ui.js.j2")
+        return template.render(sse_external_path=params.get("sse_external_path", ":7861"))
+    except Exception as e:
+        print(f"{_ERROR}Failed to load ui.js.j2: {e}{_RESET}")
+        return ""
+
 params["is_tab"] = True
 print(f"{_BOLD}Initial params: {_RESET}{params['is_tab']} ({params})")
 tab_created = False
@@ -296,6 +344,9 @@ def ui():
         ui_chat.create_ui()
         ui_parameters.create_ui(dss_shared.settings["preset"])
         ui_templates.create_ui()
+
+        with gr.Accordion("DSS Real-time Status", open=True):
+            gr.HTML(value=_SSE_PANEL_HTML, elem_id="dss-sse-panel")
 
         params["is_tab"] = False
         tab_created = True

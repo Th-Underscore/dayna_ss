@@ -27,6 +27,7 @@ from modules.text_generation import encode
 import extensions.dayna_ss.shared as dss_shared
 
 # from extensions.dayna_ss.utils.memory_management import VRAMManager
+from extensions.dayna_ss.ui import get_update_queue, PhaseManager
 from extensions.dayna_ss.rag.structured_rag.context_retriever import (
     RetrievalContext,
     StoryContextRetriever,
@@ -142,6 +143,10 @@ class Summarizer:
         self.dss_tool_executors: dict[str, Callable] = {}
         self.tool_registry = ToolRegistry()
         self._init_tool_registry()
+
+        # Real-time UI update system
+        self._update_queue = get_update_queue()
+        self._phase_manager = PhaseManager(queue=self._update_queue)
 
     def _init_tool_registry(self) -> None:
         """Initialize DSS tool executors for TGWUI's native tool system."""
@@ -312,6 +317,127 @@ class Summarizer:
             print(f"{_ERROR}Error writing to history file: {str(e)}{_RESET}")
             traceback.print_exc()
         return text, stop
+
+    def generate_with_sse(
+        self,
+        prompt: str,
+        state: dict,
+        phase_id: str,
+        step_id: str,
+        history_path: Path | None = None,
+        stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
+        match_prefix_only: bool = True,
+        **kwargs,
+    ) -> tuple[str, str]:
+        """Generate with token-level SSE streaming to the UI.
+
+        Each token is pushed to the UpdateQueue as a step_update event,
+        allowing the frontend to display live LLM output.
+
+        Args:
+            prompt (str): The prompt to give to the LLM.
+            state (dict): The state dictionary for context.
+            phase_id (str): The current phase ID (e.g., "characters").
+            step_id (str): The current step ID (e.g., "perform_gate_check").
+            history_path (Path, optional): Optional history path for logging.
+            stopping_strings (list[str], optional): Strings that stop generation.
+            match_prefix_only (bool=True, optional): Only match prefix for stopping strings.
+
+        Returns:
+            out (tuple[str, str]): A tuple of (response_text, stop_reason).
+        """
+        if not history_path:
+            history_path = self.last.history_path
+
+        text = ""
+        stop = ""
+        if shared.stop_everything:
+            return "", ""
+
+        use_tool_loop = self.retrieval_mode == "active"
+        last_emit_len = 0
+        emit_threshold = 50  # Emit every ~50 chars to avoid flooding SSE
+        last_emit_time = 0
+        emit_interval = 0.3  # Also limit to ~3 updates/sec
+
+        # Emit prompt assembly step
+        self._update_queue.publish({
+            "type": "step_update",
+            "phase": {"id": phase_id},
+            "step": {"id": step_id, "message": f"Assembling prompt ({len(prompt)} chars)..."},
+        })
+
+        try:
+            if use_tool_loop:
+                gen = self.generate_with_tool_loop(
+                    prompt, state, stopping_strings,
+                    match_prefix_only=match_prefix_only, **kwargs,
+                )
+            else:
+                gen = self.generate_summary_with_streaming(
+                    prompt, state, stopping_strings,
+                    match_prefix_only=match_prefix_only, **kwargs,
+                )
+
+            # Emit LLM generation started
+            self._update_queue.publish({
+                "type": "step_update",
+                "phase": {"id": phase_id},
+                "step": {"id": step_id, "message": "Generating response..."},
+            })
+
+            for t, s in gen:
+                if shared.stop_everything:
+                    return text, stop
+                text = t
+                stop = s
+
+                # Stream tokens to SSE (throttled)
+                import time as _time
+                now = _time.time()
+                if len(text) - last_emit_len >= emit_threshold and now - last_emit_time >= emit_interval:
+                    snippet = text[last_emit_len:]
+                    if snippet:
+                        self._update_queue.publish({
+                            "type": "step_update",
+                            "phase": {"id": phase_id},
+                            "step": {"id": step_id, "token": snippet, "full_text_len": len(text)},
+                            "token": snippet,
+                        })
+                    last_emit_len = len(text)
+                    last_emit_time = now
+
+                if s and s not in ("tool_call", ""):
+                    break
+
+        except Exception as e:
+            print(f"{_ERROR}Error in generate_with_sse: {str(e)}{_RESET}")
+            traceback.print_exc()
+            self._update_queue.publish({
+                "type": "step_update",
+                "phase": {"id": phase_id},
+                "step": {"id": step_id, "message": f"Error: {str(e)}"},
+            })
+
+        # Emit any remaining text
+        if len(text) > last_emit_len:
+            snippet = text[last_emit_len:]
+            self._update_queue.publish({
+                "type": "step_update",
+                "phase": {"id": phase_id},
+                "step": {"id": step_id, "token": snippet, "full_text_len": len(text)},
+                "token": snippet,
+            })
+
+        # Emit full response text on completion
+        final_text = text.strip()
+        self._update_queue.publish({
+            "type": "step_update",
+            "phase": {"id": phase_id},
+            "step": {"id": step_id, "complete": True, "message": final_text},
+        })
+
+        return text.strip(), stop
 
     def generate_summary_with_streaming(
         self,
@@ -549,7 +675,13 @@ class Summarizer:
     ) -> tuple[str, dict, Path, str]:  # After input
         print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
         self.log_activity("Generating Instructions", "Preparing context", "info")
+
+        pm = self._phase_manager
+        pm.start_phase("instr_prompt", "Instruction Generation")
+
+        pm.start_step("instr_prompt", "context", "Preparing context...")
         user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
+        pm.done_step("instr_prompt", "context", "Context prepared")
         custom_state = copy.deepcopy(custom_state_ref)
         history_path = self.last.history_path
 
@@ -604,7 +736,9 @@ class Summarizer:
                 # input_key = self.hash_key(user_input + shared.model_name)
                 if input_key in instructions:
                     instr: str = instructions[input_key]
-                    print(f"{_SUCCESS}Found instruction prompt{_RESET} {instr}")
+                    print(f"{_SUCCESS}Found cached instruction prompt{_RESET}")
+                    pm.start_step("instr_prompt", "cache_hit", "Loaded cached instructions")
+                    pm.done_step("instr_prompt", "cache_hit", f"Loaded {len(instr)} chars from cache")
                 else:
                     # Generate prompt using LLM
                     try:
@@ -638,11 +772,17 @@ class Summarizer:
                                     f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                                 )
 
-                                instr, _ = self.generate_using_tgwui(
-                                    prompt, custom_state
-                                )  # TODO: Force start of response via "continue"
+                                instr, _ = self.generate_with_sse(
+                                    prompt=prompt,
+                                    state=custom_state,
+                                    phase_id="instr_prompt",
+                                    step_id="generate_instructions",
+                                    history_path=history_path,
+                                    match_prefix_only=False,
+                                )
                                 if shared.stop_everything:
                                     print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
+                                    pm.done_phase("instr_prompt", "Stopped")
                                     return user_input, state, history_path, None
 
                                 instructions[input_key] = instr
@@ -673,6 +813,8 @@ class Summarizer:
                         f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
                     )
                 else:
+                    pm.start_step("instr_prompt", "skip", "Instruction generation disabled")
+                    pm.done_step("instr_prompt", "skip", "Skipped")
                     instr_prompt = (
                         f"{user_input_prompt}\n\n"
                         f'You are to write a reply in character as "{name2}".\n'
@@ -708,6 +850,7 @@ class Summarizer:
 
                 print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
                 self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
+                pm.done_phase("instr_prompt", "Instructions ready")
                 return (
                     encoded_instr_prompt,
                     custom_state,
@@ -725,14 +868,24 @@ class Summarizer:
         print(f"{_HILITE}summarize_message{_RESET}")
         self.log_activity("Summarizing", "Processing latest exchange", "info")
 
+        pm = self._phase_manager
+        subject_names = list(self.last.schema_parser.subjects.keys()) if self.last and self.last.schema_parser else []
+        print(f"{_DEBUG}[DSS] Starting PhaseManager session with subjects: {subject_names}{_RESET}")
+        pm.start_session(subject_names=subject_names)
+        print(f"{_DEBUG}[DSS] PhaseManager session started. Queue subscribers: {len(self._update_queue._subscribers)}{_RESET}")
+
         try:
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received before retrieve_and_format_context in summarize_latest_state.{_RESET}")
+                pm.end_session()
                 return None
+
+            pm.start_phase("context", "Context Preparation")
             user_input, custom_state_ref = self.prepare_context(user_input, state, history[:-1])
             history[-1][0] = user_input  # TODO: Persist next_scene state for this history_path
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after retrieve_and_format_context in summarize_latest_state.{_RESET}")
+                pm.end_session()
                 return None
 
             # self.last should be set by prepare_context
@@ -778,6 +931,7 @@ class Summarizer:
                 print(
                     f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}"
                 )
+                pm.end_session()
                 return None
 
             # Handle special case for new scene turn before processing
@@ -801,6 +955,8 @@ class Summarizer:
                     if "_arc_number" not in all_subjects_data["current_scene"]:
                         all_subjects_data["current_scene"]["_arc_number"] = 1
                         print(f"{_DEBUG}Setting initial '_arc_number' to 1.{_RESET}")
+
+            pm.done_phase("context")
 
             print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
@@ -835,26 +991,46 @@ class Summarizer:
                 schema_class = self.last.schema_parser.get_subject_class(subject_name)
                 print(f"{_BOLD}Processing subject: {subject_name}{_RESET} {schema_class}")
                 if not schema_class:  # Redundant but good for safety
+                    pm.skip_phase(subject_name.lower().replace(" ", "_"), "Schema not found", subject_name)
                     continue
+
+                phase_id = subject_name.lower().replace(" ", "_")
+                pm.start_phase(phase_id, subject_name)
                 print(f"{subject_name} exists")
 
                 self.log_activity("Update Subject", f"{subject_name} ({idx}/{total_subjects})", "info")
-                updated_data = process_subject_update(subject_name, subject_data, schema_class)
-                processed_subjects_data[subject_name] = updated_data
+                try:
+                    updated_data = process_subject_update(subject_name, subject_data, schema_class)
+                    processed_subjects_data[subject_name] = updated_data
+                    pm.done_phase(phase_id, subject_name)
+                except Exception as e:
+                    pm.error_phase(phase_id, str(e), subject_name)
+                    raise
+
                 self.log_activity("Subject Updated", subject_name, "success")
 
                 if shared.stop_everything:
+                    pm.end_session()
                     return None
 
             if self.last and self.last.is_new_scene_turn:
+                pm.start_phase("chapter_check", "Chapter Boundary Check")
                 self.log_activity("Chapter Check", "Checking chapter boundary", "info")
                 data_summarizer.check_and_archive_chapter()
                 self.log_activity("Chapter Check", "Complete", "success")
+                pm.done_phase("chapter_check")
+
+                pm.start_phase("arc_check", "Arc Boundary Check")
                 self.log_activity("Arc Check", "Checking arc boundary", "info")
                 data_summarizer.check_and_archive_arc()
                 self.log_activity("Arc Check", "Complete", "success")
+                pm.done_phase("arc_check")
+            else:
+                pm.skip_phase("chapter_check", "Not a scene transition")
+                pm.skip_phase("arc_check", "Not a scene transition")
 
             # --- Summarize New Messages ---
+            pm.start_phase("message_summary", "Message Summarization")
             message_idx = len(history) * 2 - 1  # history was passed as history[:-1] to retrieve_and_format_context
 
             # Determine current timestamp from the processed current_scene data
@@ -871,8 +1047,10 @@ class Summarizer:
             msg_summarizer = MessageSummarizer(self, new_history_path, current_timestamp_str)
             msg_summarizer.generate((user_input, output), (message_idx - 1, message_idx))
             self.log_activity("Messages Summarized", "Message chunks saved", "success")
+            pm.done_phase("message_summary")
 
             # --- Update scene_id and event_id for message chunks ---
+            pm.start_phase("chunking", "Message Chunking")
             if self.last and self.last.context:
                 context_retriever = self.last.context[1]
                 persist_dir = context_retriever.history_path / "message_index"
@@ -918,13 +1096,16 @@ class Summarizer:
             else:
                 print(f"{_ERROR}Cannot update scene/event IDs for chunks: Summarizer.last.context not available.{_RESET}")
 
+            pm.done_phase("chunking")
             self.log_activity("Summarization Complete", f"Scene saved at {new_history_path.name}", "success")
+            pm.end_session()
             return current_timestamp_str
 
         except Exception as e:
             print(f"{_ERROR}Error during summarization or metadata update: {str(e)}{_RESET}")
             self.log_activity("Summarization Failed", str(e), "error")
             traceback.print_exc()
+            pm.end_session()
             return None
 
     def backtrack_history(self, history: History, history_path: Path) -> bool:

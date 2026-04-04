@@ -4,7 +4,7 @@ Integration module for DSS tools with TGWUI's native tool calling system.
 This module patches TGWUI's tool_use module to add DSS tool executors,
 allowing DSS tools to be used alongside native TGWUI tools.
 """
-from typing import Any, Callable, Optional
+from typing import Callable
 import json
 
 from modules import tool_use
@@ -12,7 +12,7 @@ from modules import tool_use
 _original_execute_tool = None
 _dss_tool_executors: dict[str, Callable] = {}
 _dss_tool_definitions: list[dict] = []
-_dss_enabled_check: Optional[Callable] = None
+_dss_enabled_check: Callable | None = None
 
 
 def set_dss_enabled_check(check_fn: Callable) -> None:

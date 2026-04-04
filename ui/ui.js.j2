@@ -1,0 +1,547 @@
+// DSS Real-time Status SSE Client
+(function () {
+    var SSE_EXTERNAL_PATH = "{{ sse_external_path }}";
+
+    function resolveSSEUrl(endpoint) {
+        if (SSE_EXTERNAL_PATH.startsWith(":")) {
+            var port = SSE_EXTERNAL_PATH.substring(1);
+            return window.location.protocol + "//" + window.location.hostname + ":" + port + endpoint;
+        }
+        if (SSE_EXTERNAL_PATH.startsWith("http://") || SSE_EXTERNAL_PATH.startsWith("https://")) {
+            return SSE_EXTERNAL_PATH + endpoint;
+        }
+        var origin = window.location.protocol + "//" + window.location.hostname;
+        if (window.location.port) {
+            origin = window.location.protocol + "//" + window.location.hostname + ":" + window.location.port;
+        }
+        return origin + SSE_EXTERNAL_PATH + endpoint;
+    }
+
+    var SSE_URL = resolveSSEUrl("/sse/dss-status");
+    var HEALTH_URL = resolveSSEUrl("/sse/dss-health");
+
+    console.log('[DSS SSE] custom_js loaded. SSE_EXTERNAL_PATH:', SSE_EXTERNAL_PATH);
+    console.log('[DSS SSE] SSE_URL:', SSE_URL);
+
+    var eventSource = null;
+    var msgCount = 0;
+    var phases = {};
+    var expandedMessages = {};
+
+    window.__dss = {
+        phases: phases,
+        expanded: expandedMessages
+    };
+
+    function initSSE() {
+        var debugEl = document.getElementById('dss-debug');
+        var sessionInfo = document.getElementById('dss-session-info');
+
+        if (!debugEl || !sessionInfo) {
+            console.log('[DSS SSE] Elements not found, retrying in 1s...');
+            setTimeout(initSSE, 1000);
+            return;
+        }
+
+        debugEl.textContent = 'JS LOADED - checking server at ' + HEALTH_URL + '...';
+        debugEl.style.color = '#ffaa00';
+        console.log('[DSS SSE] Panel found, health check...');
+
+        fetch(HEALTH_URL)
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                console.log('[DSS SSE] Health OK:', JSON.stringify(data));
+                debugEl.textContent = 'Server healthy. Connecting stream...';
+                debugEl.style.color = '#00ff00';
+                connectSSE();
+            })
+            .catch(function (err) {
+                console.error('[DSS SSE] Health failed:', err);
+                debugEl.textContent = 'Not reachable at ' + HEALTH_URL + '. Retrying in 3s...';
+                debugEl.style.color = '#ff4444';
+                setTimeout(initSSE, 3000);
+            });
+    }
+
+    function connectSSE() {
+        var debugEl = document.getElementById('dss-debug');
+        var sessionInfo = document.getElementById('dss-session-info');
+
+        console.log('[DSS SSE] Connecting to:', SSE_URL);
+        if (eventSource) eventSource.close();
+
+        eventSource = new EventSource(SSE_URL);
+
+        eventSource.onopen = function () {
+            console.log('[DSS SSE] Stream opened');
+            if (debugEl) { debugEl.textContent = 'Connected! Waiting for events...'; debugEl.style.color = '#00ff00'; }
+            if (sessionInfo) sessionInfo.textContent = 'Connected. Waiting for summarization...';
+        };
+
+        eventSource.onmessage = function (e) {
+            msgCount++;
+            console.log('[DSS SSE] #' + msgCount + ':', e.data.substring(0, 200));
+            if (debugEl) debugEl.textContent = 'Received ' + msgCount + ' events';
+            try {
+                handleEvent(JSON.parse(e.data));
+            } catch (err) {
+                console.error('[DSS SSE] Parse error:', err);
+            }
+        };
+
+        eventSource.onerror = function (ev) {
+            console.error('[DSS SSE] Error:', ev);
+            if (debugEl) { debugEl.textContent = 'Connection error. Reconnecting...'; debugEl.style.color = '#ff4444'; }
+            eventSource.close();
+            setTimeout(connectSSE, 2000);
+        };
+    }
+
+    function handleEvent(ev) {
+        var phasesDiv = document.getElementById('dss-phases');
+        var queueDiv = document.getElementById('dss-queue-list');
+        var progressBar = document.getElementById('dss-progress-bar');
+        var progressText = document.getElementById('dss-progress-text');
+        var sessionInfo = document.getElementById('dss-session-info');
+        if (!phasesDiv) return;
+
+        var type = ev.type;
+        if (type === 'session_start') {
+            if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
+            phasesDiv.innerHTML = '';
+            phases = {};
+            updateQueue(ev.queue, queueDiv);
+            updateProgress(ev.progress, progressBar, progressText);
+        } else if (type === 'phase_start') {
+            var pid = ev.phase.id;
+            phases[pid] = { name: ev.phase.name, steps: [], active: true };
+            createPhaseElement(pid, ev.phase.name, phasesDiv);
+            updateQueue(ev.queue, queueDiv);
+        } else if (type === 'step_start') {
+            var pid = ev.phase.id;
+            if (!phases[pid]) {
+                phases[pid] = { name: (ev.phase && ev.phase.name) || pid, steps: [], active: true };
+                createPhaseElement(pid, phases[pid].name, phasesDiv);
+            }
+            var sid = ev.step.id;
+            var existing = null;
+            for (var i = 0; i < phases[pid].steps.length; i++) {
+                if (phases[pid].steps[i].id === sid) { existing = phases[pid].steps[i]; break; }
+            }
+            var step;
+            if (!existing) {
+                step = { id: sid, title: (ev.step && ev.step.title) || sid, message: '', status: 'processing' };
+                phases[pid].steps.push(step);
+                createStepElement(pid, step);
+            } else {
+                step = existing;
+                step.status = 'processing';
+                step.message = '';
+                step.data = null;
+                step._domCreated = false;
+                var oldEl = document.getElementById('dss-step-' + pid + '-' + sid);
+                if (oldEl) oldEl.remove();
+                createStepElement(pid, step);
+            }
+            if (ev.step && ev.step.message) updateStepMessage(pid, sid, ev.step.message);
+        } else if (type === 'step_update') {
+            var pid = ev.phase.id;
+            if (!phases[pid]) return;
+            var sid = ev.step.id;
+            var step = null;
+            for (var i = 0; i < phases[pid].steps.length; i++) {
+                if (phases[pid].steps[i].id === sid) { step = phases[pid].steps[i]; break; }
+            }
+            if (!step) {
+                step = { id: sid, title: (ev.step && ev.step.title) || sid, message: '', status: 'processing' };
+                phases[pid].steps.push(step);
+                createStepElement(pid, step);
+            }
+            if (ev.token) {
+                appendStepToken(pid, sid, ev.token);
+            }
+            if (ev.step && ev.step.message) {
+                var msg = ev.step.message;
+                var isError = msg.indexOf('error') !== -1 || msg.indexOf('Error') !== -1 || msg.indexOf('Retry') !== -1 || msg.indexOf('failed') !== -1 || msg.indexOf('Failed') !== -1 || msg.indexOf('Validation') !== -1;
+                var currentMsg = step.message || '';
+                if (isError && currentMsg) {
+                    step.message = currentMsg + '\n\u26A0\uFE0F ' + msg;
+                } else if (step.status === 'processing' && (currentMsg.indexOf('Generating') !== -1 || currentMsg.indexOf('Assembling') !== -1)) {
+                    step.message = currentMsg + '\n' + msg;
+                } else {
+                    step.message = msg;
+                }
+                updateStepMessage(pid, sid, step.message);
+            }
+            if (ev.data) {
+                step.data = ev.data;
+                updateStepDataContent(pid, sid, ev.data);
+            }
+            if (ev.step && ev.step.complete) {
+                step.status = 'done';
+                markStepDone(pid, sid);
+            }
+        } else if (type === 'step_done') {
+            var pid = ev.phase.id;
+            if (!phases[pid]) return;
+            for (var i = 0; i < phases[pid].steps.length; i++) {
+                if (phases[pid].steps[i].id === ev.step.id) {
+                    var step = phases[pid].steps[i];
+                    step.status = 'done';
+                    if (ev.step.elapsed) step.elapsed = ev.step.elapsed;
+                    if (ev.step.message) {
+                        step.message = ev.step.message;
+                        updateStepMessage(pid, step.id, ev.step.message);
+                    }
+                    if (ev.data) {
+                        step.data = ev.data;
+                        updateStepDataContent(pid, step.id, ev.data);
+                    }
+                    markStepDone(pid, step.id);
+                    if (ev.step.elapsed) updateStepElapsed(pid, step.id, ev.step.elapsed);
+                    break;
+                }
+            }
+        } else if (type === 'phase_done') {
+            var pid = ev.phase.id;
+            if (!phases[pid]) {
+                phases[pid] = { name: (ev.phase && ev.phase.name) || pid, steps: [], active: false };
+                createPhaseElement(pid, phases[pid].name, phasesDiv);
+            }
+            phases[pid].active = false;
+            phases[pid].skipped = ev.phase.skipped;
+            phases[pid].elapsed = ev.phase.elapsed;
+            markPhaseDone(pid, ev.phase.elapsed, ev.phase.skipped);
+            updateQueue(ev.queue, queueDiv);
+            updateProgress(ev.progress, progressBar, progressText);
+        } else if (type === 'phase_error') {
+            var pid = ev.phase.id;
+            if (!phases[pid]) {
+                phases[pid] = { name: (ev.phase && ev.phase.name) || pid, steps: [], active: false };
+                createPhaseElement(pid, phases[pid].name, phasesDiv);
+            }
+            phases[pid].active = false;
+            phases[pid].error = ev.phase.error;
+            markPhaseError(pid, ev.phase.error);
+        } else if (type === 'session_end') {
+            if (sessionInfo) sessionInfo.textContent = 'Done (' + ((ev.progress && ev.progress.elapsed) || 0).toFixed(1) + 's)';
+            updateProgress(ev.progress, progressBar, progressText);
+        }
+    }
+
+    function updateQueue(queue, queueDiv) {
+        if (!queueDiv) return;
+        if (!queue || !queue.length) { queueDiv.innerHTML = '<span style="color:#484f58;">-</span>'; return; }
+        var html = '';
+        for (var i = 0; i < queue.length; i++) {
+            html += '<span style="display:inline-block;background:#21262d;padding:2px 8px;border-radius:4px;margin:2px;font-size:11px;color:#8b949e;">' + queue[i].name + '</span>';
+        }
+        queueDiv.innerHTML = html;
+    }
+
+    function updateProgress(prog, bar, text) {
+        if (!prog || !bar) return;
+        var pct = prog.percent || 0;
+        bar.style.width = pct + '%';
+        if (text) text.textContent = (prog.completed || 0) + '/' + (prog.total || 0) + ' (' + pct + '%)';
+    }
+
+    function getNestingDepth(pid) {
+        var dots = (pid.match(/\./g) || []).length;
+        var brackets = (pid.match(/\[/g) || []).length;
+        return dots + brackets;
+    }
+
+    function escapeHtml(s) {
+        if (!s) return '';
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // --- DOM Creation ---
+
+    function createPhaseElement(pid, name, container) {
+        var existing = document.getElementById('dss-phase-' + pid);
+        if (existing) return;
+
+        var depth = getNestingDepth(pid);
+        var borderColor = depth === 0 ? '#30363d' : depth === 1 ? '#238636' : depth === 2 ? '#1f6feb' : '#484f58';
+        var nameStyle = depth === 0 ? 'font-size:13px;' : depth === 1 ? 'font-size:12px;' : 'font-size:11px;';
+
+        var el = document.createElement('div');
+        el.id = 'dss-phase-' + pid;
+        el.style.cssText = 'margin-bottom:6px;border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0;overflow:hidden;';
+
+        var header = document.createElement('div');
+        header.id = 'dss-phase-header-' + pid;
+        header.style.cssText = 'padding:6px 10px;background:#0d1117;cursor:pointer;';
+        header.setAttribute('onclick', "var c=document.getElementById('dss-toggle-" + pid + "');if(c){c.style.display=c.style.display==='none'?'block':'none';}");
+        header.innerHTML = '<span id="dss-phase-icon-' + pid + '">\u25B6\uFE0F</span> <b style="color:#c9d1d9;' + nameStyle + '">' + escapeHtml(name) + '</b><span id="dss-phase-elapsed-' + pid + '" style="color:#484f58;font-size:11px;margin-left:8px;"></span>';
+
+        var content = document.createElement('div');
+        content.id = 'dss-toggle-' + pid;
+        content.style.display = 'block';
+        content.style.padding = '6px 10px';
+        content.style.background = '#161b22';
+
+        el.appendChild(header);
+        el.appendChild(content);
+
+        var parentPid = findExistingParentPid(pid);
+        if (parentPid) {
+            var parentContent = document.getElementById('dss-toggle-' + parentPid);
+            if (parentContent) {
+                parentContent.appendChild(el);
+                return;
+            }
+        }
+        container.appendChild(el);
+    }
+
+    function findExistingParentPid(pid) {
+        var parts = [];
+        var current = '';
+        for (var i = 0; i < pid.length; i++) {
+            var ch = pid[i];
+            if (ch === '.' || ch === '[') {
+                if (current) parts.push(current);
+                current = ch === '[' ? '[' : '';
+            } else {
+                current += ch;
+            }
+        }
+        if (current) parts.push(current);
+
+        for (var i = parts.length - 1; i > 0; i--) {
+            var candidate = parts.slice(0, i).join('');
+            if (document.getElementById('dss-toggle-' + candidate)) return candidate;
+        }
+        return null;
+    }
+
+    function createStepElement(pid, step) {
+        if (step._domCreated) return;
+        var existing = document.getElementById('dss-step-' + pid + '-' + step.id);
+        if (existing) { step._domCreated = true; return; }
+
+        var contentDiv = document.getElementById('dss-toggle-' + pid);
+        if (!contentDiv) return;
+
+        var stepRow = document.createElement('div');
+        stepRow.id = 'dss-step-' + pid + '-' + step.id;
+        stepRow.style.margin = '2px 0';
+
+        var icon = document.createElement('span');
+        icon.id = 'dss-step-icon-' + pid + '-' + step.id;
+        icon.textContent = '\u25B6\uFE0F';
+
+        var title = document.createElement('span');
+        title.style.color = '#c9d1d9';
+        title.textContent = step.title;
+
+        var elapsed = document.createElement('span');
+        elapsed.id = 'dss-step-elapsed-' + pid + '-' + step.id;
+        elapsed.style.cssText = 'color:#484f58;font-size:11px;margin-left:4px;';
+
+        var msgDiv = document.createElement('div');
+        msgDiv.id = 'dss-step-msg-' + pid + '-' + step.id;
+        msgDiv.style.cssText = 'color:#8b949e;font-size:11px;padding-left:16px;white-space:pre-wrap;word-break:break-word;';
+
+        var dataDiv = document.createElement('div');
+        dataDiv.id = 'dss-step-data-' + pid + '-' + step.id;
+        dataDiv.style.paddingLeft = '16px';
+
+        stepRow.appendChild(icon);
+        stepRow.appendChild(title);
+        stepRow.appendChild(elapsed);
+        stepRow.appendChild(msgDiv);
+        stepRow.appendChild(dataDiv);
+        contentDiv.appendChild(stepRow);
+        step._domCreated = true;
+    }
+
+    // --- DOM Updates ---
+
+    function appendStepToken(pid, sid, token) {
+        var msgDiv = document.getElementById('dss-step-msg-' + pid + '-' + sid);
+        if (msgDiv) {
+            msgDiv.textContent += token;
+        }
+    }
+
+    function updateStepMessage(pid, sid, message) {
+        var msgDiv = document.getElementById('dss-step-msg-' + pid + '-' + sid);
+        if (!msgDiv) return;
+        var escaped = escapeHtml(message);
+        var lines = escaped.split('\n');
+        var isUpdateSummary = message.indexOf('Applied') !== -1 && message.indexOf('update(s)') !== -1;
+        var step = null;
+        if (phases[pid]) {
+            for (var i = 0; i < phases[pid].steps.length; i++) {
+                if (phases[pid].steps[i].id === sid) { step = phases[pid].steps[i]; break; }
+            }
+        }
+        var hasUpdateData = step && step.data && step.data.updates && step.data.updates.length > 0;
+        if (isUpdateSummary && hasUpdateData) {
+            msgDiv.innerHTML = escaped;
+        } else if (lines.length > 30) {
+            var stepUid = pid + '-' + sid + '-0';
+            var isExpanded = expandedMessages[stepUid];
+            var displayLines = isExpanded ? lines : lines.slice(-30);
+            var displayText = displayLines.join('\n');
+            var fadeHtml = !isExpanded ? '<div style="position:absolute;top:0;left:0;right:0;height:30px;background:linear-gradient(#161b22,transparent);pointer-events:none;"></div>' : '';
+            msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + stepUid + '">' + fadeHtml + displayText + '</div>' +
+                '<a href="javascript:void(0)" onclick="event.preventDefault();window.__dss.expanded[\'' + stepUid + '\']=!window.__dss.expanded[\'' + stepUid + '\'];window.__dss.updateStepMessage(\'' + pid + '\',\'' + sid + '\',window.__dss.getStepMessage(\'' + pid + '\',\'' + sid + '\'));return false;" style="color:#58a6ff;font-size:10px;">' + (isExpanded ? 'Show less' : 'Show all (' + lines.length + ' lines)') + '</a></div>';
+        } else {
+            msgDiv.innerHTML = escaped;
+        }
+    }
+
+    function updateStepDataContent(pid, sid, data) {
+        var dataDiv = document.getElementById('dss-step-data-' + pid + '-' + sid);
+        if (!dataDiv) return;
+        if (data && data.updates && data.updates.length > 0) {
+            dataDiv.innerHTML = renderUpdateList(data.updates, pid + '-' + sid + '-0', data.raw_json, pid, sid);
+        }
+    }
+
+    function markStepDone(pid, sid) {
+        var icon = document.getElementById('dss-step-icon-' + pid + '-' + sid);
+        if (icon) icon.textContent = '\u2705';
+    }
+
+    function updateStepElapsed(pid, sid, elapsed) {
+        var el = document.getElementById('dss-step-elapsed-' + pid + '-' + sid);
+        if (el) el.textContent = ' (' + elapsed.toFixed(1) + 's)';
+    }
+
+    function markPhaseDone(pid, elapsed, skipped) {
+        var icon = document.getElementById('dss-phase-icon-' + pid);
+        if (icon) icon.textContent = skipped ? '\u23ED\uFE0F' : '\u2705';
+        var elapsedEl = document.getElementById('dss-phase-elapsed-' + pid);
+        if (elapsedEl && elapsed) elapsedEl.textContent = ' (' + elapsed.toFixed(1) + 's)';
+        var content = document.getElementById('dss-toggle-' + pid);
+        if (content) content.style.display = 'none';
+    }
+
+    function markPhaseError(pid, error) {
+        var icon = document.getElementById('dss-phase-icon-' + pid);
+        if (icon) icon.textContent = '\u274C';
+        var content = document.getElementById('dss-toggle-' + pid);
+        if (content) content.style.display = 'none';
+    }
+
+    // --- Render helpers ---
+
+    function renderUpdateList(updates, stepUid, rawJson, pid, sid) {
+        var html = '<div style="padding-left:16px;">';
+        for (var i = 0; i < updates.length; i++) {
+            var u = updates[i];
+            var valPreview = typeof u.value === 'object' ? JSON.stringify(u.value).substring(0, 120) : String(u.value).substring(0, 120);
+            html += '<div style="margin:4px 0;padding:4px 8px;background:#0d1117;border-radius:4px;border-left:2px solid #238636;">';
+            html += '<div style="color:#58a6ff;font-size:10px;font-family:monospace;">' + escapeHtml(u.path) + '</div>';
+            html += '<div style="color:#8b949e;font-size:11px;white-space:pre-wrap;word-break:break-word;">' + escapeHtml(valPreview) + (valPreview.length < 120 ? '' : '...') + '</div>';
+            html += '</div>';
+        }
+        if (rawJson) {
+            var jsonUid = stepUid + '-json';
+            var jsonExpanded = expandedMessages[jsonUid];
+            html += '<div style="margin-top:4px;">';
+            html += '<a href="javascript:void(0)" onclick="event.preventDefault();window.__dss.toggleJson(\'' + jsonUid + '\',\'' + pid + '\',\'' + sid + '\');return false;" style="color:#58a6ff;font-size:10px;">' + (jsonExpanded ? 'Hide raw JSON' : 'Show raw JSON') + '</a>';
+            if (jsonExpanded) {
+                html += '<div style="color:#8b949e;font-size:10px;font-family:monospace;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto;padding:4px 8px;background:#0d1117;border-radius:4px;margin-top:2px;">' + escapeHtml(rawJson) + '</div>';
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    // --- Reconciliation ---
+
+    function reconcileAll() {
+        var phasesDiv = document.getElementById('dss-phases');
+        if (!phasesDiv) return;
+        var pids = Object.keys(phases);
+        for (var p = 0; p < pids.length; p++) {
+            var pid = pids[p];
+            var phase = phases[pid];
+            var el = document.getElementById('dss-phase-' + pid);
+            if (!el) {
+                createPhaseElement(pid, phase.name, phasesDiv);
+            } else {
+                var parentPid = findExistingParentPid(pid);
+                if (parentPid) {
+                    var parentContent = document.getElementById('dss-toggle-' + parentPid);
+                    if (parentContent && el.parentNode !== parentContent) {
+                        parentContent.appendChild(el);
+                    }
+                } else if (el.parentNode !== phasesDiv) {
+                    phasesDiv.appendChild(el);
+                }
+            }
+            var steps = phase.steps || [];
+            for (var i = 0; i < steps.length; i++) {
+                var step = steps[i];
+                var stepRow = document.getElementById('dss-step-' + pid + '-' + step.id);
+                if (!stepRow) {
+                    createStepElement(pid, step);
+                }
+                if (step.message) {
+                    updateStepMessage(pid, step.id, step.message);
+                }
+                if (step.data && step.data.updates) {
+                    updateStepDataContent(pid, step.id, step.data);
+                }
+                if (step.status === 'done') {
+                    markStepDone(pid, step.id);
+                }
+                if (step.elapsed) {
+                    updateStepElapsed(pid, step.id, step.elapsed);
+                }
+            }
+            if (!phase.active) {
+                markPhaseDone(pid, phase.elapsed, phase.skipped);
+            }
+            if (phase.error) {
+                markPhaseError(pid, phase.error);
+            }
+        }
+    }
+
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) {
+            reconcileAll();
+        }
+    });
+
+    // Expose helpers for inline onclick
+    window.__dss.getStepMessage = function (pid, sid) {
+        if (!phases[pid]) return '';
+        for (var i = 0; i < phases[pid].steps.length; i++) {
+            if (phases[pid].steps[i].id === sid) return phases[pid].steps[i].message;
+        }
+        return '';
+    };
+    window.__dss.updateStepMessage = updateStepMessage;
+    window.__dss.toggleJson = function (jsonUid, pid, sid) {
+        expandedMessages[jsonUid] = !expandedMessages[jsonUid];
+        var dataDiv = document.getElementById('dss-step-data-' + pid + '-' + sid);
+        if (!dataDiv) return;
+        var step = null;
+        if (phases[pid]) {
+            for (var i = 0; i < phases[pid].steps.length; i++) {
+                if (phases[pid].steps[i].id === sid) { step = phases[pid].steps[i]; break; }
+            }
+        }
+        if (step && step.data && step.data.updates) {
+            dataDiv.innerHTML = renderUpdateList(step.data.updates, pid + '-' + sid + '-0', step.data.raw_json, pid, sid);
+        }
+    };
+
+    // Init
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () { setTimeout(initSSE, 500); });
+    } else {
+        setTimeout(initSSE, 500);
+    }
+})();

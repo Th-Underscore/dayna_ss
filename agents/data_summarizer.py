@@ -208,7 +208,12 @@ class DataSummarizer:
         if shared.stop_everything:
             return (True, False)
 
+        pm = self.summarizer._phase_manager
+        phase_id = branch_name.lower().replace(" ", "_")
+        action_name = action.name.lower()
+
         if action == Action.ADD_NEW:
+            pm.start_step(phase_id, action_name, f"Checking for new {branch_name} entries", {"branch_name": branch_name})
             if target_schema_class.definition_type == "alias":
                 field_type = target_schema_class._field.type
                 is_dict = hasattr(field_type, "__origin__") and field_type.__origin__ is dict
@@ -224,8 +229,10 @@ class DataSummarizer:
                         new_entry_template=new_entry_template,
                         keys=keys
                     )
+            pm.done_step(phase_id, action_name)
 
         elif action == Action.PERFORM_GATE_CHECK:
+            pm.start_step(phase_id, action_name, f"Gate check for {branch_name}", {"branch_name": branch_name})
             gate_template = self._get_effective_setting(
                 data, target_schema_class, "gate_check_prompt_template", override_config=config
             )
@@ -234,8 +241,11 @@ class DataSummarizer:
                     branch_name, gate_template, target_schema_class, formatted_data, keys
                 ):
                     return (False, True)  # Gate check failed
+            else:
+                pm.done_step(phase_id, action_name, "Gate: No template")
 
         elif action == Action.PERFORM_UPDATE:
+            pm.start_step(phase_id, action_name, f"Updating {branch_name}", {"branch_name": branch_name})
             update_template = self._get_effective_setting(
                 data, target_schema_class, "update_prompt_template", override_config=config
             )
@@ -243,9 +253,12 @@ class DataSummarizer:
                 if self._perform_full_branch_update(
                     branch_name, data, update_template, formatted_data, target_schema_class, keys
                 ):
+                    # done_step already called by generate_with_sse via step_update with complete:true
                     return (True, False)  # Full update succeeded, stop processing
+            pm.done_step(phase_id, action_name, "Update: Skipped")
 
         elif action == Action.QUERY_BRANCH_FOR_CHANGES:
+            pm.start_step(phase_id, action_name, f"Querying {branch_name} for changes", {"branch_name": branch_name})
             update_template_key = "branch_update_prompt_template"
             if config and "prompt_template" in config:
                 update_template_key = config["prompt_template"]
@@ -266,6 +279,7 @@ class DataSummarizer:
                 self._perform_branch_query(
                     branch_name, data, formatted_data, bq_template, bu_template, target_schema_class, keys
                 )
+            pm.done_step(phase_id, action_name)
 
         return (False, False)  # Continue processing
 
@@ -1093,6 +1107,7 @@ Respond with ONLY the JSON object for this arc."""
                 if isinstance(data, list):
                     # 2a. List of Schema Classes (Recurse)
                     if isinstance(item_type, ParsedSchemaClass):
+                        pm = self.summarizer._phase_manager
                         for i, item_data in enumerate(data):
                             effective_item_schema = self._inherit_defaults_from_parent(
                                 item_type,
@@ -1101,6 +1116,8 @@ Respond with ONLY the JSON object for this arc."""
                             )
                             # Sync formatted data to keep context fresh
                             new_keys = [*keys, i]
+                            sub_phase_id = f"{item_name_prefix}[{i}]".lower().replace(" ", "_")
+                            pm.start_phase(sub_phase_id, f"{item_name_prefix}[{i}]")
                             self._update_recursive(
                                 f"{item_name_prefix}[{i}]",
                                 item_data,
@@ -1110,6 +1127,7 @@ Respond with ONLY the JSON object for this arc."""
                                 new_keys
                             )
                             recursive_set(formatted_data.data, new_keys, item_data)
+                            pm.done_phase(sub_phase_id)
 
                     # 2b. List of Primitives (Leaf update)
                     else:
@@ -1137,12 +1155,16 @@ Respond with ONLY the JSON object for this arc."""
                 if isinstance(data, dict):
                     # 3a. Dict of Schema Classes (Recurse)
                     if isinstance(value_type, ParsedSchemaClass):
+                        pm = self.summarizer._phase_manager
                         for key, val_data in data.items():
                             effective_val_schema = self._inherit_defaults_from_parent(
                                 value_type,
                                 schema_class,
                                 defaults_to_inherit
                             )
+
+                            sub_phase_id = f"{item_name_prefix}.{key}".lower().replace(" ", "_")
+                            pm.start_phase(sub_phase_id, f"{item_name_prefix}.{key}")
 
                             new_keys = [*keys, key]
                             self._update_recursive(
@@ -1154,6 +1176,8 @@ Respond with ONLY the JSON object for this arc."""
                                 new_keys
                             )
                             recursive_set(formatted_data.data, new_keys, val_data)
+
+                            pm.done_phase(sub_phase_id)
 
                     # 3b. Dict of Primitives (Leaf Update)
                     else:
@@ -1217,6 +1241,9 @@ Respond with ONLY the JSON object for this arc."""
                 defaults_to_inherit
             )
 
+            sub_phase_id = full_path.lower().replace(" ", "_")
+            pm = self.summarizer._phase_manager
+            pm.start_phase(sub_phase_id, full_path)
             self._update_recursive(
                 full_path,
                 current_value,
@@ -1226,6 +1253,7 @@ Respond with ONLY the JSON object for this arc."""
                 current_keys
             )
             recursive_set(formatted_data.data, current_keys, current_value)
+            pm.done_phase(sub_phase_id)
             return
 
         # 5. Handle List/Dict of Schema Classes (Generics defined directly on a field, not via Alias)
@@ -1236,9 +1264,12 @@ Respond with ONLY the JSON object for this arc."""
         if origin is list and args and isinstance(args[0], ParsedSchemaClass):
             # List of objects
             item_schema = args[0]
+            pm = self.summarizer._phase_manager
             if isinstance(current_value, list):
                 for i, item in enumerate(current_value):
                     effective_schema = self._inherit_defaults_from_parent(item_schema, parent_schema_class, defaults_to_inherit)
+                    sub_phase_id = f"{full_path}[{i}]".lower().replace(" ", "_")
+                    pm.start_phase(sub_phase_id, f"{full_path}[{i}]")
                     self._update_recursive(
                         f"{full_path}[{i}]",
                         item,
@@ -1248,14 +1279,18 @@ Respond with ONLY the JSON object for this arc."""
                         [*current_keys, i]
                     )
                     recursive_set(formatted_data.data, [*current_keys, i], item)
+                    pm.done_phase(sub_phase_id)
             return
 
         elif origin is dict and len(args) > 1 and isinstance(args[1], ParsedSchemaClass):
             # Dict of objects
             val_schema = args[1]
+            pm = self.summarizer._phase_manager
             if isinstance(current_value, dict):
                 for k, v in current_value.items():
                     effective_schema = self._inherit_defaults_from_parent(val_schema, parent_schema_class, defaults_to_inherit)
+                    sub_phase_id = f"{full_path}.{k}".lower().replace(" ", "_")
+                    pm.start_phase(sub_phase_id, f"{full_path}.{k}")
                     self._update_recursive(
                         f"{full_path}.{k}",
                         v,
@@ -1265,6 +1300,7 @@ Respond with ONLY the JSON object for this arc."""
                         [*current_keys, k]
                     )
                     recursive_set(formatted_data.data, [*current_keys, k], v)
+                    pm.done_phase(sub_phase_id)
             return
 
         # 6. Handle Leaf Nodes (Primitives, or Lists/Dicts of Primitives)
@@ -1332,6 +1368,9 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_GRAY}Performing gate check for '{branch_name}'...{_RESET}")
 
+        pm = self.summarizer._phase_manager
+        phase_id = branch_name.lower().replace(" ", "_")
+
         # Contextualize the prompt
         gate_check_full_prompt = (
             f"Current context for '{branch_name}':\n"
@@ -1342,9 +1381,11 @@ Respond with ONLY the JSON object for this arc."""
         current_custom_state = self.custom_state or {}
         stopping_strings = ["NO", "UNCHANGED", "YES"]
 
-        llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
+        llm_response_text, stop_reason = self.summarizer.generate_with_sse(
             prompt=gate_check_full_prompt,
             state=current_custom_state,
+            phase_id=phase_id,
+            step_id="perform_gate_check",
             history_path=self.history_path,
             stopping_strings=stopping_strings,
             match_prefix_only=True,
@@ -1358,10 +1399,13 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_GRAY}Gate check response for '{branch_name}': '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}")
 
+        pm.update_step(phase_id, "perform_gate_check", f"LLM response: {llm_response_text}")
+
         # Logic to determine YES vs NO
         # 1. Check stopping strings logic
         if stop_reason in ["NO", "UNCHANGED"]:
             print(f"{_INPUT}Gate check for '{branch_name}' returned {stop_reason}. Skipping branch.{_RESET}")
+            pm.done_step(phase_id, "perform_gate_check", f"Gate: FAILED ({stop_reason})\nResponse: {llm_response_text}")
             return False
 
         # 2. Check text content logic
@@ -1372,10 +1416,12 @@ Respond with ONLY the JSON object for this arc."""
 
         if is_negative:
             print(f"{_INPUT}Gate check for '{branch_name}' returned NO/UNCHANGED. Skipping branch.{_RESET}")
+            pm.done_step(phase_id, "perform_gate_check", f"Gate: FAILED\nResponse: {llm_response_text}")
             return False
 
         # 3. Default to YES (Process the branch)
         print(f"{_INPUT}Gate check for '{branch_name}' returned YES. Proceeding.{_RESET}")
+        pm.done_step(phase_id, "perform_gate_check", f"Gate: PASSED\nResponse: {llm_response_text}")
         return True
 
     def _perform_full_branch_update(
@@ -1459,7 +1505,11 @@ Respond with ONLY the JSON object for this arc."""
         if not branch_query_prompt:
             return
 
+        phase_id = branch_name.lower().replace(" ", "_")
+        pm = self.summarizer._phase_manager
+
         print(f"{_GRAY}Querying LLM: Does branch '{branch_name}' need updates?{_RESET}")
+        pm.start_step(phase_id, "query_changes", "Checking for changes...")
 
         branch_query_full_prompt = (
             f"Current context for '{branch_name}':\n"
@@ -1470,9 +1520,11 @@ Respond with ONLY the JSON object for this arc."""
         current_custom_state = self.custom_state or {}
         query_stopping_strings = ["NO", "UNCHANGED", "YES"]
 
-        llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
+        llm_response_text, stop_reason = self.summarizer.generate_with_sse(
             prompt=branch_query_full_prompt,
             state=current_custom_state,
+            phase_id=phase_id,
+            step_id="query_changes",
             history_path=self.history_path,
             stopping_strings=query_stopping_strings,
             match_prefix_only=True,
@@ -1486,10 +1538,16 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_GRAY}Query branch '{branch_name}' response: '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}")
 
+        pm.done_step(phase_id, "query_changes", f"Response: {llm_response_text}")
+
         # Check if negative response
         if stop_reason in ["NO", "UNCHANGED"] or llm_response_text.upper() in ["NO", "UNCHANGED"]:
+            pm.update_step(phase_id, "query_branch_for_changes", "No changes needed")
             print(f"{_INPUT}Skipping updates for branch '{branch_name}' (query returned NO).{_RESET}")
             return
+
+        pm.update_step(phase_id, "query_changes", "Changes detected, requesting details...")
+        pm.start_step(phase_id, "apply_updates", "Applying updates...")
 
         # --- Step 2: Request List of Changes ---
         # Simulate a conversation history so the LLM knows it just said "YES"
@@ -1515,9 +1573,11 @@ Respond with ONLY the JSON object for this arc."""
 
         update_stopping_strings = ["NO", "END"]
 
-        llm_update_response_text, _ = self.summarizer.generate_using_tgwui(
+        llm_update_response_text, _ = self.summarizer.generate_with_sse(
             prompt=branch_update_list_full_prompt,
             state=temp_state,  # Use the temp state with history
+            phase_id=phase_id,
+            step_id="apply_updates",
             history_path=self.history_path,
             stopping_strings=update_stopping_strings,
             match_prefix_only=True,
@@ -1531,6 +1591,8 @@ Respond with ONLY the JSON object for this arc."""
 
         if parsed_updates:
             print(f"{_INPUT}Applying {len(parsed_updates)} field update(s) to '{branch_name}'...{_RESET}")
+            pm.update_step(phase_id, "apply_updates", f"Applying {len(parsed_updates)} update(s)...")
+            formatted_updates = []
             for update_item in parsed_updates:
                 path_str = update_item["path"]
                 value = update_item["value"]
@@ -1542,15 +1604,12 @@ Respond with ONLY the JSON object for this arc."""
                     print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(recursive_get(data, keyList_relative_to_branch), indent=None)}{_RESET}")
                     recursive_set(data, keyList_relative_to_branch, value)  # Modifies 'data' in place
                     print(f"{_GRAY}[{branch_name}] Applied update: {path_str} = {json.dumps(value, indent=None)}{_RESET}")
-
-                    # Also keep the 'formatted_data' in sync if needed by future prompts in this run
-                    # (This depends on if your recursive_set handles the wrapper object or just dicts)
-                    # recursive_set(formatted_data.data, [*keys, *keyList_relative_to_branch], value)
-
+                    formatted_updates.append({"path": path_str, "value": value, "old_value": recursive_get(data, keyList_relative_to_branch)})
                 except Exception as e:
                     print(f"{_ERROR}[{branch_name}] Failed to apply update {path_str} = {repr(value)}: {e}{_RESET}")
-                    # traceback.print_exc()
+            pm.done_step(phase_id, "apply_updates", f"Applied {len(parsed_updates)} update(s)", {"updates": formatted_updates, "raw_json": json.dumps(parsed_updates, indent=2)})
         else:
+            pm.done_step(phase_id, "apply_updates", "No updates to apply")
             print(f"{_GRAY}No specific field updates applied to '{branch_name}' from branch query response.{_RESET}")
 
     def _retrieve_nested_field(
@@ -1675,13 +1734,21 @@ Respond with ONLY the JSON object for this arc."""
             base_prompt = prompt_template_str
             max_retries = 2
             last_error = None
+            phase_id = item_name_prefix.lower().replace(" ", "_")
+            pm = self.summarizer._phase_manager
+            field_phase_id = f"{phase_id}.{field_name}".lower() if field_name else phase_id
+            field_phase_name = f"{item_name_prefix}.{field_name}" if field_name else item_name_prefix
+
+            pm.start_phase(field_phase_id, field_phase_name)
 
             for attempt in range(max_retries + 1):
                 if attempt > 0 and last_error:
                     error_feedback = f"\n\nThe previous attempt failed validation: {last_error}\nPlease correct the response."
                     effective_prompt = base_prompt + error_feedback
+                    pm.update_step(field_phase_id, "perform_update", f"Retry {attempt}/2: {last_error}")
                 else:
                     effective_prompt = base_prompt
+                    pm.update_step(field_phase_id, "perform_update", "Assembling prompt...")
 
                 prompt = self._create_update_prompt(
                     item_name=item_name_prefix,
@@ -1697,10 +1764,12 @@ Respond with ONLY the JSON object for this arc."""
                 current_custom_state = self.custom_state or {}
                 llm_interaction_prompt = f"Context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix, context_path_for_marker)}\n\n{prompt}"
 
-                text, stop = self.summarizer.generate_using_tgwui(
+                text, stop = self.summarizer.generate_with_sse(
                     llm_interaction_prompt,
                     current_custom_state,
-                    self.history_path,
+                    phase_id=field_phase_id,
+                    step_id="perform_update",
+                    history_path=self.history_path,
                     match_prefix_only=False,
                 )
 
@@ -1708,17 +1777,22 @@ Respond with ONLY the JSON object for this arc."""
                     print(
                         f"{_HILITE}Stop signal received during LLM value update generation for '{context_path_for_marker}'.{_RESET}"
                     )
+                    pm.done_phase(field_phase_id)
                     return current_value
 
                 if stop:
+                    pm.done_phase(field_phase_id)
                     return current_value
 
                 try:
                     if expected_type == int:
+                        pm.done_phase(field_phase_id)
                         return int(text)
                     if expected_type == float:
+                        pm.done_phase(field_phase_id)
                         return float(text)
                     if expected_type == bool:
+                        pm.done_phase(field_phase_id)
                         return text.strip().lower() in ["true", "yes", "1"]
 
                     if expected_type == list or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is list):
@@ -1726,10 +1800,12 @@ Respond with ONLY the JSON object for this arc."""
                         try:
                             parsed_list = jsonc.loads(stripped_text)
                             if isinstance(parsed_list, list):
+                                pm.done_phase(field_phase_id)
                                 return parsed_list
                             else:
                                 last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
                                 print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
+                                pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                                 continue
                         except json.JSONDecodeError:
                             is_list_of_str = False
@@ -1737,9 +1813,11 @@ Respond with ONLY the JSON object for this arc."""
                                 if expected_type.__args__[0] == str:
                                     is_list_of_str = True
                             if is_list_of_str:
+                                pm.done_phase(field_phase_id)
                                 return [item.strip() for item in text.split(",")]
                             last_error = f"Response is not valid JSON and type is not list[str]: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
+                            pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                             continue
 
                     if expected_type == dict or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is dict):
@@ -1747,14 +1825,17 @@ Respond with ONLY the JSON object for this arc."""
                         try:
                             parsed_dict = jsonc.loads(stripped_text)
                             if isinstance(parsed_dict, dict):
+                                pm.done_phase(field_phase_id)
                                 return parsed_dict
                             else:
                                 last_error = f"Response was valid JSON but not a dict: '{stripped_text}'"
                                 print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
+                                pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                                 continue
                         except json.JSONDecodeError:
                             last_error = f"Response is not valid JSON: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
+                            pm.update_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                             continue
 
                     # Try to parse as JSON for complex types
@@ -1768,21 +1849,28 @@ Respond with ONLY the JSON object for this arc."""
                                 error_msg = "; ".join(validation_errors[:3])
                                 last_error = f"Validation failed: {error_msg}"
                                 print(f"{_ERROR}Validation errors for {context_path_for_marker}: {validation_errors}{_RESET}")
+                                pm.update_step(field_phase_id, "perform_update", f"Validation error: {error_msg}")
                                 if attempt < max_retries:
                                     continue
                                 else:
                                     print(f"{_ERROR}Max retries reached, accepting value with warnings.{_RESET}")
+                                    pm.done_phase(field_phase_id)
                                     return parsed_value
+                        pm.done_phase(field_phase_id)
                         return parsed_value
                     except json.JSONDecodeError:
+                        pm.done_phase(field_phase_id)
                         return text
 
                 except (ValueError, TypeError) as e:
                     last_error = f"Could not convert response to type {expected_type}: {e}"
                     print(f"{_ERROR}Could not convert LLM response '{text}' to type {expected_type} for {context_path_for_marker}: {e}{_RESET}")
+                    pm.update_step(field_phase_id, "perform_update", f"Type error: {last_error}")
                     if attempt >= max_retries:
+                        pm.done_phase(field_phase_id)
                         return current_value
 
+            pm.done_phase(field_phase_id)
             return current_value
         except Exception as e:
             print(f"{_ERROR}Error in _generate_field_update for {item_name_prefix}.{field_name}: {e}{_RESET}")
