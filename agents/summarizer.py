@@ -243,7 +243,31 @@ class Summarizer:
         state: dict,
         history_path: Path | None = None,
         stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
+def generate_using_tgwui(
+        self,
+        prompt: str,
+        state: dict,
+        history_path: Path | None = None,
+        stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
         match_prefix_only: bool = True,
+        **kwargs,
+    ) -> tuple[str, str]:
+        """
+        Generate a response from the configured TGWUI model, using the active tool loop or passive summarization stream based on retrieval mode.
+        
+        This captures model stderr output to a temporary buffer and appends an internal debug dump (context, history, prompt, final text, and trailing stderr) to a dump.txt file adjacent to the provided history path when available. Generation stops when a configured stopping string is emitted, a tool call handoff occurs, the tool-call limit is reached, or global cancellation is requested.
+        
+        Parameters:
+            prompt (str): The prompt to give to the LLM.
+            state (dict): The state dictionary to generate context with.
+            history_path (Path | None): Directory used for writing debug dump files; defaults to the last known history path.
+            stopping_strings (list[str] | None): Strings that, when produced by the model, signal generation should stop; comparisons may be prefix-only depending on match_prefix_only.
+            match_prefix_only (bool): If True, stopping strings are matched only against the start of the generated text (after left-stripping); if False, stopping strings are searched anywhere in the text.
+            **kwargs: Additional arguments forwarded to the underlying generation routine.
+        
+        Returns:
+            tuple[str, str]: (response_text, stop_reason) where `response_text` is the final trimmed generated text, and `stop_reason` is the stopping token that terminated generation or an empty string if none.
+        """
         **kwargs,
     ) -> tuple[str, str]:
         """
