@@ -228,7 +228,11 @@ def strip_prefix(text: str, banned_prefixes: list) -> str:
 
 
 def ensure_background_loop():
-    """Ensure a background event loop is running in a separate thread"""
+    """
+    Start a background asyncio event loop in a dedicated daemon thread if one is not already running.
+    
+    If no background loop exists, create a new asyncio event loop and start it on a daemon thread; the created loop and thread are stored in the module-level globals `_background_loop` and `_loop_thread`.
+    """
     global _background_loop, _loop_thread
 
     def run_event_loop(loop: asyncio.AbstractEventLoop):
@@ -245,7 +249,23 @@ _sse_port = 7861  # Default SSE port
 
 
 def setup():
-    """Initialize the extension"""
+    """
+    Initialize and configure the DAYNA Story Summarizer extension.
+    
+    Creates the Summarizer instance and enables story retrieval, registers tool
+    definitions and the DSS-enabled callback with TGWUI integration, starts the
+    internal SSE server on the configured port, and prints the startup status.
+    
+    Modifies globals:
+    - summarizer: set to a new Summarizer instance
+    - story_rag: set to True
+    - _sse_port: set to the port returned by start_sse_server
+    
+    Side effects:
+    - Registers tool definitions in tgwui_integration._dss_tool_definitions
+    - Registers a DSS enabled-check callback via tgwui_integration.set_dss_enabled_check
+    - Attempts to start an SSE server and prints success or failure to stdout
+    """
     global summarizer, story_rag, _sse_port
     print("Loaded DAYNA Story Summarizer!")
 
@@ -256,6 +276,12 @@ def setup():
     tgwui_integration._dss_tool_definitions = tool_defs
 
     def dss_enabled_check():
+        """
+        Check whether the Dynamic Story Summarizer (DSS) feature is enabled in the persistent UI state.
+        
+        Returns:
+            True if the DSS toggle (`dss_toggle`) in persistent UI state is enabled, False otherwise.
+        """
         return dss_shared.persistent_ui_state.get("dss_toggle", True)
     tgwui_integration.set_dss_enabled_check(dss_enabled_check)
 
@@ -267,13 +293,14 @@ def setup():
 
 
 def run_async(coro: Coroutine) -> asyncio.Future | None:
-    """Run an async function in the current thread.
-
-    Args:
-        coro (Coroutine): An async coroutine to be run.
-
+    """
+    Schedule a coroutine to run on the module's background asyncio event loop.
+    
+    Parameters:
+        coro (Coroutine): The coroutine to schedule.
+    
     Returns:
-        out (Future, optional): The result of the coroutine if successful, otherwise None.
+        future (concurrent.futures.Future | asyncio.Future | None): A future representing the scheduled coroutine if scheduling succeeded, or `None` on failure.
     """
     print(f"{_BOLD}Running async:{_RESET} {coro}")
     try:
@@ -312,7 +339,14 @@ _SSE_PANEL_HTML = """<div id="dss-status-panel" style="font-family: monospace; f
 
 
 def custom_js():
-    """Returns JavaScript for SSE client - injected via TGWUI's custom_js hook."""
+    """
+    Render and return the extension's SSE client JavaScript.
+    
+    Loads the ui/ui.js.j2 Jinja2 template and renders it with the configured SSE external path from params.
+    
+    Returns:
+        str: Rendered JavaScript; an empty string if the template cannot be loaded or rendered.
+    """
     import os
     from jinja2 import Environment, FileSystemLoader
     js_path = os.path.join(os.path.dirname(__file__), "ui")
@@ -330,6 +364,11 @@ tab_created = False
 
 
 def ui():
+    """
+    Builds and registers the extension's Gradio user interface and associated event handlers.
+    
+    When called the first time, creates the extension as a tab (including file saving, chat, parameters, templates UIs and the DSS real-time status panel) and initializes shared interface state. On subsequent calls, creates the UI as a block under the main chat, registers UI event handlers, and updates module-level flags and `params["is_tab"]` to reflect the current layout.
+    """
     global tab_created, params
 
     dss_shared.input_elements = utils.list_interface_input_elements()

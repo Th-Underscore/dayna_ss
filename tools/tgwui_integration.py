@@ -16,9 +16,11 @@ _dss_enabled_check: Callable | None = None
 
 
 def set_dss_enabled_check(check_fn: Callable) -> None:
-    """Set a function to check if DSS is currently enabled.
-
-    The function should return True if DSS tools should be available.
+    """
+    Register a callable that determines whether DSS tools are enabled.
+    
+    Parameters:
+        check_fn (Callable): A zero-argument function that returns `True` when DSS tools should be available and `False` otherwise. The callable is stored and used by the integration layer to decide whether to expose DSS tools.
     """
     global _dss_enabled_check
     _dss_enabled_check = check_fn

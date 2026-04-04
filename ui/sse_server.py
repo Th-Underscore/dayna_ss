@@ -23,6 +23,17 @@ class SSEServer:
     """
 
     def __init__(self, host: str = "127.0.0.1", port: int = 7861, queue=None):
+        """
+        Initialize the SSEServer with network binding and an update queue.
+        
+        Parameters:
+        	host (str): IP address to bind the server to (default "127.0.0.1").
+        	port (int): TCP port to listen on (default 7861).
+        	queue: Optional queue-like object supplying updates; if omitted, obtains the module default via `get_update_queue()`.
+        
+        Notes:
+        	Initializes internal server and thread references to `None` and sets the running flag to `False`.
+        """
         self.host = host
         self.port = port
         self._queue = queue or get_update_queue()
@@ -31,7 +42,14 @@ class SSEServer:
         self._running = False
 
     def start(self) -> int:
-        """Start the SSE server. Returns the actual port used."""
+        """
+        Start the SSE server and run it in a background daemon thread.
+        
+        If the server is already running, this returns the configured port without starting a new server.
+        
+        Returns:
+            int: The port the server is listening on, or `-1` if startup failed.
+        """
         if self._running:
             return self.port
 
@@ -41,6 +59,16 @@ class SSEServer:
             """HTTP handler with SSE streaming support."""
 
             def do_GET(self):
+                """
+                Route HTTP GET requests to the appropriate SSE or JSON handlers based on the request path.
+                
+                Dispatches:
+                - /sse/dss-status -> _handle_sse()
+                - /sse/dss-state  -> _handle_state()
+                - /sse/dss-health -> _handle_health()
+                
+                Sends a 404 response for any other path. Suppresses client-disconnect and socket-related exceptions (e.g., BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError).
+                """
                 path = urlparse(self.path).path
                 try:
                     if path == "/sse/dss-status":
@@ -55,7 +83,11 @@ class SSEServer:
                     pass  # Client disconnected, normal
 
             def _handle_sse(self):
-                """Stream SSE events to the client."""
+                """
+                Stream server-sent events (SSE) to the connected client.
+                
+                Sends any buffered events from the server queue to the client first, then continuously streams newly buffered events as they arrive. Periodically emits SSE comment heartbeats to keep the connection alive and stops streaming if the client disconnects or the server stops running.
+                """
                 print(f"[DSS SSE] Client connected")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
@@ -97,7 +129,14 @@ class SSEServer:
                     time.sleep(0.2)
 
             def _send_event(self, data: str) -> bool:
-                """Send a single SSE event. Returns False if connection is dead."""
+                """
+                Send a single Server-Sent Events (SSE) data frame to the client.
+                
+                Writes an SSE `data:` frame for the given string and flushes the output stream.
+                
+                Returns:
+                    True if the frame was written and flushed successfully, False if the connection is closed or a socket error occurred.
+                """
                 try:
                     message = f"data: {data}\n\n"
                     self.wfile.write(message.encode("utf-8"))
@@ -107,7 +146,12 @@ class SSEServer:
                     return False
 
             def _send_heartbeat(self) -> bool:
-                """Send SSE comment (heartbeat) to keep connection alive."""
+                """
+                Send an SSE comment heartbeat to keep the client connection alive.
+                
+                Returns:
+                    bool: `True` if the heartbeat was written and flushed successfully, `False` if the connection is closed or a socket error occurred.
+                """
                 try:
                     self.wfile.write(b": heartbeat\n\n")
                     self.wfile.flush()
@@ -116,7 +160,11 @@ class SSEServer:
                     return False
 
             def _handle_state(self):
-                """Return JSON state snapshot."""
+                """
+                Send a JSON snapshot of the current update queue state to the client.
+                
+                The queue state is serialized with json.dumps (using str() for non-serializable objects) and written with Content-Type `application/json`, a matching Content-Length, and an `Access-Control-Allow-Origin: *` header.
+                """
                 state = parent._queue.get_state()
                 data = json.dumps(state, default=str).encode("utf-8")
 
@@ -128,7 +176,11 @@ class SSEServer:
                 self.wfile.write(data)
 
             def _handle_health(self):
-                """Health check endpoint."""
+                """
+                Return a small JSON health payload for the SSE server.
+                
+                Responds with HTTP 200 and a JSON body `{"status": "ok", "port": <port>}` and sets `Content-Type`, `Content-Length`, and `Access-Control-Allow-Origin` headers.
+                """
                 data = json.dumps({"status": "ok", "port": parent.port}).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
@@ -138,7 +190,11 @@ class SSEServer:
                 self.wfile.write(data)
 
             def log_message(self, format, *args):
-                """Suppress default logging."""
+                """
+                Override to suppress HTTP request logging emitted by BaseHTTPRequestHandler.
+                
+                This method intentionally does nothing so that request-level log messages are not written to stderr.
+                """
                 pass
 
             def handle(self):
@@ -164,7 +220,11 @@ class SSEServer:
             return -1
 
     def stop(self):
-        """Stop the SSE server."""
+        """
+        Stop the SSE server and release its resources.
+        
+        Sets the running flag to False, shuts down the underlying HTTP server if present, and joins the background thread (waiting up to 2 seconds) before clearing internal references.
+        """
         self._running = False
         if self._server:
             self._server.shutdown()
@@ -175,14 +235,32 @@ class SSEServer:
 
     @property
     def is_running(self) -> bool:
+        """
+        Indicates whether the server is currently running and its background thread is alive.
+        
+        Returns:
+            bool: `True` if the server's `_running` flag is set and the background thread exists and is alive, `False` otherwise.
+        """
         return self._running and self._thread is not None and self._thread.is_alive()
 
     @property
     def status_url(self) -> str:
+        """
+        Builds the full URL for the server's SSE status endpoint.
+        
+        Returns:
+            The HTTP URL pointing to the `/sse/dss-status` endpoint, including the server's host and port.
+        """
         return f"http://{self.host}:{self.port}/sse/dss-status"
 
     @property
     def state_url(self) -> str:
+        """
+        Return the full HTTP URL for the server's state JSON endpoint.
+        
+        Returns:
+            url (str): The URL to the `/sse/dss-state` endpoint using the server's configured host and port.
+        """
         return f"http://{self.host}:{self.port}/sse/dss-state"
 
 
@@ -191,7 +269,12 @@ _sse_server: SSEServer | None = None
 
 
 def get_sse_server(host: str = "127.0.0.1", port: int = 7861) -> SSEServer:
-    """Get or create the singleton SSE server."""
+    """
+    Return the module-level singleton SSEServer, creating a new instance if none exists or the existing one is not running.
+    
+    Returns:
+        SSEServer: The singleton SSEServer instance configured with the provided host and port.
+    """
     global _sse_server
     if _sse_server is None or not _sse_server.is_running:
         _sse_server = SSEServer(host=host, port=port)
@@ -199,7 +282,16 @@ def get_sse_server(host: str = "127.0.0.1", port: int = 7861) -> SSEServer:
 
 
 def start_sse_server(host: str = "127.0.0.1", port: int = 7861) -> int:
-    """Start the SSE server. Returns the port used, or -1 on failure."""
+    """
+    Start and return the configured SSE server's listening port.
+    
+    Parameters:
+        host (str): Host address to bind the server to (default "127.0.0.1").
+        port (int): Preferred port to bind the server to (default 7861).
+    
+    Returns:
+        int: The port the server is listening on, or `-1` if startup failed.
+    """
     server = get_sse_server(host, port)
     return server.start()
 

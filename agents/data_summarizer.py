@@ -198,12 +198,23 @@ class DataSummarizer:
         target_schema_class: ParsedSchemaClass,
         keys: list,
     ) -> tuple[bool, bool]:
-        """Execute a single action with the given config.
-
+        """
+        Execute a single configured action for a schema branch and apply its effects to the provided data.
+        
+        Parameters:
+            action (Action): The action to perform.
+            config (dict | None): Optional per-action configuration overrides.
+            branch_name (str): Logical name of the branch being processed.
+            data (dict): The subject data object to modify in-place.
+            formatted_data (FormattedData): Schema-aware view of `data` used for LLM prompts and context.
+            unexpanded_formatted_data (FormattedData): FormattedData instance without schema expansions, used for some prompts.
+            target_schema_class (ParsedSchemaClass): Schema class describing the branch being acted on.
+            keys (list): Path keys that locate the branch within `formatted_data`/`data`.
+        
         Returns:
-            out (tuple[bool, bool]): (stop_processing, gate_failed)
-            - stop_processing: True if full update succeeded (stop further actions)
-            - gate_failed: True if gate check failed (branch should be skipped)
+            tuple[bool, bool]: (stop_processing, gate_failed)
+                - `stop_processing`: `True` if this action completed a full update and subsequent actions should be skipped.
+                - `gate_failed`: `True` if a gate check failed and the branch should be skipped.
         """
         if shared.stop_everything:
             return (True, False)
@@ -1060,8 +1071,17 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ):
         """
-        Handles the structural iteration based on definition_type.
-        Unwraps 'alias' types to find the real structure underneath.
+        Traverse and update `data` according to `schema_class`, recursing into nested schema classes, lists, and dicts.
+        
+        This mutates `data` and `formatted_data` in place: it descends dataclass fields, unwraps alias/field wrappers, recurses into nested ParsedSchemaClass instances, and applies per-item or per-value updates for lists and dicts (using `_update_recursive` and `_update_field`). For list/dict elements that are schema classes this starts and completes sub-phases via the phase manager to track progress.
+        
+        Parameters:
+            item_name_prefix (str): Human-readable path prefix used for prompts and phase ids (e.g., "chapter.scenes" or "characters[0]").
+            data (dict | list): The current branch of data to traverse and potentially update.
+            formatted_data (FormattedData): Formatted view of the data used to render prompts and to update contextual markers; this will be kept in sync with changes.
+            unexpanded_formatted_data (FormattedData): Unexpanded formatted view used when creating prompts that require original/unexpanded values.
+            schema_class (ParsedSchemaClass): Schema description that determines traversal behavior (dataclass, alias/field, wrapped list/dict, or nested schema).
+            keys (list): List of keys/indices representing the path within `formatted_data.data` corresponding to `data`.
         """
 
         # --- Case A: Dataclass (object with defined fields) ---
@@ -1208,10 +1228,23 @@ Respond with ONLY the JSON object for this arc."""
         parent_keys: list
     ):
         """
-        Decides how to handle a specific field within a parent data object.
-        1. Initializes missing data.
-        2. Checks 'no_update'.
-        3. Branches: Update Leaf (Primitive) OR Recurse (SchemaClass/Container).
+        Process and update a single field within a parent data object according to its schema definition.
+        
+        This function:
+        - Initializes the field when missing.
+        - Skips fields that are internal (names starting with "_") or marked `no_update`.
+        - If the field's type is a ParsedSchemaClass, recursively updates its nested structure (inheriting defaults from the parent).
+        - If the field is a list or dict whose element/value type is a ParsedSchemaClass, iterates each element/value and recursively updates each item with its own phase.
+        - Otherwise treats the field as a leaf (primitive or container of primitives) and delegates to `_update_field` to request/apply updates.
+        
+        Parameters:
+            parent_path (str): Dot-separated path of the parent object (empty for top-level).
+            parent_data (dict): The parent data object containing the field.
+            field_def (ParsedSchemaField): Schema definition for the field to process.
+            formatted_data (FormattedData): Formatted representation of the current data used for prompt generation and marking.
+            unexpanded_formatted_data (FormattedData): Unexpanded formatted data used when generating prompts that require raw content.
+            parent_schema_class (ParsedSchemaClass): Schema class of the parent, used for inheriting defaults for nested schemas.
+            parent_keys (list): List of keys representing the path to the parent within the formatted data structure.
         """
         field_name = field_def.name
         full_path = f"{parent_path}.{field_name}" if parent_path else field_name
@@ -1350,9 +1383,12 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ) -> bool:
         """
-        Asks the LLM a Yes/No question to determine if this branch needs processing.
+        Decides whether a branch should be processed by asking the LLM a gate-check question.
+        
+        If the rendered gate-check prompt is empty or missing, this function defaults to allowing processing. It sends the prompt to the LLM and treats a stop reason of `"NO"` or `"UNCHANGED"`, a response that begins with `"NO"`, or any response containing `"UNCHANGED"` as a decision to skip the branch; all other responses are treated as a decision to process the branch.
+        
         Returns:
-            out (bool): `True` if the branch should be processed, `False` if the branch should be skipped.
+            `true` if the branch should be processed, `false` otherwise.
         """
         gate_check_prompt = self._create_update_prompt(
             item_name=branch_name,
@@ -1434,9 +1470,10 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ) -> bool:
         """
-        Asks the LLM to rewrite the entire JSON object for the branch.
+        Request the LLM to produce a complete replacement for the branch's dictionary and apply it when the result differs.
+        
         Returns:
-            out (bool): `True` if the branch was updated, `False` if not.
+            True if the branch was updated or a valid identical dictionary was returned, False otherwise.
         """
         print(f"{_INPUT}Attempting direct update for branch '{branch_name}'...{_RESET}")
 
@@ -1487,10 +1524,21 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ):
         """
-        Performs the "Diff" strategy:
-        1. Asks "Are there changes?"
-        2. If YES, asks "List the changes (path, value)"
-        3. Applies changes relative to this branch
+        Query a branch to determine whether it needs updates and, if so, request a list of field changes from the LLM and apply those updates to the branch data.
+        
+        This function performs three high-level steps:
+        1. Ask the LLM (using query_template) whether the branch contains changes.
+        2. If changes are indicated, request a list of updates (path, value) using update_template.
+        3. Parse the LLM response and apply each update to `data` relative to this branch.
+        
+        Parameters:
+            branch_name (str): Logical name of the branch being queried (used in prompts and phase IDs).
+            data (dict): The branch's data structure to be modified in-place by applied updates.
+            formatted_data (FormattedData): Contextual, pre-formatted representation of the branch used to build prompts.
+            query_template (str): Prompt template used to ask whether changes exist for this branch.
+            update_template (str): Prompt template used to request the list of field updates when changes are detected.
+            schema_class (ParsedSchemaClass): Schema metadata used to build and validate prompts and examples.
+            keys (list): Path keys identifying this branch within the larger data structure (used when constructing prompts).
         """
         # --- Step 1: Query ---
         branch_query_prompt = self._create_update_prompt(
@@ -1619,10 +1667,17 @@ Respond with ONLY the JSON object for this arc."""
         do_inherit_triggers: bool = False,
         depth: int = -1,
     ):
-        """Recursively retrieve nested fields in a parent field, ending on the field holding the final schema field class.
-
-        Example:
-            ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='dataclass') => ParsedSchemaField(type=ParsedSchemaClass(type='dataclass'))
+        """
+        Traverse alias-wrapped schema layers to locate and return the innermost schema field that holds the final (non-alias) schema type.
+        
+        Parameters:
+            target_schema_class (ParsedSchemaClass): Starting schema class to traverse. Traversal proceeds through alias wrappers whose `. _field.type` is another `ParsedSchemaClass`.
+            defaults_to_inherit (list[str] | None): Names of default attributes to inherit from parent schemas when creating effective intermediate schema copies; passed to `_inherit_defaults_from_parent`.
+            do_inherit_triggers (bool): If True, merge trigger mappings from parent schemas into intermediate effective schema copies.
+            depth (int): Maximum alias-wrapping levels to traverse. A value of -1 means no limit; a non-negative integer stops traversal after that many alias hops.
+        
+        Returns:
+            ParsedSchemaField: The schema field object (`_field`) from the deepest inspected schema class (the field that holds the final schema type).
         """
         effective_child_schema = target_schema_class
         i = 0
@@ -1706,22 +1761,25 @@ Respond with ONLY the JSON object for this arc."""
         context_marker_path_override: str | None = None,
         entry_name_for_prompt: str | None = None,
     ) -> Any:
-        """Core helper to get an updated value from the LLM for a given field or branch.
-
-        Args:
-            item_name_prefix (str): Prefix for the item name (e.g., "CharacterName").
-            field_name (str): Name of the field being updated.
-            current_value (Any): The current value of the field.
-            formatted_data (FormattedData): Formatted data for LLM context.
-            prompt_template_str (str): The prompt template string to use.
-            expected_type (type): The expected Python type of the updated value.
-            target_schema_or_type (ParsedSchemaClass, optional): Schema for snippet/example.
-            keys (list, optional): Path keys to the current data level. Defaults to [].
-            context_marker_path_override (str, optional): Override path for context marking. Defaults to None.
-            entry_name_for_prompt (str, optional): Name of the new entry if generating one.
-
+        """
+        Request an updated value for a field from the LLM, parse and validate the response, and return the updated value (with retries on parse/validation failures).
+        
+        Attempts to assemble a prompt from `prompt_template_str`, call the LLM, and convert or validate the response to `expected_type`. Retries on parsing or schema validation errors up to a small limit; returns the original `current_value` if the update is aborted, a stop signal is received, or retries are exhausted.
+        
+        Parameters:
+            item_name_prefix (str): Identifier or path prefix for the item being updated (used for prompt/context).
+            field_name (str): Name of the specific field to update (empty when updating a whole branch).
+            current_value (Any): Current value present in the data; used as a fallback and for context selection.
+            formatted_data (FormattedData): Context wrapper used to mark and format the current data for the prompt.
+            prompt_template_str (str): Template used to build the LLM prompt (may be augmented with validation feedback on retries).
+            expected_type (type): The Python type the returned value should conform to (e.g., int, dict, list, or typing hints).
+            target_schema_or_type (ParsedSchemaClass | None): Optional schema used to validate complex structured responses.
+            keys (list): Path keys to the current data location (used when assembling the prompt).
+            context_marker_path_override (str | None): Optional override path used for marking context instead of the default.
+            entry_name_for_prompt (str | None): Optional entry name included in the prompt when generating new dictionary entries.
+        
         Returns:
-            out: The potentially updated value, or the original value if no update or an error.
+            The parsed and validated updated value (converted to the requested type when possible). If no valid update is produced, or on stop/error conditions, returns the original `current_value`.
         """
         try:
             context_path_for_marker = context_marker_path_override
