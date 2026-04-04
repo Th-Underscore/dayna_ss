@@ -683,7 +683,7 @@ class Summarizer:
                     name2 = state["name2"] or "Assistant"
 
                     instr_path = history_path / "instructions.json"
-                    instructions: dict[str, str] = load_json(instr_path)
+                    instructions: dict[str, str] = load_json(instr_path) or {}
 
                     model: LlamaServer = shared.model
 
@@ -730,7 +730,7 @@ class Summarizer:
                                         f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                                     )
 
-                                    instr, _ = self.generate_with_sse(
+                                    instr, status = self.generate_with_sse(
                                         prompt=prompt,
                                         state=custom_state,
                                         phase_id="instr_prompt",
@@ -741,6 +741,11 @@ class Summarizer:
                                     if shared.stop_everything:
                                         print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
                                         pm.done_phase("instr_prompt", "Stopped")
+                                        return user_input, state, history_path, None
+
+                                    if status == "error" or not instr:
+                                        print(f"{_ERROR}Instruction generation failed or returned empty result{_RESET}")
+                                        pm.error_phase("instr_prompt", "Failed to generate instructions")
                                         return user_input, state, history_path, None
 
                                     instructions[input_key] = instr
@@ -856,6 +861,7 @@ class Summarizer:
             history[-1][0] = user_input  # TODO: Persist next_scene state for this history_path
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after retrieve_and_format_context in summarize_latest_state.{_RESET}")
+                pm.done_phase("context", "Stopped")
                 pm.end_session()
                 return None
 
@@ -902,6 +908,7 @@ class Summarizer:
                 print(
                     f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}"
                 )
+                pm.done_phase("context", "Missing schemas")
                 pm.end_session()
                 return None
 
@@ -1076,6 +1083,8 @@ class Summarizer:
             print(f"{_ERROR}Error during summarization or metadata update: {str(e)}{_RESET}")
             self.log_activity("Summarization Failed", str(e), "error")
             traceback.print_exc()
+            if pm.active_phase:
+                pm.error_phase(pm.active_phase, str(e))
             pm.end_session()
             return None
 

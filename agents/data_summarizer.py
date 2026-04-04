@@ -1811,14 +1811,14 @@ Respond with ONLY the JSON object for this arc."""
             last_error = None
             phase_id = item_name_prefix.lower().replace(" ", "_")
             pm = self._phase_manager
-            field_phase_id = f"{phase_id}.{field_name}".lower() if field_name else phase_id
-            field_phase_name = f"{item_name_prefix}.{field_name}" if field_name else item_name_prefix
+            field_phase_id = f"{phase_id}.{field_name}".lower() if field_name is not None else phase_id
+            field_phase_name = f"{item_name_prefix}.{field_name}" if field_name is not None else item_name_prefix
 
             def _done_field_phase(msg=None):
-                if field_name:
+                if field_name is not None:
                     pm.done_phase(field_phase_id, msg)
 
-            if field_name:
+            if field_name is not None:
                 pm.start_phase(field_phase_id, field_phase_name)
 
             for attempt in range(max_retries + 1):

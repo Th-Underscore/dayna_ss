@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 from .update_queue import get_update_queue
 
 _ALLOWED_ORIGINS = [
-    o.strip() for o in os.environ.get("DSS_ALLOWED_ORIGIN", "http://127.0.0.1:7861").split(",") if o.strip()
+    o.strip() for o in os.environ.get("DSS_ALLOWED_ORIGIN", "http://127.0.0.1:7860").split(",") if o.strip()
 ]
 _SSE_TOKEN = os.environ.get("DSS_SSE_TOKEN", "")
 

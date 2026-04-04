@@ -430,17 +430,6 @@ class PhaseManager:
                 - weighted_completed (float): Sum of completed phase weights, rounded to 1 decimal.
                 - weighted_total (float): Sum of all phase weights.
         """
-        """
-        Compute the session's phase completion progress and weighted progress values.
-        
-        Returns:
-            progress (dict): Progress snapshot containing:
-                - completed (int): Number of phases marked completed.
-                - total (int): Total number of phases in the session.
-                - percent (float): Overall completion percentage based on weights, rounded to 1 decimal (0–100).
-                - weighted_completed (float): Sum of completed phase weights, rounded to 1 decimal.
-                - weighted_total (float): Sum of all phase weights.
-        """
         total = len(self._phases)
         completed = len(self._completed_phases)
         percent = (self._completed_weight / self._total_weight * 100) if self._total_weight > 0 else 0
@@ -484,7 +473,7 @@ class PhaseManager:
             return time.time() - start_time
         return 0.0
 
-    def _generate_step_title(self, phase_id: str, step_id: str, data: dict = None) -> str:
+    def _generate_step_title(self, phase_id: str, step_id: str, data: dict | None = None) -> str:
         """
         Constructs a human-readable title for a step within a phase.
         
