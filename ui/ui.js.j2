@@ -38,11 +38,18 @@
         var sessionInfo = document.getElementById('dss-session-info');
 
         if (!debugEl || !sessionInfo) {
-            console.log('[DSS SSE] Elements not found, retrying in 1s...');
+            if (initSSE._retryCount === undefined) initSSE._retryCount = 0;
+            initSSE._retryCount++;
+            if (initSSE._retryCount > 30) {
+                console.error('[DSS SSE] Giving up after 30 retries - DOM elements not found');
+                return;
+            }
+            console.log('[DSS SSE] Elements not found, retrying in 1s... (attempt ' + initSSE._retryCount + ')');
             setTimeout(initSSE, 1000);
             return;
         }
 
+        initSSE._retryCount = 0;
         debugEl.textContent = 'JS LOADED - checking server at ' + HEALTH_URL + '...';
         debugEl.style.color = '#ffaa00';
         console.log('[DSS SSE] Panel found, health check...');
@@ -139,7 +146,7 @@
                 step.message = '';
                 step.data = null;
                 step._domCreated = false;
-                var oldEl = document.getElementById('dss-step-' + pid + '-' + sid);
+                var oldEl = document.getElementById('dss-step-' + sanitizeId(pid) + '-' + sanitizeId(sid));
                 if (oldEl) oldEl.remove();
                 createStepElement(pid, step);
             }
@@ -257,10 +264,16 @@
         return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
+    function sanitizeId(s) {
+        if (!s) return '';
+        return s.replace(/[^A-Za-z0-9\-_]/g, '_');
+    }
+
     // --- DOM Creation ---
 
     function createPhaseElement(pid, name, container) {
-        var existing = document.getElementById('dss-phase-' + pid);
+        var safeId = sanitizeId(pid);
+        var existing = document.getElementById('dss-phase-' + safeId);
         if (existing) return;
 
         var depth = getNestingDepth(pid);
@@ -268,17 +281,22 @@
         var nameStyle = depth === 0 ? 'font-size:13px;' : depth === 1 ? 'font-size:12px;' : 'font-size:11px;';
 
         var el = document.createElement('div');
-        el.id = 'dss-phase-' + pid;
+        el.id = 'dss-phase-' + safeId;
+        el.dataset.pid = pid;
         el.style.cssText = 'margin-bottom:6px;border-left:3px solid ' + borderColor + ';border-radius:0 6px 6px 0;overflow:hidden;';
 
         var header = document.createElement('div');
-        header.id = 'dss-phase-header-' + pid;
+        header.id = 'dss-phase-header-' + safeId;
         header.style.cssText = 'padding:6px 10px;background:#0d1117;cursor:pointer;';
-        header.setAttribute('onclick', "var c=document.getElementById('dss-toggle-" + pid + "');if(c){c.style.display=c.style.display==='none'?'block':'none';}");
-        header.innerHTML = '<span id="dss-phase-icon-' + pid + '">\u25B6\uFE0F</span> <b style="color:#c9d1d9;' + nameStyle + '">' + escapeHtml(name) + '</b><span id="dss-phase-elapsed-' + pid + '" style="color:#484f58;font-size:11px;margin-left:8px;"></span>';
+        header.innerHTML = '<span id="dss-phase-icon-' + safeId + '">\u25B6\uFE0F</span> <b style="color:#c9d1d9;' + nameStyle + '">' + escapeHtml(name) + '</b><span id="dss-phase-elapsed-' + safeId + '" style="color:#484f58;font-size:11px;margin-left:8px;"></span>';
+        header.addEventListener('click', function () {
+            var c = document.getElementById('dss-toggle-' + safeId);
+            if (c) { c.style.display = c.style.display === 'none' ? 'block' : 'none'; }
+        });
 
         var content = document.createElement('div');
-        content.id = 'dss-toggle-' + pid;
+        content.id = 'dss-toggle-' + safeId;
+        content.dataset.pid = pid;
         content.style.display = 'block';
         content.style.padding = '6px 10px';
         content.style.background = '#161b22';
@@ -288,7 +306,7 @@
 
         var parentPid = findExistingParentPid(pid);
         if (parentPid) {
-            var parentContent = document.getElementById('dss-toggle-' + parentPid);
+            var parentContent = document.getElementById('dss-toggle-' + sanitizeId(parentPid));
             if (parentContent) {
                 parentContent.appendChild(el);
                 return;
@@ -313,25 +331,27 @@
 
         for (var i = parts.length - 1; i > 0; i--) {
             var candidate = parts.slice(0, i).join('');
-            if (document.getElementById('dss-toggle-' + candidate)) return candidate;
+            if (document.getElementById('dss-toggle-' + sanitizeId(candidate))) return candidate;
         }
         return null;
     }
 
     function createStepElement(pid, step) {
         if (step._domCreated) return;
-        var existing = document.getElementById('dss-step-' + pid + '-' + step.id);
+        var safePid = sanitizeId(pid);
+        var safeSid = sanitizeId(step.id);
+        var existing = document.getElementById('dss-step-' + safePid + '-' + safeSid);
         if (existing) { step._domCreated = true; return; }
 
-        var contentDiv = document.getElementById('dss-toggle-' + pid);
+        var contentDiv = document.getElementById('dss-toggle-' + safePid);
         if (!contentDiv) return;
 
         var stepRow = document.createElement('div');
-        stepRow.id = 'dss-step-' + pid + '-' + step.id;
+        stepRow.id = 'dss-step-' + safePid + '-' + safeSid;
         stepRow.style.margin = '2px 0';
 
         var icon = document.createElement('span');
-        icon.id = 'dss-step-icon-' + pid + '-' + step.id;
+        icon.id = 'dss-step-icon-' + safePid + '-' + safeSid;
         icon.textContent = '\u25B6\uFE0F';
 
         var title = document.createElement('span');
@@ -339,15 +359,15 @@
         title.textContent = step.title;
 
         var elapsed = document.createElement('span');
-        elapsed.id = 'dss-step-elapsed-' + pid + '-' + step.id;
+        elapsed.id = 'dss-step-elapsed-' + safePid + '-' + safeSid;
         elapsed.style.cssText = 'color:#484f58;font-size:11px;margin-left:4px;';
 
         var msgDiv = document.createElement('div');
-        msgDiv.id = 'dss-step-msg-' + pid + '-' + step.id;
+        msgDiv.id = 'dss-step-msg-' + safePid + '-' + safeSid;
         msgDiv.style.cssText = 'color:#8b949e;font-size:11px;padding-left:16px;white-space:pre-wrap;word-break:break-word;';
 
         var dataDiv = document.createElement('div');
-        dataDiv.id = 'dss-step-data-' + pid + '-' + step.id;
+        dataDiv.id = 'dss-step-data-' + safePid + '-' + safeSid;
         dataDiv.style.paddingLeft = '16px';
 
         stepRow.appendChild(icon);
@@ -362,14 +382,18 @@
     // --- DOM Updates ---
 
     function appendStepToken(pid, sid, token) {
-        var msgDiv = document.getElementById('dss-step-msg-' + pid + '-' + sid);
+        var safePid = sanitizeId(pid);
+        var safeSid = sanitizeId(sid);
+        var msgDiv = document.getElementById('dss-step-msg-' + safePid + '-' + safeSid);
         if (msgDiv) {
             msgDiv.textContent += token;
         }
     }
 
     function updateStepMessage(pid, sid, message) {
-        var msgDiv = document.getElementById('dss-step-msg-' + pid + '-' + sid);
+        var safePid = sanitizeId(pid);
+        var safeSid = sanitizeId(sid);
+        var msgDiv = document.getElementById('dss-step-msg-' + safePid + '-' + safeSid);
         if (!msgDiv) return;
         var escaped = escapeHtml(message);
         var lines = escaped.split('\n');
@@ -389,15 +413,25 @@
             var displayLines = isExpanded ? lines : lines.slice(-30);
             var displayText = displayLines.join('\n');
             var fadeHtml = !isExpanded ? '<div style="position:absolute;top:0;left:0;right:0;height:30px;background:linear-gradient(#161b22,transparent);pointer-events:none;"></div>' : '';
-            msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + stepUid + '">' + fadeHtml + displayText + '</div>' +
-                '<a href="javascript:void(0)" onclick="event.preventDefault();window.__dss.expanded[\'' + stepUid + '\']=!window.__dss.expanded[\'' + stepUid + '\'];window.__dss.updateStepMessage(\'' + pid + '\',\'' + sid + '\',window.__dss.getStepMessage(\'' + pid + '\',\'' + sid + '\'));return false;" style="color:#58a6ff;font-size:10px;">' + (isExpanded ? 'Show less' : 'Show all (' + lines.length + ' lines)') + '</a></div>';
+            msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + sanitizeId(stepUid) + '">' + fadeHtml + displayText + '</div>' +
+                '<a href="javascript:void(0)" style="color:#58a6ff;font-size:10px;">' + (isExpanded ? 'Show less' : 'Show all (' + lines.length + ' lines)') + '</a></div>';
+            var toggleLink = msgDiv.querySelector('a');
+            if (toggleLink) {
+                toggleLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    expandedMessages[stepUid] = !expandedMessages[stepUid];
+                    updateStepMessage(pid, sid, step ? step.message : '');
+                });
+            }
         } else {
             msgDiv.innerHTML = escaped;
         }
     }
 
     function updateStepDataContent(pid, sid, data) {
-        var dataDiv = document.getElementById('dss-step-data-' + pid + '-' + sid);
+        var safePid = sanitizeId(pid);
+        var safeSid = sanitizeId(sid);
+        var dataDiv = document.getElementById('dss-step-data-' + safePid + '-' + safeSid);
         if (!dataDiv) return;
         if (data && data.updates && data.updates.length > 0) {
             dataDiv.innerHTML = renderUpdateList(data.updates, pid + '-' + sid + '-0', data.raw_json, pid, sid);
@@ -405,28 +439,34 @@
     }
 
     function markStepDone(pid, sid) {
-        var icon = document.getElementById('dss-step-icon-' + pid + '-' + sid);
+        var safePid = sanitizeId(pid);
+        var safeSid = sanitizeId(sid);
+        var icon = document.getElementById('dss-step-icon-' + safePid + '-' + safeSid);
         if (icon) icon.textContent = '\u2705';
     }
 
     function updateStepElapsed(pid, sid, elapsed) {
-        var el = document.getElementById('dss-step-elapsed-' + pid + '-' + sid);
+        var safePid = sanitizeId(pid);
+        var safeSid = sanitizeId(sid);
+        var el = document.getElementById('dss-step-elapsed-' + safePid + '-' + safeSid);
         if (el) el.textContent = ' (' + elapsed.toFixed(1) + 's)';
     }
 
     function markPhaseDone(pid, elapsed, skipped) {
-        var icon = document.getElementById('dss-phase-icon-' + pid);
+        var safePid = sanitizeId(pid);
+        var icon = document.getElementById('dss-phase-icon-' + safePid);
         if (icon) icon.textContent = skipped ? '\u23ED\uFE0F' : '\u2705';
-        var elapsedEl = document.getElementById('dss-phase-elapsed-' + pid);
+        var elapsedEl = document.getElementById('dss-phase-elapsed-' + safePid);
         if (elapsedEl && elapsed) elapsedEl.textContent = ' (' + elapsed.toFixed(1) + 's)';
-        var content = document.getElementById('dss-toggle-' + pid);
+        var content = document.getElementById('dss-toggle-' + safePid);
         if (content) content.style.display = 'none';
     }
 
     function markPhaseError(pid, error) {
-        var icon = document.getElementById('dss-phase-icon-' + pid);
+        var safePid = sanitizeId(pid);
+        var icon = document.getElementById('dss-phase-icon-' + safePid);
         if (icon) icon.textContent = '\u274C';
-        var content = document.getElementById('dss-toggle-' + pid);
+        var content = document.getElementById('dss-toggle-' + safePid);
         if (content) content.style.display = 'none';
     }
 
@@ -465,13 +505,14 @@
         for (var p = 0; p < pids.length; p++) {
             var pid = pids[p];
             var phase = phases[pid];
-            var el = document.getElementById('dss-phase-' + pid);
+            var safePid = sanitizeId(pid);
+            var el = document.getElementById('dss-phase-' + safePid);
             if (!el) {
                 createPhaseElement(pid, phase.name, phasesDiv);
             } else {
                 var parentPid = findExistingParentPid(pid);
                 if (parentPid) {
-                    var parentContent = document.getElementById('dss-toggle-' + parentPid);
+                    var parentContent = document.getElementById('dss-toggle-' + sanitizeId(parentPid));
                     if (parentContent && el.parentNode !== parentContent) {
                         parentContent.appendChild(el);
                     }
@@ -482,7 +523,8 @@
             var steps = phase.steps || [];
             for (var i = 0; i < steps.length; i++) {
                 var step = steps[i];
-                var stepRow = document.getElementById('dss-step-' + pid + '-' + step.id);
+                var safeSid = sanitizeId(step.id);
+                var stepRow = document.getElementById('dss-step-' + safePid + '-' + safeSid);
                 if (!stepRow) {
                     createStepElement(pid, step);
                 }

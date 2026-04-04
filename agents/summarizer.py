@@ -159,7 +159,7 @@ class Summarizer:
 
         # Real-time UI update system
         self._update_queue = get_update_queue()
-        self._phase_manager = PhaseManager(queue=self._update_queue)
+        self._phase_manager: PhaseManager | None = None
 
     def _init_tool_registry(self) -> None:
         """Initialize DSS tool executors for TGWUI's native tool system."""
@@ -243,118 +243,13 @@ class Summarizer:
         state: dict,
         history_path: Path | None = None,
         stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
-def generate_using_tgwui(
-        self,
-        prompt: str,
-        state: dict,
-        history_path: Path | None = None,
-        stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
         match_prefix_only: bool = True,
         **kwargs,
     ) -> tuple[str, str]:
-        """
-        Generate a response from the configured TGWUI model, using the active tool loop or passive summarization stream based on retrieval mode.
-        
-        This captures model stderr output to a temporary buffer and appends an internal debug dump (context, history, prompt, final text, and trailing stderr) to a dump.txt file adjacent to the provided history path when available. Generation stops when a configured stopping string is emitted, a tool call handoff occurs, the tool-call limit is reached, or global cancellation is requested.
-        
-        Parameters:
-            prompt (str): The prompt to give to the LLM.
-            state (dict): The state dictionary to generate context with.
-            history_path (Path | None): Directory used for writing debug dump files; defaults to the last known history path.
-            stopping_strings (list[str] | None): Strings that, when produced by the model, signal generation should stop; comparisons may be prefix-only depending on match_prefix_only.
-            match_prefix_only (bool): If True, stopping strings are matched only against the start of the generated text (after left-stripping); if False, stopping strings are searched anywhere in the text.
-            **kwargs: Additional arguments forwarded to the underlying generation routine.
-        
-        Returns:
-            tuple[str, str]: (response_text, stop_reason) where `response_text` is the final trimmed generated text, and `stop_reason` is the stopping token that terminated generation or an empty string if none.
-        """
-        **kwargs,
-    ) -> tuple[str, str]:
-        """
-        Generate a response from the configured TGWUI model, using the active tool loop or passive summarization stream based on retrieval mode.
-        
-        This captures model stderr output to a temporary buffer and appends an internal debug dump (context, history, prompt, final text, and trailing stderr) to a dump.txt file adjacent to the provided history path when available. Generation stops when a configured stopping string is emitted, a tool call handoff occurs, the tool-call limit is reached, or global cancellation is requested.
-        
-        Parameters:
-        	history_path (Path | None): Directory used for writing debug dump files; defaults to the last known history path.
-        	stopping_strings (list[str] | None): Strings that, when produced by the model, signal generation should stop; comparisons may be prefix-only depending on match_prefix_only.
-        	match_prefix_only (bool): If True, stopping strings are matched only against the start of the generated text (after left-stripping); if False, stopping strings are searched anywhere in the text.
-        
-        Returns:
-        	(response_text, stop_reason): response_text is the final trimmed generated text; stop_reason is the stopping token that terminated generation or an empty string if none.
-        """
-        if not history_path:
-            history_path = self.last.history_path
-        try:
-            dump_str = (
-                f"\n\n==========================\n"
-                f"==========================\n"
-                f"========================== INTERNAL CONTEXT ({self.hash_key(state['context'])})\n\n"
-                f"{state['context']}"
-                f"\n\n==========================\n"
-                f"========================== INTERNAL HISTORY ({self.hash_key(state['history']['internal'])})\n\n"
-                f"{json.dumps(state['history']['internal'], indent=2)}"
-                f"\n\n==========================\n"
-                f"========================== NEW PROMPT\n\n"
-                f"{prompt}"
-            )
-            # print(f"{_GRAY}{dump_str}{_RESET}")
-            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
-                f.write(dump_str)
-                f.close()
-        except Exception as e:
-            print(f"{_ERROR}Error writing to history file: {str(e)}{_RESET}")
-            traceback.print_exc()
-        text = ""
-        stop = ""
-        if shared.stop_everything:
-            return "", ""
-
-        # Capture the output
-        capture_buffer = io.StringIO()
-        use_tool_loop = self.retrieval_mode == "active"
-
-        with redirect_stderr(DualStream(sys.stderr, capture_buffer)):  # redirect_stdout(DualStream(sys.stdout, capture_buffer))
-            if use_tool_loop:
-                for t, s in self.generate_with_tool_loop(
-                    prompt,
-                    state,
-                    stopping_strings,
-                    match_prefix_only=match_prefix_only,
-                    **kwargs,
-                ):
-                    if shared.stop_everything:
-                        return text, stop
-                    text = t
-                    stop = s
-                    if s and s not in ("tool_call", ""):
-                        break
-            else:
-                for t, s in self.generate_summary_with_streaming(
-                    prompt,
-                    state,
-                    stopping_strings,
-                    match_prefix_only=match_prefix_only,
-                    **kwargs,
-                ):
-                    if shared.stop_everything:
-                        return text, stop
-                    text = t
-                    stop = s
-        if shared.stop_everything:
-            return text, stop
-        text = text.strip()
-        try:
-            string = capture_buffer.getvalue()
-            string = string[string.rfind("\r") :].strip()
-            dump_str = f"\n\n==========================\n\n{text}\n\n" f"==========================\n\n{string}"
-            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
-                f.write(dump_str)
-                f.close()
-        except Exception as e:
-            print(f"{_ERROR}Error writing to history file: {str(e)}{_RESET}")
-            traceback.print_exc()
-        return text, stop
+        """Deprecated. Use generate_with_sse for real-time UI updates."""
+        default_phase = "legacy"
+        default_step = "generate"
+        return self.generate_with_sse(prompt, state, default_phase, default_step, history_path, stopping_strings, match_prefix_only, **kwargs)
 
     def generate_with_sse(
         self,
@@ -450,15 +345,16 @@ def generate_using_tgwui(
                     break
 
         except Exception as e:
-            print(f"{_ERROR}Error in generate_with_sse: {str(e)}{_RESET}")
+            error_msg = f"Error in generate_with_sse: {str(e)}"
+            print(f"{_ERROR}{error_msg}{_RESET}")
             traceback.print_exc()
             self._update_queue.publish({
                 "type": "step_update",
                 "phase": {"id": phase_id},
                 "step": {"id": step_id, "message": f"Error: {str(e)}"},
             })
+            return "", "error"
 
-        # Emit any remaining text
         if len(text) > last_emit_len:
             snippet = text[last_emit_len:]
             self._update_queue.publish({
@@ -750,192 +646,179 @@ def generate_using_tgwui(
         print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
         self.log_activity("Generating Instructions", "Preparing context", "info")
 
+        self._phase_manager = PhaseManager(queue=self._update_queue)
         pm = self._phase_manager
         pm.start_phase("instr_prompt", "Instruction Generation")
 
-        pm.start_step("instr_prompt", "context", "Preparing context...")
-        user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
-        pm.done_step("instr_prompt", "context", "Context prepared")
-        custom_state = copy.deepcopy(custom_state_ref)
-        history_path = self.last.history_path
+        try:
+            pm.start_step("instr_prompt", "context", "Preparing context...")
+            user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
+            pm.done_step("instr_prompt", "context", "Context prepared")
+            custom_state = copy.deepcopy(custom_state_ref)
+            history_path = self.last.history_path
 
-        if shared.stop_everything:
-            print(f"{_HILITE}Stop signal received after prepare_context in generate_instr_prompt.{_RESET}")
-            return user_input, state, history_path, None
-
-        # Get current timestamp for saving message chunks
-        current_timestamp_str = datetime.now().isoformat()  # Default timestamp
-        if self.last and self.last.context:
-            retrieval_ctx: RetrievalContext = self.last.context[0]
-            if retrieval_ctx and retrieval_ctx.current_scene:
-                scene_time_data = retrieval_ctx.current_scene.get("now", retrieval_ctx.current_scene.get("start", {})).get(
-                    "when", {}
-                )
-                if scene_time_data.get("specific_time") and scene_time_data.get("date"):
-                    current_timestamp_str = f"{scene_time_data['date']}T{scene_time_data['specific_time']}"
-                elif scene_time_data.get("date"):
-                    current_timestamp_str: str = scene_time_data["date"]
-
-        user_input_message_idx = len(history) * 2
-
-        if history_path:
-            """Get the current state of the story summary."""
-            try:
-                # # Check if there is a cached KV state for this prompt
-                # cached_kv = self.vram_manager.get_context_cache()
-                # if cached_kv is not None:
-                #     print(f"{_SUCCESS}Found cached KV state{_RESET}")
-                #     print(f"{_SUCCESS}Cache ready for current position{_RESET}")
-
-                user_input_prompt = f'This is the latest user input:\n\n"""\n{user_input}\n"""\n\n'
-                name1 = state["name1"] or "User"
-                name2 = state["name2"] or "Assistant"
-
-                instr_path = history_path / "instructions.json"
-                instructions: dict[str, str] = load_json(instr_path)
-
-                # Get shared model (LlamaServer)
-                model: LlamaServer = shared.model
-
-                # Use existing instruction prompt
-                original_seed = state["seed"]  # Randomize seed before passing to text-generation-webui
-                if original_seed == -1:
-                    state["seed"] = random.randint(1, 2**31)
-                    print(f"{_BOLD}New seed{_RESET}: {state['seed']}")
-                self.last.original_seed = original_seed
-                input_key = str(state["seed"])
-
-                print(f"{_HILITE}input_key{_RESET}: {input_key}")
-                instr = ""
-                # input_key = self.hash_key(user_input + shared.model_name)
-                if input_key in instructions:
-                    instr: str = instructions[input_key]
-                    print(f"{_SUCCESS}Found cached instruction prompt{_RESET}")
-                    pm.start_step("instr_prompt", "cache_hit", "Loaded cached instructions")
-                    pm.done_step("instr_prompt", "cache_hit", f"Loaded {len(instr)} chars from cache")
-                else:
-                    # Generate prompt using LLM
-                    try:
-                        if model is not None:
-                            # Create custom state for summary generation
-                            print(f"{_SUCCESS}State set{_RESET}")
-
-                            if kwargs.get("do_instr", False):
-                                # Generate instruction
-                                prompt = (
-                                    f"{user_input_prompt}\n\n"
-                                    f"You are to generate instructions for {name2}'s response to '{name1}'. These instructions will be given directly to {name2}.\n"
-                                    f"The instructions must guide {name2} on what to say or do, following the tone of the latest messages, and should be detailed and specific.\n\n"
-                                    f"FORMATTING REQUIREMENTS:\n"
-                                    f"- Present the instructions as a series of plain text paragraphs.\n"
-                                    f"- Each paragraph should represent a distinct part of the response plan.\n"
-                                    # f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
-                                    f"Example of desired output structure (imagine these are the instructions):\n"
-                                    f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
-                                    f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
-                                    f"Remember: The above is an example. In a narrative context, explicitly acknowledging {name1}'s input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
-                                    f"INSTRUCTION CONTENT:\n"
-                                    f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
-                                    f"2. Be specific, detailing each step.\n"
-                                    f"3. You are providing instructions FOR the response, not writing the response itself.\n"
-                                    f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
-                                    f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
-                                    f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
-                                    f"7. IMPORTANT: Remind {name2} not to recap {name1}'s input in the response. Even if necessary to clarify {name1}'s intent, remember: Show, don't tell.\n"
-                                    f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
-                                    f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
-                                )
-
-                                instr, _ = self.generate_with_sse(
-                                    prompt=prompt,
-                                    state=custom_state,
-                                    phase_id="instr_prompt",
-                                    step_id="generate_instructions",
-                                    history_path=history_path,
-                                    match_prefix_only=False,
-                                )
-                                if shared.stop_everything:
-                                    print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
-                                    pm.done_phase("instr_prompt", "Stopped")
-                                    return user_input, state, history_path, None
-
-                                instructions[input_key] = instr
-                                print(f"{_HILITE}Instruction:{_RESET} {instr}")
-                                save_json(instructions, instr_path)  # Persist instruction prompt for regenerations
-
-                            # # Save the KV cache for this instruction generation if not already saved
-                            # self.vram_manager.save_context_cache()
-                            # self.vram_manager.increment_position()
-                    except Exception as e:
-                        print(f"{_ERROR}Error generating instruction: {str(e)}{_RESET}")
-                        traceback.print_exc()
-                        return user_input, state, history_path, None
-
-                # TODO: Get output gen params from config (ui_parameters)
-                # Generate instruction prompt
-                instr_prompt = ""
-                if kwargs.get("do_instr", False):
-                    # TODO: Include additional user instructions from UI blocks
-                    full_instr = instr
-                    instr_prompt = (
-                        f"{user_input_prompt}\n\n"
-                        f'You are to write a reply in character as "{name2}".\n'
-                        f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
-                        f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
-                        f"Adhere loosely to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
-                        f"Your reply must be natural-sounding prose.\n\n" #ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
-                        f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
-                    )
-                else:
-                    pm.start_step("instr_prompt", "skip", "Instruction generation disabled")
-                    pm.done_step("instr_prompt", "skip", "Skipped")
-                    instr_prompt = (
-                        f"{user_input_prompt}\n\n"
-                        f'You are to write a reply in character as "{name2}".\n'
-                        f"Your reply must be natural-sounding prose.\n\n" #ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
-                        f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
-                    )
-                encoded_instr_prompt = (
-                    encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
-                )
-                print(
-                    f"{_SUCCESS}Encoded instruct prompt: {True if model.__class__.__name__ != 'LlamaServer' else False}{_RESET}"
-                )
-
-                print(f"{_SUCCESS}State set{_RESET}")
-
-                try:
-                    with open(history_path.parent / "dump.txt", "w", encoding="utf-8") as f:
-                        dump_str = str(json.dumps(kwargs, indent=2))
-                        dump_str += "\n\n========================== CUSTOM STATE\n\n"
-                        dump_str += str(json.dumps(custom_state, indent=2))
-                        dump_str += "\n\n========================== ORIGINAL STATE\n\n"
-                        dump_str += str(json.dumps(state, indent=2))
-                        dump_str += "\n\n==========================\n\n"
-                        dump_str += str(instr)
-                        dump_str += "\n\n==========================\n\n"
-                        dump_str += str(instr_prompt)
-                        dump_str += "\n\n==========================\n"
-                        f.write(dump_str)
-                        f.close()
-                except Exception as e:
-                    print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
-                    traceback.print_exc()
-
-                print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
-                self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
-                pm.done_phase("instr_prompt", "Instructions ready")
-                return (
-                    encoded_instr_prompt,
-                    custom_state,
-                    history_path,
-                    current_timestamp_str,
-                )
-            except Exception as e:
-                print(f"{_ERROR}Error in get_summary_state: {str(e)}{_RESET}")
-                self.log_activity("Instruction Gen Failed", str(e), "error")
-                traceback.print_exc()
+            if shared.stop_everything:
+                print(f"{_HILITE}Stop signal received after prepare_context in generate_instr_prompt.{_RESET}")
+                pm.done_phase("instr_prompt", "Stopped")
                 return user_input, state, history_path, None
+
+            current_timestamp_str = datetime.now().isoformat()
+            if self.last and self.last.context:
+                retrieval_ctx: RetrievalContext = self.last.context[0]
+                if retrieval_ctx and retrieval_ctx.current_scene:
+                    scene_time_data = retrieval_ctx.current_scene.get("now", retrieval_ctx.current_scene.get("start", {})).get(
+                        "when", {}
+                    )
+                    if scene_time_data.get("specific_time") and scene_time_data.get("date"):
+                        current_timestamp_str = f"{scene_time_data['date']}T{scene_time_data['specific_time']}"
+                    elif scene_time_data.get("date"):
+                        current_timestamp_str: str = scene_time_data["date"]
+
+            user_input_message_idx = len(history) * 2
+
+            if history_path:
+                try:
+                    user_input_prompt = f'This is the latest user input:\n\n"""\n{user_input}\n"""\n\n'
+                    name1 = state["name1"] or "User"
+                    name2 = state["name2"] or "Assistant"
+
+                    instr_path = history_path / "instructions.json"
+                    instructions: dict[str, str] = load_json(instr_path)
+
+                    model: LlamaServer = shared.model
+
+                    original_seed = state["seed"]
+                    if original_seed == -1:
+                        state["seed"] = random.randint(1, 2**31)
+                        print(f"{_BOLD}New seed{_RESET}: {state['seed']}")
+                    self.last.original_seed = original_seed
+                    input_key = str(state["seed"])
+
+                    print(f"{_HILITE}input_key{_RESET}: {input_key}")
+                    instr = ""
+                    if input_key in instructions:
+                        instr: str = instructions[input_key]
+                        print(f"{_SUCCESS}Found cached instruction prompt{_RESET}")
+                        pm.start_step("instr_prompt", "cache_hit", "Loaded cached instructions")
+                        pm.done_step("instr_prompt", "cache_hit", f"Loaded {len(instr)} chars from cache")
+                    else:
+                        try:
+                            if model is not None:
+                                print(f"{_SUCCESS}State set{_RESET}")
+
+                                if kwargs.get("do_instr", False):
+                                    prompt = (
+                                        f"{user_input_prompt}\n\n"
+                                        f"You are to generate instructions for {name2}'s response to '{name1}'. These instructions will be given directly to {name2}.\n"
+                                        f"The instructions must guide {name2} on what to say or do, following the tone of the latest messages, and should be detailed and specific.\n\n"
+                                        f"FORMATTING REQUIREMENTS:\n"
+                                        f"- Present the instructions as a series of plain text paragraphs.\n"
+                                        f"- Each paragraph should represent a distinct part of the response plan.\n"
+                                        f"Example of desired output structure (imagine these are the instructions):\n"
+                                        f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
+                                        f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
+                                        f"Remember: The above is an example. In a narrative context, explicitly acknowledging {name1}'s input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
+                                        f"INSTRUCTION CONTENT:\n"
+                                        f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
+                                        f"2. Be specific, detailing each step.\n"
+                                        f"3. You are providing instructions FOR the response, not writing the response itself.\n"
+                                        f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
+                                        f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
+                                        f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
+                                        f"7. IMPORTANT: Remind {name2} not to recap {name1}'s input in the response. Even if necessary to clarify {name1}'s intent, remember: Show, don't tell.\n"
+                                        f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
+                                        f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
+                                    )
+
+                                    instr, _ = self.generate_with_sse(
+                                        prompt=prompt,
+                                        state=custom_state,
+                                        phase_id="instr_prompt",
+                                        step_id="generate_instructions",
+                                        history_path=history_path,
+                                        match_prefix_only=False,
+                                    )
+                                    if shared.stop_everything:
+                                        print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
+                                        pm.done_phase("instr_prompt", "Stopped")
+                                        return user_input, state, history_path, None
+
+                                    instructions[input_key] = instr
+                                    print(f"{_HILITE}Instruction:{_RESET} {instr}")
+                                    save_json(instructions, instr_path)
+
+                        except Exception as e:
+                            print(f"{_ERROR}Error generating instruction: {str(e)}{_RESET}")
+                            traceback.print_exc()
+                            pm.error_phase("instr_prompt", str(e))
+                            return user_input, state, history_path, None
+
+                    instr_prompt = ""
+                    if kwargs.get("do_instr", False):
+                        full_instr = instr
+                        instr_prompt = (
+                            f"{user_input_prompt}\n\n"
+                            f'You are to write a reply in character as "{name2}".\n'
+                            f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
+                            f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
+                            f"Adhere loosely to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
+                            f"Your reply must be natural-sounding prose.\n\n"
+                            f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
+                        )
+                    else:
+                        pm.start_step("instr_prompt", "skip", "Instruction generation disabled")
+                        pm.done_step("instr_prompt", "skip", "Skipped")
+                        instr_prompt = (
+                            f"{user_input_prompt}\n\n"
+                            f'You are to write a reply in character as "{name2}".\n'
+                            f"Your reply must be natural-sounding prose.\n\n"
+                            f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
+                        )
+                    encoded_instr_prompt = (
+                        encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
+                    )
+                    print(
+                        f"{_SUCCESS}Encoded instruct prompt: {True if model.__class__.__name__ != 'LlamaServer' else False}{_RESET}"
+                    )
+
+                    print(f"{_SUCCESS}State set{_RESET}")
+
+                    try:
+                        with open(history_path.parent / "dump.txt", "w", encoding="utf-8") as f:
+                            dump_str = str(json.dumps(kwargs, indent=2))
+                            dump_str += "\n\n========================== CUSTOM STATE\n\n"
+                            dump_str += str(json.dumps(custom_state, indent=2))
+                            dump_str += "\n\n========================== ORIGINAL STATE\n\n"
+                            dump_str += str(json.dumps(state, indent=2))
+                            dump_str += "\n\n==========================\n\n"
+                            dump_str += str(instr)
+                            dump_str += "\n\n==========================\n\n"
+                            dump_str += str(instr_prompt)
+                            dump_str += "\n\n==========================\n"
+                            f.write(dump_str)
+                            f.close()
+                    except Exception as e:
+                        print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
+                        traceback.print_exc()
+
+                    print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
+                    self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
+                    pm.done_phase("instr_prompt", "Instructions ready")
+                    return (
+                        encoded_instr_prompt,
+                        custom_state,
+                        history_path,
+                        current_timestamp_str,
+                    )
+                except Exception as e:
+                    print(f"{_ERROR}Error in get_summary_state: {str(e)}{_RESET}")
+                    self.log_activity("Instruction Gen Failed", str(e), "error")
+                    traceback.print_exc()
+                    pm.error_phase("instr_prompt", str(e))
+                    return user_input, state, history_path, None
+        finally:
+            if pm.active_phase == "instr_prompt":
+                pm.done_phase("instr_prompt", "Completed")
 
     def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # After output
         """
@@ -955,6 +838,7 @@ def generate_using_tgwui(
         print(f"{_HILITE}summarize_message{_RESET}")
         self.log_activity("Summarizing", "Processing latest exchange", "info")
 
+        self._phase_manager = PhaseManager(queue=self._update_queue)
         pm = self._phase_manager
         subject_names = list(self.last.schema_parser.subjects.keys()) if self.last and self.last.schema_parser else []
         print(f"{_DEBUG}[DSS] Starting PhaseManager session with subjects: {subject_names}{_RESET}")
@@ -1011,7 +895,7 @@ def generate_using_tgwui(
             print(f"{_DEBUG}All subjects data: {all_subjects_data.keys()}{_RESET}")
 
             data_summarizer = DataSummarizer(
-                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser, all_subjects_data
+                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser, all_subjects_data, pm
             )
 
             if missing_schemas:

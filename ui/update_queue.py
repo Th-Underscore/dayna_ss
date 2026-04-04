@@ -1,7 +1,7 @@
 """Thread-safe event queue for real-time UI updates via SSE."""
 
-import asyncio
 import json
+import queue
 import threading
 import time
 import uuid
@@ -14,7 +14,7 @@ class UpdateQueue:
 
     Design:
     - Events are published by the Summarizer process (any thread)
-    - Each SSE connection subscribes and receives events via its own asyncio.Queue
+    - Each SSE connection subscribes and receives events via its own queue.Queue
     - Recent events are buffered for new subscribers to catch up
     - Events are serialized to JSON for SSE transmission
     """
@@ -26,7 +26,7 @@ class UpdateQueue:
         Parameters:
             max_buffer (int): Maximum number of past events to retain in the internal buffer; older events are discarded when the buffer exceeds this size. Default is 1000.
         """
-        self._subscribers: dict[str, asyncio.Queue] = {}
+        self._subscribers: dict[str, queue.Queue] = {}
         self._buffer: list[dict] = []
         self._max_buffer = max_buffer
         self._lock = threading.Lock()
@@ -61,11 +61,11 @@ class UpdateQueue:
             # Update state snapshot
             self._update_state(event)
 
-            # Notify all subscribers (non-blocking)
-            for sid, queue in list(self._subscribers.items()):
+            # Notify all subscribers (thread-safe — queue.Queue is inherently thread-safe)
+            for sid, q in list(self._subscribers.items()):
                 try:
-                    queue.put_nowait(serialized)
-                except asyncio.QueueFull:
+                    q.put_nowait(serialized)
+                except queue.Full:
                     print(f"[DSS Queue] Subscriber {sid} queue full, skipping")
 
         print(f"[DSS Queue] Published. Buffer: {len(self._buffer)}, Subscribers: {len(self._subscribers)}")
@@ -81,12 +81,12 @@ class UpdateQueue:
             SubscriberContext: An async context manager and async iterator that yields serialized JSON event strings for the subscriber and automatically unregisters the subscriber when exited or cancelled.
         """
         sub_id = subscriber_id or str(uuid.uuid4())[:8]
-        queue: asyncio.Queue = asyncio.Queue(maxsize=500)
+        q: queue.Queue = queue.Queue(maxsize=500)
 
         with self._lock:
-            self._subscribers[sub_id] = queue
+            self._subscribers[sub_id] = q
 
-        return SubscriberContext(self, sub_id, queue)
+        return SubscriberContext(self, sub_id, q)
 
     def unsubscribe(self, subscriber_id: str) -> None:
         """
@@ -207,64 +207,55 @@ class UpdateQueue:
 
 
 class SubscriberContext:
-    """Async context manager for SSE subscribers."""
+    """Sync context manager for SSE subscribers."""
 
-    def __init__(self, queue: UpdateQueue, sub_id: str, event_queue: asyncio.Queue):
+    def __init__(self, q: UpdateQueue, sub_id: str, event_queue: queue.Queue):
         """
-        Initialize the SubscriberContext that wraps a single subscriber's asyncio event queue.
+        Initialize the SubscriberContext that wraps a single subscriber's event queue.
         
         Parameters:
-            queue (UpdateQueue): Parent UpdateQueue used to unregister the subscriber on exit.
+            q (UpdateQueue): Parent UpdateQueue used to unregister the subscriber on exit.
             sub_id (str): Unique identifier for the subscriber.
-            event_queue (asyncio.Queue): Per-subscriber asyncio.Queue that yields serialized event strings.
+            event_queue (queue.Queue): Per-subscriber queue.Queue that yields serialized event strings.
         """
-        self._queue = queue
+        self._queue = q
         self._sub_id = sub_id
         self._event_queue = event_queue
 
-    async def __aenter__(self):
+    def __enter__(self):
         """
-        Enter the async context and return the subscriber context for consumption.
+        Enter the context and return the subscriber context for consumption.
         
         Returns:
             self (SubscriberContext): The context manager instance used to iterate and receive events.
         """
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb):
         """
-        Unregister the subscriber from the parent UpdateQueue when exiting the async context.
+        Unregister the subscriber from the parent UpdateQueue when exiting the context.
         
         This method always removes the subscriber identified by `self._sub_id` from the parent queue; it does not suppress or modify any exception raised within the context.
         """
         self._queue.unsubscribe(self._sub_id)
 
-    async def __aiter__(self):
-        """
-        Make the object usable as an asynchronous iterator.
-        
-        Returns:
-            The async iterator instance (`self`) for use in `async for` loops.
-        """
+    def __iter__(self):
         return self
 
-    async def __anext__(self):
+    def __next__(self):
         """
         Return the next serialized event string from the subscriber's internal queue.
-        
-        If the awaiting task is cancelled, the subscriber is automatically unsubscribed and iteration stops.
         
         Returns:
             event (str): The next JSON-serialized event string from the subscriber queue.
         
         Raises:
-            StopAsyncIteration: Raised when the subscriber's task is cancelled to terminate iteration.
+            StopIteration: Raised when the subscriber is unsubscribed to terminate iteration.
         """
         try:
-            return await self._event_queue.get()
-        except asyncio.CancelledError:
-            self._queue.unsubscribe(self._sub_id)
-            raise StopAsyncIteration
+            return self._event_queue.get(timeout=30)
+        except queue.Empty:
+            raise StopIteration
 
 
 # Singleton instance

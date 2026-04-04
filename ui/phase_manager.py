@@ -1,7 +1,9 @@
 """Phase manager for tracking summarization progress and emitting UI events."""
 
+import logging
 import time
-from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from .update_queue import get_update_queue
 
@@ -9,6 +11,7 @@ from .update_queue import get_update_queue
 # Phase definitions with weights for progress calculation
 DEFAULT_PHASES = [
     {"id": "init", "name": "Initialization", "weight": 1},
+    {"id": "instr_prompt", "name": "Instruction Generation", "weight": 1},
     {"id": "context", "name": "Context Preparation", "weight": 1},
     {"id": "current_scene", "name": "CurrentScene", "weight": 1},
     {"id": "general_info", "name": "GeneralInfo", "weight": 1},
@@ -81,7 +84,7 @@ class PhaseManager:
         self._session_start: float = 0
         self._phase_start_times: dict[str, float] = {}
 
-    def start_session(self, phases: list[dict] = None, subject_names: list[str] = None) -> None:
+    def start_session(self, phases: list[dict] | None = None, subject_names: list[str] | None = None) -> None:
         """
         Initialize and open a new summarization session, resetting internal tracking and publishing a `session_start` event.
         
@@ -96,7 +99,7 @@ class PhaseManager:
             phases (list[dict] | None): Optional custom list of phase definitions (each must include `id` and `name`; `weight` is optional and defaults to 1).
             subject_names (list[str] | None): Optional list of subject names to generate phase entries (used only when `phases` is not provided).
         """
-        print(f"[DSS Phase] Starting session with subjects: {subject_names}")
+        logger.info("Starting session with subjects: %s", subject_names)
         self._phases = []
         self._phase_lookup = {}
         self._active_phase = None
@@ -142,7 +145,7 @@ class PhaseManager:
             "progress": self._get_progress(),
         })
 
-    def start_phase(self, phase_id: str, name: str = None) -> None:
+    def start_phase(self, phase_id: str, name: str | None = None) -> None:
         """
         Begin tracking a phase and publish a `phase_start` update.
         
@@ -168,7 +171,7 @@ class PhaseManager:
             "queue": self._get_pending(),
         })
 
-    def done_phase(self, phase_id: str, name: str = None) -> None:
+    def done_phase(self, phase_id: str, name: str | None = None) -> None:
         """
         Mark the given phase as completed and publish a `phase_done` update to the queue.
         
@@ -181,25 +184,36 @@ class PhaseManager:
             the completed weight if the phase is defined in the session, clears the active phase/step,
             and publishes a `phase_done` event containing the phase payload, current progress, and the pending queue.
         """
-        self._completed_phases.add(phase_id)
-        phase = self._get_phase_info(phase_id, name)
-        phase["steps"] = self._phase_steps.get(phase_id, [])
-        phase["elapsed"] = self._get_phase_elapsed(phase_id)
+        if phase_id not in self._completed_phases:
+            self._completed_phases.add(phase_id)
+            phase = self._get_phase_info(phase_id, name)
+            phase["steps"] = self._phase_steps.get(phase_id, [])
+            phase["elapsed"] = self._get_phase_elapsed(phase_id)
 
-        if phase_id in self._phase_lookup:
-            self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
+            if phase_id in self._phase_lookup:
+                self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
 
-        self._active_phase = None
-        self._active_step = None
+            self._active_phase = None
+            self._active_step = None
 
-        self._queue.publish({
-            "type": "phase_done",
-            "phase": phase,
-            "progress": self._get_progress(),
-            "queue": self._get_pending(),
-        })
+            self._queue.publish({
+                "type": "phase_done",
+                "phase": phase,
+                "progress": self._get_progress(),
+                "queue": self._get_pending(),
+            })
+        else:
+            phase = self._get_phase_info(phase_id, name)
+            phase["steps"] = self._phase_steps.get(phase_id, [])
+            phase["elapsed"] = self._get_phase_elapsed(phase_id)
+            self._queue.publish({
+                "type": "phase_done",
+                "phase": phase,
+                "progress": self._get_progress(),
+                "queue": self._get_pending(),
+            })
 
-    def error_phase(self, phase_id: str, error: str, name: str = None) -> None:
+    def error_phase(self, phase_id: str, error: str, name: str | None = None) -> None:
         """
         Record that a phase failed, mark it completed, clear active tracking, and publish a `phase_error` event.
         
@@ -212,7 +226,10 @@ class PhaseManager:
         phase["error"] = error
         phase["steps"] = self._phase_steps.get(phase_id, [])
 
-        self._completed_phases.add(phase_id)
+        if phase_id not in self._completed_phases:
+            self._completed_phases.add(phase_id)
+            if phase_id in self._phase_lookup:
+                self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
         self._active_phase = None
         self._active_step = None
 
@@ -223,7 +240,7 @@ class PhaseManager:
             "queue": self._get_pending(),
         })
 
-    def start_step(self, phase_id: str, step_id: str, message: str = None, data: dict = None) -> None:
+    def start_step(self, phase_id: str, step_id: str, message: str | None = None, data: dict | None = None) -> None:
         """
         Begin tracking a sub-step (step) within the specified phase and publish a `step_start` update to the manager's queue.
         
@@ -258,7 +275,7 @@ class PhaseManager:
             "progress": self._get_progress(),
         })
 
-    def update_step(self, phase_id: str, step_id: str, message: str, data: dict = None) -> None:
+    def update_step(self, phase_id: str, step_id: str, message: str, data: dict | None = None) -> None:
         """
         Record an update for an active sub-step and publish a 'step_update' event to the update queue.
         
@@ -286,8 +303,10 @@ class PhaseManager:
                 "progress": self._get_progress(),
                 "data": data,
             })
+        else:
+            logger.warning("update_step: no matching step found for phase_id='%s', step_id='%s'", phase_id, step_id)
 
-    def done_step(self, phase_id: str, step_id: str, message: str = None, data: dict = None) -> None:
+    def done_step(self, phase_id: str, step_id: str, message: str | None = None, data: dict | None = None) -> None:
         """
         Mark a phase sub-step as completed and publish a `step_done` event.
         
@@ -343,7 +362,7 @@ class PhaseManager:
         self._active_phase = None
         self._active_step = None
 
-    def skip_phase(self, phase_id: str, reason: str = "Not applicable", name: str = None) -> None:
+    def skip_phase(self, phase_id: str, reason: str = "Not applicable", name: str | None = None) -> None:
         """
         Mark a phase as skipped, record the skip reason, and publish a `phase_done` event.
         
@@ -356,23 +375,35 @@ class PhaseManager:
             Adds the phase to the completed set, records it as skipped with the provided reason, increments
             completed weighted progress if the phase is known, and publishes the updated phase and progress.
         """
-        self._completed_phases.add(phase_id)
-        phase = self._get_phase_info(phase_id, name)
-        phase["skipped"] = True
-        phase["skip_reason"] = reason
-        phase["steps"] = []
+        if phase_id not in self._completed_phases:
+            self._completed_phases.add(phase_id)
+            phase = self._get_phase_info(phase_id, name)
+            phase["skipped"] = True
+            phase["skip_reason"] = reason
+            phase["steps"] = []
 
-        if phase_id in self._phase_lookup:
-            self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
+            if phase_id in self._phase_lookup:
+                self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
 
-        self._queue.publish({
-            "type": "phase_done",
-            "phase": phase,
-            "progress": self._get_progress(),
-            "queue": self._get_pending(),
-        })
+            self._queue.publish({
+                "type": "phase_done",
+                "phase": phase,
+                "progress": self._get_progress(),
+                "queue": self._get_pending(),
+            })
+        else:
+            phase = self._get_phase_info(phase_id, name)
+            phase["skipped"] = True
+            phase["skip_reason"] = reason
+            phase["steps"] = []
+            self._queue.publish({
+                "type": "phase_done",
+                "phase": phase,
+                "progress": self._get_progress(),
+                "queue": self._get_pending(),
+            })
 
-    def _get_phase_info(self, phase_id: str, name: str = None) -> dict:
+    def _get_phase_info(self, phase_id: str, name: str | None = None) -> dict:
         """
         Return a phase info mapping for the given phase identifier.
         
@@ -388,6 +419,17 @@ class PhaseManager:
         return {"id": phase_id, "name": name or phase_id.title(), "weight": 1}
 
     def _get_progress(self) -> dict:
+        """
+        Compute the session's phase completion progress and weighted progress values.
+
+        Returns:
+            progress (dict): Progress snapshot containing:
+                - completed (int): Number of phases marked completed.
+                - total (int): Total number of phases in the session.
+                - percent (float): Overall completion percentage based on weights, rounded to 1 decimal (0-100).
+                - weighted_completed (float): Sum of completed phase weights, rounded to 1 decimal.
+                - weighted_total (float): Sum of all phase weights.
+        """
         """
         Compute the session's phase completion progress and weighted progress values.
         

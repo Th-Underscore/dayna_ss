@@ -39,6 +39,7 @@ from extensions.dayna_ss.utils.schema_parser import (
     Trigger,
 )
 from extensions.dayna_ss.agents.summarizer import Summarizer, FormattedData
+from extensions.dayna_ss.ui import PhaseManager
 
 
 defaults_to_inherit = [
@@ -58,15 +59,21 @@ class DataSummarizer:
         history_path: Path,
         schema_parser: SchemaParser,
         all_subjects_data: dict,
+        phase_manager: "PhaseManager",
     ):
         """Initialize DataSummarizer.
 
         Args:
             summarizer (Summarizer): The main Summarizer instance.
+            exchange (tuple[str, str]): (user_input, output) pair being summarized.
+            custom_state (dict): Custom state dict for generation.
             history_path (Path): Path to the current history data.
             schema_parser (SchemaParser): Parser for data schemas.
+            all_subjects_data (dict): Data for all subjects to be summarized.
+            phase_manager (PhaseManager): PhaseManager instance for tracking progress.
         """
         self.summarizer = summarizer
+        self._phase_manager = phase_manager
         self.user_input = exchange[0]
         self.output = exchange[1]
         self.custom_state = custom_state
@@ -219,7 +226,7 @@ class DataSummarizer:
         if shared.stop_everything:
             return (True, False)
 
-        pm = self.summarizer._phase_manager
+        pm = self._phase_manager
         phase_id = branch_name.lower().replace(" ", "_")
         action_name = action.name.lower()
 
@@ -1127,7 +1134,7 @@ Respond with ONLY the JSON object for this arc."""
                 if isinstance(data, list):
                     # 2a. List of Schema Classes (Recurse)
                     if isinstance(item_type, ParsedSchemaClass):
-                        pm = self.summarizer._phase_manager
+                        pm = self._phase_manager
                         for i, item_data in enumerate(data):
                             effective_item_schema = self._inherit_defaults_from_parent(
                                 item_type,
@@ -1138,16 +1145,18 @@ Respond with ONLY the JSON object for this arc."""
                             new_keys = [*keys, i]
                             sub_phase_id = f"{item_name_prefix}[{i}]".lower().replace(" ", "_")
                             pm.start_phase(sub_phase_id, f"{item_name_prefix}[{i}]")
-                            self._update_recursive(
-                                f"{item_name_prefix}[{i}]",
-                                item_data,
-                                formatted_data,
-                                unexpanded_formatted_data,
-                                effective_item_schema,
-                                new_keys
-                            )
-                            recursive_set(formatted_data.data, new_keys, item_data)
-                            pm.done_phase(sub_phase_id)
+                            try:
+                                self._update_recursive(
+                                    f"{item_name_prefix}[{i}]",
+                                    item_data,
+                                    formatted_data,
+                                    unexpanded_formatted_data,
+                                    effective_item_schema,
+                                    new_keys
+                                )
+                                recursive_set(formatted_data.data, new_keys, item_data)
+                            finally:
+                                pm.done_phase(sub_phase_id)
 
                     # 2b. List of Primitives (Leaf update)
                     else:
@@ -1175,7 +1184,7 @@ Respond with ONLY the JSON object for this arc."""
                 if isinstance(data, dict):
                     # 3a. Dict of Schema Classes (Recurse)
                     if isinstance(value_type, ParsedSchemaClass):
-                        pm = self.summarizer._phase_manager
+                        pm = self._phase_manager
                         for key, val_data in data.items():
                             effective_val_schema = self._inherit_defaults_from_parent(
                                 value_type,
@@ -1187,17 +1196,18 @@ Respond with ONLY the JSON object for this arc."""
                             pm.start_phase(sub_phase_id, f"{item_name_prefix}.{key}")
 
                             new_keys = [*keys, key]
-                            self._update_recursive(
-                                f"{item_name_prefix}.{key}",
-                                val_data,
-                                formatted_data,
-                                unexpanded_formatted_data,
-                                effective_val_schema,
-                                new_keys
-                            )
-                            recursive_set(formatted_data.data, new_keys, val_data)
-
-                            pm.done_phase(sub_phase_id)
+                            try:
+                                self._update_recursive(
+                                    f"{item_name_prefix}.{key}",
+                                    val_data,
+                                    formatted_data,
+                                    unexpanded_formatted_data,
+                                    effective_val_schema,
+                                    new_keys
+                                )
+                                recursive_set(formatted_data.data, new_keys, val_data)
+                            finally:
+                                pm.done_phase(sub_phase_id)
 
                     # 3b. Dict of Primitives (Leaf Update)
                     else:
@@ -1275,18 +1285,20 @@ Respond with ONLY the JSON object for this arc."""
             )
 
             sub_phase_id = full_path.lower().replace(" ", "_")
-            pm = self.summarizer._phase_manager
+            pm = self._phase_manager
             pm.start_phase(sub_phase_id, full_path)
-            self._update_recursive(
-                full_path,
-                current_value,
-                formatted_data,
-                unexpanded_formatted_data,
-                effective_child_schema,
-                current_keys
-            )
-            recursive_set(formatted_data.data, current_keys, current_value)
-            pm.done_phase(sub_phase_id)
+            try:
+                self._update_recursive(
+                    full_path,
+                    current_value,
+                    formatted_data,
+                    unexpanded_formatted_data,
+                    effective_child_schema,
+                    current_keys
+                )
+                recursive_set(formatted_data.data, current_keys, current_value)
+            finally:
+                pm.done_phase(sub_phase_id)
             return
 
         # 5. Handle List/Dict of Schema Classes (Generics defined directly on a field, not via Alias)
@@ -1297,43 +1309,47 @@ Respond with ONLY the JSON object for this arc."""
         if origin is list and args and isinstance(args[0], ParsedSchemaClass):
             # List of objects
             item_schema = args[0]
-            pm = self.summarizer._phase_manager
+            pm = self._phase_manager
             if isinstance(current_value, list):
                 for i, item in enumerate(current_value):
                     effective_schema = self._inherit_defaults_from_parent(item_schema, parent_schema_class, defaults_to_inherit)
                     sub_phase_id = f"{full_path}[{i}]".lower().replace(" ", "_")
                     pm.start_phase(sub_phase_id, f"{full_path}[{i}]")
-                    self._update_recursive(
-                        f"{full_path}[{i}]",
-                        item,
-                        formatted_data,
-                        unexpanded_formatted_data,
-                        effective_schema,
-                        [*current_keys, i]
-                    )
-                    recursive_set(formatted_data.data, [*current_keys, i], item)
-                    pm.done_phase(sub_phase_id)
+                    try:
+                        self._update_recursive(
+                            f"{full_path}[{i}]",
+                            item,
+                            formatted_data,
+                            unexpanded_formatted_data,
+                            effective_schema,
+                            [*current_keys, i]
+                        )
+                        recursive_set(formatted_data.data, [*current_keys, i], item)
+                    finally:
+                        pm.done_phase(sub_phase_id)
             return
 
         elif origin is dict and len(args) > 1 and isinstance(args[1], ParsedSchemaClass):
             # Dict of objects
             val_schema = args[1]
-            pm = self.summarizer._phase_manager
+            pm = self._phase_manager
             if isinstance(current_value, dict):
                 for k, v in current_value.items():
                     effective_schema = self._inherit_defaults_from_parent(val_schema, parent_schema_class, defaults_to_inherit)
                     sub_phase_id = f"{full_path}.{k}".lower().replace(" ", "_")
                     pm.start_phase(sub_phase_id, f"{full_path}.{k}")
-                    self._update_recursive(
-                        f"{full_path}.{k}",
-                        v,
-                        formatted_data,
-                        unexpanded_formatted_data,
-                        effective_schema,
-                        [*current_keys, k]
-                    )
-                    recursive_set(formatted_data.data, [*current_keys, k], v)
-                    pm.done_phase(sub_phase_id)
+                    try:
+                        self._update_recursive(
+                            f"{full_path}.{k}",
+                            v,
+                            formatted_data,
+                            unexpanded_formatted_data,
+                            effective_schema,
+                            [*current_keys, k]
+                        )
+                        recursive_set(formatted_data.data, [*current_keys, k], v)
+                    finally:
+                        pm.done_phase(sub_phase_id)
             return
 
         # 6. Handle Leaf Nodes (Primitives, or Lists/Dicts of Primitives)
@@ -1404,7 +1420,7 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_GRAY}Performing gate check for '{branch_name}'...{_RESET}")
 
-        pm = self.summarizer._phase_manager
+        pm = self._phase_manager
         phase_id = branch_name.lower().replace(" ", "_")
 
         # Contextualize the prompt
@@ -1554,7 +1570,7 @@ Respond with ONLY the JSON object for this arc."""
             return
 
         phase_id = branch_name.lower().replace(" ", "_")
-        pm = self.summarizer._phase_manager
+        pm = self._phase_manager
 
         print(f"{_GRAY}Querying LLM: Does branch '{branch_name}' need updates?{_RESET}")
         pm.start_step(phase_id, "query_changes", "Checking for changes...")
@@ -1649,10 +1665,11 @@ Respond with ONLY the JSON object for this arc."""
                 keyList_relative_to_branch = split_keys_to_list(path_str)
 
                 try:
-                    print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(recursive_get(data, keyList_relative_to_branch), indent=None)}{_RESET}")
+                    old_value = recursive_get(data, keyList_relative_to_branch)
+                    print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
                     recursive_set(data, keyList_relative_to_branch, value)  # Modifies 'data' in place
                     print(f"{_GRAY}[{branch_name}] Applied update: {path_str} = {json.dumps(value, indent=None)}{_RESET}")
-                    formatted_updates.append({"path": path_str, "value": value, "old_value": recursive_get(data, keyList_relative_to_branch)})
+                    formatted_updates.append({"path": path_str, "value": value, "old_value": old_value})
                 except Exception as e:
                     print(f"{_ERROR}[{branch_name}] Failed to apply update {path_str} = {repr(value)}: {e}{_RESET}")
             pm.done_step(phase_id, "apply_updates", f"Applied {len(parsed_updates)} update(s)", {"updates": formatted_updates, "raw_json": json.dumps(parsed_updates, indent=2)})
@@ -1793,11 +1810,16 @@ Respond with ONLY the JSON object for this arc."""
             max_retries = 2
             last_error = None
             phase_id = item_name_prefix.lower().replace(" ", "_")
-            pm = self.summarizer._phase_manager
+            pm = self._phase_manager
             field_phase_id = f"{phase_id}.{field_name}".lower() if field_name else phase_id
             field_phase_name = f"{item_name_prefix}.{field_name}" if field_name else item_name_prefix
 
-            pm.start_phase(field_phase_id, field_phase_name)
+            def _done_field_phase(msg=None):
+                if field_name:
+                    pm.done_phase(field_phase_id, msg)
+
+            if field_name:
+                pm.start_phase(field_phase_id, field_phase_name)
 
             for attempt in range(max_retries + 1):
                 if attempt > 0 and last_error:
@@ -1835,22 +1857,22 @@ Respond with ONLY the JSON object for this arc."""
                     print(
                         f"{_HILITE}Stop signal received during LLM value update generation for '{context_path_for_marker}'.{_RESET}"
                     )
-                    pm.done_phase(field_phase_id)
+                    _done_field_phase()
                     return current_value
 
                 if stop:
-                    pm.done_phase(field_phase_id)
+                    _done_field_phase()
                     return current_value
 
                 try:
                     if expected_type == int:
-                        pm.done_phase(field_phase_id)
+                        _done_field_phase()
                         return int(text)
                     if expected_type == float:
-                        pm.done_phase(field_phase_id)
+                        _done_field_phase()
                         return float(text)
                     if expected_type == bool:
-                        pm.done_phase(field_phase_id)
+                        _done_field_phase()
                         return text.strip().lower() in ["true", "yes", "1"]
 
                     if expected_type == list or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is list):
@@ -1858,7 +1880,7 @@ Respond with ONLY the JSON object for this arc."""
                         try:
                             parsed_list = jsonc.loads(stripped_text)
                             if isinstance(parsed_list, list):
-                                pm.done_phase(field_phase_id)
+                                _done_field_phase()
                                 return parsed_list
                             else:
                                 last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
@@ -1871,7 +1893,7 @@ Respond with ONLY the JSON object for this arc."""
                                 if expected_type.__args__[0] == str:
                                     is_list_of_str = True
                             if is_list_of_str:
-                                pm.done_phase(field_phase_id)
+                                _done_field_phase()
                                 return [item.strip() for item in text.split(",")]
                             last_error = f"Response is not valid JSON and type is not list[str]: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
@@ -1883,7 +1905,7 @@ Respond with ONLY the JSON object for this arc."""
                         try:
                             parsed_dict = jsonc.loads(stripped_text)
                             if isinstance(parsed_dict, dict):
-                                pm.done_phase(field_phase_id)
+                                _done_field_phase()
                                 return parsed_dict
                             else:
                                 last_error = f"Response was valid JSON but not a dict: '{stripped_text}'"
@@ -1912,12 +1934,12 @@ Respond with ONLY the JSON object for this arc."""
                                     continue
                                 else:
                                     print(f"{_ERROR}Max retries reached, accepting value with warnings.{_RESET}")
-                                    pm.done_phase(field_phase_id)
+                                    _done_field_phase()
                                     return parsed_value
-                        pm.done_phase(field_phase_id)
+                        _done_field_phase()
                         return parsed_value
                     except json.JSONDecodeError:
-                        pm.done_phase(field_phase_id)
+                        _done_field_phase()
                         return text
 
                 except (ValueError, TypeError) as e:
@@ -1925,10 +1947,10 @@ Respond with ONLY the JSON object for this arc."""
                     print(f"{_ERROR}Could not convert LLM response '{text}' to type {expected_type} for {context_path_for_marker}: {e}{_RESET}")
                     pm.update_step(field_phase_id, "perform_update", f"Type error: {last_error}")
                     if attempt >= max_retries:
-                        pm.done_phase(field_phase_id)
+                        _done_field_phase()
                         return current_value
 
-            pm.done_phase(field_phase_id)
+            _done_field_phase()
             return current_value
         except Exception as e:
             print(f"{_ERROR}Error in _generate_field_update for {item_name_prefix}.{field_name}: {e}{_RESET}")

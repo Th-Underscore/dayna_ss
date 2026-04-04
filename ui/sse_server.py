@@ -5,12 +5,21 @@ summarization updates to the UI via Server-Sent Events.
 """
 
 import json
+import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 
 from .update_queue import get_update_queue
+
+_ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get("DSS_ALLOWED_ORIGIN", "http://127.0.0.1:7861").split(",") if o.strip()
+]
+_SSE_TOKEN = os.environ.get("DSS_SSE_TOKEN", "")
+
+print(f"[DSS SSE] Allowed origins at import: {_ALLOWED_ORIGINS}")
+print(f"[DSS SSE] DSS_ALLOWED_ORIGIN env var: {os.environ.get('DSS_ALLOWED_ORIGIN', '(not set)')}")
 
 
 class SSEServer:
@@ -82,18 +91,51 @@ class SSEServer:
                 except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, OSError):
                     pass  # Client disconnected, normal
 
+            def _validate_request(self) -> str | None:
+                """Validate Origin and token before allowing SSE access.
+
+                Returns:
+                    The origin to echo back in the CORS header, or None if rejected.
+                """
+                origin = self.headers.get("Origin", "")
+                print(f"[DSS SSE] _validate_request: Origin='{origin}', _ALLOWED_ORIGINS={_ALLOWED_ORIGINS}")
+                allow_wildcard = "*" in _ALLOWED_ORIGINS
+                if not allow_wildcard and origin and origin not in _ALLOWED_ORIGINS:
+                    print(f"[DSS SSE] Origin rejected: '{origin}' not in {_ALLOWED_ORIGINS}")
+                    self.send_response(403)
+                    self.send_header("Content-Type", "text/plain")
+                    self.end_headers()
+                    self.wfile.write(b"Forbidden: origin not allowed")
+                    return None
+                if _SSE_TOKEN:
+                    token = self.headers.get("X-DSS-Token", "")
+                    if token != _SSE_TOKEN:
+                        print(f"[DSS SSE] Token rejected")
+                        self.send_response(403)
+                        self.send_header("Content-Type", "text/plain")
+                        self.end_headers()
+                        self.wfile.write(b"Forbidden: invalid token")
+                        return None
+                result = origin if origin else "*"
+                print(f"[DSS SSE] Origin accepted, returning '{result}'")
+                return result
+
             def _handle_sse(self):
                 """
                 Stream server-sent events (SSE) to the connected client.
                 
                 Sends any buffered events from the server queue to the client first, then continuously streams newly buffered events as they arrive. Periodically emits SSE comment heartbeats to keep the connection alive and stops streaming if the client disconnects or the server stops running.
                 """
+                matched_origin = self._validate_request()
+                if matched_origin is None:
+                    return
+
                 print(f"[DSS SSE] Client connected")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-cache")
                 self.send_header("Connection", "keep-alive")
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", matched_origin)
                 self.end_headers()
 
                 # Send buffered events first (catch-up)
@@ -163,15 +205,18 @@ class SSEServer:
                 """
                 Send a JSON snapshot of the current update queue state to the client.
                 
-                The queue state is serialized with json.dumps (using str() for non-serializable objects) and written with Content-Type `application/json`, a matching Content-Length, and an `Access-Control-Allow-Origin: *` header.
+                The queue state is serialized with json.dumps (using str() for non-serializable objects) and written with Content-Type `application/json`, a matching Content-Length, and an `Access-Control-Allow-Origin` header set to the matched request origin.
                 """
+                matched_origin = self._validate_request()
+                if matched_origin is None:
+                    return
                 state = parent._queue.get_state()
                 data = json.dumps(state, default=str).encode("utf-8")
 
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", matched_origin)
                 self.end_headers()
                 self.wfile.write(data)
 
@@ -181,11 +226,14 @@ class SSEServer:
                 
                 Responds with HTTP 200 and a JSON body `{"status": "ok", "port": <port>}` and sets `Content-Type`, `Content-Length`, and `Access-Control-Allow-Origin` headers.
                 """
+                matched_origin = self._validate_request()
+                if matched_origin is None:
+                    return
                 data = json.dumps({"status": "ok", "port": parent.port}).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(data)))
-                self.send_header("Access-Control-Allow-Origin", "*")
+                self.send_header("Access-Control-Allow-Origin", matched_origin)
                 self.end_headers()
                 self.wfile.write(data)
 
@@ -213,6 +261,7 @@ class SSEServer:
             self._running = True
             self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
             self._thread.start()
+            self.port = self._server.server_address[1]
             return self.port
         except OSError as e:
             print(f"[DSS SSE] Failed to start on port {self.port}: {e}")
@@ -223,11 +272,20 @@ class SSEServer:
         """
         Stop the SSE server and release its resources.
         
-        Sets the running flag to False, shuts down the underlying HTTP server if present, and joins the background thread (waiting up to 2 seconds) before clearing internal references.
+        Sets the running flag to False, shuts down the underlying HTTP server if present,
+        closes the listening socket, and joins the background thread (waiting up to 2 seconds)
+        before clearing internal references.
         """
         self._running = False
         if self._server:
-            self._server.shutdown()
+            try:
+                self._server.shutdown()
+            except Exception:
+                pass
+            try:
+                self._server.server_close()
+            except Exception:
+                pass
             self._server = None
         if self._thread:
             self._thread.join(timeout=2)
