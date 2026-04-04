@@ -1,7 +1,9 @@
 # TODO: Make subject-relationships dynamic indexing (schema?)
 
 import jsonc
+import logging
 import re
+import warnings
 from dataclasses import dataclass, field
 from pathlib import Path
 import traceback
@@ -366,6 +368,59 @@ from typing import Any
 
 
 class MessageChunker:
+    # Class-level singletons to avoid reloading heavy resources
+    _embed_model = None
+    _nlp = None
+    _nltk_downloaded = False
+    _spacy_model_downloaded = False
+    _initialized = False
+    _warning_suppressed = False
+
+    @classmethod
+    def _init_shared_resources(cls):
+        """Initialize shared resources (embed model, spaCy, NLTK) only once."""
+        if cls._initialized:
+            return
+
+        # Suppress MPNet warning
+        if not cls._warning_suppressed:
+            warnings.filterwarnings("ignore", message=".*position_ids.*")
+            logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
+            logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
+            cls._warning_suppressed = True
+
+        # Get background imported modules
+        if not TYPE_CHECKING:
+            global nltk, spacy, HuggingFaceEmbedding
+            if any((nltk is None, spacy is None, HuggingFaceEmbedding is None)):
+                nltk = get_imported_attribute("nltk")
+                spacy = get_imported_attribute("spacy")
+                HuggingFaceEmbedding = get_imported_attribute("llama_index.embeddings.huggingface", "HuggingFaceEmbedding")
+
+        # Download NLTK data and load model once
+        if not cls._nltk_downloaded:
+            nltk.download("punkt", download_dir=Path("user_data/nltk_data"), quiet=True)
+            nltk.download("punkt_tab", download_dir=Path("user_data/nltk_data"), quiet=True)
+            cls._nltk_downloaded = True
+
+        if cls._embed_model is None:
+            cls._embed_model = HuggingFaceEmbedding(
+                model_name="sentence-transformers/all-mpnet-base-v2"
+                # model_name="sentence-transformers/all-MiniLM-L6-v2"
+            )
+            Settings.embed_model = cls._embed_model
+
+        if cls._nlp is None:
+            try:
+                cls._nlp = spacy.load("en_core_web_sm")
+            except OSError:
+                print(f"{_BOLD}Downloading spaCy model...{_RESET}")
+                import subprocess
+                subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
+                cls._nlp = spacy.load("en_core_web_sm")
+
+        cls._initialized = True
+
     def __init__(
         self,
         history_path: PathLike,
@@ -376,24 +431,11 @@ class MessageChunker:
     ):
         print(f"{_BOLD}Initializing MessageChunker...{_RESET}")
 
-        # Get background imported modules
-        if not TYPE_CHECKING:
-            global nltk, spacy, HuggingFaceEmbedding
-            if any((nltk is None, spacy is None, HuggingFaceEmbedding is None)):
-                nltk = get_imported_attribute("nltk")
-                spacy = get_imported_attribute("spacy")
-                HuggingFaceEmbedding = get_imported_attribute("llama_index.embeddings.huggingface", "HuggingFaceEmbedding")
-        # Other LlamaIndex components (VectorStoreIndex, StorageContext, SimpleNodeParser, etc.)
-        # are imported synchronously and used directly due to errors with circular imports
+        # Initialize shared resources (only once across all instances)
+        MessageChunker._init_shared_resources()
 
-        nltk.download("punkt", download_dir=Path("user_data/nltk_data"), quiet=True)
-        nltk.download("punkt_tab", download_dir=Path("user_data/nltk_data"), quiet=True)
-
-        embed_model = HuggingFaceEmbedding(
-            model_name="sentence-transformers/all-mpnet-base-v2"
-            # model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
-        Settings.embed_model = embed_model
+        # Use class-level shared resources
+        self.nlp = MessageChunker._nlp
 
         self.history_path = Path(history_path)
         self.storage_dir = self.history_path / "message_index"
@@ -416,17 +458,6 @@ class MessageChunker:
             self.index.storage_context.persist(persist_dir=str(self.storage_dir))
 
         self.parser = SimpleNodeParser.from_defaults()
-
-        # Load spaCy model for NLP tasks
-        try:
-            self.nlp = spacy.load("en_core_web_sm")
-        except OSError:
-            print(f"{_BOLD}Downloading spaCy model...{_RESET}")
-            # Consider platform compatibility and direct subprocess call for better control
-            import subprocess
-
-            subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
-            self.nlp = spacy.load("en_core_web_sm")
 
         # Load character patterns for pronoun resolution
         self.pronoun_character_patterns = self._load_pronoun_character_patterns()

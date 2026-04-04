@@ -510,13 +510,7 @@ class Summarizer:
             if not isinstance(context_retriever, StoryContextRetriever):
                 raise TypeError(f"Expected StoryContextRetriever, got {type(context_retriever)}")
 
-            chunker = MessageChunker(
-                history_path=path,
-                characters_data=context_retriever.characters,
-                groups_data=context_retriever.groups,
-                events_data=context_retriever.events,
-                current_scene_data=context_retriever.current_scene,
-            )
+            chunker = context_retriever.chunker
             chunks = chunker.process_message(message, index, current_timestamp)
             print(f"{_SUCCESS}Stored {len(chunks)} message chunks for index {index}{_RESET}")
         except Exception as e:
