@@ -159,7 +159,7 @@ class Summarizer:
 
         # Real-time UI update system
         self._update_queue = get_update_queue()
-        self._phase_manager: PhaseManager | None = None
+        self._phase_manager = PhaseManager(queue=self._update_queue)
 
     def _init_tool_registry(self) -> None:
         """Initialize DSS tool executors for TGWUI's native tool system."""
@@ -651,7 +651,6 @@ class Summarizer:
         print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
         self.log_activity("Generating Instructions", "Preparing context", "info")
 
-        self._phase_manager = PhaseManager(queue=self._update_queue)
         pm = self._phase_manager
         pm.start_phase("instr_prompt", "Instruction Generation")
 
@@ -848,12 +847,38 @@ class Summarizer:
         print(f"{_HILITE}summarize_message{_RESET}")
         self.log_activity("Summarizing", "Processing latest exchange", "info")
 
-        self._phase_manager = PhaseManager(queue=self._update_queue)
         pm = self._phase_manager
+        
+        # Preserve completed phases from generate_instr_prompt
+        completed_phases = []
+        for phase_id in pm._completed_phases:
+            if phase_id in pm._phase_lookup:
+                completed_phases.append(pm._phase_lookup[phase_id])
+        
         subject_names = list(self.last.schema_parser.subjects.keys()) if self.last and self.last.schema_parser else []
-        print(f"{_DEBUG}[DSS] Starting PhaseManager session with subjects: {subject_names}{_RESET}")
-        pm.start_session(subject_names=subject_names)
-        print(f"{_DEBUG}[DSS] PhaseManager session started. Queue subscribers: {len(self._update_queue._subscribers)}{_RESET}")
+        
+        # Build summarization phases
+        summarization_phases = [
+            {"id": "init", "name": "Initialization", "weight": 1},
+            {"id": "context", "name": "Context Preparation", "weight": 1},
+        ]
+        for subject in subject_names:
+            summarization_phases.append({"id": subject.lower().replace(" ", "_"), "name": subject, "weight": 2})
+        summarization_phases.extend([
+            {"id": "chapter_check", "name": "Chapter Boundary Check", "weight": 1},
+            {"id": "arc_check", "name": "Arc Boundary Check", "weight": 1},
+            {"id": "message_summary", "name": "Message Summarization", "weight": 1},
+            {"id": "chunking", "name": "Message Chunking", "weight": 1},
+        ])
+        
+        # Combine: completed phases first, then summarization phases (skip duplicates)
+        seen = set(p["id"] for p in completed_phases)
+        combined_phases = list(completed_phases)
+        for p in summarization_phases:
+            if p["id"] not in seen:
+                combined_phases.append(p)
+        
+        pm.start_session(phases=combined_phases)
 
         try:
             if shared.stop_everything:
