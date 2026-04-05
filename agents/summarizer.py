@@ -1001,6 +1001,7 @@ class Summarizer:
                 self.log_activity("Chapter Check", "Checking chapter boundary", "info")
                 data_summarizer.check_and_archive_chapter()
                 if shared.stop_everything:
+                    pm.done_phase("chapter_check", "Stopped")
                     pm.end_session()
                     return None
                 self.log_activity("Chapter Check", "Complete", "success")
@@ -1010,6 +1011,7 @@ class Summarizer:
                 self.log_activity("Arc Check", "Checking arc boundary", "info")
                 data_summarizer.check_and_archive_arc()
                 if shared.stop_everything:
+                    pm.done_phase("arc_check", "Stopped")
                     pm.end_session()
                     return None
                 self.log_activity("Arc Check", "Complete", "success")
@@ -1036,6 +1038,7 @@ class Summarizer:
             msg_summarizer = MessageSummarizer(self, new_history_path, current_timestamp_str)
             msg_summarizer.generate((user_input, output), (message_idx - 1, message_idx))
             if shared.stop_everything:
+                pm.done_phase("message_summary", "Stopped")
                 pm.end_session()
                 return None
             self.log_activity("Messages Summarized", "Message chunks saved", "success")

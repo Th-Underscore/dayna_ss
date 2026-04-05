@@ -271,7 +271,7 @@ class DataSummarizer:
                 if self._perform_full_branch_update(
                     branch_name, data, update_template, formatted_data, target_schema_class, keys
                 ):
-                    # done_step already called by generate_with_sse via step_update with complete:true
+                    pm.done_step(phase_id, action_name, "Full update: Complete")
                     return (True, False)  # Full update succeeded, stop processing
             pm.done_step(phase_id, action_name, "Update: Skipped")
 
@@ -1434,6 +1434,7 @@ Respond with ONLY the JSON object for this arc."""
         )
 
         if shared.stop_everything:
+            pm.done_step(phase_id, "perform_gate_check", "Stopped")
             return False
 
         llm_response_text = strip_thinking(llm_response_text).strip()
@@ -1585,6 +1586,7 @@ Respond with ONLY the JSON object for this arc."""
         )
 
         if shared.stop_everything:
+            pm.done_step(phase_id, "query_changes", "Stopped")
             return
 
         llm_response_text = strip_thinking(llm_response_text).strip()

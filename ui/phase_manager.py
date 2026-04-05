@@ -203,15 +203,24 @@ class PhaseManager:
                 "queue": self._get_pending(),
             })
         else:
-            phase = self._get_phase_info(phase_id, name)
-            phase["steps"] = self._phase_steps.get(phase_id, [])
-            phase["elapsed"] = self._get_phase_elapsed(phase_id)
-            self._queue.publish({
-                "type": "phase_done",
-                "phase": phase,
-                "progress": self._get_progress(),
-                "queue": self._get_pending(),
-            })
+            if phase_id not in self._completed_phases:
+                self._completed_phases.add(phase_id)
+                phase = self._get_phase_info(phase_id, name)
+                phase["steps"] = self._phase_steps.get(phase_id, [])
+                phase["elapsed"] = self._get_phase_elapsed(phase_id)
+
+                if phase_id in self._phase_lookup:
+                    self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
+
+                self._active_phase = None
+                self._active_step = None
+
+                self._queue.publish({
+                    "type": "phase_done",
+                    "phase": phase,
+                    "progress": self._get_progress(),
+                    "queue": self._get_pending(),
+                })
 
     def error_phase(self, phase_id: str, error: str, name: str | None = None) -> None:
         """
@@ -378,15 +387,13 @@ class PhaseManager:
         """
         elapsed = time.time() - self._session_start
 
+        progress = self._get_progress()
+        progress["elapsed"] = elapsed
+
         self._queue.publish({
             "type": "session_end",
             "phase": {"id": "_session", "name": "Summarization"},
-            "progress": {
-                "completed": len(self._phases),
-                "total": len(self._phases),
-                "percent": 100.0,
-                "elapsed": elapsed,
-            },
+            "progress": progress,
         })
 
         self._active_phase = None
@@ -422,16 +429,22 @@ class PhaseManager:
                 "queue": self._get_pending(),
             })
         else:
-            phase = self._get_phase_info(phase_id, name)
-            phase["skipped"] = True
-            phase["skip_reason"] = reason
-            phase["steps"] = []
-            self._queue.publish({
-                "type": "phase_done",
-                "phase": phase,
-                "progress": self._get_progress(),
-                "queue": self._get_pending(),
-            })
+            if phase_id not in self._completed_phases:
+                self._completed_phases.add(phase_id)
+                phase = self._get_phase_info(phase_id, name)
+                phase["skipped"] = True
+                phase["skip_reason"] = reason
+                phase["steps"] = []
+
+                if phase_id in self._phase_lookup:
+                    self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
+
+                self._queue.publish({
+                    "type": "phase_done",
+                    "phase": phase,
+                    "progress": self._get_progress(),
+                    "queue": self._get_pending(),
+                })
 
     def _get_phase_info(self, phase_id: str, name: str | None = None) -> dict:
         """
