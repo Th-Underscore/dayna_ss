@@ -9,7 +9,7 @@ import os
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs
 
 from .update_queue import get_update_queue
 
@@ -109,6 +109,11 @@ class SSEServer:
                     return None
                 if _SSE_TOKEN:
                     token = self.headers.get("X-DSS-Token", "")
+                    # Fallback to query parameter for browser EventSource clients
+                    if not token:
+                        parsed = urlparse(self.path)
+                        query_params = parse_qs(parsed.query)
+                        token = query_params.get("token", [""])[0] or query_params.get("sse_token", [""])[0]
                     if token != _SSE_TOKEN:
                         print(f"[DSS SSE] Token rejected")
                         self.send_response(403)

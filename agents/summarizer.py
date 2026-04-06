@@ -1144,7 +1144,6 @@ class Summarizer:
             pm.done_step("chunking", "update_metadata", "Metadata updated")
             pm.done_phase("chunking")
             self.log_activity("Summarization Complete", f"Scene saved at {new_history_path.name}", "success")
-            pm.end_turn()
             pm.end_session(publish=True)
             return current_timestamp_str
 
