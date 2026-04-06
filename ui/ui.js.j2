@@ -3,9 +3,8 @@
     var SSE_EXTERNAL_PATH = "{{ sse_external_path }}";
 
     function resolveSSEUrl(endpoint) {
-        if (SSE_EXTERNAL_PATH.startsWith(":")) {
-            var port = SSE_EXTERNAL_PATH.substring(1);
-            return window.location.protocol + "//" + window.location.hostname + ":" + port + endpoint;
+        if (SSE_EXTERNAL_PATH.startsWith(":") || SSE_EXTERNAL_PATH.startsWith("/")) {
+            return window.location.protocol + "//" + window.location.hostname + SSE_EXTERNAL_PATH + endpoint;
         }
         if (SSE_EXTERNAL_PATH.startsWith("http://") || SSE_EXTERNAL_PATH.startsWith("https://")) {
             return SSE_EXTERNAL_PATH + endpoint;

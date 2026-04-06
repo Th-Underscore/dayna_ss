@@ -37,7 +37,7 @@ params = {
     "display_name": "DSS",
     "is_tab": True,
     "sse_internal_port": 7861,
-    "sse_external_path": "",
+    "sse_external_path": ":7861",
 }
 
 
@@ -301,7 +301,6 @@ def setup():
     _sse_port = start_sse_server(host="127.0.0.1", port=params["sse_internal_port"])
     if _sse_port > 0:
         params["sse_internal_port"] = _sse_port
-        params["sse_external_path"] = f"http://127.0.0.1:{_sse_port}"
         print(f"{_SUCCESS}DSS SSE server started on port {_sse_port}{_RESET}")
     else:
         print(f"{_ERROR}Failed to start DSS SSE server{_RESET}")
