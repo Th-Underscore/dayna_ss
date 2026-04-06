@@ -39,6 +39,7 @@ from extensions.dayna_ss.utils.schema_parser import (
     Trigger,
 )
 from extensions.dayna_ss.agents.summarizer import Summarizer, FormattedData
+from extensions.dayna_ss.ui import PhaseManager
 
 
 defaults_to_inherit = [
@@ -58,15 +59,21 @@ class DataSummarizer:
         history_path: Path,
         schema_parser: SchemaParser,
         all_subjects_data: dict,
+        phase_manager: "PhaseManager",
     ):
         """Initialize DataSummarizer.
 
         Args:
             summarizer (Summarizer): The main Summarizer instance.
+            exchange (tuple[str, str]): (user_input, output) pair being summarized.
+            custom_state (dict): Custom state dict for generation.
             history_path (Path): Path to the current history data.
             schema_parser (SchemaParser): Parser for data schemas.
+            all_subjects_data (dict): Data for all subjects to be summarized.
+            phase_manager (PhaseManager): PhaseManager instance for tracking progress.
         """
         self.summarizer = summarizer
+        self._phase_manager = phase_manager
         self.user_input = exchange[0]
         self.output = exchange[1]
         self.custom_state = custom_state
@@ -198,17 +205,33 @@ class DataSummarizer:
         target_schema_class: ParsedSchemaClass,
         keys: list,
     ) -> tuple[bool, bool]:
-        """Execute a single action with the given config.
-
+        """
+        Execute a single configured action for a schema branch and apply its effects to the provided data.
+        
+        Parameters:
+            action (Action): The action to perform.
+            config (dict | None): Optional per-action configuration overrides.
+            branch_name (str): Logical name of the branch being processed.
+            data (dict): The subject data object to modify in-place.
+            formatted_data (FormattedData): Schema-aware view of `data` used for LLM prompts and context.
+            unexpanded_formatted_data (FormattedData): FormattedData instance without schema expansions, used for some prompts.
+            target_schema_class (ParsedSchemaClass): Schema class describing the branch being acted on.
+            keys (list): Path keys that locate the branch within `formatted_data`/`data`.
+        
         Returns:
-            out (tuple[bool, bool]): (stop_processing, gate_failed)
-            - stop_processing: True if full update succeeded (stop further actions)
-            - gate_failed: True if gate check failed (branch should be skipped)
+            tuple[bool, bool]: (stop_processing, gate_failed)
+                - `stop_processing`: `True` if this action completed a full update and subsequent actions should be skipped.
+                - `gate_failed`: `True` if a gate check failed and the branch should be skipped.
         """
         if shared.stop_everything:
             return (True, False)
 
+        pm = self._phase_manager
+        phase_id = branch_name.lower().replace(" ", "_")
+        action_name = action.name.lower()
+
         if action == Action.ADD_NEW:
+            pm.start_step(phase_id, action_name, f"Checking for new {branch_name} entries", {"branch_name": branch_name})
             if target_schema_class.definition_type == "alias":
                 field_type = target_schema_class._field.type
                 is_dict = hasattr(field_type, "__origin__") and field_type.__origin__ is dict
@@ -224,8 +247,10 @@ class DataSummarizer:
                         new_entry_template=new_entry_template,
                         keys=keys
                     )
+            pm.done_step(phase_id, action_name)
 
         elif action == Action.PERFORM_GATE_CHECK:
+            pm.start_step(phase_id, action_name, f"Gate check for {branch_name}", {"branch_name": branch_name})
             gate_template = self._get_effective_setting(
                 data, target_schema_class, "gate_check_prompt_template", override_config=config
             )
@@ -234,8 +259,11 @@ class DataSummarizer:
                     branch_name, gate_template, target_schema_class, formatted_data, keys
                 ):
                     return (False, True)  # Gate check failed
+            else:
+                pm.done_step(phase_id, action_name, "Gate: No template")
 
         elif action == Action.PERFORM_UPDATE:
+            pm.start_step(phase_id, action_name, f"Updating {branch_name}", {"branch_name": branch_name})
             update_template = self._get_effective_setting(
                 data, target_schema_class, "update_prompt_template", override_config=config
             )
@@ -243,9 +271,12 @@ class DataSummarizer:
                 if self._perform_full_branch_update(
                     branch_name, data, update_template, formatted_data, target_schema_class, keys
                 ):
+                    pm.done_step(phase_id, action_name, "Full update: Complete")
                     return (True, False)  # Full update succeeded, stop processing
+            pm.done_step(phase_id, action_name, "Update: Skipped")
 
         elif action == Action.QUERY_BRANCH_FOR_CHANGES:
+            pm.start_step(phase_id, action_name, f"Querying {branch_name} for changes", {"branch_name": branch_name})
             update_template_key = "branch_update_prompt_template"
             if config and "prompt_template" in config:
                 update_template_key = config["prompt_template"]
@@ -266,6 +297,7 @@ class DataSummarizer:
                 self._perform_branch_query(
                     branch_name, data, formatted_data, bq_template, bu_template, target_schema_class, keys
                 )
+            pm.done_step(phase_id, action_name)
 
         return (False, False)  # Continue processing
 
@@ -1046,8 +1078,17 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ):
         """
-        Handles the structural iteration based on definition_type.
-        Unwraps 'alias' types to find the real structure underneath.
+        Traverse and update `data` according to `schema_class`, recursing into nested schema classes, lists, and dicts.
+        
+        This mutates `data` and `formatted_data` in place: it descends dataclass fields, unwraps alias/field wrappers, recurses into nested ParsedSchemaClass instances, and applies per-item or per-value updates for lists and dicts (using `_update_recursive` and `_update_field`). For list/dict elements that are schema classes this starts and completes sub-phases via the phase manager to track progress.
+        
+        Parameters:
+            item_name_prefix (str): Human-readable path prefix used for prompts and phase ids (e.g., "chapter.scenes" or "characters[0]").
+            data (dict | list): The current branch of data to traverse and potentially update.
+            formatted_data (FormattedData): Formatted view of the data used to render prompts and to update contextual markers; this will be kept in sync with changes.
+            unexpanded_formatted_data (FormattedData): Unexpanded formatted view used when creating prompts that require original/unexpanded values.
+            schema_class (ParsedSchemaClass): Schema description that determines traversal behavior (dataclass, alias/field, wrapped list/dict, or nested schema).
+            keys (list): List of keys/indices representing the path within `formatted_data.data` corresponding to `data`.
         """
 
         # --- Case A: Dataclass (object with defined fields) ---
@@ -1093,6 +1134,7 @@ Respond with ONLY the JSON object for this arc."""
                 if isinstance(data, list):
                     # 2a. List of Schema Classes (Recurse)
                     if isinstance(item_type, ParsedSchemaClass):
+                        pm = self._phase_manager
                         for i, item_data in enumerate(data):
                             effective_item_schema = self._inherit_defaults_from_parent(
                                 item_type,
@@ -1101,6 +1143,8 @@ Respond with ONLY the JSON object for this arc."""
                             )
                             # Sync formatted data to keep context fresh
                             new_keys = [*keys, i]
+                            sub_phase_id = f"{item_name_prefix}[{i}]".lower().replace(" ", "_")
+                            pm.start_phase(sub_phase_id, f"{item_name_prefix}[{i}]")
                             self._update_recursive(
                                 f"{item_name_prefix}[{i}]",
                                 item_data,
@@ -1110,6 +1154,7 @@ Respond with ONLY the JSON object for this arc."""
                                 new_keys
                             )
                             recursive_set(formatted_data.data, new_keys, item_data)
+                            pm.done_phase(sub_phase_id)
 
                     # 2b. List of Primitives (Leaf update)
                     else:
@@ -1137,12 +1182,16 @@ Respond with ONLY the JSON object for this arc."""
                 if isinstance(data, dict):
                     # 3a. Dict of Schema Classes (Recurse)
                     if isinstance(value_type, ParsedSchemaClass):
+                        pm = self._phase_manager
                         for key, val_data in data.items():
                             effective_val_schema = self._inherit_defaults_from_parent(
                                 value_type,
                                 schema_class,
                                 defaults_to_inherit
                             )
+
+                            sub_phase_id = f"{item_name_prefix}.{key}".lower().replace(" ", "_")
+                            pm.start_phase(sub_phase_id, f"{item_name_prefix}.{key}")
 
                             new_keys = [*keys, key]
                             self._update_recursive(
@@ -1154,6 +1203,7 @@ Respond with ONLY the JSON object for this arc."""
                                 new_keys
                             )
                             recursive_set(formatted_data.data, new_keys, val_data)
+                            pm.done_phase(sub_phase_id)
 
                     # 3b. Dict of Primitives (Leaf Update)
                     else:
@@ -1184,10 +1234,23 @@ Respond with ONLY the JSON object for this arc."""
         parent_keys: list
     ):
         """
-        Decides how to handle a specific field within a parent data object.
-        1. Initializes missing data.
-        2. Checks 'no_update'.
-        3. Branches: Update Leaf (Primitive) OR Recurse (SchemaClass/Container).
+        Process and update a single field within a parent data object according to its schema definition.
+        
+        This function:
+        - Initializes the field when missing.
+        - Skips fields that are internal (names starting with "_") or marked `no_update`.
+        - If the field's type is a ParsedSchemaClass, recursively updates its nested structure (inheriting defaults from the parent).
+        - If the field is a list or dict whose element/value type is a ParsedSchemaClass, iterates each element/value and recursively updates each item with its own phase.
+        - Otherwise treats the field as a leaf (primitive or container of primitives) and delegates to `_update_field` to request/apply updates.
+        
+        Parameters:
+            parent_path (str): Dot-separated path of the parent object (empty for top-level).
+            parent_data (dict): The parent data object containing the field.
+            field_def (ParsedSchemaField): Schema definition for the field to process.
+            formatted_data (FormattedData): Formatted representation of the current data used for prompt generation and marking.
+            unexpanded_formatted_data (FormattedData): Unexpanded formatted data used when generating prompts that require raw content.
+            parent_schema_class (ParsedSchemaClass): Schema class of the parent, used for inheriting defaults for nested schemas.
+            parent_keys (list): List of keys representing the path to the parent within the formatted data structure.
         """
         field_name = field_def.name
         full_path = f"{parent_path}.{field_name}" if parent_path else field_name
@@ -1217,6 +1280,9 @@ Respond with ONLY the JSON object for this arc."""
                 defaults_to_inherit
             )
 
+            sub_phase_id = full_path.lower().replace(" ", "_")
+            pm = self._phase_manager
+            pm.start_phase(sub_phase_id, full_path)
             self._update_recursive(
                 full_path,
                 current_value,
@@ -1226,6 +1292,7 @@ Respond with ONLY the JSON object for this arc."""
                 current_keys
             )
             recursive_set(formatted_data.data, current_keys, current_value)
+            pm.done_phase(sub_phase_id)
             return
 
         # 5. Handle List/Dict of Schema Classes (Generics defined directly on a field, not via Alias)
@@ -1236,9 +1303,12 @@ Respond with ONLY the JSON object for this arc."""
         if origin is list and args and isinstance(args[0], ParsedSchemaClass):
             # List of objects
             item_schema = args[0]
+            pm = self._phase_manager
             if isinstance(current_value, list):
                 for i, item in enumerate(current_value):
                     effective_schema = self._inherit_defaults_from_parent(item_schema, parent_schema_class, defaults_to_inherit)
+                    sub_phase_id = f"{full_path}[{i}]".lower().replace(" ", "_")
+                    pm.start_phase(sub_phase_id, f"{full_path}[{i}]")
                     self._update_recursive(
                         f"{full_path}[{i}]",
                         item,
@@ -1248,14 +1318,18 @@ Respond with ONLY the JSON object for this arc."""
                         [*current_keys, i]
                     )
                     recursive_set(formatted_data.data, [*current_keys, i], item)
+                    pm.done_phase(sub_phase_id)
             return
 
         elif origin is dict and len(args) > 1 and isinstance(args[1], ParsedSchemaClass):
             # Dict of objects
             val_schema = args[1]
+            pm = self._phase_manager
             if isinstance(current_value, dict):
                 for k, v in current_value.items():
                     effective_schema = self._inherit_defaults_from_parent(val_schema, parent_schema_class, defaults_to_inherit)
+                    sub_phase_id = f"{full_path}.{k}".lower().replace(" ", "_")
+                    pm.start_phase(sub_phase_id, f"{full_path}.{k}")
                     self._update_recursive(
                         f"{full_path}.{k}",
                         v,
@@ -1265,6 +1339,7 @@ Respond with ONLY the JSON object for this arc."""
                         [*current_keys, k]
                     )
                     recursive_set(formatted_data.data, [*current_keys, k], v)
+                    pm.done_phase(sub_phase_id)
             return
 
         # 6. Handle Leaf Nodes (Primitives, or Lists/Dicts of Primitives)
@@ -1314,9 +1389,12 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ) -> bool:
         """
-        Asks the LLM a Yes/No question to determine if this branch needs processing.
+        Decides whether a branch should be processed by asking the LLM a gate-check question.
+        
+        If the rendered gate-check prompt is empty or missing, this function defaults to allowing processing. It sends the prompt to the LLM and treats a stop reason of `"NO"` or `"UNCHANGED"`, a response that begins with `"NO"`, or any response containing `"UNCHANGED"` as a decision to skip the branch; all other responses are treated as a decision to process the branch.
+        
         Returns:
-            out (bool): `True` if the branch should be processed, `False` if the branch should be skipped.
+            `true` if the branch should be processed, `false` otherwise.
         """
         gate_check_prompt = self._create_update_prompt(
             item_name=branch_name,
@@ -1332,6 +1410,9 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_GRAY}Performing gate check for '{branch_name}'...{_RESET}")
 
+        pm = self._phase_manager
+        phase_id = branch_name.lower().replace(" ", "_")
+
         # Contextualize the prompt
         gate_check_full_prompt = (
             f"Current context for '{branch_name}':\n"
@@ -1342,15 +1423,18 @@ Respond with ONLY the JSON object for this arc."""
         current_custom_state = self.custom_state or {}
         stopping_strings = ["NO", "UNCHANGED", "YES"]
 
-        llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
+        llm_response_text, stop_reason = self.summarizer.generate_with_sse(
             prompt=gate_check_full_prompt,
             state=current_custom_state,
+            phase_id=phase_id,
+            step_id="perform_gate_check",
             history_path=self.history_path,
             stopping_strings=stopping_strings,
             match_prefix_only=True,
         )
 
         if shared.stop_everything:
+            pm.done_step(phase_id, "perform_gate_check", "Stopped")
             return False
 
         llm_response_text = strip_thinking(llm_response_text).strip()
@@ -1358,10 +1442,13 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_GRAY}Gate check response for '{branch_name}': '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}")
 
+        pm.update_step(phase_id, "perform_gate_check", f"LLM response: {llm_response_text}")
+
         # Logic to determine YES vs NO
         # 1. Check stopping strings logic
         if stop_reason in ["NO", "UNCHANGED"]:
             print(f"{_INPUT}Gate check for '{branch_name}' returned {stop_reason}. Skipping branch.{_RESET}")
+            pm.done_step(phase_id, "perform_gate_check", f"Gate: FAILED ({stop_reason})\nResponse: {llm_response_text}")
             return False
 
         # 2. Check text content logic
@@ -1372,10 +1459,12 @@ Respond with ONLY the JSON object for this arc."""
 
         if is_negative:
             print(f"{_INPUT}Gate check for '{branch_name}' returned NO/UNCHANGED. Skipping branch.{_RESET}")
+            pm.done_step(phase_id, "perform_gate_check", f"Gate: FAILED\nResponse: {llm_response_text}")
             return False
 
         # 3. Default to YES (Process the branch)
         print(f"{_INPUT}Gate check for '{branch_name}' returned YES. Proceeding.{_RESET}")
+        pm.done_step(phase_id, "perform_gate_check", f"Gate: PASSED\nResponse: {llm_response_text}")
         return True
 
     def _perform_full_branch_update(
@@ -1388,9 +1477,10 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ) -> bool:
         """
-        Asks the LLM to rewrite the entire JSON object for the branch.
+        Request the LLM to produce a complete replacement for the branch's dictionary and apply it when the result differs.
+        
         Returns:
-            out (bool): `True` if the branch was updated, `False` if not.
+            True if the branch was updated or a valid identical dictionary was returned, False otherwise.
         """
         print(f"{_INPUT}Attempting direct update for branch '{branch_name}'...{_RESET}")
 
@@ -1441,10 +1531,21 @@ Respond with ONLY the JSON object for this arc."""
         keys: list
     ):
         """
-        Performs the "Diff" strategy:
-        1. Asks "Are there changes?"
-        2. If YES, asks "List the changes (path, value)"
-        3. Applies changes relative to this branch
+        Query a branch to determine whether it needs updates and, if so, request a list of field changes from the LLM and apply those updates to the branch data.
+        
+        This function performs three high-level steps:
+        1. Ask the LLM (using query_template) whether the branch contains changes.
+        2. If changes are indicated, request a list of updates (path, value) using update_template.
+        3. Parse the LLM response and apply each update to `data` relative to this branch.
+        
+        Parameters:
+            branch_name (str): Logical name of the branch being queried (used in prompts and phase IDs).
+            data (dict): The branch's data structure to be modified in-place by applied updates.
+            formatted_data (FormattedData): Contextual, pre-formatted representation of the branch used to build prompts.
+            query_template (str): Prompt template used to ask whether changes exist for this branch.
+            update_template (str): Prompt template used to request the list of field updates when changes are detected.
+            schema_class (ParsedSchemaClass): Schema metadata used to build and validate prompts and examples.
+            keys (list): Path keys identifying this branch within the larger data structure (used when constructing prompts).
         """
         # --- Step 1: Query ---
         branch_query_prompt = self._create_update_prompt(
@@ -1459,7 +1560,11 @@ Respond with ONLY the JSON object for this arc."""
         if not branch_query_prompt:
             return
 
+        phase_id = branch_name.lower().replace(" ", "_")
+        pm = self._phase_manager
+
         print(f"{_GRAY}Querying LLM: Does branch '{branch_name}' need updates?{_RESET}")
+        pm.start_step(phase_id, "query_changes", "Checking for changes...")
 
         branch_query_full_prompt = (
             f"Current context for '{branch_name}':\n"
@@ -1470,15 +1575,18 @@ Respond with ONLY the JSON object for this arc."""
         current_custom_state = self.custom_state or {}
         query_stopping_strings = ["NO", "UNCHANGED", "YES"]
 
-        llm_response_text, stop_reason = self.summarizer.generate_using_tgwui(
+        llm_response_text, stop_reason = self.summarizer.generate_with_sse(
             prompt=branch_query_full_prompt,
             state=current_custom_state,
+            phase_id=phase_id,
+            step_id="query_changes",
             history_path=self.history_path,
             stopping_strings=query_stopping_strings,
             match_prefix_only=True,
         )
 
         if shared.stop_everything:
+            pm.done_step(phase_id, "query_changes", "Stopped")
             return
 
         llm_response_text = strip_thinking(llm_response_text).strip()
@@ -1486,10 +1594,16 @@ Respond with ONLY the JSON object for this arc."""
 
         print(f"{_GRAY}Query branch '{branch_name}' response: '{llm_response_text}'. Stop: '{stop_reason}'{_RESET}")
 
+        pm.done_step(phase_id, "query_changes", f"Response: {llm_response_text}")
+
         # Check if negative response
         if stop_reason in ["NO", "UNCHANGED"] or llm_response_text.upper() in ["NO", "UNCHANGED"]:
+            pm.update_step(phase_id, "query_changes", "No changes needed")
             print(f"{_INPUT}Skipping updates for branch '{branch_name}' (query returned NO).{_RESET}")
             return
+
+        pm.update_step(phase_id, "query_changes", "Changes detected, requesting details...")
+        pm.start_step(phase_id, "apply_updates", "Applying updates...")
 
         # --- Step 2: Request List of Changes ---
         # Simulate a conversation history so the LLM knows it just said "YES"
@@ -1515,9 +1629,11 @@ Respond with ONLY the JSON object for this arc."""
 
         update_stopping_strings = ["NO", "END"]
 
-        llm_update_response_text, _ = self.summarizer.generate_using_tgwui(
+        llm_update_response_text, _ = self.summarizer.generate_with_sse(
             prompt=branch_update_list_full_prompt,
             state=temp_state,  # Use the temp state with history
+            phase_id=phase_id,
+            step_id="apply_updates",
             history_path=self.history_path,
             stopping_strings=update_stopping_strings,
             match_prefix_only=True,
@@ -1531,6 +1647,8 @@ Respond with ONLY the JSON object for this arc."""
 
         if parsed_updates:
             print(f"{_INPUT}Applying {len(parsed_updates)} field update(s) to '{branch_name}'...{_RESET}")
+            pm.update_step(phase_id, "apply_updates", f"Applying {len(parsed_updates)} update(s)...")
+            formatted_updates = []
             for update_item in parsed_updates:
                 path_str = update_item["path"]
                 value = update_item["value"]
@@ -1539,18 +1657,16 @@ Respond with ONLY the JSON object for this arc."""
                 keyList_relative_to_branch = split_keys_to_list(path_str)
 
                 try:
-                    print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(recursive_get(data, keyList_relative_to_branch), indent=None)}{_RESET}")
+                    old_value = recursive_get(data, keyList_relative_to_branch)
+                    print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
                     recursive_set(data, keyList_relative_to_branch, value)  # Modifies 'data' in place
                     print(f"{_GRAY}[{branch_name}] Applied update: {path_str} = {json.dumps(value, indent=None)}{_RESET}")
-
-                    # Also keep the 'formatted_data' in sync if needed by future prompts in this run
-                    # (This depends on if your recursive_set handles the wrapper object or just dicts)
-                    # recursive_set(formatted_data.data, [*keys, *keyList_relative_to_branch], value)
-
+                    formatted_updates.append({"path": path_str, "value": value, "old_value": old_value})
                 except Exception as e:
                     print(f"{_ERROR}[{branch_name}] Failed to apply update {path_str} = {repr(value)}: {e}{_RESET}")
-                    # traceback.print_exc()
+            pm.done_step(phase_id, "apply_updates", f"Applied {len(parsed_updates)} update(s)", {"updates": formatted_updates, "raw_json": json.dumps(parsed_updates, indent=2)})
         else:
+            pm.done_step(phase_id, "apply_updates", "No updates to apply")
             print(f"{_GRAY}No specific field updates applied to '{branch_name}' from branch query response.{_RESET}")
 
     def _retrieve_nested_field(
@@ -1560,10 +1676,17 @@ Respond with ONLY the JSON object for this arc."""
         do_inherit_triggers: bool = False,
         depth: int = -1,
     ):
-        """Recursively retrieve nested fields in a parent field, ending on the field holding the final schema field class.
-
-        Example:
-            ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='alias') -> ParsedSchemaClass(type='dataclass') => ParsedSchemaField(type=ParsedSchemaClass(type='dataclass'))
+        """
+        Traverse alias-wrapped schema layers to locate and return the innermost schema field that holds the final (non-alias) schema type.
+        
+        Parameters:
+            target_schema_class (ParsedSchemaClass): Starting schema class to traverse. Traversal proceeds through alias wrappers whose `. _field.type` is another `ParsedSchemaClass`.
+            defaults_to_inherit (list[str] | None): Names of default attributes to inherit from parent schemas when creating effective intermediate schema copies; passed to `_inherit_defaults_from_parent`.
+            do_inherit_triggers (bool): If True, merge trigger mappings from parent schemas into intermediate effective schema copies.
+            depth (int): Maximum alias-wrapping levels to traverse. A value of -1 means no limit; a non-negative integer stops traversal after that many alias hops.
+        
+        Returns:
+            ParsedSchemaField: The schema field object (`_field`) from the deepest inspected schema class (the field that holds the final schema type).
         """
         effective_child_schema = target_schema_class
         i = 0
@@ -1647,22 +1770,25 @@ Respond with ONLY the JSON object for this arc."""
         context_marker_path_override: str | None = None,
         entry_name_for_prompt: str | None = None,
     ) -> Any:
-        """Core helper to get an updated value from the LLM for a given field or branch.
-
-        Args:
-            item_name_prefix (str): Prefix for the item name (e.g., "CharacterName").
-            field_name (str): Name of the field being updated.
-            current_value (Any): The current value of the field.
-            formatted_data (FormattedData): Formatted data for LLM context.
-            prompt_template_str (str): The prompt template string to use.
-            expected_type (type): The expected Python type of the updated value.
-            target_schema_or_type (ParsedSchemaClass, optional): Schema for snippet/example.
-            keys (list, optional): Path keys to the current data level. Defaults to [].
-            context_marker_path_override (str, optional): Override path for context marking. Defaults to None.
-            entry_name_for_prompt (str, optional): Name of the new entry if generating one.
-
+        """
+        Request an updated value for a field from the LLM, parse and validate the response, and return the updated value (with retries on parse/validation failures).
+        
+        Attempts to assemble a prompt from `prompt_template_str`, call the LLM, and convert or validate the response to `expected_type`. Retries on parsing or schema validation errors up to a small limit; returns the original `current_value` if the update is aborted, a stop signal is received, or retries are exhausted.
+        
+        Parameters:
+            item_name_prefix (str): Identifier or path prefix for the item being updated (used for prompt/context).
+            field_name (str): Name of the specific field to update (empty when updating a whole branch).
+            current_value (Any): Current value present in the data; used as a fallback and for context selection.
+            formatted_data (FormattedData): Context wrapper used to mark and format the current data for the prompt.
+            prompt_template_str (str): Template used to build the LLM prompt (may be augmented with validation feedback on retries).
+            expected_type (type): The Python type the returned value should conform to (e.g., int, dict, list, or typing hints).
+            target_schema_or_type (ParsedSchemaClass | None): Optional schema used to validate complex structured responses.
+            keys (list): Path keys to the current data location (used when assembling the prompt).
+            context_marker_path_override (str | None): Optional override path used for marking context instead of the default.
+            entry_name_for_prompt (str | None): Optional entry name included in the prompt when generating new dictionary entries.
+        
         Returns:
-            out: The potentially updated value, or the original value if no update or an error.
+            The parsed and validated updated value (converted to the requested type when possible). If no valid update is produced, or on stop/error conditions, returns the original `current_value`.
         """
         try:
             context_path_for_marker = context_marker_path_override
@@ -1675,13 +1801,26 @@ Respond with ONLY the JSON object for this arc."""
             base_prompt = prompt_template_str
             max_retries = 2
             last_error = None
+            phase_id = item_name_prefix.lower().replace(" ", "_")
+            pm = self._phase_manager
+            field_phase_id = f"{phase_id}.{field_name}".lower() if field_name is not None else phase_id
+            field_phase_name = f"{item_name_prefix}.{field_name}" if field_name is not None else item_name_prefix
+
+            def _done_field_phase(msg=None):
+                if field_name is not None:
+                    pm.done_phase(field_phase_id, msg)
+
+            if field_name is not None:
+                pm.start_phase(field_phase_id, field_phase_name)
 
             for attempt in range(max_retries + 1):
                 if attempt > 0 and last_error:
                     error_feedback = f"\n\nThe previous attempt failed validation: {last_error}\nPlease correct the response."
                     effective_prompt = base_prompt + error_feedback
+                    pm.warn_step(field_phase_id, "perform_update", f"Retry {attempt}/2: {last_error}")
                 else:
                     effective_prompt = base_prompt
+                    pm.update_step(field_phase_id, "perform_update", "Assembling prompt...")
 
                 prompt = self._create_update_prompt(
                     item_name=item_name_prefix,
@@ -1697,10 +1836,12 @@ Respond with ONLY the JSON object for this arc."""
                 current_custom_state = self.custom_state or {}
                 llm_interaction_prompt = f"Context for '{item_name_prefix}':\n{formatted_data.mark_field(item_name_prefix, context_path_for_marker)}\n\n{prompt}"
 
-                text, stop = self.summarizer.generate_using_tgwui(
+                text, stop = self.summarizer.generate_with_sse(
                     llm_interaction_prompt,
                     current_custom_state,
-                    self.history_path,
+                    phase_id=field_phase_id,
+                    step_id="perform_update",
+                    history_path=self.history_path,
                     match_prefix_only=False,
                 )
 
@@ -1708,17 +1849,22 @@ Respond with ONLY the JSON object for this arc."""
                     print(
                         f"{_HILITE}Stop signal received during LLM value update generation for '{context_path_for_marker}'.{_RESET}"
                     )
+                    _done_field_phase()
                     return current_value
 
                 if stop:
+                    _done_field_phase()
                     return current_value
 
                 try:
                     if expected_type == int:
+                        _done_field_phase()
                         return int(text)
                     if expected_type == float:
+                        _done_field_phase()
                         return float(text)
                     if expected_type == bool:
+                        _done_field_phase()
                         return text.strip().lower() in ["true", "yes", "1"]
 
                     if expected_type == list or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is list):
@@ -1726,10 +1872,12 @@ Respond with ONLY the JSON object for this arc."""
                         try:
                             parsed_list = jsonc.loads(stripped_text)
                             if isinstance(parsed_list, list):
+                                _done_field_phase()
                                 return parsed_list
                             else:
                                 last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
                                 print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
+                                pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                                 continue
                         except json.JSONDecodeError:
                             is_list_of_str = False
@@ -1737,9 +1885,11 @@ Respond with ONLY the JSON object for this arc."""
                                 if expected_type.__args__[0] == str:
                                     is_list_of_str = True
                             if is_list_of_str:
+                                _done_field_phase()
                                 return [item.strip() for item in text.split(",")]
                             last_error = f"Response is not valid JSON and type is not list[str]: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
+                            pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                             continue
 
                     if expected_type == dict or (hasattr(expected_type, "__origin__") and expected_type.__origin__ is dict):
@@ -1747,14 +1897,17 @@ Respond with ONLY the JSON object for this arc."""
                         try:
                             parsed_dict = jsonc.loads(stripped_text)
                             if isinstance(parsed_dict, dict):
+                                _done_field_phase()
                                 return parsed_dict
                             else:
                                 last_error = f"Response was valid JSON but not a dict: '{stripped_text}'"
                                 print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
+                                pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                                 continue
                         except json.JSONDecodeError:
                             last_error = f"Response is not valid JSON: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for dict field {context_path_for_marker}: {last_error}{_RESET}")
+                            pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
                             continue
 
                     # Try to parse as JSON for complex types
@@ -1768,21 +1921,28 @@ Respond with ONLY the JSON object for this arc."""
                                 error_msg = "; ".join(validation_errors[:3])
                                 last_error = f"Validation failed: {error_msg}"
                                 print(f"{_ERROR}Validation errors for {context_path_for_marker}: {validation_errors}{_RESET}")
+                                pm.warn_step(field_phase_id, "perform_update", f"Validation error: {error_msg}")
                                 if attempt < max_retries:
                                     continue
                                 else:
                                     print(f"{_ERROR}Max retries reached, accepting value with warnings.{_RESET}")
+                                    _done_field_phase()
                                     return parsed_value
+                        _done_field_phase()
                         return parsed_value
                     except json.JSONDecodeError:
+                        _done_field_phase()
                         return text
 
                 except (ValueError, TypeError) as e:
                     last_error = f"Could not convert response to type {expected_type}: {e}"
                     print(f"{_ERROR}Could not convert LLM response '{text}' to type {expected_type} for {context_path_for_marker}: {e}{_RESET}")
+                    pm.warn_step(field_phase_id, "perform_update", f"Type error: {last_error}")
                     if attempt >= max_retries:
+                        _done_field_phase()
                         return current_value
 
+            _done_field_phase()
             return current_value
         except Exception as e:
             print(f"{_ERROR}Error in _generate_field_update for {item_name_prefix}.{field_name}: {e}{_RESET}")
