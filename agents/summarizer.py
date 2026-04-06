@@ -652,6 +652,19 @@ class Summarizer:
         self.log_activity("Generating Instructions", "Preparing context", "info")
 
         pm = self._phase_manager
+
+        if not pm._phases:
+            pm.start_session(phases=[{"id": "instr_prompt", "name": "Instruction Generation", "weight": 1}])
+            pm.start_turn("Instruction Generation")
+        else:
+            pm.start_turn("Instruction Generation")
+            if "instr_prompt" not in pm._phase_lookup:
+                phase = {"id": "instr_prompt", "name": "Instruction Generation", "weight": 1}
+                pm._phases.append(phase)
+                pm._phase_lookup["instr_prompt"] = phase
+                pm._phase_steps["instr_prompt"] = []
+                pm._total_weight += 1
+
         pm.start_phase("instr_prompt", "Instruction Generation")
 
         try:
@@ -812,7 +825,6 @@ class Summarizer:
 
                     print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
                     self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
-                    pm.done_phase("instr_prompt", "Instructions ready")
                     return (
                         encoded_instr_prompt,
                         custom_state,
@@ -828,6 +840,7 @@ class Summarizer:
         finally:
             if pm.active_phase == "instr_prompt":
                 pm.done_phase("instr_prompt", "Completed")
+                pm.end_turn()
 
     def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # After output
         """
@@ -849,12 +862,6 @@ class Summarizer:
 
         pm = self._phase_manager
         
-        # Preserve completed phases from generate_instr_prompt
-        completed_phases = []
-        for phase_id in pm._completed_phases:
-            if phase_id in pm._phase_lookup:
-                completed_phases.append(pm._phase_lookup[phase_id])
-        
         subject_names = list(self.last.schema_parser.subjects.keys()) if self.last and self.last.schema_parser else []
         
         # Build summarization phases
@@ -871,28 +878,28 @@ class Summarizer:
             {"id": "chunking", "name": "Message Chunking", "weight": 1},
         ])
         
-        # Combine: completed phases first, then summarization phases (skip duplicates)
-        seen = set(p["id"] for p in completed_phases)
-        combined_phases = list(completed_phases)
-        for p in summarization_phases:
-            if p["id"] not in seen:
-                combined_phases.append(p)
-        
-        pm.start_session(phases=combined_phases)
+        # Only start new session if none exists; otherwise add phases to existing session
+        if not pm._phases:
+            pm.start_session(phases=summarization_phases)
+            pm.start_turn("Summarization")
+        else:
+            pm.start_turn("Summarization")
+            for p in summarization_phases:
+                if p["id"] not in pm._phase_lookup:
+                    phase = {"id": p["id"], "name": p["name"], "weight": p.get("weight", 1)}
+                    pm._phases.append(phase)
+                    pm._phase_lookup[p["id"]] = phase
+                    pm._phase_steps[p["id"]] = []
+                    pm._total_weight += phase["weight"]
 
         try:
-            if shared.stop_everything:
-                print(f"{_HILITE}Stop signal received before retrieve_and_format_context in summarize_latest_state.{_RESET}")
-                pm.end_session()
-                return None
-
             pm.start_phase("context", "Context Preparation")
             user_input, custom_state_ref = self.prepare_context(user_input, state, history[:-1])
             history[-1][0] = user_input  # TODO: Persist next_scene state for this history_path
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after retrieve_and_format_context in summarize_latest_state.{_RESET}")
                 pm.done_phase("context", "Stopped")
-                pm.end_session()
+                pm.end_session(publish=False)
                 return None
 
             # self.last should be set by prepare_context
@@ -939,7 +946,7 @@ class Summarizer:
                     f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}"
                 )
                 pm.done_phase("context", "Missing schemas")
-                pm.end_session()
+                pm.end_session(publish=False)
                 return None
 
             # Handle special case for new scene turn before processing
@@ -1018,7 +1025,7 @@ class Summarizer:
                 self.log_activity("Subject Updated", subject_name, "success")
 
                 if shared.stop_everything:
-                    pm.end_session()
+                    pm.end_session(publish=False)
                     return None
 
             if self.last and self.last.is_new_scene_turn:
@@ -1027,7 +1034,7 @@ class Summarizer:
                 data_summarizer.check_and_archive_chapter()
                 if shared.stop_everything:
                     pm.done_phase("chapter_check", "Stopped")
-                    pm.end_session()
+                    pm.end_session(publish=False)
                     return None
                 self.log_activity("Chapter Check", "Complete", "success")
                 pm.done_phase("chapter_check")
@@ -1037,7 +1044,7 @@ class Summarizer:
                 data_summarizer.check_and_archive_arc()
                 if shared.stop_everything:
                     pm.done_phase("arc_check", "Stopped")
-                    pm.end_session()
+                    pm.end_session(publish=False)
                     return None
                 self.log_activity("Arc Check", "Complete", "success")
                 pm.done_phase("arc_check")
@@ -1047,6 +1054,7 @@ class Summarizer:
 
             # --- Summarize New Messages ---
             pm.start_phase("message_summary", "Message Summarization")
+            pm.start_step("message_summary", "summarize", "Preparing message summary...")
             message_idx = len(history) * 2 - 1  # history was passed as history[:-1] to retrieve_and_format_context
 
             # Determine current timestamp from the processed current_scene data
@@ -1063,14 +1071,17 @@ class Summarizer:
             msg_summarizer = MessageSummarizer(self, new_history_path, current_timestamp_str)
             msg_summarizer.generate((user_input, output), (message_idx - 1, message_idx))
             if shared.stop_everything:
+                pm.done_step("message_summary", "summarize", "Stopped")
                 pm.done_phase("message_summary", "Stopped")
-                pm.end_session()
+                pm.end_session(publish=False)
                 return None
+            pm.done_step("message_summary", "summarize", "Message chunks saved")
             self.log_activity("Messages Summarized", "Message chunks saved", "success")
             pm.done_phase("message_summary")
 
             # --- Update scene_id and event_id for message chunks ---
             pm.start_phase("chunking", "Message Chunking")
+            pm.start_step("chunking", "update_metadata", "Updating chunk metadata...")
             if self.last and self.last.context:
                 context_retriever = self.last.context[1]
                 persist_dir = context_retriever.history_path / "message_index"
@@ -1116,9 +1127,10 @@ class Summarizer:
             else:
                 print(f"{_ERROR}Cannot update scene/event IDs for chunks: Summarizer.last.context not available.{_RESET}")
 
+            pm.done_step("chunking", "update_metadata", "Metadata updated")
             pm.done_phase("chunking")
             self.log_activity("Summarization Complete", f"Scene saved at {new_history_path.name}", "success")
-            pm.end_session()
+            pm.end_session(publish=False)
             return current_timestamp_str
 
         except Exception as e:
@@ -1127,7 +1139,7 @@ class Summarizer:
             traceback.print_exc()
             if pm.active_phase:
                 pm.error_phase(pm.active_phase, str(e))
-            pm.end_session()
+            pm.end_session(publish=False)
             return None
 
     def backtrack_history(self, history: History, history_path: Path) -> bool:
@@ -1516,6 +1528,8 @@ class Summarizer:
         state: dict,
         subject_name: str,
         population_config: dict,
+        phase_id: str | None = None,
+        step_id: str | None = None,
     ) -> None:
         """
         Populates a single subject using direct LLM interaction.
@@ -1569,15 +1583,20 @@ class Summarizer:
 
             max_retries = 2
             populated_data = None
+            pm = self._phase_manager
 
             for attempt in range(max_retries + 1):
                 print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate '{subject_name}' data...{_RESET}")
                 if attempt > 0:
                     print(f"{_INPUT}Retrying LLM prompt for '{subject_name}' with validation feedback.{_RESET}")
+                    if phase_id and step_id:
+                        pm.warn_step(phase_id, step_id, f"Retry {attempt}/{max_retries}")
 
-                response_text, _ = self.generate_using_tgwui(
+                response_text, _ = self.generate_with_sse(
                     prompt=prompt,
                     state=custom_state,
+                    phase_id=phase_id or "legacy",
+                    step_id=step_id or "generate",
                     history_path=initial_world_data_path,
                     match_prefix_only=False,
                 )
@@ -1652,6 +1671,8 @@ class Summarizer:
         state: dict,
         subject_name: str,
         population_config: dict,
+        phase_id: str | None = None,
+        step_id: str | None = None,
     ) -> None:
         """
         Populates multiple subjects using identify-then-populate pattern.
@@ -1677,6 +1698,7 @@ class Summarizer:
 
         custom_state = copy.deepcopy(state)
         custom_state.update(copy.deepcopy(base_state))
+        pm = self._phase_manager
 
         # Step 1: Identification
         identification_prompt = format_str_or_jinja(
@@ -1686,9 +1708,11 @@ class Summarizer:
         )
 
         print(f"{_DEBUG}Prompting LLM for entity identification...{_RESET}")
-        identification_response_text, _ = self.generate_using_tgwui(
+        identification_response_text, _ = self.generate_with_sse(
             prompt=identification_prompt,
             state=custom_state,
+            phase_id=phase_id or "legacy",
+            step_id=step_id or "identify",
             history_path=initial_world_data_path,
             match_prefix_only=False,
         )
@@ -1770,10 +1794,14 @@ class Summarizer:
                         print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate details for {entity_type} '{entity_name}'...{_RESET}")
                         if attempt > 0:
                             print(f"{_INPUT}Retrying LLM prompt for '{entity_name}' with validation feedback.{_RESET}")
+                            if phase_id and step_id:
+                                pm.warn_step(phase_id, step_id, f"Retry {attempt}/{max_retries}")
 
-                        detail_response_text, _ = self.generate_using_tgwui(
+                        detail_response_text, _ = self.generate_with_sse(
                             prompt=population_prompt,
                             state=custom_state_detail,
+                            phase_id=phase_id or "legacy",
+                            step_id=step_id or "populate",
                             history_path=initial_world_data_path,
                             match_prefix_only=False,
                         )
@@ -1879,32 +1907,63 @@ class Summarizer:
 
         print(f"{_DEBUG}Starting schema-driven initial population...{_RESET}")
 
+        pm = self._phase_manager
+        subject_names = [name for name, schema_def in schema_parser.get_subject_classes().items() if schema_def.defaults.get("initial_population")]
+        
+        # Build phases for initial population (just the container)
+        pop_phases = [{"id": "initial_population", "name": "Initial Population", "weight": 1}]
+        
+        pm.start_session(phases=pop_phases)
+        pm.start_turn("Initial Population")
+        pm.start_phase("initial_population", "Initial Population")
+        
         for subject_name, schema_def in schema_parser.get_subject_classes().items():
             population_config = schema_def.defaults.get("initial_population")
             if not population_config:
                 continue
 
             mode = population_config.get("mode", "direct")
+            phase_id = f"initial_population.{subject_name.lower().replace(' ', '_')}"
+            
             print(f"{_DEBUG}Populating '{subject_name}' using mode '{mode}'...{_RESET}")
+            
+            pm.start_phase(phase_id, f"Populate {subject_name}")
+            pm.start_step(phase_id, "populate", f"Populating {subject_name}...")
 
-            if mode == "direct":
-                self._populate_subject_direct(
-                    initial_world_data_path,
-                    schema_parser,
-                    state,
-                    subject_name,
-                    population_config,
-                )
-            elif mode == "identify":
-                self._populate_subject_identify(
-                    initial_world_data_path,
-                    schema_parser,
-                    state,
-                    subject_name,
-                    population_config,
-                )
-            else:
-                print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
+            try:
+                if mode == "direct":
+                    self._populate_subject_direct(
+                        initial_world_data_path,
+                        schema_parser,
+                        state,
+                        subject_name,
+                        population_config,
+                        phase_id=phase_id,
+                        step_id="populate",
+                    )
+                elif mode == "identify":
+                    self._populate_subject_identify(
+                        initial_world_data_path,
+                        schema_parser,
+                        state,
+                        subject_name,
+                        population_config,
+                        phase_id=phase_id,
+                        step_id="populate",
+                    )
+                else:
+                    print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
+                    pm.skip_phase(phase_id, f"Unknown mode: {mode}")
+                
+                pm.done_step(phase_id, "populate", f"Populated {subject_name}")
+                pm.done_phase(phase_id)
+            except Exception as e:
+                pm.error_phase(phase_id, str(e))
+                print(f"{_ERROR}Error populating '{subject_name}': {e}{_RESET}")
+
+        pm.done_phase("initial_population")
+        pm.end_turn()
+        pm.end_session(publish=False)
 
         print(f"{_SUCCESS}Schema-driven initial population complete.{_RESET}")
 
@@ -1924,6 +1983,9 @@ class MessageSummarizer:
         """Summarize messages and store in vector database with metadata."""
         print(f"{_BOLD}Summarizing messages for indices {message_idxs}{_RESET}")
 
+        pm = self.summarizer._phase_manager
+        pm.start_step("message_summary", "summarize", f"Summarizing {len(exchange)} message(s)")
+
         for i, message_content in enumerate(exchange):
             current_message_idx = message_idxs[i]
             prompt = f'''Analyze the provided message and generate a concise summary of the key events, interactions, and developments.
@@ -1932,11 +1994,14 @@ REMEMBER: Do not add anything else to the response. Only respond with the summar
 
 Here is the message: """\n{message_content.strip()}\n"""'''
             try:
-                summary_text, _ = self.summarizer.generate_using_tgwui(prompt, self.custom_state, self.history_path)
+                summary_text, _ = self.summarizer.generate_with_sse(
+                    prompt, self.custom_state, "message_summary", f"summarize_msg_{i}", self.history_path
+                )
                 if shared.stop_everything:
                     print(
                         f"{_HILITE}Stop signal received in MessageSummarizer after generating summary for message_idx {current_message_idx}.{_RESET}"
                     )
+                    pm.done_step("message_summary", f"summarize_msg_{i}", "Stopped")
                     return
                 summary_text = strip_thinking(summary_text)
 
@@ -1972,6 +2037,8 @@ Here is the message: """\n{message_content.strip()}\n"""'''
             except Exception as e:
                 print(f"{_ERROR}Error generating message summary for message_idx {current_message_idx}: {e}{_RESET}")
                 traceback.print_exc()
+
+        pm.done_step("message_summary", "summarize", f"Summarized {len(exchange)} message(s)")
 
 
 class FormattedData:

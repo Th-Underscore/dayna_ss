@@ -83,6 +83,41 @@ class PhaseManager:
         self._completed_weight: float = 0.0
         self._session_start: float = 0
         self._phase_start_times: dict[str, float] = {}
+        self._turn_count: int = 0
+
+    def start_turn(self, label: str | None = None) -> None:
+        """
+        Mark the start of a new turn within the session.
+        
+        Increments the turn counter and publishes a `turn_start` event with the turn label.
+        This is used to track separate phases like generate_instr_prompt and summarize_latest_state.
+        The UI can use this to show separators between turns when turn_count > 1.
+        
+        Parameters:
+            label (str, optional): Optional label for this turn (e.g., "Instruction Generation").
+        """
+        self._turn_count += 1
+        self._queue.publish({
+            "type": "turn_start",
+            "turn": self._turn_count,
+            "label": label,
+        })
+
+    def end_turn(self, label: str | None = None) -> None:
+        """
+        Mark the end of the current turn.
+        
+        Publishes a `turn_end` event with the turn label. The UI can use this to
+        finalize turn-level displays or update status.
+        
+        Parameters:
+            label (str, optional): Optional label for this turn.
+        """
+        self._queue.publish({
+            "type": "turn_end",
+            "turn": self._turn_count,
+            "label": label,
+        })
 
     def start_session(self, phases: list[dict] | None = None, subject_names: list[str] | None = None) -> None:
         """
@@ -104,12 +139,15 @@ class PhaseManager:
         self._phase_lookup = {}
         self._active_phase = None
         self._active_step = None
+        preserved_completed = set(self._completed_phases)
         self._completed_phases = set()
         self._phase_steps = {}
         self._phase_start_times = {}
         self._total_weight = 0
         self._completed_weight = 0.0
-        self._session_start = time.time()
+        
+        if not self._session_start:
+            self._session_start = time.time()
 
         if phases:
             base_phases = phases
@@ -138,10 +176,16 @@ class PhaseManager:
             self._phase_steps[p["id"]] = []
             self._total_weight += phase["weight"]
 
+        for phase_id in preserved_completed:
+            if phase_id in self._phase_lookup:
+                self._completed_phases.add(phase_id)
+                self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
+
         self._queue.publish({
             "type": "session_start",
             "phase": {"id": "_session", "name": "Summarization"},
-            "queue": [{"id": p["id"], "name": p["name"], "status": "pending"} for p in self._phases],
+            "turn_count": self._turn_count,
+            "queue": [{"id": p["id"], "name": p["name"], "status": "pending"} for p in self._phases if p["id"] not in self._completed_phases],
             "progress": self._get_progress(),
         })
 
@@ -379,25 +423,44 @@ class PhaseManager:
                 "data": data,
             })
 
-    def end_session(self) -> None:
+    def end_session(self, publish: bool = True) -> None:
         """
-        End the current summarization session and publish a final session event.
+        End the current summarization session and optionally publish a final session event.
         
-        Publishes a `session_end` event containing the synthetic session phase (`id: "_session", name: "Summarization"`), progress summary (`completed` and `total` set to the total number of phases, `percent` set to 100.0, and `elapsed` time), and clears the active phase and active step state.
+        Parameters:
+            publish (bool): If True, publishes a `session_end` event with final progress.
+        
+        Description:
+            If publish is True, publishes a `session_end` event containing the synthetic session phase 
+            (`id: "_session", name: "Summarization"`), progress summary with elapsed time, and clears 
+            the active phase and step state. If publish is False, the session is marked as complete 
+            but no event is sent, allowing the UI to continue showing elapsed time.
         """
         elapsed = time.time() - self._session_start
 
         progress = self._get_progress()
         progress["elapsed"] = elapsed
 
-        self._queue.publish({
-            "type": "session_end",
-            "phase": {"id": "_session", "name": "Summarization"},
-            "progress": progress,
-        })
+        if publish:
+            self._queue.publish({
+                "type": "session_end",
+                "phase": {"id": "_session", "name": "Summarization"},
+                "progress": progress,
+            })
 
         self._active_phase = None
         self._active_step = None
+
+    def separator(self) -> None:
+        """
+        Insert a visual separator between phase groups in the UI.
+        
+        Publishes a `session_separator` event that the UI uses to render a divider
+        between sets of phases (e.g., between generate_instr_prompt and summarize_latest_state).
+        """
+        self._queue.publish({
+            "type": "session_separator",
+        })
 
     def skip_phase(self, phase_id: str, reason: str = "Not applicable", name: str | None = None) -> None:
         """

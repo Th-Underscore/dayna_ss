@@ -333,7 +333,7 @@ import gradio as gr
 
 from extensions.dayna_ss.ui import ui_chat, ui_file_saving, ui_parameters, ui_templates, utils
 
-# HTML + JS for the real-time SSE status panel
+# --- HTML + JS for the real-time SSE status panel --- #
 _SSE_PANEL_HTML = """<div id="dss-status-panel" style="font-family: monospace; font-size: 13px; background: #0d1117; color: #c9d1d9; border-radius: 8px; padding: 16px; min-height: 200px; max-height: 600px; overflow-y: auto;">
     <div id="dss-debug" style="color: #ff4444; font-size: 11px; margin-bottom: 8px;">JS NOT LOADED</div>
     <div id="dss-session-info" style="margin-bottom: 12px; color: #8b949e; font-size: 12px;">

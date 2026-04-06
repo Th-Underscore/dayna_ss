@@ -115,10 +115,23 @@
         var type = ev.type;
         if (type === 'session_start') {
             if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
-            phasesDiv.innerHTML = '';
-            phases = {};
+            if (!phases || Object.keys(phases).length === 0) {
+                phasesDiv.innerHTML = '';
+                phases = {};
+            }
             updateQueue(ev.queue, queueDiv);
             updateProgress(ev.progress, progressBar, progressText);
+        } else if (type === 'turn_start') {
+            if (ev.turn && ev.turn > 1) {
+                var sep = document.createElement('div');
+                sep.style.cssText = 'border-top:1px dashed #484f58;margin:8px 0;';
+                phasesDiv.appendChild(sep);
+            }
+            if (ev.label && sessionInfo) {
+                sessionInfo.textContent = ev.label + '...';
+            }
+        } else if (type === 'turn_end') {
+            if (sessionInfo) sessionInfo.textContent = 'Done (' + ((ev.elapsed) || 0).toFixed(1) + 's)';
         } else if (type === 'phase_start') {
             var pid = ev.phase.id;
             phases[pid] = { name: ev.phase.name, steps: [], active: true };
@@ -183,12 +196,10 @@
             if (ev.step && ev.step.status === 'warning') {
                 step.status = 'warning';
                 markStepWarning(pid, sid);
-            }
-            if (ev.data) {
-                step.data = ev.data;
-                updateStepDataContent(pid, sid, ev.data);
-            }
-            if (ev.step && ev.step.complete) {
+            //} else if (ev.data) {
+                //step.data = ev.data;
+                //updateStepDataContent(pid, sid, ev.data);
+            } else if (ev.step && ev.step.complete) {
                 step.status = 'done';
                 markStepDone(pid, sid);
             }
@@ -198,7 +209,8 @@
             for (var i = 0; i < phases[pid].steps.length; i++) {
                 if (phases[pid].steps[i].id === ev.step.id) {
                     var step = phases[pid].steps[i];
-                    step.status = 'done';
+                    var isWarning = step.status === 'warning';
+                    step.status = isWarning ? 'warning' : 'done';
                     if (ev.step.elapsed) step.elapsed = ev.step.elapsed;
                     if (ev.step.message) {
                         step.message = ev.step.message;
@@ -208,7 +220,9 @@
                         step.data = ev.data;
                         updateStepDataContent(pid, step.id, ev.data);
                     }
-                    markStepDone(pid, step.id);
+                    if (!isWarning) {
+                        markStepDone(pid, step.id);
+                    }
                     if (ev.step.elapsed) updateStepElapsed(pid, step.id, ev.step.elapsed);
                     break;
                 }
@@ -234,6 +248,10 @@
             phases[pid].active = false;
             phases[pid].error = ev.phase.error;
             markPhaseError(pid, ev.phase.error);
+        } else if (type === 'session_separator') {
+            var sep = document.createElement('div');
+            sep.style.cssText = 'border-top:1px dashed #484f58;margin:8px 0;';
+            phasesDiv.appendChild(sep);
         } else if (type === 'session_end') {
             if (sessionInfo) sessionInfo.textContent = 'Done (' + ((ev.progress && ev.progress.elapsed) || 0).toFixed(1) + 's)';
             updateProgress(ev.progress, progressBar, progressText);
