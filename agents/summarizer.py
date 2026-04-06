@@ -27,6 +27,7 @@ from modules.text_generation import encode
 import extensions.dayna_ss.shared as dss_shared
 
 # from extensions.dayna_ss.utils.memory_management import VRAMManager
+from extensions.dayna_ss.ui import get_update_queue, PhaseManager
 from extensions.dayna_ss.rag.structured_rag.context_retriever import (
     RetrievalContext,
     StoryContextRetriever,
@@ -128,7 +129,20 @@ base_state = {
 
 class Summarizer:
     def __init__(self, config_path: PathLike | None = None):
-        """Initialize Summarizer, optionally loading config from `config_path`."""
+        """
+        Create a Summarizer and initialize its configuration, tool registry, and UI integration.
+        
+        If `config_path` is provided, load configuration from that path; otherwise load the default
+        `dss_config.json` from the extension root. Initializes internal state used by the summarizer:
+        - `self.last` (context cache),
+        - tool executors and the tool registry,
+        - real-time UI update queue and phase manager.
+        
+        Parameters:
+            config_path (PathLike | None): Path to a JSON configuration file. When `None`, the
+                default configuration at the extension root (`extensions/dayna_ss/dss_config.json`)
+                is loaded.
+        """
         dss_dir = Path(__file__).parent.parent  # Root directory of the extension
         self.config = self._load_config(config_path or dss_dir / "dss_config.json")
 
@@ -142,6 +156,10 @@ class Summarizer:
         self.dss_tool_executors: dict[str, Callable] = {}
         self.tool_registry = ToolRegistry()
         self._init_tool_registry()
+
+        # Real-time UI update system
+        self._update_queue = get_update_queue()
+        self._phase_manager = PhaseManager(queue=self._update_queue)
 
     def _init_tool_registry(self) -> None:
         """Initialize DSS tool executors for TGWUI's native tool system."""
@@ -228,90 +246,139 @@ class Summarizer:
         match_prefix_only: bool = True,
         **kwargs,
     ) -> tuple[str, str]:
-        """Generate a message using TGWUI's shared model.
+        """Deprecated. Use generate_with_sse for real-time UI updates."""
+        default_phase = "legacy"
+        default_step = "generate"
+        return self.generate_with_sse(prompt, state, default_phase, default_step, history_path, stopping_strings, match_prefix_only, **kwargs)
 
-        Args:
-            prompt (str): The prompt to give to the LLM.
-            state (dict): The state dictionary to generate context with.
-            history_path (Path, optional): The history path.
-            stopping_strings (list[str], optional): The optional stopping strings.
-            match_prefix_only (bool, optional): Whether to match prefix only for stopping strings.
-
+    def generate_with_sse(
+        self,
+        prompt: str,
+        state: dict,
+        phase_id: str,
+        step_id: str,
+        history_path: Path | None = None,
+        stopping_strings: list[str] | None = ["UNCHANGED", "unchanged", "NO_UPDATE", "no_update", '"UNCHANGED"', '"unchanged"', '"NO_UPDATE"', '"no_update"'],
+        match_prefix_only: bool = True,
+        **kwargs,
+    ) -> tuple[str, str]:
+        """
+        Stream model output as token-level step updates to the UI update queue.
+        
+        Publishes step lifecycle events (prompt assembly, generation start, incremental token snippets, errors, and completion) to self._update_queue while driving generation either through the tool loop or standard streaming generator. Throttles token emissions to avoid flooding the UI and returns the final aggregated output and the stopping reason.
+        
+        Parameters:
+            prompt (str): The assembled prompt passed to the model.
+            state (dict): Runtime state used for generation and context.
+            phase_id (str): Identifier for the current PhaseManager phase sent with updates.
+            step_id (str): Identifier for the current step sent with updates.
+            history_path (Path | None): Optional history path for logging/debug dumps; when None, uses the cached last history path.
+            stopping_strings (list[str] | None): Strings that, when produced by the model, are treated as a stop condition.
+            match_prefix_only (bool): If true, only matches stopping strings against the start of the generated text.
+            **kwargs: Additional arguments forwarded to the underlying generation routine.
+        
         Returns:
-            out (tuple[str, str]): A tuple of (response_text, stop_reason)
+            tuple[str, str]: `response_text` — the final generated text (trimmed); `stop_reason` — the stopping string that ended generation or an empty string if none.
         """
         if not history_path:
-            history_path = self.last.history_path
-        try:
-            dump_str = (
-                f"\n\n==========================\n"
-                f"==========================\n"
-                f"========================== INTERNAL CONTEXT ({self.hash_key(state['context'])})\n\n"
-                f"{state['context']}"
-                f"\n\n==========================\n"
-                f"========================== INTERNAL HISTORY ({self.hash_key(state['history']['internal'])})\n\n"
-                f"{json.dumps(state['history']['internal'], indent=2)}"
-                f"\n\n==========================\n"
-                f"========================== NEW PROMPT\n\n"
-                f"{prompt}"
-            )
-            # print(f"{_GRAY}{dump_str}{_RESET}")
-            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
-                f.write(dump_str)
-                f.close()
-        except Exception as e:
-            print(f"{_ERROR}Error writing to history file: {str(e)}{_RESET}")
-            traceback.print_exc()
+            last = getattr(self, "last", None)
+            history_path = last.history_path if last else None
+
         text = ""
         stop = ""
         if shared.stop_everything:
             return "", ""
 
-        # Capture the output
-        capture_buffer = io.StringIO()
         use_tool_loop = self.retrieval_mode == "active"
+        last_emit_len = 0
+        emit_threshold = 50  # Emit every ~50 chars to avoid flooding SSE
+        last_emit_time = 0
+        emit_interval = 0.3  # Also limit to ~3 updates/sec
 
-        with redirect_stderr(DualStream(sys.stderr, capture_buffer)):  # redirect_stdout(DualStream(sys.stdout, capture_buffer))
-            if use_tool_loop:
-                for t, s in self.generate_with_tool_loop(
-                    prompt,
-                    state,
-                    stopping_strings,
-                    match_prefix_only=match_prefix_only,
-                    **kwargs,
-                ):
-                    if shared.stop_everything:
-                        return text, stop
-                    text = t
-                    stop = s
-                    if s and s not in ("tool_call", ""):
-                        break
-            else:
-                for t, s in self.generate_summary_with_streaming(
-                    prompt,
-                    state,
-                    stopping_strings,
-                    match_prefix_only=match_prefix_only,
-                    **kwargs,
-                ):
-                    if shared.stop_everything:
-                        return text, stop
-                    text = t
-                    stop = s
-        if shared.stop_everything:
-            return text, stop
-        text = text.strip()
+        # Emit prompt assembly step
+        self._update_queue.publish({
+            "type": "step_update",
+            "phase": {"id": phase_id},
+            "step": {"id": step_id, "message": f"Assembling prompt ({len(prompt)} chars)..."},
+        })
+
         try:
-            string = capture_buffer.getvalue()
-            string = string[string.rfind("\r") :].strip()
-            dump_str = f"\n\n==========================\n\n{text}\n\n" f"==========================\n\n{string}"
-            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
-                f.write(dump_str)
-                f.close()
+            if use_tool_loop:
+                gen = self.generate_with_tool_loop(
+                    prompt, state, stopping_strings,
+                    match_prefix_only=match_prefix_only, **kwargs,
+                )
+            else:
+                gen = self.generate_summary_with_streaming(
+                    prompt, state, stopping_strings,
+                    match_prefix_only=match_prefix_only, **kwargs,
+                )
+
+            # Emit LLM generation started
+            self._update_queue.publish({
+                "type": "step_update",
+                "phase": {"id": phase_id},
+                "step": {"id": step_id, "message": "Generating response..."},
+            })
+
+            for t, s in gen:
+                if shared.stop_everything:
+                    self._update_queue.publish({
+                        "type": "step_done",
+                        "phase": {"id": phase_id},
+                        "step": {"id": step_id, "message": "Stopped", "status": "done"},
+                    })
+                    return text, stop
+                text = t
+                stop = s
+
+                # Stream tokens to SSE (throttled)
+                import time as _time
+                now = _time.time()
+                if len(text) - last_emit_len >= emit_threshold and now - last_emit_time >= emit_interval:
+                    snippet = text[last_emit_len:]
+                    if snippet:
+                        self._update_queue.publish({
+                            "type": "step_update",
+                            "phase": {"id": phase_id},
+                            "step": {"id": step_id, "token": snippet, "full_text_len": len(text)},
+                            "token": snippet,
+                        })
+                    last_emit_len = len(text)
+                    last_emit_time = now
+
+                if s and s not in ("tool_call", ""):
+                    break
+
         except Exception as e:
-            print(f"{_ERROR}Error writing to history file: {str(e)}{_RESET}")
+            error_msg = f"Error in generate_with_sse: {str(e)}"
+            print(f"{_ERROR}{error_msg}{_RESET}")
             traceback.print_exc()
-        return text, stop
+            self._update_queue.publish({
+                "type": "step_update",
+                "phase": {"id": phase_id},
+                "step": {"id": step_id, "message": f"Error: {str(e)}"},
+            })
+            return "", "error"
+
+        if len(text) > last_emit_len:
+            snippet = text[last_emit_len:]
+            self._update_queue.publish({
+                "type": "step_update",
+                "phase": {"id": phase_id},
+                "step": {"id": step_id, "token": snippet, "full_text_len": len(text)},
+                "token": snippet,
+            })
+
+        # Emit full response text on completion
+        final_text = text.strip()
+        self._update_queue.publish({
+            "type": "step_update",
+            "phase": {"id": phase_id},
+            "step": {"id": step_id, "complete": True, "message": final_text},
+        })
+
+        return text.strip(), stop
 
     def generate_summary_with_streaming(
         self,
@@ -321,7 +388,18 @@ class Summarizer:
         match_prefix_only: bool = True,
         **kwargs,
     ) -> Generator[tuple[str, str], Any, None]:
-        """Generate a summary using the loaded TGWUI model with custom stopping strings."""
+        """
+        Stream partial generated text chunks from the configured model and signal when a configured stopping marker is reached.
+        
+        Yields incremental (text, stop_reason) tuples as the model produces output; when a stopping marker is detected the generator yields the text containing the marker and the matching stopping string as stop_reason and then stops. The generator may yield empty stop_reason for intermediate partial outputs.
+        
+        Parameters:
+            stopping_strings (list[str] | None): List of marker strings that, when detected in the generated text, cause the generator to stop and return that marker as the stop_reason. If None or empty, no automatic stopping based on markers is performed.
+            match_prefix_only (bool): If True, a stopping marker is considered matched only when it appears at the start of the generated text after left-stripping whitespace; if False, the marker is matched anywhere in the generated text.
+        
+        Returns:
+            tuple[str, str]: Streamed tuples where the first element is the current generated text chunk and the second element is the stop reason — the matching stopping string when generation ended, or an empty string for ongoing partial outputs.
+        """
         # if stopping_strings:
         #     quoted_tokens = [f'"{token}"' for token in stopping_strings]
         #     custom_state['custom_token_bans'] = ', '.join(quoted_tokens) if custom_state['custom_token_bans'] else ', '.join(quoted_tokens)
@@ -547,196 +625,294 @@ class Summarizer:
     def generate_instr_prompt(
         self, user_input: str, state: dict, history: History, **kwargs
     ) -> tuple[str, dict, Path, str]:  # After input
+        """
+        Builds the instruction prompt used to steer the model's character response and returns that prompt plus a snapshot of state, the history path, and a scene timestamp.
+        
+        The function prepares retrieval context, optionally generates or loads a cached set of plain-text instruction paragraphs (when `do_instr` is true), composes a final prompt for the character, and encodes it when required by the model. It also records a deep-copied custom state and derives a current-scene timestamp to be used for subsequent summarization and chunking.
+        
+        Parameters:
+            user_input (str): The latest user message to be incorporated into the instruction prompt.
+            state (dict): The current session state/configuration (may be mutated internally for seed handling).
+            history (History): Conversation history used to compute message indices and the history path.
+            **kwargs: Optional flags and generation options. Recognized keys include:
+                do_instr (bool): If true, generate detailed instruction paragraphs and persist them to instructions.json.
+        
+        Returns:
+            tuple[str, dict, Path, str]:
+                instr_prompt — The instruction prompt ready for model consumption; encoded string when required by the backend, or the original `user_input` on early stop/failure.
+                custom_state — A deep-copied snapshot of the state used for generating the instruction prompt.
+                history_path — Path to the session's history directory containing cached artifacts.
+                current_timestamp_str — ISO-8601 timestamp string for the current scene (derived from retrieval context when available); `None` when generation was stopped or failed.
+        
+        Side effects:
+            - May persist generated instruction text to <history_path>/instructions.json.
+            - Writes a diagnostic dump file (dump.txt) next to the history directory.
+            - Logs activity and updates phase/step tracking for UI telemetry.
+        """
         print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
         self.log_activity("Generating Instructions", "Preparing context", "info")
-        user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
-        custom_state = copy.deepcopy(custom_state_ref)
-        history_path = self.last.history_path
 
-        if shared.stop_everything:
-            print(f"{_HILITE}Stop signal received after prepare_context in generate_instr_prompt.{_RESET}")
-            return user_input, state, history_path, None
+        pm = self._phase_manager
 
-        # Get current timestamp for saving message chunks
-        current_timestamp_str = datetime.now().isoformat()  # Default timestamp
-        if self.last and self.last.context:
-            retrieval_ctx: RetrievalContext = self.last.context[0]
-            if retrieval_ctx and retrieval_ctx.current_scene:
-                scene_time_data = retrieval_ctx.current_scene.get("now", retrieval_ctx.current_scene.get("start", {})).get(
-                    "when", {}
-                )
-                if scene_time_data.get("specific_time") and scene_time_data.get("date"):
-                    current_timestamp_str = f"{scene_time_data['date']}T{scene_time_data['specific_time']}"
-                elif scene_time_data.get("date"):
-                    current_timestamp_str: str = scene_time_data["date"]
+        if not pm._phases:
+            pm.start_session(phases=[{"id": "instr_prompt", "name": "Instruction Generation", "weight": 1}])
+            pm.start_turn("Instruction Generation")
+        else:
+            pm.start_turn("Instruction Generation")
+            if "instr_prompt" not in pm._phase_lookup:
+                phase = {"id": "instr_prompt", "name": "Instruction Generation", "weight": 1}
+                pm._phases.append(phase)
+                pm._phase_lookup["instr_prompt"] = phase
+                pm._phase_steps["instr_prompt"] = []
+                pm._total_weight += 1
 
-        user_input_message_idx = len(history) * 2
+        pm.start_phase("instr_prompt", "Instruction Generation")
 
-        if history_path:
-            """Get the current state of the story summary."""
-            try:
-                # # Check if there is a cached KV state for this prompt
-                # cached_kv = self.vram_manager.get_context_cache()
-                # if cached_kv is not None:
-                #     print(f"{_SUCCESS}Found cached KV state{_RESET}")
-                #     print(f"{_SUCCESS}Cache ready for current position{_RESET}")
+        try:
+            pm.start_step("instr_prompt", "context", "Preparing context...")
+            user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
+            pm.done_step("instr_prompt", "context", "Context prepared")
+            custom_state = copy.deepcopy(custom_state_ref)
+            last = getattr(self, "last", None)
+            history_path = last.history_path if last else None
 
-                user_input_prompt = f'This is the latest user input:\n\n"""\n{user_input}\n"""\n\n'
-                name1 = state["name1"] or "User"
-                name2 = state["name2"] or "Assistant"
-
-                instr_path = history_path / "instructions.json"
-                instructions: dict[str, str] = load_json(instr_path)
-
-                # Get shared model (LlamaServer)
-                model: LlamaServer = shared.model
-
-                # Use existing instruction prompt
-                original_seed = state["seed"]  # Randomize seed before passing to text-generation-webui
-                if original_seed == -1:
-                    state["seed"] = random.randint(1, 2**31)
-                    print(f"{_BOLD}New seed{_RESET}: {state['seed']}")
-                self.last.original_seed = original_seed
-                input_key = str(state["seed"])
-
-                print(f"{_HILITE}input_key{_RESET}: {input_key}")
-                instr = ""
-                # input_key = self.hash_key(user_input + shared.model_name)
-                if input_key in instructions:
-                    instr: str = instructions[input_key]
-                    print(f"{_SUCCESS}Found instruction prompt{_RESET} {instr}")
-                else:
-                    # Generate prompt using LLM
-                    try:
-                        if model is not None:
-                            # Create custom state for summary generation
-                            print(f"{_SUCCESS}State set{_RESET}")
-
-                            if kwargs.get("do_instr", False):
-                                # Generate instruction
-                                prompt = (
-                                    f"{user_input_prompt}\n\n"
-                                    f"You are to generate instructions for {name2}'s response to '{name1}'. These instructions will be given directly to {name2}.\n"
-                                    f"The instructions must guide {name2} on what to say or do, following the tone of the latest messages, and should be detailed and specific.\n\n"
-                                    f"FORMATTING REQUIREMENTS:\n"
-                                    f"- Present the instructions as a series of plain text paragraphs.\n"
-                                    f"- Each paragraph should represent a distinct part of the response plan.\n"
-                                    # f"- CRITICAL: Do NOT use any bold formatting, titles, or headings for these paragraphs. Only the paragraph text itself.\n"
-                                    f"Example of desired output structure (imagine these are the instructions):\n"
-                                    f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
-                                    f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
-                                    f"Remember: The above is an example. In a narrative context, explicitly acknowledging {name1}'s input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
-                                    f"INSTRUCTION CONTENT:\n"
-                                    f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
-                                    f"2. Be specific, detailing each step.\n"
-                                    f"3. You are providing instructions FOR the response, not writing the response itself.\n"
-                                    f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
-                                    f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
-                                    f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
-                                    f"7. IMPORTANT: Remind {name2} not to recap {name1}'s input in the response. Even if necessary to clarify {name1}'s intent, remember: Show, don't tell.\n"
-                                    f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
-                                    f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
-                                )
-
-                                instr, _ = self.generate_using_tgwui(
-                                    prompt, custom_state
-                                )  # TODO: Force start of response via "continue"
-                                if shared.stop_everything:
-                                    print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
-                                    return user_input, state, history_path, None
-
-                                instructions[input_key] = instr
-                                print(f"{_HILITE}Instruction:{_RESET} {instr}")
-                                save_json(instructions, instr_path)  # Persist instruction prompt for regenerations
-
-                            # # Save the KV cache for this instruction generation if not already saved
-                            # self.vram_manager.save_context_cache()
-                            # self.vram_manager.increment_position()
-                    except Exception as e:
-                        print(f"{_ERROR}Error generating instruction: {str(e)}{_RESET}")
-                        traceback.print_exc()
-                        return user_input, state, history_path, None
-
-                # TODO: Get output gen params from config (ui_parameters)
-                # Generate instruction prompt
-                instr_prompt = ""
-                if kwargs.get("do_instr", False):
-                    # TODO: Include additional user instructions from UI blocks
-                    full_instr = instr
-                    instr_prompt = (
-                        f"{user_input_prompt}\n\n"
-                        f'You are to write a reply in character as "{name2}".\n'
-                        f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
-                        f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
-                        f"Adhere loosely to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
-                        f"Your reply must be natural-sounding prose.\n\n" #ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
-                        f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
-                    )
-                else:
-                    instr_prompt = (
-                        f"{user_input_prompt}\n\n"
-                        f'You are to write a reply in character as "{name2}".\n'
-                        f"Your reply must be natural-sounding prose.\n\n" #ABSOLUTELY CRITICAL: Do NOT use any formatting whatsoever. This includes, but is not limited to, Markdown, bold text, asterisks for emphasis, headings, or titles. The entire response must be plain, unformatted text, unless it's an organic part of {name2}'s typical speech pattern or dialogue.\n\n"
-                        f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
-                    )
-                encoded_instr_prompt = (
-                    encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
-                )
-                print(
-                    f"{_SUCCESS}Encoded instruct prompt: {True if model.__class__.__name__ != 'LlamaServer' else False}{_RESET}"
-                )
-
-                print(f"{_SUCCESS}State set{_RESET}")
-
-                try:
-                    with open(history_path.parent / "dump.txt", "w", encoding="utf-8") as f:
-                        dump_str = str(json.dumps(kwargs, indent=2))
-                        dump_str += "\n\n========================== CUSTOM STATE\n\n"
-                        dump_str += str(json.dumps(custom_state, indent=2))
-                        dump_str += "\n\n========================== ORIGINAL STATE\n\n"
-                        dump_str += str(json.dumps(state, indent=2))
-                        dump_str += "\n\n==========================\n\n"
-                        dump_str += str(instr)
-                        dump_str += "\n\n==========================\n\n"
-                        dump_str += str(instr_prompt)
-                        dump_str += "\n\n==========================\n"
-                        f.write(dump_str)
-                        f.close()
-                except Exception as e:
-                    print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
-                    traceback.print_exc()
-
-                print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
-                self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
-                return (
-                    encoded_instr_prompt,
-                    custom_state,
-                    history_path,
-                    current_timestamp_str,
-                )
-            except Exception as e:
-                print(f"{_ERROR}Error in get_summary_state: {str(e)}{_RESET}")
-                self.log_activity("Instruction Gen Failed", str(e), "error")
-                traceback.print_exc()
+            if shared.stop_everything:
+                print(f"{_HILITE}Stop signal received after prepare_context in generate_instr_prompt.{_RESET}")
+                pm.done_phase("instr_prompt", "Stopped")
                 return user_input, state, history_path, None
 
+            current_timestamp_str = datetime.now().isoformat()
+            if self.last and self.last.context:
+                retrieval_ctx: RetrievalContext = self.last.context[0]
+                if retrieval_ctx and retrieval_ctx.current_scene:
+                    scene_time_data = retrieval_ctx.current_scene.get("now", retrieval_ctx.current_scene.get("start", {})).get(
+                        "when", {}
+                    )
+                    if scene_time_data.get("specific_time") and scene_time_data.get("date"):
+                        current_timestamp_str = f"{scene_time_data['date']}T{scene_time_data['specific_time']}"
+                    elif scene_time_data.get("date"):
+                        current_timestamp_str: str = scene_time_data["date"]
+
+            user_input_message_idx = len(history) * 2
+
+            if history_path:
+                try:
+                    user_input_prompt = f'This is the latest user input:\n\n"""\n{user_input}\n"""\n\n'
+                    name1 = state["name1"] or "User"
+                    name2 = state["name2"] or "Assistant"
+
+                    instr_path = history_path / "instructions.json"
+                    instructions: dict[str, str] = load_json(instr_path) or {}
+
+                    model: LlamaServer = shared.model
+
+                    original_seed = state["seed"]
+                    if original_seed == -1:
+                        state["seed"] = random.randint(1, 2**31)
+                        print(f"{_BOLD}New seed{_RESET}: {state['seed']}")
+                    self.last.original_seed = original_seed
+                    input_key = str(state["seed"])
+
+                    print(f"{_HILITE}input_key{_RESET}: {input_key}")
+                    instr = ""
+                    if input_key in instructions:
+                        instr: str = instructions[input_key]
+                        print(f"{_SUCCESS}Found cached instruction prompt{_RESET}")
+                        pm.start_step("instr_prompt", "cache_hit", "Loaded cached instructions")
+                        pm.done_step("instr_prompt", "cache_hit", f"Loaded {len(instr)} chars from cache")
+                    else:
+                        try:
+                            if model is not None:
+                                print(f"{_SUCCESS}State set{_RESET}")
+
+                                if kwargs.get("do_instr", False):
+                                    prompt = (
+                                        f"{user_input_prompt}\n\n"
+                                        f"You are to generate instructions for {name2}'s response to '{name1}'. These instructions will be given directly to {name2}.\n"
+                                        f"The instructions must guide {name2} on what to say or do, following the tone of the latest messages, and should be detailed and specific.\n\n"
+                                        f"FORMATTING REQUIREMENTS:\n"
+                                        f"- Present the instructions as a series of plain text paragraphs.\n"
+                                        f"- Each paragraph should represent a distinct part of the response plan.\n"
+                                        f"Example of desired output structure (imagine these are the instructions):\n"
+                                        f"  First, analyze {name1}'s query to understand their core need. Then, formulate a concise opening statement that acknowledges their input.\n"
+                                        f"  Next, provide the main information or answer, breaking it down into logical points if necessary. Ensure clarity and accuracy in this section.\n"
+                                        f"Remember: The above is an example. In a narrative context, explicitly acknowledging {name1}'s input would break immersion. Additionally, the length of the response should match the established writing style.\n\n"
+                                        f"INSTRUCTION CONTENT:\n"
+                                        f"1. Explain in detail, step-by-step, in imperative mood, what {name2} should include in their response.\n"
+                                        f"2. Be specific, detailing each step.\n"
+                                        f"3. You are providing instructions FOR the response, not writing the response itself.\n"
+                                        f"4. Address the instructions directly to {name2} (e.g., 'Start by...', 'Then, explain...'). Do not refer to {name2} in the third person (e.g., '{name2} should...').\n"
+                                        f"5. Specify the desired length of {name2}'s actual final response (e.g., 'The final response should be one paragraph', 'Aim for two short paragraphs', 'Keep it to three sentences').\n"
+                                        f"6. Instruct on the use of dialogue: specify when it is appropriate for characters to speak, which characters should speak, and when narration should be used instead of dialogue.\n"
+                                        f"7. IMPORTANT: Remind {name2} not to recap {name1}'s input in the response. Even if necessary to clarify {name1}'s intent, remember: Show, don't tell.\n"
+                                        f"8. CRITICAL: Explicitly include an additional instruction on the \"Writing Style\" of the response (taken from e.g. '{name2}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{name2}: 1st-person dialogue as \"{name2}\" with actions in asterisks', '{name2}: 2nd-person prose (speaking to \"{name1}\"), the same number of paragraphs as {name1}').\n\n"
+                                        f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
+                                    )
+
+                                    instr, status = self.generate_with_sse(
+                                        prompt=prompt,
+                                        state=custom_state,
+                                        phase_id="instr_prompt",
+                                        step_id="generate_instructions",
+                                        history_path=history_path,
+                                        match_prefix_only=False,
+                                    )
+                                    if shared.stop_everything:
+                                        print(f"{_HILITE}Stop signal received after instruction generation.{_RESET}")
+                                        pm.done_phase("instr_prompt", "Stopped")
+                                        return user_input, state, history_path, None
+
+                                    if status == "error" or not instr:
+                                        print(f"{_ERROR}Instruction generation failed or returned empty result{_RESET}")
+                                        pm.error_phase("instr_prompt", "Failed to generate instructions")
+                                        return user_input, state, history_path, None
+
+                                    instructions[input_key] = instr
+                                    print(f"{_HILITE}Instruction:{_RESET} {instr}")
+                                    save_json(instructions, instr_path)
+
+                        except Exception as e:
+                            print(f"{_ERROR}Error generating instruction: {str(e)}{_RESET}")
+                            traceback.print_exc()
+                            pm.error_phase("instr_prompt", str(e))
+                            return user_input, state, history_path, None
+
+                    instr_prompt = ""
+                    if kwargs.get("do_instr", False):
+                        full_instr = instr
+                        instr_prompt = (
+                            f"{user_input_prompt}\n\n"
+                            f'You are to write a reply in character as "{name2}".\n'
+                            f"The following instructions, presented as plain text paragraphs, outline how you should construct your response:\n\n"
+                            f'INSTRUCTIONS TO FOLLOW:\n"""\n{full_instr}\n"""\n\n'
+                            f"Adhere loosely to these instructions. Maintain the style and tone consistent with recent messages from both {name1} and {name2}.\n"
+                            f"Your reply must be natural-sounding prose.\n\n"
+                            f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
+                        )
+                    else:
+                        pm.start_step("instr_prompt", "skip", "Instruction generation disabled")
+                        pm.done_step("instr_prompt", "skip", "Skipped")
+                        instr_prompt = (
+                            f"{user_input_prompt}\n\n"
+                            f'You are to write a reply in character as "{name2}".\n'
+                            f"Your reply must be natural-sounding prose.\n\n"
+                            f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
+                        )
+                    encoded_instr_prompt = (
+                        encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
+                    )
+                    print(
+                        f"{_SUCCESS}Encoded instruct prompt: {True if model.__class__.__name__ != 'LlamaServer' else False}{_RESET}"
+                    )
+
+                    print(f"{_SUCCESS}State set{_RESET}")
+
+                    try:
+                        with open(history_path.parent / "dump.txt", "w", encoding="utf-8") as f:
+                            dump_str = str(json.dumps(kwargs, indent=2))
+                            dump_str += "\n\n========================== CUSTOM STATE\n\n"
+                            dump_str += str(json.dumps(custom_state, indent=2))
+                            dump_str += "\n\n========================== ORIGINAL STATE\n\n"
+                            dump_str += str(json.dumps(state, indent=2))
+                            dump_str += "\n\n==========================\n\n"
+                            dump_str += str(instr)
+                            dump_str += "\n\n==========================\n\n"
+                            dump_str += str(instr_prompt)
+                            dump_str += "\n\n==========================\n"
+                            f.write(dump_str)
+                            f.close()
+                    except Exception as e:
+                        print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
+                        traceback.print_exc()
+
+                    print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
+                    self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
+                    return (
+                        encoded_instr_prompt,
+                        custom_state,
+                        history_path,
+                        current_timestamp_str,
+                    )
+                except Exception as e:
+                    print(f"{_ERROR}Error in get_summary_state: {str(e)}{_RESET}")
+                    self.log_activity("Instruction Gen Failed", str(e), "error")
+                    traceback.print_exc()
+                    pm.error_phase("instr_prompt", str(e))
+                    return user_input, state, history_path, None
+        finally:
+            if pm.active_phase == "instr_prompt":
+                pm.done_phase("instr_prompt", "Completed")
+                pm.end_turn()
+
     def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # After output
-        """Summarize a single message with its context."""
+        """
+        Summarizes the latest user/assistant exchange into the session's structured subject data and message chunks.
+        
+        Prepares retrieval context, runs subject-level summarization and any chapter/arc boundary checks needed for a new scene, generates a concise message summary saved as one or more message chunks, and updates chunk metadata (scene_id and event_id) based on processed events. The method manages PhaseManager phases for each major step and ends the phase session on completion, early stop, or error.
+        
+        Parameters:
+            output (str): The assistant's text output to be summarized.
+            user_input (str): The user's input corresponding to the output.
+            state (dict): Current session/generation state used for context and persistence.
+            history (History): Conversation history (list-like of exchanges); the last entry is the exchange being summarized.
+        
+        Returns:
+            str or None: ISO-8601 timestamp string associated with the processed message (derived from scene time when available) on success, or `None` if summarization was aborted or failed.
+        """
         print(f"{_HILITE}summarize_message{_RESET}")
         self.log_activity("Summarizing", "Processing latest exchange", "info")
 
+        pm = self._phase_manager
+        
+        subject_names = list(self.last.schema_parser.subjects.keys()) if self.last and self.last.schema_parser else []
+        
+        # Build summarization phases
+        summarization_phases = [
+            {"id": "context", "name": "Context Preparation", "weight": 1},
+        ]
+        for subject in subject_names:
+            summarization_phases.append({"id": subject.lower().replace(" ", "_"), "name": subject, "weight": 2})
+        summarization_phases.extend([
+            {"id": "chapter_check", "name": "Chapter Boundary Check", "weight": 1},
+            {"id": "arc_check", "name": "Arc Boundary Check", "weight": 1},
+            {"id": "message_summary", "name": "Message Summarization", "weight": 1},
+            {"id": "chunking", "name": "Message Chunking", "weight": 1},
+        ])
+        
+        # Only start new session if none exists; otherwise add phases to existing session
+        if not pm._phases:
+            pm.start_session(phases=summarization_phases)
+            pm.start_turn("Summarization")
+        else:
+            pm.start_turn("Summarization")
+            for p in summarization_phases:
+                if p["id"] not in pm._phase_lookup:
+                    phase = {"id": p["id"], "name": p["name"], "weight": p.get("weight", 1)}
+                    pm._phases.append(phase)
+                    pm._phase_lookup[p["id"]] = phase
+                    pm._phase_steps[p["id"]] = []
+                    pm._total_weight += phase["weight"]
+
         try:
-            if shared.stop_everything:
-                print(f"{_HILITE}Stop signal received before retrieve_and_format_context in summarize_latest_state.{_RESET}")
-                return None
+            pm.start_phase("context", "Context Preparation")
             user_input, custom_state_ref = self.prepare_context(user_input, state, history[:-1])
             history[-1][0] = user_input  # TODO: Persist next_scene state for this history_path
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after retrieve_and_format_context in summarize_latest_state.{_RESET}")
+                pm.done_phase("context", "Stopped")
+                pm.end_turn()
+                pm.end_session(publish=False)
                 return None
 
             # self.last should be set by prepare_context
-            last_history_path = self.last.history_path
+            last = getattr(self, "last", None)
+            if not last or not last.history_path:
+                print(f"{_ERROR}Summarizer.last.history_path not available after prepare_context{_RESET}")
+                pm.done_phase("context", "Missing history path")
+                pm.end_turn()
+                pm.end_session(publish=False)
+                return None
+            last_history_path = last.history_path
             new_history_path = self.retrieve_history_path(state, history)
             if not new_history_path.exists():
                 new_history_path.mkdir(parents=True)
@@ -771,13 +947,16 @@ class Summarizer:
             print(f"{_DEBUG}All subjects data: {all_subjects_data.keys()}{_RESET}")
 
             data_summarizer = DataSummarizer(
-                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser, all_subjects_data
+                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser, all_subjects_data, pm
             )
 
             if missing_schemas:
                 print(
                     f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}"
                 )
+                pm.done_phase("context", "Missing schemas")
+                pm.end_turn()
+                pm.end_session(publish=False)
                 return None
 
             # Handle special case for new scene turn before processing
@@ -801,6 +980,8 @@ class Summarizer:
                     if "_arc_number" not in all_subjects_data["current_scene"]:
                         all_subjects_data["current_scene"]["_arc_number"] = 1
                         print(f"{_DEBUG}Setting initial '_arc_number' to 1.{_RESET}")
+
+            pm.done_phase("context")
 
             print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
@@ -835,26 +1016,58 @@ class Summarizer:
                 schema_class = self.last.schema_parser.get_subject_class(subject_name)
                 print(f"{_BOLD}Processing subject: {subject_name}{_RESET} {schema_class}")
                 if not schema_class:  # Redundant but good for safety
+                    pm.skip_phase(subject_name.lower().replace(" ", "_"), "Schema not found", subject_name)
                     continue
+
+                phase_id = subject_name.lower().replace(" ", "_")
+                pm.start_phase(phase_id, subject_name)
                 print(f"{subject_name} exists")
 
                 self.log_activity("Update Subject", f"{subject_name} ({idx}/{total_subjects})", "info")
-                updated_data = process_subject_update(subject_name, subject_data, schema_class)
-                processed_subjects_data[subject_name] = updated_data
+                try:
+                    updated_data = process_subject_update(subject_name, subject_data, schema_class)
+                    processed_subjects_data[subject_name] = updated_data
+                    pm.done_phase(phase_id, subject_name)
+                except Exception as e:
+                    pm.error_phase(phase_id, str(e), subject_name)
+                    raise
+
                 self.log_activity("Subject Updated", subject_name, "success")
 
                 if shared.stop_everything:
+                    pm.end_turn()
+                    pm.end_session(publish=False)
                     return None
 
             if self.last and self.last.is_new_scene_turn:
+                pm.start_phase("chapter_check", "Chapter Boundary Check")
                 self.log_activity("Chapter Check", "Checking chapter boundary", "info")
                 data_summarizer.check_and_archive_chapter()
+                if shared.stop_everything:
+                    pm.done_phase("chapter_check", "Stopped")
+                    pm.end_turn()
+                    pm.end_session(publish=False)
+                    return None
                 self.log_activity("Chapter Check", "Complete", "success")
+                pm.done_phase("chapter_check")
+
+                pm.start_phase("arc_check", "Arc Boundary Check")
                 self.log_activity("Arc Check", "Checking arc boundary", "info")
                 data_summarizer.check_and_archive_arc()
+                if shared.stop_everything:
+                    pm.done_phase("arc_check", "Stopped")
+                    pm.end_turn()
+                    pm.end_session(publish=False)
+                    return None
                 self.log_activity("Arc Check", "Complete", "success")
+                pm.done_phase("arc_check")
+            else:
+                pm.skip_phase("chapter_check", "Not a scene transition")
+                pm.skip_phase("arc_check", "Not a scene transition")
 
             # --- Summarize New Messages ---
+            pm.start_phase("message_summary", "Message Summarization")
+            pm.start_step("message_summary", "summarize", "Preparing message summary...")
             message_idx = len(history) * 2 - 1  # history was passed as history[:-1] to retrieve_and_format_context
 
             # Determine current timestamp from the processed current_scene data
@@ -870,9 +1083,19 @@ class Summarizer:
             self.log_activity("Summarize Messages", f"Message index: {message_idx}", "info")
             msg_summarizer = MessageSummarizer(self, new_history_path, current_timestamp_str)
             msg_summarizer.generate((user_input, output), (message_idx - 1, message_idx))
+            if shared.stop_everything:
+                pm.done_step("message_summary", "summarize", "Stopped")
+                pm.done_phase("message_summary", "Stopped")
+                pm.end_turn()
+                pm.end_session(publish=False)
+                return None
+            pm.done_step("message_summary", "summarize", "Message chunks saved")
             self.log_activity("Messages Summarized", "Message chunks saved", "success")
+            pm.done_phase("message_summary")
 
             # --- Update scene_id and event_id for message chunks ---
+            pm.start_phase("chunking", "Message Chunking")
+            pm.start_step("chunking", "update_metadata", "Updating chunk metadata...")
             if self.last and self.last.context:
                 context_retriever = self.last.context[1]
                 persist_dir = context_retriever.history_path / "message_index"
@@ -918,17 +1141,41 @@ class Summarizer:
             else:
                 print(f"{_ERROR}Cannot update scene/event IDs for chunks: Summarizer.last.context not available.{_RESET}")
 
+            pm.done_step("chunking", "update_metadata", "Metadata updated")
+            pm.done_phase("chunking")
             self.log_activity("Summarization Complete", f"Scene saved at {new_history_path.name}", "success")
+            pm.end_session(publish=True)
             return current_timestamp_str
 
         except Exception as e:
             print(f"{_ERROR}Error during summarization or metadata update: {str(e)}{_RESET}")
             self.log_activity("Summarization Failed", str(e), "error")
             traceback.print_exc()
+            if pm.active_phase:
+                pm.error_phase(pm.active_phase, str(e))
+            pm.end_turn()
+            pm.end_session(publish=False)
             return None
 
     def backtrack_history(self, history: History, history_path: Path) -> bool:
-        """Placeholder for history backtracking logic. Currently does nothing."""
+        """
+        Attempt to reconcile and repair a session's history on disk by backtracking through prior state and restoring or copying missing/inconsistent history files.
+        
+        This is a placeholder hook intended to:
+        - detect discrepancies between the in-memory `history` and files under `history_path`,
+        - create or restore any missing subject/state files, and
+        - return whether any changes were made.
+        
+        Parameters:
+            history (History): In-memory history list of exchanges for the session.
+            history_path (Path): Path to the session's history directory on disk.
+        
+        Returns:
+            bool: `True` if backtracking made or persisted any changes to disk, `False` if no changes were necessary.
+        
+        Note:
+            The current implementation is a no-op and should be implemented to perform the reconciliation described above.
+        """
         pass
 
     def retrieve_and_format_context(self, state: dict, history: History, **kwargs) -> dict:
@@ -1154,7 +1401,8 @@ class Summarizer:
         if not history_path.exists():
             history_path.mkdir(parents=True)
 
-        if not self.last or (history_path and history_path != self.last.history_path):
+        last = getattr(self, "last", None)
+        if not last or (history_path and history_path != last.history_path):
             custom_state = copy.deepcopy(state)
             context_retriever = StoryContextRetriever(history_path)
 
@@ -1296,7 +1544,9 @@ class Summarizer:
         state: dict,
         subject_name: str,
         population_config: dict,
-    ) -> None:
+        phase_id: str | None = None,
+        step_id: str | None = None,
+    ) -> str | None:
         """
         Populates a single subject using direct LLM interaction.
 
@@ -1349,15 +1599,20 @@ class Summarizer:
 
             max_retries = 2
             populated_data = None
+            pm = self._phase_manager
 
             for attempt in range(max_retries + 1):
                 print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate '{subject_name}' data...{_RESET}")
                 if attempt > 0:
                     print(f"{_INPUT}Retrying LLM prompt for '{subject_name}' with validation feedback.{_RESET}")
+                    if phase_id and step_id:
+                        pm.warn_step(phase_id, step_id, f"Retry {attempt}/{max_retries}")
 
-                response_text, _ = self.generate_using_tgwui(
+                response_text, _ = self.generate_with_sse(
                     prompt=prompt,
                     state=custom_state,
+                    phase_id=phase_id or "legacy",
+                    step_id=step_id or "generate",
                     history_path=initial_world_data_path,
                     match_prefix_only=False,
                 )
@@ -1416,14 +1671,19 @@ class Summarizer:
             if populated_data:
                 save_json(populated_data, target_path)
                 print(f"{_SUCCESS}Successfully populated and saved '{target_file}' at {target_path}{_RESET}")
+                if phase_id and step_id:
+                    pm.done_step(phase_id, step_id, f"Populated {subject_name}: {response_text}")
+                return response_text
             else:
                 print(f"{_ERROR}Failed to populate '{subject_name}' after all retries. Saving empty JSON.{_RESET}")
                 save_json({}, target_path)
+                return None
 
         except Exception as e:
             print(f"{_ERROR}Error in _populate_subject_direct for '{subject_name}': {e}{_RESET}")
             traceback.print_exc()
             save_json({}, target_path)
+            return None
 
     def _populate_subject_identify(
         self,
@@ -1432,7 +1692,9 @@ class Summarizer:
         state: dict,
         subject_name: str,
         population_config: dict,
-    ) -> None:
+        phase_id: str | None = None,
+        step_id: str | None = None,
+    ) -> str | None:
         """
         Populates multiple subjects using identify-then-populate pattern.
 
@@ -1457,6 +1719,7 @@ class Summarizer:
 
         custom_state = copy.deepcopy(state)
         custom_state.update(copy.deepcopy(base_state))
+        pm = self._phase_manager
 
         # Step 1: Identification
         identification_prompt = format_str_or_jinja(
@@ -1466,9 +1729,11 @@ class Summarizer:
         )
 
         print(f"{_DEBUG}Prompting LLM for entity identification...{_RESET}")
-        identification_response_text, _ = self.generate_using_tgwui(
+        identification_response_text, _ = self.generate_with_sse(
             prompt=identification_prompt,
             state=custom_state,
+            phase_id=phase_id or "legacy",
+            step_id=step_id or "identify",
             history_path=initial_world_data_path,
             match_prefix_only=False,
         )
@@ -1545,15 +1810,20 @@ class Summarizer:
                     custom_state_detail = copy.deepcopy(custom_state)
                     max_retries = 2
                     entity_data_validated = None
+                    detail_response_text = ""
 
                     for attempt in range(max_retries + 1):
                         print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate details for {entity_type} '{entity_name}'...{_RESET}")
                         if attempt > 0:
                             print(f"{_INPUT}Retrying LLM prompt for '{entity_name}' with validation feedback.{_RESET}")
+                            if phase_id and step_id:
+                                pm.warn_step(phase_id, step_id, f"Retry {attempt}/{max_retries}")
 
-                        detail_response_text, _ = self.generate_using_tgwui(
+                        detail_response_text, _ = self.generate_with_sse(
                             prompt=population_prompt,
                             state=custom_state_detail,
+                            phase_id=phase_id or "legacy",
+                            step_id=step_id or "populate",
                             history_path=initial_world_data_path,
                             match_prefix_only=False,
                         )
@@ -1625,6 +1895,8 @@ class Summarizer:
                         else:
                             entity_data[target_key][entity_name] = entity_data_validated
                         print(f"{_SUCCESS}Successfully populated and stored details for {entity_type} '{entity_name}'.{_RESET}")
+                        if phase_id and step_id:
+                            pm.done_step(phase_id, step_id, f"Populated {entity_name}: {detail_response_text}")
                     else:
                         print(f"{_ERROR}Failed to populate valid details for {entity_type} '{entity_name}' after all retries.{_RESET}")
 
@@ -1643,6 +1915,8 @@ class Summarizer:
             save_json(wrapped_data, initial_world_data_path / tf)
             print(f"{_SUCCESS}Saved '{tf}' at {initial_world_data_path}{_RESET}")
 
+        return detail_response_text if detail_response_text else None
+
     def _populate_from_schema(
         self,
         initial_world_data_path: Path,
@@ -1659,32 +1933,67 @@ class Summarizer:
 
         print(f"{_DEBUG}Starting schema-driven initial population...{_RESET}")
 
+        pm = self._phase_manager
+        subject_names = [name for name, schema_def in schema_parser.get_subject_classes().items() if schema_def.defaults.get("initial_population")]
+        
+        # Build phases for initial population (just the container)
+        pop_phases = [{"id": "initial_population", "name": "Initial Population", "weight": 1}]
+        
+        pm.start_session(phases=pop_phases)
+        pm.start_turn("Initial Population")
+        pm.start_phase("initial_population", "Initial Population")
+        
         for subject_name, schema_def in schema_parser.get_subject_classes().items():
             population_config = schema_def.defaults.get("initial_population")
             if not population_config:
                 continue
 
             mode = population_config.get("mode", "direct")
+            phase_id = f"initial_population.{subject_name.lower().replace(' ', '_')}"
+            
             print(f"{_DEBUG}Populating '{subject_name}' using mode '{mode}'...{_RESET}")
+            
+            pm.start_phase(phase_id, f"Populate {subject_name}")
+            pm.start_step(phase_id, "populate", f"Populating {subject_name}...")
 
-            if mode == "direct":
-                self._populate_subject_direct(
-                    initial_world_data_path,
-                    schema_parser,
-                    state,
-                    subject_name,
-                    population_config,
-                )
-            elif mode == "identify":
-                self._populate_subject_identify(
-                    initial_world_data_path,
-                    schema_parser,
-                    state,
-                    subject_name,
-                    population_config,
-                )
-            else:
-                print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
+            try:
+                response = None
+                if mode == "direct":
+                    response = self._populate_subject_direct(
+                        initial_world_data_path,
+                        schema_parser,
+                        state,
+                        subject_name,
+                        population_config,
+                        phase_id=phase_id,
+                        step_id="populate",
+                    )
+                elif mode == "identify":
+                    response = self._populate_subject_identify(
+                        initial_world_data_path,
+                        schema_parser,
+                        state,
+                        subject_name,
+                        population_config,
+                        phase_id=phase_id,
+                        step_id="populate",
+                    )
+                else:
+                    print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
+                    pm.skip_phase(phase_id, f"Unknown mode: {mode}")
+                
+                if response is not None:
+                    pm.done_step(phase_id, "populate", f"Populated {subject_name}: {response}")
+                else:
+                    pm.done_step(phase_id, "populate", f"Populated {subject_name}")
+                pm.done_phase(phase_id)
+            except Exception as e:
+                pm.error_phase(phase_id, str(e))
+                print(f"{_ERROR}Error populating '{subject_name}': {e}{_RESET}")
+
+        pm.done_phase("initial_population")
+        pm.end_turn()
+        pm.end_session(publish=False)
 
         print(f"{_SUCCESS}Schema-driven initial population complete.{_RESET}")
 
@@ -1704,6 +2013,8 @@ class MessageSummarizer:
         """Summarize messages and store in vector database with metadata."""
         print(f"{_BOLD}Summarizing messages for indices {message_idxs}{_RESET}")
 
+        pm = self.summarizer._phase_manager
+
         for i, message_content in enumerate(exchange):
             current_message_idx = message_idxs[i]
             prompt = f'''Analyze the provided message and generate a concise summary of the key events, interactions, and developments.
@@ -1712,11 +2023,14 @@ REMEMBER: Do not add anything else to the response. Only respond with the summar
 
 Here is the message: """\n{message_content.strip()}\n"""'''
             try:
-                summary_text, _ = self.summarizer.generate_using_tgwui(prompt, self.custom_state, self.history_path)
+                summary_text, _ = self.summarizer.generate_with_sse(
+                    prompt, self.custom_state, "message_summary", f"summarize_msg_{i}", self.history_path
+                )
                 if shared.stop_everything:
                     print(
                         f"{_HILITE}Stop signal received in MessageSummarizer after generating summary for message_idx {current_message_idx}.{_RESET}"
                     )
+                    pm.done_step("message_summary", f"summarize_msg_{i}", "Stopped")
                     return
                 summary_text = strip_thinking(summary_text)
 

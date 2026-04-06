@@ -2,6 +2,8 @@ import re
 import ast
 import html
 import asyncio
+import socket
+import concurrent.futures
 import threading
 import time
 from typing import Coroutine
@@ -13,6 +15,7 @@ import extensions.dayna_ss.shared as dss_shared
 from extensions.dayna_ss.agents.summarizer import Summarizer
 import extensions.dayna_ss.tools.tgwui_integration as tgwui_integration
 from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_definitions
+from extensions.dayna_ss.ui.sse_server import start_sse_server, stop_sse_server
 
 from extensions.dayna_ss.utils.helpers import (
     _ERROR,
@@ -30,7 +33,23 @@ from extensions.dayna_ss.utils.helpers import (
     strip_thinking,
 )
 
-params = {"display_name": "DSS", "is_tab": True}
+params = {
+    "display_name": "DSS",
+    "is_tab": True,
+    "sse_internal_port": 7880,
+    "sse_external_path": ":7880",
+}
+
+
+def _find_available_port(start_port, max_attempts=10):
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('127.0.0.1', port))
+                return port
+        except OSError:
+            continue
+    return -1
 
 # === Internal constants (don't change these without good reason) ===
 _CONFIG_PATH = "extensions/dayna_ss/dss_config.json"
@@ -222,7 +241,11 @@ def strip_prefix(text: str, banned_prefixes: list) -> str:
 
 
 def ensure_background_loop():
-    """Ensure a background event loop is running in a separate thread"""
+    """
+    Start a background asyncio event loop in a dedicated daemon thread if one is not already running.
+
+    If no background loop exists, create a new asyncio event loop and start it on a daemon thread; the created loop and thread are stored in the module-level globals `_background_loop` and `_loop_thread`.
+    """
     global _background_loop, _loop_thread
 
     def run_event_loop(loop: asyncio.AbstractEventLoop):
@@ -235,9 +258,28 @@ def ensure_background_loop():
         _loop_thread.start()
 
 
+_sse_port = 7880  # Default SSE port
+
+
 def setup():
-    """Initialize the extension"""
-    global summarizer, story_rag
+    """
+    Initialize and configure the DAYNA Story Summarizer extension.
+
+    Creates the Summarizer instance and enables story retrieval, registers tool
+    definitions and the DSS-enabled callback with TGWUI integration, starts the
+    internal SSE server on the configured port, and prints the startup status.
+
+    Modifies globals:
+    - summarizer: set to a new Summarizer instance
+    - story_rag: set to True
+    - _sse_port: set to the port returned by start_sse_server
+
+    Side effects:
+    - Registers tool definitions in tgwui_integration._dss_tool_definitions
+    - Registers a DSS enabled-check callback via tgwui_integration.set_dss_enabled_check
+    - Attempts to start an SSE server and prints success or failure to stdout
+    """
+    global summarizer, story_rag, _sse_port
     print("Loaded DAYNA Story Summarizer!")
 
     summarizer = Summarizer(_CONFIG_PATH)
@@ -247,18 +289,32 @@ def setup():
     tgwui_integration._dss_tool_definitions = tool_defs
 
     def dss_enabled_check():
+        """
+        Check whether the Dynamic Story Summarizer (DSS) feature is enabled in the persistent UI state.
+
+        Returns:
+            True if the DSS toggle (`dss_toggle`) in persistent UI state is enabled, False otherwise.
+        """
         return dss_shared.persistent_ui_state.get("dss_toggle", True)
     tgwui_integration.set_dss_enabled_check(dss_enabled_check)
 
+    _sse_port = start_sse_server(host="127.0.0.1", port=params["sse_internal_port"])
+    if _sse_port > 0:
+        params["sse_internal_port"] = _sse_port
+        print(f"{_SUCCESS}DSS SSE server started on port {_sse_port}{_RESET}")
+    else:
+        print(f"{_ERROR}Failed to start DSS SSE server{_RESET}")
 
-def run_async(coro: Coroutine) -> asyncio.Future | None:
-    """Run an async function in the current thread.
 
-    Args:
-        coro (Coroutine): An async coroutine to be run.
+def run_async(coro: Coroutine) -> concurrent.futures.Future | None:
+    """
+    Schedule a coroutine to run on the module's background asyncio event loop.
+
+    Parameters:
+        coro (Coroutine): The coroutine to schedule.
 
     Returns:
-        out (Future, optional): The result of the coroutine if successful, otherwise None.
+        future (concurrent.futures.Future | None): A future representing the scheduled coroutine if scheduling succeeded, or `None` on failure.
     """
     print(f"{_BOLD}Running async:{_RESET} {coro}")
     try:
@@ -276,12 +332,60 @@ import gradio as gr
 
 from extensions.dayna_ss.ui import ui_chat, ui_file_saving, ui_parameters, ui_templates, utils
 
+# --- HTML + JS for the real-time SSE status panel --- #
+_SSE_PANEL_HTML = """<div id="dss-status-panel" style="font-family: monospace; font-size: 13px; background: #0d1117; color: #c9d1d9; border-radius: 8px; padding: 16px; min-height: 200px; max-height: 600px; overflow-y: auto;">
+    <div id="dss-debug" style="color: #ff4444; font-size: 11px; margin-bottom: 8px;">JS NOT LOADED</div>
+    <div id="dss-session-info" style="margin-bottom: 12px; color: #8b949e; font-size: 12px;">
+        Waiting for summarization...
+    </div>
+    <div id="dss-progress-wrap" style="margin-bottom: 12px;">
+        <div style="background: #21262d; border-radius: 4px; height: 8px; overflow: hidden;">
+            <div id="dss-progress-bar" style="background: linear-gradient(90deg, #238636, #2ea043); height: 100%; width: 0%; transition: width 0.3s;"></div>
+        </div>
+        <span id="dss-progress-text" style="font-size: 11px; color: #8b949e;">0%</span>
+    </div>
+    <div id="dss-queue-section" style="margin-bottom: 8px;">
+        <div style="color: #8b949e; font-size: 11px; text-transform: uppercase; margin-bottom: 4px;">Queue</div>
+        <div id="dss-queue-list"></div>
+    </div>
+    <div id="dss-phases"></div>
+</div>"""
+
+
+def custom_js():
+    """
+    Render and return the extension's SSE client JavaScript.
+
+    Loads the ui/ui.js.j2 Jinja2 template and renders it with the configured SSE external path from params.
+
+    Returns:
+        str: Rendered JavaScript; an empty string if the template cannot be loaded or rendered.
+    """
+    import os
+    from jinja2 import Environment, FileSystemLoader, select_autoescape, TemplateError
+    js_path = os.path.join(os.path.dirname(__file__), "ui")
+    try:
+        env = Environment(
+            loader=FileSystemLoader(js_path),
+            autoescape=select_autoescape(['js', 'j2'])
+        )
+        template = env.get_template("ui.js.j2")
+        return template.render(sse_external_path=params.get("sse_external_path", ":7880"))
+    except TemplateError as e:
+        print(f"{_ERROR}Failed to load ui.js.j2: {e}{_RESET}")
+        return ""
+
 params["is_tab"] = True
 print(f"{_BOLD}Initial params: {_RESET}{params['is_tab']} ({params})")
 tab_created = False
 
 
 def ui():
+    """
+    Builds and registers the extension's Gradio user interface and associated event handlers.
+
+    When called the first time, creates the extension as a tab (including file saving, chat, parameters, templates UIs and the DSS real-time status panel) and initializes shared interface state. On subsequent calls, creates the UI as a block under the main chat, registers UI event handlers, and updates module-level flags and `params["is_tab"]` to reflect the current layout.
+    """
     global tab_created, params
 
     dss_shared.input_elements = utils.list_interface_input_elements()
@@ -301,9 +405,15 @@ def ui():
         tab_created = True
     else:  # Block under chat
         params["is_tab"] = False
+
         ui_chat.create_block_ui()
+        with gr.Accordion("DSS Real-time Status", open=True):
+            gr.HTML(value=_SSE_PANEL_HTML, elem_id="dss-sse-panel")
+
         params["is_tab"] = True
         tab_created = False
+
+
 
         ui_chat.create_event_handlers()
         ui_file_saving.create_event_handlers()
