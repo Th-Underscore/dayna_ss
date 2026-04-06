@@ -36,8 +36,8 @@ from extensions.dayna_ss.utils.helpers import (
 params = {
     "display_name": "DSS",
     "is_tab": True,
-    "sse_internal_port": 7861,
-    "sse_external_path": ":7861",
+    "sse_internal_port": 7880,
+    "sse_external_path": ":7880",
 }
 
 
@@ -258,7 +258,7 @@ def ensure_background_loop():
         _loop_thread.start()
 
 
-_sse_port = 7861  # Default SSE port
+_sse_port = 7880  # Default SSE port
 
 
 def setup():
@@ -367,7 +367,7 @@ def custom_js():
     try:
         env = Environment(loader=FileSystemLoader(js_path))
         template = env.get_template("ui.js.j2")
-        return template.render(sse_external_path=params.get("sse_external_path", ":7861"))
+        return template.render(sse_external_path=params.get("sse_external_path", ":7880"))
     except Exception as e:
         print(f"{_ERROR}Failed to load ui.js.j2: {e}{_RESET}")
         return ""
