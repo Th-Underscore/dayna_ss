@@ -1529,7 +1529,7 @@ class Summarizer:
         population_config: dict,
         phase_id: str | None = None,
         step_id: str | None = None,
-    ) -> None:
+    ) -> str | None:
         """
         Populates a single subject using direct LLM interaction.
 
@@ -1654,14 +1654,19 @@ class Summarizer:
             if populated_data:
                 save_json(populated_data, target_path)
                 print(f"{_SUCCESS}Successfully populated and saved '{target_file}' at {target_path}{_RESET}")
+                if phase_id and step_id:
+                    pm.done_step(phase_id, step_id, f"Populated {subject_name}: {response_text}")
+                return response_text
             else:
                 print(f"{_ERROR}Failed to populate '{subject_name}' after all retries. Saving empty JSON.{_RESET}")
                 save_json({}, target_path)
+                return None
 
         except Exception as e:
             print(f"{_ERROR}Error in _populate_subject_direct for '{subject_name}': {e}{_RESET}")
             traceback.print_exc()
             save_json({}, target_path)
+            return None
 
     def _populate_subject_identify(
         self,
@@ -1672,7 +1677,7 @@ class Summarizer:
         population_config: dict,
         phase_id: str | None = None,
         step_id: str | None = None,
-    ) -> None:
+    ) -> str | None:
         """
         Populates multiple subjects using identify-then-populate pattern.
 
@@ -1788,6 +1793,7 @@ class Summarizer:
                     custom_state_detail = copy.deepcopy(custom_state)
                     max_retries = 2
                     entity_data_validated = None
+                    detail_response_text = ""
 
                     for attempt in range(max_retries + 1):
                         print(f"{_DEBUG}Attempt {attempt + 1}/{max_retries + 1} to generate details for {entity_type} '{entity_name}'...{_RESET}")
@@ -1872,6 +1878,8 @@ class Summarizer:
                         else:
                             entity_data[target_key][entity_name] = entity_data_validated
                         print(f"{_SUCCESS}Successfully populated and stored details for {entity_type} '{entity_name}'.{_RESET}")
+                        if phase_id and step_id:
+                            pm.done_step(phase_id, step_id, f"Populated {entity_name}: {detail_response_text}")
                     else:
                         print(f"{_ERROR}Failed to populate valid details for {entity_type} '{entity_name}' after all retries.{_RESET}")
 
@@ -1889,6 +1897,8 @@ class Summarizer:
             wrapped_data = {wrapper_key: raw_data} if wrapper_key else raw_data
             save_json(wrapped_data, initial_world_data_path / tf)
             print(f"{_SUCCESS}Saved '{tf}' at {initial_world_data_path}{_RESET}")
+
+        return detail_response_text if detail_response_text else None
 
     def _populate_from_schema(
         self,
@@ -1930,8 +1940,9 @@ class Summarizer:
             pm.start_step(phase_id, "populate", f"Populating {subject_name}...")
 
             try:
+                response = None
                 if mode == "direct":
-                    self._populate_subject_direct(
+                    response = self._populate_subject_direct(
                         initial_world_data_path,
                         schema_parser,
                         state,
@@ -1941,7 +1952,7 @@ class Summarizer:
                         step_id="populate",
                     )
                 elif mode == "identify":
-                    self._populate_subject_identify(
+                    response = self._populate_subject_identify(
                         initial_world_data_path,
                         schema_parser,
                         state,
@@ -1954,7 +1965,10 @@ class Summarizer:
                     print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
                     pm.skip_phase(phase_id, f"Unknown mode: {mode}")
                 
-                pm.done_step(phase_id, "populate", f"Populated {subject_name}")
+                if response is not None:
+                    pm.done_step(phase_id, "populate", f"Populated {subject_name}: {response}")
+                else:
+                    pm.done_step(phase_id, "populate", f"Populated {subject_name}")
                 pm.done_phase(phase_id)
             except Exception as e:
                 pm.error_phase(phase_id, str(e))
