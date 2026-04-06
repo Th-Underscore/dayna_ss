@@ -866,7 +866,6 @@ class Summarizer:
         
         # Build summarization phases
         summarization_phases = [
-            {"id": "init", "name": "Initialization", "weight": 1},
             {"id": "context", "name": "Context Preparation", "weight": 1},
         ]
         for subject in subject_names:
@@ -1130,7 +1129,7 @@ class Summarizer:
             pm.done_step("chunking", "update_metadata", "Metadata updated")
             pm.done_phase("chunking")
             self.log_activity("Summarization Complete", f"Scene saved at {new_history_path.name}", "success")
-            pm.end_session(publish=False)
+            pm.end_session(publish=True)
             return current_timestamp_str
 
         except Exception as e:

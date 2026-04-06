@@ -443,6 +443,12 @@ class PhaseManager:
 
         if publish:
             self._queue.publish({
+                "type": "turn_end",
+                "turn": self._turn_count,
+                "elapsed": elapsed,
+            })
+            
+            self._queue.publish({
                 "type": "session_end",
                 "phase": {"id": "_session", "name": "Summarization"},
                 "progress": progress,
