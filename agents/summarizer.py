@@ -281,7 +281,8 @@ class Summarizer:
             tuple[str, str]: `response_text` — the final generated text (trimmed); `stop_reason` — the stopping string that ended generation or an empty string if none.
         """
         if not history_path:
-            history_path = self.last.history_path
+            last = getattr(self, "last", None)
+            history_path = last.history_path if last else None
 
         text = ""
         stop = ""
@@ -672,7 +673,8 @@ class Summarizer:
             user_input, custom_state_ref = self.prepare_context(user_input, state, history, **kwargs)
             pm.done_step("instr_prompt", "context", "Context prepared")
             custom_state = copy.deepcopy(custom_state_ref)
-            history_path = self.last.history_path
+            last = getattr(self, "last", None)
+            history_path = last.history_path if last else None
 
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after prepare_context in generate_instr_prompt.{_RESET}")
@@ -898,11 +900,19 @@ class Summarizer:
             if shared.stop_everything:
                 print(f"{_HILITE}Stop signal received after retrieve_and_format_context in summarize_latest_state.{_RESET}")
                 pm.done_phase("context", "Stopped")
+                pm.end_turn()
                 pm.end_session(publish=False)
                 return None
 
             # self.last should be set by prepare_context
-            last_history_path = self.last.history_path
+            last = getattr(self, "last", None)
+            if not last or not last.history_path:
+                print(f"{_ERROR}Summarizer.last.history_path not available after prepare_context{_RESET}")
+                pm.done_phase("context", "Missing history path")
+                pm.end_turn()
+                pm.end_session(publish=False)
+                return None
+            last_history_path = last.history_path
             new_history_path = self.retrieve_history_path(state, history)
             if not new_history_path.exists():
                 new_history_path.mkdir(parents=True)
@@ -945,6 +955,7 @@ class Summarizer:
                     f"{_ERROR}Could not find required schema definitions for: {missing_schemas}. Aborting summarization.{_RESET}"
                 )
                 pm.done_phase("context", "Missing schemas")
+                pm.end_turn()
                 pm.end_session(publish=False)
                 return None
 
@@ -1024,6 +1035,7 @@ class Summarizer:
                 self.log_activity("Subject Updated", subject_name, "success")
 
                 if shared.stop_everything:
+                    pm.end_turn()
                     pm.end_session(publish=False)
                     return None
 
@@ -1033,6 +1045,7 @@ class Summarizer:
                 data_summarizer.check_and_archive_chapter()
                 if shared.stop_everything:
                     pm.done_phase("chapter_check", "Stopped")
+                    pm.end_turn()
                     pm.end_session(publish=False)
                     return None
                 self.log_activity("Chapter Check", "Complete", "success")
@@ -1043,6 +1056,7 @@ class Summarizer:
                 data_summarizer.check_and_archive_arc()
                 if shared.stop_everything:
                     pm.done_phase("arc_check", "Stopped")
+                    pm.end_turn()
                     pm.end_session(publish=False)
                     return None
                 self.log_activity("Arc Check", "Complete", "success")
@@ -1072,6 +1086,7 @@ class Summarizer:
             if shared.stop_everything:
                 pm.done_step("message_summary", "summarize", "Stopped")
                 pm.done_phase("message_summary", "Stopped")
+                pm.end_turn()
                 pm.end_session(publish=False)
                 return None
             pm.done_step("message_summary", "summarize", "Message chunks saved")
@@ -1129,6 +1144,7 @@ class Summarizer:
             pm.done_step("chunking", "update_metadata", "Metadata updated")
             pm.done_phase("chunking")
             self.log_activity("Summarization Complete", f"Scene saved at {new_history_path.name}", "success")
+            pm.end_turn()
             pm.end_session(publish=True)
             return current_timestamp_str
 
@@ -1138,6 +1154,7 @@ class Summarizer:
             traceback.print_exc()
             if pm.active_phase:
                 pm.error_phase(pm.active_phase, str(e))
+            pm.end_turn()
             pm.end_session(publish=False)
             return None
 
@@ -1385,7 +1402,8 @@ class Summarizer:
         if not history_path.exists():
             history_path.mkdir(parents=True)
 
-        if not self.last or (history_path and history_path != self.last.history_path):
+        last = getattr(self, "last", None)
+        if not last or (history_path and history_path != last.history_path):
             custom_state = copy.deepcopy(state)
             context_retriever = StoryContextRetriever(history_path)
 
@@ -1997,7 +2015,6 @@ class MessageSummarizer:
         print(f"{_BOLD}Summarizing messages for indices {message_idxs}{_RESET}")
 
         pm = self.summarizer._phase_manager
-        pm.start_step("message_summary", "summarize", f"Summarizing {len(exchange)} message(s)")
 
         for i, message_content in enumerate(exchange):
             current_message_idx = message_idxs[i]
@@ -2050,8 +2067,6 @@ Here is the message: """\n{message_content.strip()}\n"""'''
             except Exception as e:
                 print(f"{_ERROR}Error generating message summary for message_idx {current_message_idx}: {e}{_RESET}")
                 traceback.print_exc()
-
-        pm.done_step("message_summary", "summarize", f"Summarized {len(exchange)} message(s)")
 
 
 class FormattedData:

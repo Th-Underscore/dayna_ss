@@ -1598,7 +1598,7 @@ Respond with ONLY the JSON object for this arc."""
 
         # Check if negative response
         if stop_reason in ["NO", "UNCHANGED"] or llm_response_text.upper() in ["NO", "UNCHANGED"]:
-            pm.update_step(phase_id, "query_branch_for_changes", "No changes needed")
+            pm.update_step(phase_id, "query_changes", "No changes needed")
             print(f"{_INPUT}Skipping updates for branch '{branch_name}' (query returned NO).{_RESET}")
             return
 

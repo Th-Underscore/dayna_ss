@@ -139,15 +139,12 @@ class PhaseManager:
         self._phase_lookup = {}
         self._active_phase = None
         self._active_step = None
-        preserved_completed = set(self._completed_phases)
         self._completed_phases = set()
         self._phase_steps = {}
         self._phase_start_times = {}
         self._total_weight = 0
         self._completed_weight = 0.0
-        
-        if not self._session_start:
-            self._session_start = time.time()
+        self._session_start = time.time()
 
         if phases:
             base_phases = phases
@@ -175,11 +172,6 @@ class PhaseManager:
             self._phase_lookup[p["id"]] = phase
             self._phase_steps[p["id"]] = []
             self._total_weight += phase["weight"]
-
-        for phase_id in preserved_completed:
-            if phase_id in self._phase_lookup:
-                self._completed_phases.add(phase_id)
-                self._completed_weight += self._phase_lookup[phase_id].get("weight", 1)
 
         self._queue.publish({
             "type": "session_start",

@@ -362,13 +362,16 @@ def custom_js():
         str: Rendered JavaScript; an empty string if the template cannot be loaded or rendered.
     """
     import os
-    from jinja2 import Environment, FileSystemLoader
+    from jinja2 import Environment, FileSystemLoader, select_autoescape, TemplateError
     js_path = os.path.join(os.path.dirname(__file__), "ui")
     try:
-        env = Environment(loader=FileSystemLoader(js_path))
+        env = Environment(
+            loader=FileSystemLoader(js_path),
+            autoescape=select_autoescape(['js', 'j2'])
+        )
         template = env.get_template("ui.js.j2")
         return template.render(sse_external_path=params.get("sse_external_path", ":7880"))
-    except Exception as e:
+    except TemplateError as e:
         print(f"{_ERROR}Failed to load ui.js.j2: {e}{_RESET}")
         return ""
 
