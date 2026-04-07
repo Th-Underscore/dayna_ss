@@ -907,7 +907,32 @@ if __name__ == "__main__":
 
         parser = SchemaParser(schema_file_path)
         print("Schema loaded and parsed successfully.")
-        print("\nDefinitions:")
+
+        print("\n" + "=" * 60)
+        print("JSON SCHEMA FOR ALL SUBJECTS")
+        print("=" * 60)
+        
+        all_subjects_schema = {}
+        for subject_name, subject_type in parser.subjects.items():
+            print(f"\n--- JSON Schema for: {subject_name} ---")
+            
+            subject_class = parser.get_subject_class(subject_name)
+            if subject_class:
+                schema_def = parser.get_relevant_json_schema_definitions(subject_class)
+                all_subjects_schema[subject_name] = schema_def
+                print(json.dumps(schema_def, indent=2))
+            else:
+                print(f"Could not get subject class for '{subject_name}': {subject_type}")
+
+        print("\n" + "=" * 60)
+        print("COMBINED FULL SCHEMA")
+        print("=" * 60)
+        combined_schema = {"subjects": all_subjects_schema, "definitions": parser.get_definitions_as_json_schema()}
+        print(json.dumps(combined_schema, indent=2))
+
+        print("\n" + "=" * 60)
+        print("DEFINITIONS")
+        print("=" * 60)
         for name, definition_obj in parser.definitions.items():
             print(f"- {name} (type: {definition_obj.definition_type}):")
             if definition_obj.definition_type == "dataclass":
@@ -917,60 +942,6 @@ if __name__ == "__main__":
                 print(f"  - Field Type: {definition_obj._field}")
             if definition_obj.defaults:
                 print(f"  - Defaults: {definition_obj.defaults}")
-
-        print("\nSubjects:")
-        for name, subject_type in parser.subjects.items():
-            print(f"- {name}: {subject_type}")
-
-        # Test getting subject class
-        print("\n--- Testing get_subject_class ---")
-        characters_subject_def = parser.get_subject_class("characters")
-        print(f"\nSubject Definition for 'characters': {characters_subject_def}")
-        if characters_subject_def:
-            print(f"  Name: {characters_subject_def.name}")
-            print(f"  Definition Type: {characters_subject_def.definition_type}")
-            if characters_subject_def.definition_type == "alias":
-                print(f"  Parsed Field Type: {characters_subject_def._field}")
-            elif characters_subject_def.definition_type == "dataclass":
-                print(f"  Fields: {[f.name for f in characters_subject_def.get_fields()]}")
-
-        groups_subject_def = parser.get_subject_class("groups")
-        print(f"\nSubject Definition for 'groups': {groups_subject_def}")
-        if groups_subject_def:
-            print(f"  Name: {groups_subject_def.name}")
-            print(f"  Definition Type: {groups_subject_def.definition_type}")
-            if groups_subject_def.definition_type == "alias":
-                print(f"  Parsed Field Type: {groups_subject_def._field}")
-
-        current_scene_subject_def = parser.get_subject_class("current_scene")
-        print(f"\nSubject Definition for 'current_scene': {current_scene_subject_def}")
-        if current_scene_subject_def:
-            print(f"  Name: {current_scene_subject_def.name}")
-            print(f"  Definition Type: {current_scene_subject_def.definition_type}")
-            if current_scene_subject_def.definition_type == "dataclass":
-                print(f"  Fields: {[f.name for f in current_scene_subject_def.get_fields()]}")
-                # Example of accessing a field within a dataclass subject
-                what_field = current_scene_subject_def.get_field("what")
-                if what_field:
-                    print(f"    'what' field type: {what_field.type}")
-
-        events_subject_def = parser.get_subject_class("events")
-        print(f"\nSubject Definition for 'events': {events_subject_def}")
-        if events_subject_def:  # 'Events' is a dataclass
-            print(f"  Name: {events_subject_def.name}")
-            print(f"  Definition Type: {events_subject_def.definition_type}")
-            if events_subject_def.definition_type == "dataclass":
-                print(f"  Fields: {[f.name for f in events_subject_def.get_fields()]}")
-                past_field = events_subject_def.get_field("past")
-                if past_field:
-                    print(
-                        f"    'past' field type: {past_field.type}"
-                    )  # Should be dict[str, ParsedSchemaClass(name='StoryEvent')]
-                    # Accessing the type of StoryEvent
-                    if hasattr(past_field.type, "__args__"):
-                        story_event_class = past_field.type.__args__[1]
-                        if isinstance(story_event_class, ParsedSchemaClass):
-                            print(f"      StoryEvent fields: {[f.name for f in story_event_class.get_fields()]}")
 
     except (FileNotFoundError, ValueError) as e:
         print(f"Error: {e}")
