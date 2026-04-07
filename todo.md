@@ -1,6 +1,20 @@
 # DAYNA Story Summarizer
 
-chunk messages `#chunk_messages()`:
+---
+
+## Realtime UI (v0.1.0)
+
+- [x] SSE server for real-time UI updates
+- [x] PhaseManager for progress tracking
+- [x] Streaming UI panel with collapsible phases
+- [ ] **BUG FIX: Buffer-length polling stops when ring buffer fills** (sse_server.py:171)
+- [ ] Improve error handling for child phases in _update_recursive
+
+---
+
+## Legacy TODO
+
+chunk messages `#chunk_messages()`:
 
 - [x] chunk messages by paragraph by line
 - [x] include message summary in database
