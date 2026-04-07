@@ -1,76 +1,52 @@
-﻿# DAYNA Story Summarizer
-<sub>formerly [Super Story Summarizer](https://github.com/Th-Underscore/super_story_summarizer)</sub>
+# DAYNA Story Summarizer
 
-An autonomous agent that acts as your story's intelligent knowledge keeper.
+An autonomous agent that manages your story's long-term memory so you don't have to.
 
-### The Problem: The Forgetful AI
+## The Problem
 
-Long-term memory is the biggest challenge in narrative AI. Language models are powerful, but they live in the moment, constrained by a finite context window. Characters forget crucial plot points, mix up relationships, and lose track of the timeline. Existing solutions often require tedious manual updates to text files or use simple retrieval systems that fail to grasp the complex, evolving state of a story.
+Language models are great at generating text, but they have one fatal flaw: they forget. Every character detail, plot twist, and relationship nuance you mentioned thirty messages ago? Gone. The model only sees what's in the current context window, and once it scrolls off, it might as well have never existed.
 
-### The Solution: An Agent That Manages Itself
+## The Solution
 
-DAYNA Story Summarizer (DSS) is not just another memory system; it's an **autonomous agent** that actively curates and manages a structured "world model" of your story.
+DAYNA doesn't just store your story data—it actively manages it. After each scene, the agent analyzes what happened, updates its knowledge base, and builds a structured "world model" that persists across the entire conversation.
 
-Instead of passively storing data, DSS uses the Language Model (LLM) itself to reason about the narrative after every major story beat. The key innovation is a **procedural schema**—a living blueprint that tells the agent *how*, *when*, and *why* to maintain its own knowledge base.
+The key is the schema. It's a JSON file that tells the agent *how* to reason about your story, *when* to update specific fields, and *why* certain changes matter. You can customize it to match any story structure you want (in the future, several examples will also be provided).
 
-This transforms the story's memory from a static file into a dynamic, intelligent system that can:
-*   **Reason** about which information is important and needs updating.
-*   **Proactively discover** new characters and events as they are mentioned.
-*   **Consolidate** memories at the end of a scene, learning from what just happened.
-*   **Bootstrap** the entire story's initial state from a single character greeting.
+## How It Works
 
-### How It Works: The Scene-Based Memory Cycle
+1. You chat with the AI normally
+2. When a scene ends (currently triggered by a `NEXT SCENE:` prefix), the agent kicks into gear
+3. It analyzes the scene, extracts important events, updates characters and relationships
+4. A summary gets archived; a fresh "current scene" starts for the next beat
+5. On the next response, the agent pulls relevant context from its knowledge base
 
-DSS treats the story as a sequence of scenes. This narrative structure is the key to its memory management loop:
+The cycle repeats. Over time, the agent builds a rich, interconnected graph of your story's world.
 
-1.  **During the Scene:** As you and the AI exchange messages, the agent continuously updates a temporary "working memory" of the current scene—who is present, what is happening, and where.
-2.  **Scene Ends:** The user signals the end of the scene (e.g., with a command like `NEXT SCENE:`). This is the primary trigger for the agent's main cognitive process.
-3.  **The Agent Learns:** The agent analyzes its working memory of the completed scene. It asks the LLM to summarize the key events, outcomes, and character developments.
-4.  **Memory Consolidation:** This summary is archived as a permanent "memory" in the agent's long-term knowledge base. The agent then intelligently updates its understanding of characters, relationships, and the overarching plot based on what it just learned. A new, empty "working memory" is created for the next scene.
+## Features
 
-This cycle ensures that the agent's knowledge is always growing, relevant, and structured, allowing it to maintain perfect continuity from the first message to the thousandth.
+- Scene-based memory consolidation with automatic archiving
+- JSON schema-driven update logic you can customize
+- Proactive detection of new characters and groups
+- Hashed state snapshots for stable history retrieval
+- Dynamic context retrieval (RAG) for relevant memory on demand
+- Live progress UI showing each summarization phase in real-time
 
----
+## Installation
 
-### Current Features
-- **Agentic Knowledge Management:** The agent intelligently updates characters, groups, the current scene, and events without manual intervention.
-- **Schema-Driven Logic:** The agent's update behavior is defined by a powerful and customizable JSON schema that includes triggers, actions, and prompt templates.
-- **Scene-Based Memory Consolidation:** Uses the end of a scene as a trigger to summarize and archive plot points into long-term memory, creating a robust story timeline.
-- **Proactive Entity Detection:** The system identifies new characters and groups as they appear in the narrative and adds them to its knowledge base.
-- **Versioned State History:** Each turn in the conversation creates a unique, hashed snapshot of the story state, enabling stable history.
-- **Dynamic Context Retrieval (RAG):** Retrieves relevant messages, character data, and scene information to build a rich context for the LLM's next response.
+```bash
+cd /path/to/text-generation-webui/extensions
+git clone https://github.com/Th-Underscore/dayna_ss.git
+pip install -r dayna_ss/requirements.txt # in your text-generation-webui Python environment
+```
 
-### Installation
-1.  Place the `dayna_ss` folder into your `text-generation-webui/extensions` directory.
-2.  Run the following command to install the required dependencies:
-    ```sh
-    pip install -r extensions/dayna_ss/requirements.txt
-    ```
+## Status
 
----
+Pre-alpha. The core cycle works, but this is very much a project in progress. Expect bugs, an exorbitant amount of debug logs, and a rapidly evolving feature set.
 
-### Project Status
-⚠️ **Pre-Alpha:** This project is under heavy development. The core scene-based update cycle is now functional, but the system is still undergoing significant changes. Expect bugs, an exorbitant amount of debug logs, and a rapidly evolving feature set.
+## Roadmap
 
-### General Roadmap
-This is a high-level overview of planned features, simplified from the detailed [TODO list](./todo.md).
-
-#### **Core Agent & Memory**
--   **Automated Event & Scene Detection:** Enhance the agent's ability to automatically detect when a scene has ended or a significant plot event has occurred.
--   **Advanced RAG:** Implement more sophisticated retrieval, including character-specific memories (e.g., "what does this character remember about this event?") and relationship-specific context.
--   **Importance Tracking:** Develop a system for the agent to weigh the "importance" of information, allowing it to prioritize major plot points over minor details during updates.
--   **Performance Optimizations:** Introduce logic to skip redundant updates during a scene, saving significant processing time.
-
-#### **UI & User Experience (UI/UX)**
--   **Interactive Knowledge Base UI:** Create a real-time interface to view and manually edit all story data (characters, events, etc.) in a user-friendly tree or flow chart.
--   **Schema Editor:** Develop a dedicated UI for creating and customizing the `subjects_schema.json`, allowing users to easily define their own story structures.
--   **Logs & Progress UI:** Add UI panels for viewing the agent's update history and showing summarization progress in real-time.
-
-#### **Prompting & Context**
--   **Dual Context Modes:** Allow the user to switch between **"DAYNA Mode"** (an analytical Q&A to load context) and **"Character Mode"** (direct context injection) to best suit the loaded model's strengths.
--   **In-Message Directives:** Enable users to give direct instructions to the agent within their message (e.g., `[[NOTE: Ensure this character is secretly angry.]]`), influencing the memory update without appearing in the story.
-
-#### **Customization & Control**
--   **User-Defined Objectives:** Allow users to specify high-level story goals or future plot points for the agent to track.
--   **Fine-Grained UI Controls:** Add more UI options for customizing prompt templates, agent behaviors, and generation parameters.
--   **Manual Triggers:** Enable the user to manually trigger agent actions, such as generating a new character entry from a piece of text.
+- Auto-detect scene boundaries instead of manual triggers
+- Character-specific memory retrieval ("what does Alice remember about this?")
+- Importance weighting to skip trivial updates
+- Interactive knowledge base UI for manual edits
+- Schema editor for visual schema building
