@@ -100,13 +100,24 @@ class SSEServer:
                 origin = self.headers.get("Origin", "")
                 print(f"[DSS SSE] _validate_request: Origin='{origin}', _ALLOWED_ORIGINS={_ALLOWED_ORIGINS}")
                 allow_wildcard = "*" in _ALLOWED_ORIGINS
-                if not allow_wildcard and origin and origin not in _ALLOWED_ORIGINS:
-                    print(f"[DSS SSE] Origin rejected: '{origin}' not in {_ALLOWED_ORIGINS}")
-                    self.send_response(403)
-                    self.send_header("Content-Type", "text/plain")
-                    self.end_headers()
-                    self.wfile.write(b"Forbidden: origin not allowed")
-                    return None
+                if not allow_wildcard and origin:
+                    matched = False
+                    for allowed in _ALLOWED_ORIGINS:
+                        if allowed.endswith("*"):
+                            prefix = allowed[:-1]
+                            if origin.startswith(prefix):
+                                matched = True
+                                break
+                        elif origin == allowed:
+                            matched = True
+                            break
+                    if not matched:
+                        print(f"[DSS SSE] Origin rejected: '{origin}' not in {_ALLOWED_ORIGINS}")
+                        self.send_response(403)
+                        self.send_header("Content-Type", "text/plain")
+                        self.end_headers()
+                        self.wfile.write(b"Forbidden: origin not allowed")
+                        return None
                 if _SSE_TOKEN:
                     token = self.headers.get("X-DSS-Token", "")
                     # Fallback to query parameter for browser EventSource clients
