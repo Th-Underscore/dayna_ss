@@ -113,11 +113,9 @@
 
         var type = ev.type;
         if (type === 'session_start') {
+            phasesDiv.innerHTML = '';
+            phases = {};
             if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
-            if (!phases || Object.keys(phases).length === 0) {
-                phasesDiv.innerHTML = '';
-                phases = {};
-            }
             updateQueue(ev.queue, queueDiv);
             updateProgress(ev.progress, progressBar, progressText);
         } else if (type === 'turn_start') {
@@ -413,8 +411,8 @@
         if (isExpanded) return;
         var fullText = msgDiv.textContent;
         var lines = fullText.split('\n');
-        if (lines.length > 30) {
-            var displayLines = lines.slice(-30);
+        if (lines.length > 22) {
+            var displayLines = lines.slice(-22);
             var displayText = displayLines.join('\n');
             var fadeHtml = '<div style="position:absolute;top:0;left:0;right:0;height:30px;background:linear-gradient(#161b22,transparent);pointer-events:none;"></div>';
             msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + sanitizeId(stepUid) + '">' + fadeHtml + escapeHtml(displayText) + '</div>' +

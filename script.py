@@ -16,6 +16,7 @@ from extensions.dayna_ss.agents.summarizer import Summarizer
 import extensions.dayna_ss.tools.tgwui_integration as tgwui_integration
 from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_definitions
 from extensions.dayna_ss.ui.sse_server import start_sse_server, stop_sse_server
+from extensions.dayna_ss.ui import get_update_queue, PhaseManager
 
 from extensions.dayna_ss.utils.helpers import (
     _ERROR,
@@ -118,6 +119,9 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
 
     if not shared.model or not dss_shared.persistent_ui_state.get("dss_toggle", True):
         return generate_chat_prompt(user_input, state, **kwargs)
+
+    pm = summarizer._phase_manager
+    pm.start_session(phases=[])
 
     handle_input(user_input, state, history)
 
@@ -410,15 +414,13 @@ def ui():
         with gr.Accordion("DSS Real-time Status", open=True):
             gr.HTML(value=_SSE_PANEL_HTML, elem_id="dss-sse-panel")
 
-        params["is_tab"] = True
-        tab_created = False
-
-
-
         ui_chat.create_event_handlers()
         ui_file_saving.create_event_handlers()
         ui_parameters.create_event_handlers()
         ui_templates.create_event_handlers()
+
+        params["is_tab"] = True
+        tab_created = False
 
 
 is_final_output = False
