@@ -411,8 +411,8 @@
         if (isExpanded) return;
         var fullText = msgDiv.textContent;
         var lines = fullText.split('\n');
-        if (lines.length > 22) {
-            var displayLines = lines.slice(-22);
+        if (lines.length > 25) {
+            var displayLines = lines.slice(-25);
             var displayText = displayLines.join('\n');
             var fadeHtml = '<div style="position:absolute;top:0;left:0;right:0;height:30px;background:linear-gradient(#161b22,transparent);pointer-events:none;"></div>';
             msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + sanitizeId(stepUid) + '">' + fadeHtml + escapeHtml(displayText) + '</div>' +
@@ -445,10 +445,10 @@
         var hasUpdateData = step && step.data && step.data.updates && step.data.updates.length > 0;
         if (isUpdateSummary && hasUpdateData) {
             msgDiv.innerHTML = escaped;
-        } else if (lines.length > 30) {
+        } else if (lines.length > 25) {
             var stepUid = pid + '-' + sid + '-0';
             var isExpanded = expandedMessages[stepUid];
-            var displayLines = isExpanded ? lines : lines.slice(-30);
+            var displayLines = isExpanded ? lines : lines.slice(-25);
             var displayText = displayLines.join('\n');
             var fadeHtml = !isExpanded ? '<div style="position:absolute;top:0;left:0;right:0;height:30px;background:linear-gradient(#161b22,transparent);pointer-events:none;"></div>' : '';
             msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + sanitizeId(stepUid) + '">' + fadeHtml + displayText + '</div>' +
