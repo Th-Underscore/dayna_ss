@@ -1874,11 +1874,12 @@ Respond with ONLY the JSON object for this arc."""
                             if isinstance(parsed_list, list):
                                 _done_field_phase()
                                 return parsed_list
-                            else:
-                                last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
-                                print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
-                                pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
-                                continue
+                            elif isinstance(parsed_list, dict):
+                                return unexpand_lists_in_data_from_llm(parsed_list, target_schema_or_type, self.schema_parser)
+                            last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
+                            print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
+                            pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")
+                            continue
                         except json.JSONDecodeError:
                             is_list_of_str = False
                             if hasattr(expected_type, "__args__") and len(expected_type.__args__) == 1:
@@ -2322,6 +2323,7 @@ Respond with ONLY the JSON object for this arc."""
             "scene_in_chapter": scene_in_chapter,
             "chapters_in_arc": chapters_in_arc,
             "chapter_in_arc": chapter_in_arc,
+            "subjects": self.all_subjects_data,
             **kwargs,
         }
 

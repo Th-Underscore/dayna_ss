@@ -289,6 +289,23 @@ class Summarizer:
         if shared.stop_everything:
             return "", ""
 
+        internal_history = state.get("history", {}).get("internal", [])
+        history_str = self.hash_key(internal_history, precision=24)
+        try:
+            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
+                dump_str = str(json.dumps(kwargs, indent=2))
+                dump_str += f"\n\n========================== INTERNAL CONTEXT ({history_str})\n\n"
+                dump_str += str(json.dumps(internal_history, indent=2))
+                dump_str += "\n\n=========================="
+                dump_str += "\n========================== NEW PROMPT\n\n"
+                dump_str += str(prompt)
+                dump_str += "\n\n==========================\n"
+                f.write(dump_str)
+                f.close()
+        except Exception as e:
+            print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
+            traceback.print_exc()
+
         use_tool_loop = self.retrieval_mode == "active"
         last_emit_len = 0
         emit_threshold = 50  # Emit every ~50 chars to avoid flooding SSE
@@ -347,6 +364,14 @@ class Summarizer:
                     last_emit_len = len(text)
                     last_emit_time = now
 
+                    try:
+                        with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
+                            f.write(snippet)
+                            f.close()
+                    except Exception as e:
+                        print(f"{_ERROR}Error appending to dump.txt: {str(e)}{_RESET}")
+                        traceback.print_exc()
+
                 if s and s not in ("tool_call", ""):
                     break
 
@@ -377,6 +402,16 @@ class Summarizer:
             "phase": {"id": phase_id},
             "step": {"id": step_id, "complete": True, "message": final_text},
         })
+
+        try:
+            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
+                f.write("\n\n========================== OUTPUT\n\n")
+                f.write(text.strip())
+                f.write("\n\n==========================\n")
+                f.close()
+        except Exception as e:
+            print(f"{_ERROR}Error writing closing marker to dump.txt: {str(e)}{_RESET}")
+            traceback.print_exc()
 
         return text.strip(), stop
 
@@ -2147,7 +2182,8 @@ class FormattedData:
         data: dict | list,
         data_type: str,
         path_prefix: str = "",
-        parser=None,
+        all_subjects_data: dict | None = None,
+        parser: SchemaParser | None = None,
         extra_context: dict | None = None,
     ) -> str:
         """Render a Jinja2 template with the given data.
@@ -2157,6 +2193,7 @@ class FormattedData:
             data: The data to render
             data_type: The data type (used to determine schema class)
             path_prefix: The prefix for path markers
+            all_subjects_data: Full dict of all subjects
             parser: SchemaParser for getting schema defaults
             extra_context: Additional context to pass to the template
 
@@ -2173,6 +2210,7 @@ class FormattedData:
             context = {
                 "data": data,
                 "path": path_prefix,
+                "subjects": all_subjects_data,
             }
 
             if parser:
@@ -2209,7 +2247,7 @@ class FormattedData:
             user_template = dss_shared.settings.get(f"template_{data_type}")
             if user_template:
                 rendered = FormattedData._render_jinja_template(
-                    user_template, data, data_type, prefix, parser, extra_context
+                    user_template, data, data_type, prefix, all_subjects_data, parser, extra_context
                 )
                 if rendered:
                     print(f"{_DEBUG}Using user template for {data_type}{_RESET}")
@@ -2219,7 +2257,7 @@ class FormattedData:
             template_str = templates.get(data_type)
             if template_str:
                 rendered = FormattedData._render_jinja_template(
-                    template_str, data, data_type, prefix, parser, extra_context
+                    template_str, data, data_type, prefix, all_subjects_data, parser, extra_context
                 )
                 if rendered:
                     print(f"{_DEBUG}Using file template for {data_type}{_RESET}")
