@@ -199,6 +199,11 @@ class PhaseManager:
 
         phase = self._get_phase_info(phase_id, name)
 
+        if phase_id not in self._phase_lookup:
+            self._phase_lookup[phase_id] = phase
+            self._phases.append(phase)
+            self._total_weight += phase.get("weight", 1)
+
         self._queue.publish({
             "type": "phase_start",
             "phase": phase,
