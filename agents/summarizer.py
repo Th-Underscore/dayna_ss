@@ -2194,7 +2194,8 @@ class FormattedData:
         data: dict | list,
         data_type: str,
         path_prefix: str = "",
-        parser=None,
+        all_subjects_data: dict | None = None,
+        parser: SchemaParser | None = None,
         extra_context: dict | None = None,
     ) -> str:
         """Render a Jinja2 template with the given data.
@@ -2204,6 +2205,7 @@ class FormattedData:
             data: The data to render
             data_type: The data type (used to determine schema class)
             path_prefix: The prefix for path markers
+            all_subjects_data: Full dict of all subjects
             parser: SchemaParser for getting schema defaults
             extra_context: Additional context to pass to the template
 
@@ -2220,6 +2222,7 @@ class FormattedData:
             context = {
                 "data": data,
                 "path": path_prefix,
+                "subjects": all_subjects_data,
             }
 
             if parser:
@@ -2256,7 +2259,7 @@ class FormattedData:
             user_template = dss_shared.settings.get(f"template_{data_type}")
             if user_template:
                 rendered = FormattedData._render_jinja_template(
-                    user_template, data, data_type, prefix, parser, extra_context
+                    user_template, data, data_type, prefix, all_subjects_data, parser, extra_context
                 )
                 if rendered:
                     print(f"{_DEBUG}Using user template for {data_type}{_RESET}")
@@ -2266,7 +2269,7 @@ class FormattedData:
             template_str = templates.get(data_type)
             if template_str:
                 rendered = FormattedData._render_jinja_template(
-                    template_str, data, data_type, prefix, parser, extra_context
+                    template_str, data, data_type, prefix, all_subjects_data, parser, extra_context
                 )
                 if rendered:
                     print(f"{_DEBUG}Using file template for {data_type}{_RESET}")

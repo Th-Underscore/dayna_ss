@@ -10,15 +10,24 @@
   "objectives": [
     {
       "description": "Locate and secure a safe haven.",
-      "importance": 80
+      "importance": {
+        "score": 80,
+        "reason": "Finding a safe location is the foundation for all other survival efforts."
+      }
     },
     {
       "description": "Assess the extent of the Subterranean threat and identify potential weaknesses.",
-      "importance": 60
+      "importance": {
+        "score": 60,
+        "reason": "Understanding the enemy is crucial for long-term survival planning."
+      }
     },
     {
       "description": "Establish communication with any surviving authorities or resistance groups.",
-      "importance": 40
+      "importance": {
+        "score": 40,
+        "reason": "Connecting with other survivors increases resources and information."
+      }
     }
   ],
   "main_objective": "Survive the initial Incursion, secure a safe haven, and begin formulating a plan to locate Paul.",
