@@ -3,7 +3,7 @@ from pathlib import Path
 
 from modules.logging_colors import logger
 
-import extensions.dayna_ss.shared as dss_shared
+from .. import shared as dss_shared
 import modules.shared as shared
 
 # Helper function to get multiple values from dss_shared.gradio

@@ -184,7 +184,7 @@ def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
 
 
 from typing import Any
-from extensions.dayna_ss.utils.schema_parser import ParsedSchemaClass, SchemaParser, TYPE_MAP
+from ..utils.schema_parser import ParsedSchemaClass, SchemaParser, TYPE_MAP
 
 
 def expand_lists_in_data_for_llm(data: dict | list, schema_type: ParsedSchemaClass | None, parser: SchemaParser) -> Any:
@@ -402,6 +402,21 @@ def format_str(string: str, **kwargs) -> str:
 
 _jinja_env = None
 
+
+def _last_item(d):
+    """Return the last value from a dict by insertion order (Python 3.7+).
+    
+    Args:
+        d: A dictionary
+        
+    Returns:
+        The last value in the dict, or None if empty
+    """
+    if not d:
+        return None
+    return list(d.values())[-1]
+
+
 def _get_jinja_env():
     """Get or create a cached Jinja environment."""
     global _jinja_env
@@ -411,6 +426,7 @@ def _get_jinja_env():
             lstrip_blocks=True,
             undefined=jinja2.Undefined,
         )
+        _jinja_env.filters['last_item'] = _last_item
     return _jinja_env
 
 

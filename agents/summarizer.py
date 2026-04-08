@@ -24,17 +24,18 @@ from modules.chat import generate_chat_prompt
 from modules.llama_cpp_server import LlamaServer
 from modules.text_generation import encode
 
-import extensions.dayna_ss.shared as dss_shared
+from .. import shared as dss_shared
+from ..shared import EXTENSION_DIR
 
-# from extensions.dayna_ss.utils.memory_management import VRAMManager
-from extensions.dayna_ss.ui import get_update_queue, PhaseManager
-from extensions.dayna_ss.rag.structured_rag.context_retriever import (
+# from ..utils.memory_management import VRAMManager
+from ..ui import get_update_queue, PhaseManager
+from ..rag.structured_rag.context_retriever import (
     RetrievalContext,
     StoryContextRetriever,
     MessageChunker,
 )
 
-from extensions.dayna_ss.utils.helpers import (
+from ..utils.helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,
@@ -58,16 +59,16 @@ from extensions.dayna_ss.utils.helpers import (
     _get_jinja_env,
 )
 
-from extensions.dayna_ss.utils.schema_parser import SchemaParser, ParsedSchemaClass
+from ..utils.schema_parser import SchemaParser, ParsedSchemaClass
 
-from extensions.dayna_ss.utils.background_importer import (
+from ..utils.background_importer import (
     start_background_import,
     get_imported_attribute,
 )
 
-from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_executors, create_dss_tool_definitions
-from extensions.dayna_ss.tools.tgwui_integration import register_dss_tool_executors
-from extensions.dayna_ss.tools.tool_registry import Tool, ToolRegistry
+from ..tools.definitions.dynamic_tools import create_dss_tool_executors, create_dss_tool_definitions
+from ..tools.tgwui_integration import register_dss_tool_executors
+from ..tools.tool_registry import Tool, ToolRegistry
 
 start_background_import("torch", "no_grad")
 
@@ -140,17 +141,17 @@ class Summarizer:
         
         Parameters:
             config_path (PathLike | None): Path to a JSON configuration file. When `None`, the
-                default configuration at the extension root (`extensions/dayna_ss/dss_config.json`)
+                default configuration at the extension root (`EXTENSION_DIR / "dss_config.json"`)
                 is loaded.
         """
-        dss_dir = Path(__file__).parent.parent  # Root directory of the extension
+        dss_dir = EXTENSION_DIR  # Root directory of the extension
         self.config = self._load_config(config_path or dss_dir / "dss_config.json")
 
         # self.vram_manager = VRAMManager()
         # # Initialize RAG system
         # self.story_rag = StoryRAG(
         #     collection_prefix="story_summary",
-        #     persist_directory="extensions/dayna_ss/storage/vectors"
+        #     persist_directory=EXTENSION_DIR / "storage" / "vectors"
         # )
         self.last: SummarizationContextCache | None = None
         self.dss_tool_executors: dict[str, Callable] = {}
@@ -943,7 +944,7 @@ class Summarizer:
                 new_history_path.mkdir(parents=True)
             self.backtrack_history(history, new_history_path)
 
-            from extensions.dayna_ss.agents.data_summarizer import DataSummarizer
+            from .data_summarizer import DataSummarizer
 
             output = strip_thinking(output)
 
@@ -1336,7 +1337,7 @@ class Summarizer:
         is_new_scene = False
 
         if len(history) < 2 and not history_path.exists():  # New chat
-            GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = Path("extensions/dayna_ss/user_data/example/subjects_schema.json")
+            GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "subjects_schema.json"
             GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH)
 
             print(f"{_BOLD}Fresh chat detected. Initializing...{_RESET}")
@@ -1354,12 +1355,7 @@ class Summarizer:
                 if not dss_shared.current_character:
                     raise ValueError("dss_shared.current_character is not set. Cannot determine cache path.")
 
-            initial_world_data_path = Path(
-                "extensions/dayna_ss/user_data/history",
-                dss_shared.current_character,
-                "initial_world_cache",
-                world_data_cache_hash,
-            )
+            initial_world_data_path = EXTENSION_DIR / "user_data" / "history" / dss_shared.current_character / "initial_world_cache" / world_data_cache_hash
             print(f"{_DEBUG}Initial world data cache path: {initial_world_data_path}{_RESET}")
 
             required_cache_files = [
@@ -1462,7 +1458,7 @@ class Summarizer:
     def retrieve_history_path(self, state: dict, history: History) -> Path:
         """Generate a unique history data path based on character, session ID, and history hash."""
         dss_shared.update_config(state)
-        character_path = Path("extensions/dayna_ss/user_data/history", dss_shared.current_character)
+        character_path = EXTENSION_DIR / "user_data" / "history" / dss_shared.current_character
         hashed_history_str = self.hash_key(history, precision=24)
         history_path: Path = character_path / state["unique_id"] / hashed_history_str
         print(f'{_HILITE}history_path{_RESET}: "{history_path}"')
@@ -2242,7 +2238,6 @@ class FormattedData:
 
         try:
             parser = context_cache.schema_parser if context_cache else None
-            import extensions.dayna_ss.shared as dss_shared
 
             user_template = dss_shared.settings.get(f"template_{data_type}")
             if user_template:

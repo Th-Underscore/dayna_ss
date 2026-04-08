@@ -8,7 +8,7 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Any, Union, get_origin, get_args
 
-from extensions.dayna_ss.utils.helpers import (
+from .helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,
@@ -903,7 +903,8 @@ if __name__ == "__main__":
     try:
         schema_file_path = Path(__file__).parent / "subjects_schema.json"
         if not schema_file_path.exists():
-            schema_file_path = Path("extensions/dayna_ss/user_data/example/subjects_schema.json")
+            from ..shared import EXTENSION_DIR
+            schema_file_path = Path(f"{EXTENSION_DIR}/user_data/example/subjects_schema.json")
 
         parser = SchemaParser(schema_file_path)
         print("Schema loaded and parsed successfully.")

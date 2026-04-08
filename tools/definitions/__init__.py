@@ -1,4 +1,4 @@
-from extensions.dayna_ss.tools.definitions.dynamic_tools import (
+from .dynamic_tools import (
     create_dss_tool_definitions,
     create_dss_tool_executors,
 )

@@ -4,9 +4,9 @@ import gradio as gr
 
 from modules import chat, presets, shared
 
-import extensions.dayna_ss.shared as dss_shared
-from extensions.dayna_ss.ui import utils
-from extensions.dayna_ss.ui.utils import gradio
+from .. import shared as dss_shared
+from . import utils
+from .utils import gradio
 
 
 def create_ui():

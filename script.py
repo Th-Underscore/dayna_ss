@@ -11,14 +11,13 @@ import traceback
 
 import modules.shared as shared
 
-import extensions.dayna_ss.shared as dss_shared
-from extensions.dayna_ss.agents.summarizer import Summarizer
-import extensions.dayna_ss.tools.tgwui_integration as tgwui_integration
-from extensions.dayna_ss.tools.definitions.dynamic_tools import create_dss_tool_definitions
-from extensions.dayna_ss.ui.sse_server import start_sse_server, stop_sse_server
-from extensions.dayna_ss.ui import get_update_queue, PhaseManager
+from . import shared as dss_shared
+from .agents.summarizer import Summarizer
+from .tools import tgwui_integration
+from .tools.definitions.dynamic_tools import create_dss_tool_definitions
+from .ui import get_update_queue, PhaseManager, start_sse_server, stop_sse_server
 
-from extensions.dayna_ss.utils.helpers import (
+from .utils.helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,
@@ -53,7 +52,8 @@ def _find_available_port(start_port, max_attempts=10):
     return -1
 
 # === Internal constants (don't change these without good reason) ===
-_CONFIG_PATH = "extensions/dayna_ss/dss_config.json"
+from .shared import EXTENSION_DIR
+_CONFIG_PATH = EXTENSION_DIR / "dss_config.json"
 
 # Global event loop for background tasks
 _background_loop = None
@@ -136,6 +136,8 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
             "user_input",
             user_input,
         )
+        
+        kwargs.setdefault("do_instr", dss_shared.persistent_ui_state.get("do_instr", True))
 
         index = len(history["internal"]) * 2  # User input index ([:-1].__len__() + 2 - 2)
 
@@ -179,7 +181,7 @@ def handle_input(user_input: str, state: dict, history: Histories):
         return
 
     print("handle_input")
-    # from extensions.dayna_ss.utils.model_loader import load_secondary_model
+    # from .utils.model_loader import load_secondary_model
     # model_2, tokenizer_2 = load_secondary_model("Lucy-128k-Q6_K.gguf", {})
     # print(_HILITE, model_2, tokenizer_2, _RESET)
 
@@ -334,7 +336,7 @@ def run_async(coro: Coroutine) -> concurrent.futures.Future | None:
 
 import gradio as gr
 
-from extensions.dayna_ss.ui import ui_chat, ui_file_saving, ui_parameters, ui_templates, utils
+from .ui import ui_chat, ui_file_saving, ui_parameters, ui_templates, utils
 
 # --- HTML + JS for the real-time SSE status panel --- #
 _SSE_PANEL_HTML = """<div id="dss-status-panel" style="font-family: monospace; font-size: 13px; background: #0d1117; color: #c9d1d9; border-radius: 8px; padding: 16px; min-height: 200px; max-height: 600px; overflow-y: auto;">
