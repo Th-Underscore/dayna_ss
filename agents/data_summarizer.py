@@ -9,7 +9,7 @@ from typing import Any
 
 import modules.shared as shared
 
-from extensions.dayna_ss.utils.helpers import (
+from ..utils.helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,
@@ -31,15 +31,15 @@ from extensions.dayna_ss.utils.helpers import (
     render_jinja_template,
     format_str_or_jinja,
 )
-from extensions.dayna_ss.utils.schema_parser import (
+from ..utils.schema_parser import (
     SchemaParser,
     ParsedSchemaClass,
     ParsedSchemaField,
     Action,
     Trigger,
 )
-from extensions.dayna_ss.agents.summarizer import Summarizer, FormattedData
-from extensions.dayna_ss.ui import PhaseManager
+from .summarizer import Summarizer, FormattedData
+from ..ui import PhaseManager
 
 
 defaults_to_inherit = [

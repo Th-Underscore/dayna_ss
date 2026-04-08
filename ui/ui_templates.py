@@ -1,10 +1,9 @@
 import gradio as gr
-import extensions.dayna_ss.shared as dss_shared
-from extensions.dayna_ss.ui import utils
-from extensions.dayna_ss.utils.helpers import load_json
+from .. import shared as dss_shared
+from ..utils.helpers import load_json
 from pathlib import Path
 
-from extensions.dayna_ss.utils.helpers import (
+from ..utils.helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,

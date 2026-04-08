@@ -184,7 +184,7 @@ def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
 
 
 from typing import Any
-from extensions.dayna_ss.utils.schema_parser import ParsedSchemaClass, SchemaParser, TYPE_MAP
+from ..utils.schema_parser import ParsedSchemaClass, SchemaParser, TYPE_MAP
 
 
 def expand_lists_in_data_for_llm(data: dict | list, schema_type: ParsedSchemaClass | None, parser: SchemaParser) -> Any:

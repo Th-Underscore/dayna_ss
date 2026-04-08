@@ -2,7 +2,7 @@ from typing import Any, Callable, TYPE_CHECKING
 import json
 
 if TYPE_CHECKING:
-    from extensions.dayna_ss.agents.summarizer import Summarizer
+    from ...agents.summarizer import Summarizer
 
 
 def create_dss_tool_definitions() -> list[dict]:

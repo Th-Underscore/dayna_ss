@@ -4,9 +4,9 @@ import gradio as gr
 
 from modules import presets, shared, ui
 
-import extensions.dayna_ss.shared as dss_shared
-from extensions.dayna_ss.ui import loaders, ui_chat, utils
-from extensions.dayna_ss.ui.utils import gradio
+from .. import shared as dss_shared
+from . import loaders, ui_chat, utils
+from .utils import gradio
 
 dss_path = Path(__file__).parent
 

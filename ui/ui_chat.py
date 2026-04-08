@@ -6,12 +6,12 @@ from PIL import Image
 
 from modules import chat, shared, ui
 
-import extensions.dayna_ss.shared as dss_shared
-from extensions.dayna_ss.agents.summarizer import Summarizer
-from extensions.dayna_ss.ui import utils
-from extensions.dayna_ss.ui.utils import gradio
+from .. import shared as dss_shared
+from ..agents.summarizer import Summarizer
+from . import utils
+from .utils import gradio
 
-from extensions.dayna_ss.utils.helpers import _HILITE, _INPUT, _RESET, History
+from ..utils.helpers import _HILITE, _INPUT, _RESET, History
 
 
 def get_summarizer() -> Summarizer:
@@ -19,7 +19,7 @@ def get_summarizer() -> Summarizer:
     
     This ensures the UI uses the same summarizer instance as the rest of the extension.
     """
-    import extensions.dayna_ss.script as script_module
+    from .. import script as script_module
     if hasattr(script_module, 'summarizer') and script_module.summarizer is not None:
         return script_module.summarizer
     summarizer = Summarizer()

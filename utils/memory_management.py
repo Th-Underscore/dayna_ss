@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 import traceback
 
-from extensions.dayna_ss.utils.helpers import (
+from .helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,

@@ -1,4 +1,4 @@
-from extensions.dayna_ss.tools.tool_registry import (
+from .tool_registry import (
     Tool,
     ToolParameter,
     ToolCall,
@@ -13,7 +13,7 @@ from extensions.dayna_ss.tools.tool_registry import (
     create_object_param,
 )
 
-from extensions.dayna_ss.tools.definitions.dynamic_tools import (
+from .definitions.dynamic_tools import (
     create_dss_tool_definitions,
     create_dss_tool_executors,
 )

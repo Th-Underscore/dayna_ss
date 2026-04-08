@@ -33,7 +33,7 @@ else:
     Doc = None
     HuggingFaceEmbedding = None
 
-from extensions.dayna_ss.utils.helpers import (
+from ...utils.helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,
@@ -44,7 +44,7 @@ from extensions.dayna_ss.utils.helpers import (
     _DEBUG,
 )
 
-from extensions.dayna_ss.utils.background_importer import (
+from ...utils.background_importer import (
     start_background_import,
     get_imported_attribute,
 )

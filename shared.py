@@ -3,20 +3,23 @@ import jsonc
 import os
 from collections import deque
 from datetime import datetime
+from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 import gradio as gr
+
+EXTENSION_DIR = Path(__file__).parent
 
 # import modules.shared as shared
 # from modules.chat import generate_chat_prompt
 # from modules.html_generator import fix_newlines
 
 if TYPE_CHECKING:
-    from extensions.dayna_ss.agents.summarizer import Summarizer
+    from .agents.summarizer import Summarizer
 import modules.shared as shared
 
-from extensions.dayna_ss.utils.helpers import (
+from .utils.helpers import (
     _ERROR,
     _SUCCESS,
     _INPUT,
@@ -63,7 +66,7 @@ def _load_and_save_default(file_path: str) -> dict:
     # Create directory if it doesn't exist
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
     # Load default config
-    with open("./extensions/dayna_ss/default_config.json", "rt") as default_handle:
+    with open(EXTENSION_DIR / "default_config.json", "rt") as default_handle:
         default_config = jsonc.load(default_handle)
     # Save the default config
     with open(file_path, "wt") as handle:
@@ -132,10 +135,8 @@ settings = {
 def _init_template_settings():
     """Initialize template settings from format_templates.json."""
     try:
-        from pathlib import Path
-        from extensions.dayna_ss.utils.helpers import load_json
-        dss_dir = Path(__file__).parent
-        template_path = dss_dir / "user_data" / "example" / "format_templates.json"
+        from .utils.helpers import load_json
+        template_path = EXTENSION_DIR / "user_data" / "example" / "format_templates.json"
         templates = load_json(template_path) or {}
         for key in templates:
             settings[f"template_{key}"] = ""
