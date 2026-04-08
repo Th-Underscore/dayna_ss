@@ -132,6 +132,8 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
             "user_input",
             user_input,
         )
+        
+        kwargs.setdefault("do_instr", dss_shared.persistent_ui_state.get("do_instr", True))
 
         index = len(history["internal"]) * 2  # User input index ([:-1].__len__() + 2 - 2)
 
