@@ -133,7 +133,7 @@ class PhaseManager:
             subject_names (list[str] | None): Optional list of subject names to generate phase entries (used only when `phases` is not provided).
         """
         logger.info("Starting session with subjects: %s", subject_names)
-        reset_update_queue()
+        self._queue.clear()
         self._phases = []
         self._phase_lookup = {}
         self._active_phase = None
