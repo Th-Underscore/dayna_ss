@@ -145,7 +145,7 @@ class PhaseManager:
         self._completed_weight = 0.0
         self._session_start = time.time()
 
-        if phases:
+        if phases is not None:
             base_phases = phases
         elif subject_names:
             # Build phases from subject names
