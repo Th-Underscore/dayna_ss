@@ -141,6 +141,7 @@ class PhaseManager:
         self._completed_phases = set()
         self._phase_steps = {}
         self._phase_start_times = {}
+        self._turn_count = 0
         self._total_weight = 0
         self._completed_weight = 0.0
         self._session_start = time.time()
