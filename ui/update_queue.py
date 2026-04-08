@@ -19,12 +19,12 @@ class UpdateQueue:
     - Events are serialized to JSON for SSE transmission
     """
 
-    def __init__(self, max_buffer: int = 1000):
+    def __init__(self, max_buffer: int = 20000):
         """
         Create a thread-safe UpdateQueue with an optional bounded event buffer.
         
         Parameters:
-            max_buffer (int): Maximum number of past events to retain in the internal buffer; older events are discarded when the buffer exceeds this size. Default is 1000.
+            max_buffer (int): Maximum number of past events to retain in the internal buffer; older events are discarded when the buffer exceeds this size. Default is 20000.
         """
         self._subscribers: dict[str, queue.Queue] = {}
         self._buffer: list[dict] = []
@@ -133,7 +133,9 @@ class UpdateQueue:
         `pending_phases`, `progress` (to zeros), and `running` (to False). The reset is performed under the instance lock.
         """
         with self._lock:
+            print("[DSS Queue] Clearing queue...")
             self._buffer.clear()
+            print("[DSS Queue] Buffer cleared:", len(self._buffer))
             self._state = {
                 "active_phases": [],
                 "completed_phases": [],

@@ -129,7 +129,7 @@ base_state = {
 
 
 class Summarizer:
-    def __init__(self, config_path: PathLike | None = None):
+    def __init__(self, config_path: PathLike | None = None, phase_manager: PhaseManager | None = None):
         """
         Create a Summarizer and initialize its configuration, tool registry, and UI integration.
         
@@ -160,7 +160,7 @@ class Summarizer:
 
         # Real-time UI update system
         self._update_queue = get_update_queue()
-        self._phase_manager = PhaseManager(queue=self._update_queue)
+        self._phase_manager = phase_manager or PhaseManager(queue=self._update_queue)
 
     def _init_tool_registry(self) -> None:
         """Initialize DSS tool executors for TGWUI's native tool system."""
@@ -689,18 +689,13 @@ class Summarizer:
         self.log_activity("Generating Instructions", "Preparing context", "info")
 
         pm = self._phase_manager
-
-        if not pm._phases:
-            pm.start_session(phases=[{"id": "instr_prompt", "name": "Instruction Generation", "weight": 1}])
-            pm.start_turn("Instruction Generation")
-        else:
-            pm.start_turn("Instruction Generation")
-            if "instr_prompt" not in pm._phase_lookup:
-                phase = {"id": "instr_prompt", "name": "Instruction Generation", "weight": 1}
-                pm._phases.append(phase)
-                pm._phase_lookup["instr_prompt"] = phase
-                pm._phase_steps["instr_prompt"] = []
-                pm._total_weight += 1
+        pm.start_turn("Instruction Generation")
+        if "instr_prompt" not in pm._phase_lookup:
+            phase = {"id": "instr_prompt", "name": "Instruction Generation", "weight": 1}
+            pm._phases.append(phase)
+            pm._phase_lookup["instr_prompt"] = phase
+            pm._phase_steps["instr_prompt"] = []
+            pm._total_weight += 1
 
         pm.start_phase("instr_prompt", "Instruction Generation")
 
@@ -915,19 +910,14 @@ class Summarizer:
             {"id": "chunking", "name": "Message Chunking", "weight": 1},
         ])
         
-        # Only start new session if none exists; otherwise add phases to existing session
-        if not pm._phases:
-            pm.start_session(phases=summarization_phases)
-            pm.start_turn("Summarization")
-        else:
-            pm.start_turn("Summarization")
-            for p in summarization_phases:
-                if p["id"] not in pm._phase_lookup:
-                    phase = {"id": p["id"], "name": p["name"], "weight": p.get("weight", 1)}
-                    pm._phases.append(phase)
-                    pm._phase_lookup[p["id"]] = phase
-                    pm._phase_steps[p["id"]] = []
-                    pm._total_weight += phase["weight"]
+        pm.start_turn("Summarization")
+        for p in summarization_phases:
+            if p["id"] not in pm._phase_lookup:
+                phase = {"id": p["id"], "name": p["name"], "weight": p.get("weight", 1)}
+                pm._phases.append(phase)
+                pm._phase_lookup[p["id"]] = phase
+                pm._phase_steps[p["id"]] = []
+                pm._total_weight += phase["weight"]
 
         try:
             pm.start_phase("context", "Context Preparation")
@@ -1967,11 +1957,9 @@ class Summarizer:
         pm = self._phase_manager
         subject_names = [name for name, schema_def in schema_parser.get_subject_classes().items() if schema_def.defaults.get("initial_population")]
         
-        # Build phases for initial population (just the container)
-        pop_phases = [{"id": "initial_population", "name": "Initial Population", "weight": 1}]
-        
-        pm.start_session(phases=pop_phases)
         pm.start_turn("Initial Population")
+        
+        pm._phases.append({"id": "initial_population", "name": "Initial Population", "weight": 1})
         pm.start_phase("initial_population", "Initial Population")
         
         for subject_name, schema_def in schema_parser.get_subject_classes().items():

@@ -5,12 +5,11 @@ import time
 
 logger = logging.getLogger(__name__)
 
-from .update_queue import get_update_queue
+from .update_queue import get_update_queue, reset_update_queue
 
 
 # Phase definitions with weights for progress calculation
 DEFAULT_PHASES = [
-    {"id": "init", "name": "Initialization", "weight": 1},
     {"id": "instr_prompt", "name": "Instruction Generation", "weight": 1},
     {"id": "context", "name": "Context Preparation", "weight": 1},
     {"id": "current_scene", "name": "CurrentScene", "weight": 1},
@@ -18,7 +17,6 @@ DEFAULT_PHASES = [
     {"id": "characters", "name": "Characters", "weight": 2},
     {"id": "groups", "name": "Groups", "weight": 1},
     {"id": "events", "name": "Events", "weight": 2},
-    {"id": "scene_state", "name": "SceneState", "weight": 1},
     {"id": "arcs", "name": "Arcs", "weight": 2},
     {"id": "chapter_check", "name": "Chapter Boundary Check", "weight": 1},
     {"id": "arc_check", "name": "Arc Boundary Check", "weight": 1},
@@ -65,10 +63,10 @@ class PhaseManager:
     def __init__(self, queue=None):
         """
         Initialize the PhaseManager and set up its internal tracking state and update queue.
-        
+
         Parameters:
             queue (optional): An injected update queue to publish UI events; if omitted, the module default `get_update_queue()` is used.
-        
+
         Description:
             Creates and initializes internal structures used to track phases, per-phase steps, active phase/step identifiers, completed phases and weights, session start time, and per-phase start times.
         """
@@ -88,11 +86,11 @@ class PhaseManager:
     def start_turn(self, label: str | None = None) -> None:
         """
         Mark the start of a new turn within the session.
-        
+
         Increments the turn counter and publishes a `turn_start` event with the turn label.
         This is used to track separate phases like generate_instr_prompt and summarize_latest_state.
         The UI can use this to show separators between turns when turn_count > 1.
-        
+
         Parameters:
             label (str, optional): Optional label for this turn (e.g., "Instruction Generation").
         """
@@ -106,10 +104,10 @@ class PhaseManager:
     def end_turn(self, label: str | None = None) -> None:
         """
         Mark the end of the current turn.
-        
+
         Publishes a `turn_end` event with the turn label. The UI can use this to
         finalize turn-level displays or update status.
-        
+
         Parameters:
             label (str, optional): Optional label for this turn.
         """
@@ -122,19 +120,20 @@ class PhaseManager:
     def start_session(self, phases: list[dict] | None = None, subject_names: list[str] | None = None) -> None:
         """
         Initialize and open a new summarization session, resetting internal tracking and publishing a `session_start` event.
-        
+
         Resets internal phase/step state, clears completed phase tracking, resets weights and timestamps, and records the session start time. Builds the session phase list from, in order of precedence:
         - the provided `phases` list if present;
         - otherwise a generated list based on `subject_names` (includes fixed `init` and `context` phases, one phase per subject with weight 2, and fixed boundary/chunking phases);
         - otherwise the module `DEFAULT_PHASES`.
-        
+
         Each phase is normalized to a dict with keys `id`, `name`, and `weight`; per-phase step lists and a phase lookup are created and the total weight is computed. Finally, publishes a `session_start` event containing a synthetic session phase (`Summarization`), a pending queue snapshot for all phases, and the initial progress payload.
-        
+
         Parameters:
             phases (list[dict] | None): Optional custom list of phase definitions (each must include `id` and `name`; `weight` is optional and defaults to 1).
             subject_names (list[str] | None): Optional list of subject names to generate phase entries (used only when `phases` is not provided).
         """
         logger.info("Starting session with subjects: %s", subject_names)
+        self._queue.clear()
         self._phases = []
         self._phase_lookup = {}
         self._active_phase = None
@@ -142,16 +141,16 @@ class PhaseManager:
         self._completed_phases = set()
         self._phase_steps = {}
         self._phase_start_times = {}
+        self._turn_count = 0
         self._total_weight = 0
         self._completed_weight = 0.0
         self._session_start = time.time()
 
-        if phases:
+        if phases is not None:
             base_phases = phases
         elif subject_names:
             # Build phases from subject names
             base_phases = [
-                {"id": "init", "name": "Initialization", "weight": 1},
                 {"id": "context", "name": "Context Preparation", "weight": 1},
             ]
             for name in subject_names:
@@ -184,9 +183,9 @@ class PhaseManager:
     def start_phase(self, phase_id: str, name: str | None = None) -> None:
         """
         Begin tracking a phase and publish a `phase_start` update.
-        
+
         Sets the given phase as active, clears any active step, records the phase start time, and ensures a step list exists for the phase. Publishes a `phase_start` event containing the phase payload, current progress, and the pending phase queue.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase to start.
             name (str, optional): Optional display name to override the phase's stored name.
@@ -200,6 +199,11 @@ class PhaseManager:
 
         phase = self._get_phase_info(phase_id, name)
 
+        if phase_id not in self._phase_lookup:
+            self._phase_lookup[phase_id] = phase
+            self._phases.append(phase)
+            self._total_weight += phase.get("weight", 1)
+
         self._queue.publish({
             "type": "phase_start",
             "phase": phase,
@@ -210,11 +214,11 @@ class PhaseManager:
     def done_phase(self, phase_id: str, name: str | None = None) -> None:
         """
         Mark the given phase as completed and publish a `phase_done` update to the queue.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase to mark completed.
             name (str, optional): Optional display name to use if the phase is not known.
-        
+
         Description:
             Records the phase as completed, attaches its recorded steps and elapsed time, increments
             the completed weight if the phase is defined in the session, clears the active phase/step,
@@ -261,7 +265,7 @@ class PhaseManager:
     def error_phase(self, phase_id: str, error: str, name: str | None = None) -> None:
         """
         Record that a phase failed, mark it completed, clear active tracking, and publish a `phase_error` event.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase that encountered an error.
             error (str): Human-readable error message to attach to the phase.
@@ -288,13 +292,13 @@ class PhaseManager:
     def start_step(self, phase_id: str, step_id: str, message: str | None = None, data: dict | None = None) -> None:
         """
         Begin tracking a sub-step (step) within the specified phase and publish a `step_start` update to the manager's queue.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase this step belongs to.
             step_id (str): Identifier for the sub-step; used to generate the step title.
             message (str, optional): Initial human-readable message for the step; if omitted a default description is used.
             data (dict, optional): Optional metadata used when generating the step title (e.g., may include `entry_name` or `branch_name`).
-        
+
         Side effects:
             - Records the step in the manager's internal step list and sets it as the active step.
             - Publishes a `step_start` event containing the phase info, step payload, and current progress.
@@ -323,7 +327,7 @@ class PhaseManager:
     def update_step(self, phase_id: str, step_id: str, message: str, data: dict | None = None) -> None:
         """
         Record an update for an active sub-step and publish a 'step_update' event to the update queue.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase that contains the step.
             step_id (str): Identifier of the step to update.
@@ -384,9 +388,9 @@ class PhaseManager:
     def done_step(self, phase_id: str, step_id: str, message: str | None = None, data: dict | None = None) -> None:
         """
         Mark a phase sub-step as completed and publish a `step_done` event.
-        
+
         Sets the step's status to "done", records its end time and elapsed duration, optionally updates its message, and publishes a `step_done` event containing the phase info, the completed step, current progress, and the provided `data`.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase that contains the step.
             step_id (str): Identifier of the step to mark as completed.
@@ -418,14 +422,14 @@ class PhaseManager:
     def end_session(self, publish: bool = True) -> None:
         """
         End the current summarization session and optionally publish a final session event.
-        
+
         Parameters:
             publish (bool): If True, publishes a `session_end` event with final progress.
-        
+
         Description:
-            If publish is True, publishes a `session_end` event containing the synthetic session phase 
-            (`id: "_session", name: "Summarization"`), progress summary with elapsed time, and clears 
-            the active phase and step state. If publish is False, the session is marked as complete 
+            If publish is True, publishes a `session_end` event containing the synthetic session phase
+            (`id: "_session", name: "Summarization"`), progress summary with elapsed time, and clears
+            the active phase and step state. If publish is False, the session is marked as complete
             but no event is sent, allowing the UI to continue showing elapsed time.
         """
         elapsed = time.time() - self._session_start
@@ -439,7 +443,7 @@ class PhaseManager:
                 "turn": self._turn_count,
                 "elapsed": elapsed,
             })
-            
+
             self._queue.publish({
                 "type": "session_end",
                 "phase": {"id": "_session", "name": "Summarization"},
@@ -452,7 +456,7 @@ class PhaseManager:
     def separator(self) -> None:
         """
         Insert a visual separator between phase groups in the UI.
-        
+
         Publishes a `session_separator` event that the UI uses to render a divider
         between sets of phases (e.g., between generate_instr_prompt and summarize_latest_state).
         """
@@ -463,12 +467,12 @@ class PhaseManager:
     def skip_phase(self, phase_id: str, reason: str = "Not applicable", name: str | None = None) -> None:
         """
         Mark a phase as skipped, record the skip reason, and publish a `phase_done` event.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase to skip.
             reason (str): Human-readable reason why the phase was skipped. Defaults to "Not applicable".
             name (str | None): Optional display name to use if the phase is not known locally.
-        
+
         Description:
             Adds the phase to the completed set, records it as skipped with the provided reason, increments
             completed weighted progress if the phase is known, and publishes the updated phase and progress.
@@ -510,11 +514,11 @@ class PhaseManager:
     def _get_phase_info(self, phase_id: str, name: str | None = None) -> dict:
         """
         Return a phase info mapping for the given phase identifier.
-        
+
         Parameters:
             phase_id (str): The phase identifier to look up.
             name (str, optional): Fallback display name to use when the phase is not known.
-        
+
         Returns:
             dict: A mapping with keys `id`, `name`, and `weight`. If `phase_id` is known in the manager's phase lookup, returns a shallow copy of that phase's definition; otherwise returns a minimal phase dict using `phase_id`, `name` (or title-cased `phase_id`), and a default weight of 1.
         """
@@ -549,7 +553,7 @@ class PhaseManager:
     def _get_pending(self) -> list[dict]:
         """
         List phases that are pending (not completed and not currently active).
-        
+
         Returns:
             list[dict]: A list of phase entries, each a dict with keys:
                 - `id` (str): phase identifier
@@ -565,10 +569,10 @@ class PhaseManager:
     def _get_phase_elapsed(self, phase_id: str) -> float:
         """
         Return the seconds elapsed since the given phase was started.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase.
-        
+
         Returns:
             elapsed (float): Seconds elapsed since the phase's start, or 0.0 if the phase has no recorded start time.
         """
@@ -580,13 +584,13 @@ class PhaseManager:
     def _generate_step_title(self, phase_id: str, step_id: str, data: dict | None = None) -> str:
         """
         Constructs a human-readable title for a step within a phase.
-        
+
         Parameters:
             phase_id (str): Identifier of the phase; used to look up the phase name.
             step_id (str): Identifier of the step; mapped to a readable action title.
             data (dict, optional): Optional metadata; if it contains `entry_name` or `branch_name`,
                 that value is appended to the title in parentheses.
-        
+
         Returns:
             title (str): Formatted title in the form "Phase Name: Action Name" or
                 "Phase Name: Action Name (EntryName)" when an entry/branch name is present.
@@ -605,7 +609,7 @@ class PhaseManager:
     def active_phase(self) -> str | None:
         """
         Get the identifier of the currently active phase.
-        
+
         Returns:
             The active phase id as a `str`, or `None` if no phase is active.
         """
@@ -615,7 +619,7 @@ class PhaseManager:
     def completed_count(self) -> int:
         """
         Number of phases that have been completed in the current session.
-        
+
         Returns:
             int: Count of completed phases.
         """
@@ -625,7 +629,7 @@ class PhaseManager:
     def total_phases(self) -> int:
         """
         Total number of phases in the current session.
-        
+
         Returns:
             int: Number of phases configured for the current session.
         """

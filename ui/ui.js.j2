@@ -113,11 +113,9 @@
 
         var type = ev.type;
         if (type === 'session_start') {
+            phasesDiv.innerHTML = '';
+            phases = {};
             if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
-            if (!phases || Object.keys(phases).length === 0) {
-                phasesDiv.innerHTML = '';
-                phases = {};
-            }
             updateQueue(ev.queue, queueDiv);
             updateProgress(ev.progress, progressBar, progressText);
         } else if (type === 'turn_start') {
@@ -408,26 +406,6 @@
         var msgDiv = document.getElementById('dss-step-msg-' + safePid + '-' + safeSid);
         if (!msgDiv) return;
         msgDiv.textContent += token;
-        var stepUid = pid + '-' + sid + '-0';
-        var isExpanded = expandedMessages[stepUid];
-        if (isExpanded) return;
-        var fullText = msgDiv.textContent;
-        var lines = fullText.split('\n');
-        if (lines.length > 30) {
-            var displayLines = lines.slice(-30);
-            var displayText = displayLines.join('\n');
-            var fadeHtml = '<div style="position:absolute;top:0;left:0;right:0;height:30px;background:linear-gradient(#161b22,transparent);pointer-events:none;"></div>';
-            msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + sanitizeId(stepUid) + '">' + fadeHtml + escapeHtml(displayText) + '</div>' +
-                '<a href="javascript:void(0)" style="color:#58a6ff;font-size:10px;">Show all (' + lines.length + ' lines)</a></div>';
-            var toggleLink = msgDiv.querySelector('a');
-            if (toggleLink) {
-                toggleLink.addEventListener('click', function (e) {
-                    e.preventDefault();
-                    expandedMessages[stepUid] = true;
-                    updateStepMessage(pid, sid, (phases[pid] && phases[pid].steps && phases[pid].steps.find(function(s) { return s.id === sid; }) || {}).message || fullText);
-                });
-            }
-        }
     }
 
     function updateStepMessage(pid, sid, message) {
@@ -447,13 +425,13 @@
         var hasUpdateData = step && step.data && step.data.updates && step.data.updates.length > 0;
         if (isUpdateSummary && hasUpdateData) {
             msgDiv.innerHTML = escaped;
-        } else if (lines.length > 30) {
+        } else if (lines.length > 25) {
             var stepUid = pid + '-' + sid + '-0';
             var isExpanded = expandedMessages[stepUid];
-            var displayLines = isExpanded ? lines : lines.slice(-30);
+            var displayLines = isExpanded ? lines : lines.slice(-25);
             var displayText = displayLines.join('\n');
             var fadeHtml = !isExpanded ? '<div style="position:absolute;top:0;left:0;right:0;height:30px;background:linear-gradient(#161b22,transparent);pointer-events:none;"></div>' : '';
-            msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + sanitizeId(stepUid) + '">' + fadeHtml + displayText + '</div>' +
+            msgDiv.innerHTML = '<div style="position:relative;"><div id="dss-msg-' + sanitizeId(stepUid) + '">' + fadeHtml + escapeHtml(displayText) + '</div>' +
                 '<a href="javascript:void(0)" style="color:#58a6ff;font-size:10px;">' + (isExpanded ? 'Show less' : 'Show all (' + lines.length + ' lines)') + '</a></div>';
             var toggleLink = msgDiv.querySelector('a');
             if (toggleLink) {
