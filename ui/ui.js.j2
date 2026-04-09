@@ -26,6 +26,8 @@
     var msgCount = 0;
     var phases = {};
     var expandedMessages = {};
+    var topLevelCount = 0;
+    var subPhaseCount = 0;
 
     window.__dss = {
         phases: phases,
@@ -109,15 +111,19 @@
         var progressBar = document.getElementById('dss-progress-bar');
         var progressText = document.getElementById('dss-progress-text');
         var sessionInfo = document.getElementById('dss-session-info');
-        if (!phasesDiv) return;
 
         var type = ev.type;
         if (type === 'session_start') {
-            phasesDiv.innerHTML = '';
+            if (phasesDiv) phasesDiv.innerHTML = '';
             phases = {};
+            topLevelCount = 0;
+            subPhaseCount = 0;
             if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
-            updateQueue(ev.queue, queueDiv);
-            updateProgress(ev.progress, progressBar, progressText);
+            if (queueDiv) updateQueue(ev.queue, queueDiv);
+            if (progressBar && progressText) updateProgress(ev.progress, progressBar, progressText);
+        } else if (!phasesDiv) {
+            // For other events, we need the phasesDiv to render
+            return;
         } else if (type === 'turn_start') {
             if (ev.turn && ev.turn > 1) {
                 var sep = document.createElement('div');
@@ -132,6 +138,11 @@
         } else if (type === 'phase_start') {
             var pid = ev.phase.id;
             phases[pid] = { name: ev.phase.name, steps: [], active: true };
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                topLevelCount++;
+            } else {
+                subPhaseCount++;
+            }
             createPhaseElement(pid, ev.phase.name, phasesDiv);
             updateQueue(ev.queue, queueDiv);
         } else if (type === 'step_start') {
@@ -269,7 +280,10 @@
         if (!prog || !bar) return;
         var pct = prog.percent || 0;
         bar.style.width = pct + '%';
-        if (text) text.textContent = (prog.completed || 0) + '/' + (prog.total || 0) + ' (' + pct + '%)';
+        if (text) {
+            var subPhaseText = subPhaseCount ? (' <span style="color:#6e7681;">(' + subPhaseCount + ' sub-phases)</span>') : '';
+            text.innerHTML = (prog.completed || 0) + '/' + topLevelCount + ' (' + pct + '%)' + subPhaseText;
+        }
     }
 
     function getNestingDepth(pid) {
