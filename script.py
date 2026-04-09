@@ -36,8 +36,8 @@ from .utils.helpers import (
 params = {
     "display_name": "DSS",
     "is_tab": True,
-    "sse_internal_port": 7880,
-    "sse_external_path": ":7880",
+    "sse_internal_port": 7870,
+    "sse_external_path": ":7870",
 }
 
 
@@ -264,7 +264,7 @@ def ensure_background_loop():
         _loop_thread.start()
 
 
-_sse_port = 7880  # Default SSE port
+_sse_port = 7870  # Default SSE port
 
 
 def setup():
@@ -376,7 +376,7 @@ def custom_js():
             autoescape=select_autoescape(['js', 'j2'])
         )
         template = env.get_template("ui.js.j2")
-        return template.render(sse_external_path=params.get("sse_external_path", ":7880"))
+        return template.render(sse_external_path=params.get("sse_external_path", ":7870"))
     except TemplateError as e:
         print(f"{_ERROR}Failed to load ui.js.j2: {e}{_RESET}")
         return ""

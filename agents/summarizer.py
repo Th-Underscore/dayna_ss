@@ -9,6 +9,7 @@ import random
 import re
 import shutil
 import sys
+import time
 import traceback
 from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
@@ -313,6 +314,9 @@ class Summarizer:
         last_emit_time = 0
         emit_interval = 0.3  # Also limit to ~3 updates/sec
 
+        eval_start_time = None
+        first_token_time = None
+
         # Emit prompt assembly step
         self._update_queue.publish({
             "type": "step_update",
@@ -333,6 +337,7 @@ class Summarizer:
                 )
 
             # Emit LLM generation started
+            eval_start_time = time.time()
             self._update_queue.publish({
                 "type": "step_update",
                 "phase": {"id": phase_id},
@@ -340,6 +345,14 @@ class Summarizer:
             })
 
             for t, s in gen:
+                if first_token_time is None:
+                    first_token_time = time.time()
+                    eval_time_ms = (first_token_time - eval_start_time) * 1000
+                    self._update_queue.publish({
+                        "type": "step_update",
+                        "phase": {"id": phase_id},
+                        "step": {"id": step_id, "message": f"First token ({eval_time_ms:.0f}ms eval time)"},
+                    })
                 if shared.stop_everything:
                     self._update_queue.publish({
                         "type": "step_done",
@@ -351,8 +364,7 @@ class Summarizer:
                 stop = s
 
                 # Stream tokens to SSE (throttled)
-                import time as _time
-                now = _time.time()
+                now = time.time()
                 if len(text) - last_emit_len >= emit_threshold and now - last_emit_time >= emit_interval:
                     snippet = text[last_emit_len:]
                     if snippet:
