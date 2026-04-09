@@ -31,19 +31,19 @@
       },
       "relationships": {
         "Paul Jones": [
-          {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["..."], "importance": 90},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 70},
-          {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 40}
+          {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["..."], "importance": {"score": 90, "reason": "John's brother and closest confidant", "faction": "positive"}},
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": {"score": 70, "reason": "Fellow Rebel officer", "faction": "positive"}},
+          {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": {"score": 40, "reason": "Lower rank in military hierarchy", "faction": "neutral"}}
         ],
         "Amy Harrison": [
-          {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["..."], "importance": 90},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 70},
-          {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 30}
+          {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["..."], "importance": {"score": 90, "reason": "John's closest friend and trusted ally", "faction": "positive"}},
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": {"score": 70, "reason": "Fellow Rebel in the force", "faction": "positive"}},
+          {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": {"score": 30, "reason": "Lower rank in command structure", "faction": "neutral"}}
         ],
         "Angelina Kristi": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 50},
-          {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": 50},
-          {"relation": "victim's sister", "status": "", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": 10}
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": {"score": 50, "reason": "Fellow soldier in Rebel Force", "faction": "positive"}},
+          {"relation": "subordinate", "status": "Rebel Force", "aliases": [], "events": ["..."], "importance": {"score": 50, "reason": "Soldier under John's command", "faction": "neutral"}},
+          {"relation": "victim's sister", "status": "", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": {"score": 10, "reason": "Sister of someone John killed - complicated history", "faction": "negative"}}
         ]
       },
       "milestones": [
@@ -89,18 +89,18 @@
       },
       "relationships": {
         "John Jones": [
-          {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["Multiple Rebel Force missions"], "importance": 90},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Technological collaboration"], "importance": 80},
-          {"relation": "colleague", "status": "Rebel Force", "aliases": [], "events": ["Planning Rebel operations"], "importance": 70}
+          {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["Multiple Rebel Force missions"], "importance": {"score": 90, "reason": "Amy's closest friend and confidant", "faction": "positive"}},
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Technological collaboration"], "importance": {"score": 80, "reason": "Fellow Rebel leader", "faction": "positive"}},
+          {"relation": "colleague", "status": "Rebel Force", "aliases": [], "events": ["Planning Rebel operations"], "importance": {"score": 70, "reason": "Work colleague in the force", "faction": "neutral"}}
         ],
         "Paul Jones": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Technological support"], "importance": 60},
-          {"relation": "friend", "status": "Mutual respect", "aliases": [], "events": ["Collaborative missions"], "importance": 50}
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Technological support"], "importance": {"score": 60, "reason": "Fellow officer providing support", "faction": "positive"}},
+          {"relation": "friend", "status": "Mutual respect", "aliases": [], "events": ["Collaborative missions"], "importance": {"score": 50, "reason": "Respectful colleague", "faction": "positive"}}
         ],
         "Angelina Kristi": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": 40},
-          {"relation": "potential threat", "status": "Suspicious", "aliases": [], "events": ["Monitoring potential infiltration"], "importance": 40},
-          {"relation": "technological rival", "status": "Cautious observation", "aliases": [], "events": ["Analyzing potential technological advantages"], "importance": 30}
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": {"score": 40, "reason": "Fellow soldier", "faction": "neutral"}},
+          {"relation": "potential threat", "status": "Suspicious", "aliases": [], "events": ["Monitoring potential infiltration"], "importance": {"score": 40, "reason": "Under suspicion for potential infiltration", "faction": "negative"}},
+          {"relation": "technological rival", "status": "Cautious observation", "aliases": [], "events": ["Analyzing potential technological advantages"], "importance": {"score": 30, "reason": "Competing for technological influence", "faction": "negative"}}
         ]
       },
       "milestones": [
@@ -139,17 +139,17 @@
       },
       "relationships": {
         "John Jones": [
-          {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["The Jones Offensive"], "importance": 90},
-          {"relation": "best friend", "status": "Close", "aliases": [], "events": ["Various Rebel Force missions"], "importance": 90},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Multiple operations"], "importance": 80}
+          {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["The Jones Offensive"], "importance": {"score": 90, "reason": "Paul's older brother and hero", "faction": "positive"}},
+          {"relation": "best friend", "status": "Close", "aliases": [], "events": ["Various Rebel Force missions"], "importance": {"score": 90, "reason": "Closest friend and confidant", "faction": "positive"}},
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Multiple operations"], "importance": {"score": 80, "reason": "Fellow Rebel officer", "faction": "positive"}}
         ],
         "Amy Harrison": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Various missions"], "importance": 50},
-          {"relation": "friend", "status": "Acquaintance", "aliases": [], "events": ["Rebel Force interactions"], "importance": 40}
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Various missions"], "importance": {"score": 50, "reason": "Fellow officer", "faction": "positive"}},
+          {"relation": "friend", "status": "Acquaintance", "aliases": [], "events": ["Rebel Force interactions"], "importance": {"score": 40, "reason": "Friendly colleague", "faction": "positive"}}
         ],
         "Angelina Kristi": [
-          {"relation": "unrequited love interest", "status": "Complicated", "aliases": [], "events": ["The Second Incursion"], "importance": 60},
-          {"relation": "saved", "status": "Rescue", "aliases": [], "events": ["The Second Incursion"], "importance": 50}
+          {"relation": "unrequited love interest", "status": "Complicated", "aliases": [], "events": ["The Second Incursion"], "importance": {"score": 60, "reason": "Paul has feelings for her but it's not reciprocated", "faction": "positive"}},
+          {"relation": "saved", "status": "Rescue", "aliases": [], "events": ["The Second Incursion"], "importance": {"score": 50, "reason": "Paul saved her life", "faction": "positive"}}
         ]
       },
       "milestones": [
@@ -193,21 +193,21 @@
       },
       "relationships": {
         "John Jones": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": ["Bro"], "events": ["The First Incursion"], "importance": 60},
-          {"relation": "enemy", "status": "Vengeful", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": 90},
-          {"relation": "information target", "status": "Independent", "aliases": [], "events": ["Gathering intelligence on Rebels"], "importance": 70}
+          {"relation": "comrade", "status": "Rebel Force", "aliases": ["Bro"], "events": ["The First Incursion"], "importance": {"score": 60, "reason": "Fellow soldier in the force", "faction": "neutral"}},
+          {"relation": "enemy", "status": "Vengeful", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": {"score": 90, "reason": "Killed her brother, seeks revenge", "faction": "negative"}},
+          {"relation": "information target", "status": "Independent", "aliases": [], "events": ["Gathering intelligence on Rebels"], "importance": {"score": 70, "reason": "Gathering info for her revenge plan", "faction": "negative"}}
         ],
         "Paul Jones": [
-          {"relation": "unrequited love", "status": "Unreciprocating", "aliases": [], "events": ["The Second Incursion"], "importance": 80},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": ["Bro"], "events": ["The First Incursion", "The Second Incursion"], "importance": 60},
-          {"relation": "saved by", "status": "Savior", "aliases": [], "events": ["The Second Incursion"], "importance": 50}
+          {"relation": "unrequited love", "status": "Unreciprocating", "aliases": [], "events": ["The Second Incursion"], "importance": {"score": 80, "reason": "She doesn't reciprocate his feelings", "faction": "negative"}},
+          {"relation": "comrade", "status": "Rebel Force", "aliases": ["Bro"], "events": ["The First Incursion", "The Second Incursion"], "importance": {"score": 60, "reason": "Fellow soldier", "faction": "neutral"}},
+          {"relation": "saved by", "status": "Savior", "aliases": [], "events": ["The Second Incursion"], "importance": {"score": 50, "reason": "Paul saved her life", "faction": "positive"}}
         ],
         "Amy Harrison": [
-          {"relation": "superior", "status": "Rebel Force", "aliases": [], "events": ["Mission 1", "Mission 2"], "importance": 40},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Mission 1", "Mission 2"], "importance": 40}
+          {"relation": "superior", "status": "Rebel Force", "aliases": [], "events": ["Mission 1", "Mission 2"], "importance": {"score": 40, "reason": "Amy is her superior officer", "faction": "neutral"}},
+          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["Mission 1", "Mission 2"], "importance": {"score": 40, "reason": "Fellow Rebel", "faction": "neutral"}}
         ],
         "Harry Kristi": [
-          {"relation": "brother", "status": "Deceased", "aliases": [], "events": ["Killed by John Jones"], "importance": 90}
+          {"relation": "brother", "status": "Deceased", "aliases": [], "events": ["Killed by John Jones"], "importance": {"score": 90, "reason": "Her brother who was killed by John", "faction": "positive"}}
         ]
       },
       "milestones": [

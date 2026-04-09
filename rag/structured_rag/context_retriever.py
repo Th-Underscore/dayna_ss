@@ -49,6 +49,8 @@ from ...utils.background_importer import (
     get_imported_attribute,
 )
 
+from .entity_graph import EntityGraph
+
 start_background_import("nltk")
 start_background_import("spacy")
 start_background_import("llama_index.embeddings.huggingface", "HuggingFaceEmbedding")
@@ -100,15 +102,31 @@ class StoryContextRetriever:
         print(f"  current_scene keys: {list(self.current_scene.keys()) if self.current_scene else 'empty'}")
         print(f"  arcs count: {len(self.arcs) if self.arcs else 0}{_RESET}")
 
+        # Initialize entity graph for relationship tracking
+        self.entity_graph = EntityGraph(history_path, persist=True)
+        print(f"{_DEBUG}EntityGraph initialized with {len(self.entity_graph.nodes)} nodes{_RESET}")
+
         self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene)
 
-        # Create character name patterns for recognition
+        # Create character name patterns for recognition (from both JSON and graph)
         self.character_patterns = self._create_character_patterns()
 
     def _create_character_patterns(self) -> dict[str, re.Pattern]:
         """Create regex patterns for character name recognition."""
         patterns = {}
-        for char_name in self.characters:
+        
+        # Get characters from JSON data
+        characters_data = self.characters.get("entries", self.characters)
+        char_names = list(characters_data.keys())
+        
+        # Also get characters from graph (in case they're defined differently)
+        if hasattr(self, 'entity_graph') and self.entity_graph:
+            graph_char_nodes = self.entity_graph.get_nodes_by_type("character")
+            for node in graph_char_nodes:
+                if node.name not in char_names:
+                    char_names.append(node.name)
+        
+        for char_name in char_names:
             # Create pattern that matches full name and possible first/last name only
             names = char_name.split()
             pattern = f"({char_name}"
@@ -132,7 +150,17 @@ class StoryContextRetriever:
         relevant_groups = {}
         groups_data = self.groups.get("entries", self.groups)
 
+        # Try using graph first for character->group mapping
+        if hasattr(self, 'entity_graph') and self.entity_graph:
+            graph_groups = self.entity_graph.get_relevant_groups(characters, context)
+            for group_name in graph_groups:
+                if group_name in groups_data:
+                    relevant_groups[group_name] = groups_data[group_name]
+        
+        # Fallback / complement: check via text matching
         for group_name, group_data in groups_data.items():
+            if group_name in relevant_groups:
+                continue
             # Check if group is mentioned in context
             if re.search(group_name, context, flags=re.IGNORECASE) or any(
                 alias for alias in group_data.get("aliases", []) if re.search(alias, context, flags=re.IGNORECASE)
@@ -233,6 +261,48 @@ class StoryContextRetriever:
     ) -> dict[str, list[dict]]:
         """Get relationships between two characters in the same scene, regardless of importance."""
         characters_data = self.characters.get("entries", self.characters)
+        
+        # Try using graph first for bidirectional relationship lookup
+        if hasattr(self, 'entity_graph') and self.entity_graph:
+            bidir = self.entity_graph.get_bidirectional_relationship(char1, char2)
+            
+            rels = {}
+            # Check forward relationship (char1 -> char2)
+            if bidir["forward"]:
+                rel_list = [{
+                    "relation": bidir["forward"].relation,
+                    "status": bidir["forward"].status,
+                    "aliases": bidir["forward"].aliases,
+                    "events": bidir["forward"].events,
+                    "importance": {
+                        "score": bidir["forward"].importance,
+                        "reason": bidir["forward"].importance_reason,
+                        "faction": bidir["forward"].faction
+                    }
+                }]
+                if bidir["forward"].importance >= correlation_threshold:
+                    rels[char2] = rel_list
+            
+            # If char2 knows char1 differently (bidirectional), add those too
+            if bidir["backward"] and bidir["backward"].importance >= correlation_threshold:
+                if char2 not in rels:
+                    rels[char2] = []
+                rels[char2].append({
+                    "relation": bidir["backward"].relation,
+                    "status": bidir["backward"].status,
+                    "aliases": bidir["backward"].aliases,
+                    "events": bidir["backward"].events,
+                    "importance": {
+                        "score": bidir["backward"].importance,
+                        "reason": bidir["backward"].importance_reason,
+                        "faction": bidir["backward"].faction
+                    }
+                })
+            
+            if rels:
+                return rels
+        
+        # Fallback to JSON-based lookup
         if char1 not in characters_data or char2 not in characters_data:
             return {}
 
@@ -263,8 +333,30 @@ class StoryContextRetriever:
             if char_name in characters_data:
                 char_data = characters_data[char_name].copy()  # Copy to avoid modifying original
 
-                # Get important relationships
-                important_rels = self._get_character_important_relationships(char_name, importance_threshold)
+                # Get important relationships - now using graph if available
+                if hasattr(self, 'entity_graph') and self.entity_graph:
+                    graph_rels = self.entity_graph.get_important_relationships(char_name, importance_threshold)
+                    if graph_rels:
+                        important_rels = {}
+                        for rel in graph_rels:
+                            target = rel.target_id
+                            if target not in important_rels:
+                                important_rels[target] = []
+                            important_rels[target].append({
+                                "relation": rel.relation,
+                                "status": rel.status,
+                                "aliases": rel.aliases,
+                                "events": rel.events,
+                                "importance": {
+                                    "score": rel.importance,
+                                    "reason": rel.importance_reason,
+                                    "faction": rel.faction
+                                }
+                            })
+                    else:
+                        important_rels = self._get_character_important_relationships(char_name, importance_threshold)
+                else:
+                    important_rels = self._get_character_important_relationships(char_name, importance_threshold)
 
                 # Add character and their important relationships
                 if not char_data.get("relationships"):

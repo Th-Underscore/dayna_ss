@@ -24,11 +24,13 @@
       "type": "dataclass",
       "fields": {
         "score": "int",
-        "reason": "str"
+        "reason": "str",
+        "faction": "str"
       },
       "defaults": {
         "score_placeholder": "A numerical value representing the significance (0-100). Higher values mean more important to the story/narrative. In the real JSON, this would be an integer, not a string.",
-        "reason_placeholder": "A brief explanation of why this importance level is appropriate for this item."
+        "reason_placeholder": "A brief explanation of why this importance level is appropriate for this item.",
+        "faction_placeholder": "The favorability of this relationship from the perspective of the subject. Options: 'positive' (ally, friend, family), 'negative' (enemy, rival, hostile), or 'neutral' (barely known, acquaintance)."
       },
       "triggers": {
         "on_new_scene": [
@@ -49,7 +51,8 @@
         "relation_placeholder": "A single term to describe the relationship between these two characters for this specific status (e.g., 'brother', 'boss', 'subordinate')",
         "status_placeholder": "The connection these two characters have for this relationship (e.g., 'Family', 'School', 'Army')",
         "aliases_placeholder": "A list of nicknames or alternative terms for the related character in the context of this specific relationship (e.g., 'Bro').",
-        "events_placeholder": "A list of events relevant to this specific relationship between the characters."
+        "events_placeholder": "A list of events relevant to this specific relationship between the characters.",
+        "importance_placeholder": "The importance of this relationship. Score (0-100): 100=Always on their mind, 80=Frequently on their mind, 50=Friend, 30=Remembers when spoken of, 20=Hardly remember when spoken of, 10=Struggle to remember, 5=Familiar/tip of tongue, 0=Stranger. Faction: 'positive' (ally, friend, family), 'negative' (enemy, rival, hostile), or 'neutral'."
       }
     },
     "CharacterRelationships": {
@@ -349,6 +352,8 @@
       "type": "dataclass",
       "fields": {
         "name": "str",
+        "formal_name": "str",
+        "aliases": "list[str]",
         "start": "TimePoint",
         "end": "TimePoint",
         "summary": "str",
@@ -356,6 +361,8 @@
       },
       "defaults": {
         "name_placeholder": "The unique name or title of the story event.",
+        "formal_name_placeholder": "The formal or official name of the story event, if different from the 'name' field. Write 'N/A' if no formal name exists, i.e. referred to only colloquially or informally.",
+        "aliases_placeholder": "A list of alternate names or aliases for the story event.",
         "start_placeholder": "The time point marking the beginning of the event.",
         "end_placeholder": "The time point marking the end of the event.",
         "summary_placeholder": "A textual summary describing the key occurrences and outcomes of the event."
