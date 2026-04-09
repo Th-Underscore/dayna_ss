@@ -55,6 +55,17 @@
         "importance_placeholder": "The importance of this relationship. Score (0-100): 100=Always on their mind, 80=Frequently on their mind, 50=Friend, 30=Remembers when spoken of, 20=Hardly remember when spoken of, 10=Struggle to remember, 5=Familiar/tip of tongue, 0=Stranger. Faction: 'positive' (ally, friend, family), 'negative' (enemy, rival, hostile), or 'neutral'."
       }
     },
+    "CharacterPreferences": {
+      "type": "dataclass",
+      "fields": {
+        "likes": "list[str]",
+        "dislikes": "list[str]"
+      },
+      "defaults": {
+        "likes_placeholder": "A list of things, activities, topics, or items the character enjoys or prefers.",
+        "dislikes_placeholder": "A list of things, activities, topics, or items the character dislikes or avoids."
+      }
+    },
     "CharacterRelationships": {
       "type": "alias",
       "field": "list[CharacterRelationship]"
@@ -75,18 +86,28 @@
       "type": "dataclass",
       "fields": {
         "description": "Text",
+        "biography": "Text",
         "traits": "list[str]",
         "attributes": "list[str]",
+        "voice": "str",
+        "quirks": "list[str]",
+        "fears": "list[str]",
+        "preferences": "CharacterPreferences",
         "status": "dict[str, CharacterStatus]",
         "relationships": "dict[str, CharacterRelationships]",
         "milestones": "list[CharacterMilestone]"
       },
       "defaults": {
-        "branch_query_prompt_template": "Based on the latest exchange and the current state of the character '{{ branch_name }}', are there any significant changes, additions, or deletions required for this character's entire entry (description, traits, attributes, status, relationships, milestones)? Respond with only 'NO' or 'UNCHANGED' if this character's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the character '{{ branch_name }}', are there any significant changes, additions, or deletions required for this character's entire entry (description, biography, traits, attributes, voice, quirks, fears, preferences, status, relationships, milestones)? Respond with only 'NO' or 'UNCHANGED' if this character's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
         "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{{ branch_name }}'.\nRelevant Schema for '{{ branch_name }}':\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for '{{ branch_name }}':\n```json\n{{ example_json }}\n```\nIf any specific fields within '{{ branch_name }}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{{ branch_name }}':\n[\n  {\"path\": \"description.0\", \"value\": \"Updated first line of description\"},\n  {\"path\": \"status.current_location\", \"value\": \"New Location\"},\n  {\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}\n]\n\nIf NO updates are required for the entire '{{ branch_name }}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
-        "description_placeholder": "A detailed textual description of the character, potentially spanning multiple lines.",
+        "description_placeholder": "A detailed textual description of the character's current state, appearance, and how they present themselves.",
+        "biography_placeholder": "The character's backstory, past experiences, and history. This can include their origins, past relationships, previous life events, and how they became who they are today.",
         "traits_placeholder": "A list of defining characteristics, personality aspects, or physical features of the character.",
         "attributes_placeholder": "A list of character's abilities, skills, or quantifiable characteristics, often with a brief explanation (e.g., 'Raw strength: Greatly above average').",
+        "voice_placeholder": "A description of the character's speaking style, tone, and manner of expression (e.g., 'Speaks in a low, gravelly voice, uses short sentences').",
+        "quirks_placeholder": "A list of distinctive habits, quirks, or idiosyncratic behaviors that make the character unique.",
+        "fears_placeholder": "A list of things that frighten or concern the character.",
+        "preferences_placeholder": "The character's likes and dislikes.",
         "status_placeholder": "Example_Status_Name",
         "relationships_placeholder": "Example_Character_Name",
         "milestones_placeholder": "A list of significant achievements, events, or turning points in the character's life."
@@ -157,15 +178,21 @@
       "fields": {
         "aliases": "list[str]",
         "description": "Text",
+        "purpose": "str",
+        "culture": "str",
+        "resources": "list[str]",
         "events": "list[str]",
         "relationships": "dict[str, GroupRelationship]",
         "characters": "dict[str, GroupCharacterInfo]"
       },
       "defaults": {
-        "branch_query_prompt_template": "Considering the overall story context and the current details for the group '{{ branch_name }}', does this group's entire information (aliases, description, events, relationships, characters involved) need a review for potential updates? Respond with only 'NO' or 'UNCHANGED' if no updates are needed. Otherwise, respond with 'YES'.",
+        "branch_query_prompt_template": "Considering the overall story context and the current details for the group '{{ branch_name }}', does this group's entire information (aliases, description, purpose, culture, resources, events, relationships, characters involved) need a review for potential updates? Respond with only 'NO' or 'UNCHANGED' if no updates are needed. Otherwise, respond with 'YES'.",
         "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{{ branch_name }}'.\nRelevant Schema for '{{ branch_name }}':\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for '{{ branch_name }}':\n```json\n{{ example_json }}\n```\n\nIf any specific fields within '{{ branch_name }}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{{ branch_name }}':\n[\n  {\"path\": \"aliases.0\", \"value\": \"New Alias for Group\"},\n  {\"path\": \"description.1\", \"value\": \"Additional detail for group description\"},\n  {\"path\": \"characters.Alice.position.0\", \"value\": \"Leader\"}\n]\n\nIf NO updates are required for the entire '{{ branch_name }}', respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.",
         "aliases_placeholder": "Alternative names or shorthand for the group.",
         "description_placeholder": "A detailed textual description of the group, its purpose, and characteristics.",
+        "purpose_placeholder": "What the group seeks to achieve or accomplish. Their goals and motivations.",
+        "culture_placeholder": "The group's norms, values, traditions, and social customs.",
+        "resources_placeholder": "What the group possesses or controls (e.g., weapons, territory, technology, connections).",
         "events_placeholder": "A list of significant events the group has been involved in.",
         "relationships_placeholder": "Example_Other_Group_Name",
         "characters_placeholder": "Example_Character_In_Group"
@@ -357,6 +384,9 @@
         "start": "TimePoint",
         "end": "TimePoint",
         "summary": "str",
+        "catalyst": "str",
+        "outcome": "str",
+        "participants": "list[str]",
         "importance": "Importance"
       },
       "defaults": {
@@ -365,7 +395,10 @@
         "aliases_placeholder": "A list of alternate names or aliases for the story event.",
         "start_placeholder": "The time point marking the beginning of the event.",
         "end_placeholder": "The time point marking the end of the event.",
-        "summary_placeholder": "A textual summary describing the key occurrences and outcomes of the event."
+        "summary_placeholder": "A textual summary describing the key occurrences and outcomes of the event.",
+        "catalyst_placeholder": "What triggered or caused this event to happen.",
+        "outcome_placeholder": "The result or consequence of this event.",
+        "participants_placeholder": "A list of characters and/or groups involved in this event."
       }
     },
     "StoryEvents": {
@@ -572,18 +605,22 @@
         "writing_style": "str",
         "tone": "str",
         "themes": "list[str]",
+        "setting": "str",
+        "rules": "list[str]",
         "objectives": "list[Objective]",
         "main_objective": "str",
         "synopsis": "str"
       },
       "defaults": {
-        "branch_query_prompt_template": "Based on the latest exchange and the current state of the story and chat as a whole, are there any significant changes, additions, or deletions required for this general information section (writing style, tone, themes, main objective, summary)? Respond with only 'NO' or 'UNCHANGED' if all the general information is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the story and chat as a whole, are there any significant changes, additions, or deletions required for this general information section (writing style, tone, themes, setting, rules, main objective, synopsis)? Respond with only 'NO' or 'UNCHANGED' if all the general information is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
         "branch_update_prompt_template": "Based on the latest exchange, review the current state of '{{ branch_name }}'.\nRelevant Schema for '{{ branch_name }}':\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for '{{ branch_name }}':\n```json\n{{ example_json }}\n```\n\nIf any specific fields within '{{ branch_name }}' require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed for '{{ branch_name }}':\n[\n  {\"path\": \"description.0\", \"value\": \"Updated first line of description\"},\n  {\"path\": \"status.current_location\", \"value\": \"New Location\"},\n  {\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}\n]\n\nIf NO updates are required for the entire '{{ branch_name }}', respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the '{{ branch_name }}' object as a whole.",
         "gate_check_prompt_template": "A new scene has just concluded. Does the summary of this new scene contain information significant enough to warrant updating the overall story's General Info? Respond with only 'YES' or 'NO'.",
         "update_prompt_template": "Given the previous General Info and a summary of the most recently completed scene, generate an updated JSON object for the story's General Info.\n\nPrevious General Info:\n```json\n{{ value }}\n```\n\nSummary of New Scene:\n'''\n{{ (subjects.events.scenes | last_item).summary }}\n'''\n\nRelevant Schema for GeneralInfo:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for GeneralInfo:\n```json\n{{ example_json }}\n```\n\nRespond with ONLY the updated JSON object matching the schema.",
         "writing_style_placeholder": "A description of the narrative format to ensure stylistic consistency (e.g., '{{char}}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{{char}}: 1st-person dialogue as \"{{char}}\" with actions in asterisks', '{{char}}: 1st-person prose as \"{{user}}\", approximately double the paragraphs as {{user}}', '{{char}}: 2nd-person prose (speaking to \"{{user}}\"), the same number of paragraphs as {{user}}').\n\nThis is of utmost importance. Check what the user has written so far, as well as what you (as {{char}}) have written so far (particularly the very first message, the greeting, if available). Be specific; this will be followed strictly. If this already exists, keep it as is. Do not change it unless clarifying even further.",
         "tone_placeholder": "The primary emotional tone or mood of the story. This guides the feeling of the narrative (e.g., 'Tense and suspenseful', 'Hopeful but grim', 'Witty and adventurous').",
         "themes_placeholder": "A comma-separated list of the central themes or underlying ideas being explored in the story (e.g., 'The cost of survival', 'Betrayal and redemption', 'Man vs. Nature').",
+        "setting_placeholder": "A description of the world, location, and environment where the story takes place (e.g., 'Post-apocalyptic Earth, 2087, ruined cities overrun by Subterraneans').",
+        "rules_placeholder": "A list of rules or laws that govern the story's world (e.g., 'Magic requires mana crystals to cast', 'Technology level: post-nanite apocalypse').",
         "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
         "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
       },

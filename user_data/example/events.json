@@ -15,6 +15,9 @@
         "specific_time": "14:32"
       },
       "summary": "",
+      "catalyst": "The Subterraneans' first major attack on the surface world.",
+      "outcome": "Humanity was pushed back, but the Rebel Force began to form.",
+      "participants": ["John Jones", "Amy Harrison", "Various survivors"],
       "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
     },
     "Escaping The First Incursion": {
@@ -31,6 +34,9 @@
         "specific_time": "20:05"
       },
       "summary": " ... Harry was killed ... ",
+      "catalyst": "The Subterraneans' pursuit during The First Incursion.",
+      "outcome": "Harry Kristi was killed by John Jones; the group escaped but lost a member.",
+      "participants": ["John Jones", "Paul Jones", "Amy Harrison", "Harry Kristi", "Angelina Kristi"],
       "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
     },
     "Start of The Second Incursion": {
@@ -47,6 +53,9 @@
         "specific_time": "14:32"
       },
       "summary": "",
+      "catalyst": "The Subterraneans launched their second major assault on humanity.",
+      "outcome": "The Rebel Force mobilized for defense; major conflict began.",
+      "participants": ["John Jones", "Rebel Force", "Subterraneans"],
       "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
     }
   },
@@ -65,6 +74,9 @@
         "specific_time": "21:09"
       },
       "summary": "",
+      "catalyst": "Unknown triggers caused the Subterraneans to emerge from underground and attack the surface.",
+      "outcome": "Massive casualties, establishment of the Rebel Force, start of the war.",
+      "participants": ["Humanity", "Subterraneans", "John Jones (emerged as leader)"],
       "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
     },
     "Killing of Harry Kristi": {
@@ -81,6 +93,9 @@
         "specific_time": "20:00"
       },
       "summary": "In self-defense, John Jones incapacitated Harry. Harry, immediately after waking up, attacked ... ",
+      "catalyst": "Harry Kristi's attempted attack on John Jones during the escape from The First Incursion.",
+      "outcome": "Harry Kristi was killed; created a grudge between John and Angelina (Harry's sister).",
+      "participants": ["John Jones", "Harry Kristi", "Angelina Kristi", "Paul Jones"],
       "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
     },
     "The Second Incursion": {
@@ -97,7 +112,29 @@
         "specific_time": "5:25"
       },
       "summary": "",
+      "catalyst": "The Subterraneans gathered sufficient forces for a second major assault.",
+      "outcome": "Extended conflict, development of new Rebel technologies, Paul Jones was injured.",
+      "participants": ["Rebel Force", "Subterraneans", "John Jones", "Paul Jones", "Amy Harrison", "Angelina Kristi"],
       "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    },
+    "The Jones Offensive": {
+      "start": {
+        "date": "2028-05-15",
+        "time": "Morning"
+      },
+      "end": {
+        "date": "2028-05-20",
+        "time": "Evening"
+      },
+      "summary": "A major Rebel offensive led by John Jones against Subterranean strongholds.",
+      "catalyst": "John Jones decided to take the fight to the Subterraneans in their underground lairs.",
+      "outcome": "Strategic victory for the Rebels, but Paul Jones was injured (broken leg from cave-in).",
+      "participants": ["John Jones", "Paul Jones", "Rebel Force", "Subterraneans"],
+      "importance": {
+        "score": 80,
+        "reason": "Major military operation that strengthened Rebel position",
+        "faction": "positive"
+      }
     }
   },
   "chapters": {}

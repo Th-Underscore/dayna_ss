@@ -7,6 +7,14 @@
     "Adaptation",
     "Brotherhood"
   ],
+  "setting": "Post-apocalyptic Earth, year 2027-2028. Humanity has been pushed to the brink of extinction by the Subterraneans - monstrous creatures from beneath the Earth's surface. Major cities lie in ruins, safe zones are few, and the surface world is a desolate battlefield between the Rebel Force and the Subterraneans.",
+  "rules": [
+    "Subterraneans are vulnerable to sunlight and UV radiation",
+    "Geothermal energy powers Subterranean technology",
+    "Nanite plague has left Earth's technology severely damaged",
+    "Humanity's only hope is the Rebel Force's innovation",
+    "Subterraneans communicate through subsonic signals"
+  ],
   "objectives": [
     {
       "description": "Locate and secure a safe haven.",
