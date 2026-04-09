@@ -175,7 +175,7 @@ class SSEServer:
                     if current_count > last_event_count:
                         for event_json in events[last_event_count:]:
                             if not self._send_event(event_json):
-                                print(f"[DSS SSE] Client disconnected")
+                                print("[DSS SSE] Client disconnected")
                                 return
                         last_event_count = current_count
                         last_heartbeat = time.time()
