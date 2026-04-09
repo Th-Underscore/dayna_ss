@@ -26,6 +26,9 @@
     var msgCount = 0;
     var phases = {};
     var expandedMessages = {};
+    var topLevelIds = {};
+    var subPhaseCount = 0;
+    var topLevelProjection = 0;
 
     window.__dss = {
         phases: phases,
@@ -86,8 +89,7 @@
 
         eventSource.onmessage = function (e) {
             msgCount++;
-            console.log('[DSS SSE] #' + msgCount + ':', e.data.substring(0, 200));
-            if (debugEl) debugEl.textContent = 'Received ' + msgCount + ' events';
+            if (debugEl) { debugEl.textContent = 'Received ' + msgCount + ' events'; }
             try {
                 handleEvent(JSON.parse(e.data));
             } catch (err) {
@@ -109,15 +111,22 @@
         var progressBar = document.getElementById('dss-progress-bar');
         var progressText = document.getElementById('dss-progress-text');
         var sessionInfo = document.getElementById('dss-session-info');
-        if (!phasesDiv) return;
 
         var type = ev.type;
         if (type === 'session_start') {
-            phasesDiv.innerHTML = '';
             phases = {};
+            expandedMessages = {};
+            topLevelIds = {};
+            subPhaseCount = 0;
+            topLevelProjection = 0;
+            if (phasesDiv) { phasesDiv.innerHTML = ''; }
+            if (queueDiv) { queueDiv.innerHTML = ''; }
             if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
-            updateQueue(ev.queue, queueDiv);
-            updateProgress(ev.progress, progressBar, progressText);
+            if (queueDiv) updateQueue(ev.queue, queueDiv);
+            if (progressBar && progressText) updateProgress(ev.progress, progressBar, progressText);
+        } else if (!phasesDiv) {
+            // For other events, we need the phasesDiv to render
+            return;
         } else if (type === 'turn_start') {
             if (ev.turn && ev.turn > 1) {
                 var sep = document.createElement('div');
@@ -132,6 +141,11 @@
         } else if (type === 'phase_start') {
             var pid = ev.phase.id;
             phases[pid] = { name: ev.phase.name, steps: [], active: true };
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                // Track as potential top-level on start, will be confirmed on done
+            } else {
+                subPhaseCount++;
+            }
             createPhaseElement(pid, ev.phase.name, phasesDiv);
             updateQueue(ev.queue, queueDiv);
         } else if (type === 'step_start') {
@@ -233,6 +247,9 @@
             phases[pid].active = false;
             phases[pid].skipped = ev.phase.skipped;
             phases[pid].elapsed = ev.phase.elapsed;
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                topLevelIds[pid] = true;
+            }
             markPhaseDone(pid, ev.phase.elapsed, ev.phase.skipped);
             updateQueue(ev.queue, queueDiv);
             updateProgress(ev.progress, progressBar, progressText);
@@ -244,6 +261,9 @@
             }
             phases[pid].active = false;
             phases[pid].error = ev.phase.error;
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                topLevelIds[pid] = true;
+            }
             markPhaseError(pid, ev.phase.error);
         } else if (type === 'session_separator') {
             var sep = document.createElement('div');
@@ -257,19 +277,31 @@
 
     function updateQueue(queue, queueDiv) {
         if (!queueDiv) return;
-        if (!queue || !queue.length) { queueDiv.innerHTML = '<span style="color:#484f58;">-</span>'; return; }
+        if (!queue || !queue.length) { topLevelProjection = 0; queueDiv.innerHTML = '<span style="color:#484f58;">-</span>'; return; }
         var html = '';
+        var queueTopLevel = 0;
         for (var i = 0; i < queue.length; i++) {
+            var pid = queue[i].id || '';
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                queueTopLevel++;
+            }
             html += '<span style="display:inline-block;background:#21262d;padding:2px 8px;border-radius:4px;margin:2px;font-size:11px;color:#8b949e;">' + queue[i].name + '</span>';
         }
+        topLevelProjection = queueTopLevel;
         queueDiv.innerHTML = html;
     }
 
     function updateProgress(prog, bar, text) {
         if (!prog || !bar) return;
-        var pct = prog.percent || 0;
+        var completed = Object.keys(topLevelIds).length;
+        var topLevelTotal = completed + topLevelProjection;
+        if (completed === 0 && topLevelTotal === 0) { var pct = 0; }
+        else { var pct = Math.floor(completed / topLevelTotal * 100); }
         bar.style.width = pct + '%';
-        if (text) text.textContent = (prog.completed || 0) + '/' + (prog.total || 0) + ' (' + pct + '%)';
+        if (text) {
+            var subPhaseText = subPhaseCount ? (' <span style="color:#6e7681;">(' + subPhaseCount + ' sub-phases)</span>') : '';
+            text.innerHTML = completed + '/' + topLevelTotal + ' (' + pct + '%)' + subPhaseText;
+        }
     }
 
     function getNestingDepth(pid) {

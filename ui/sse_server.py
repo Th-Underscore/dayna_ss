@@ -31,13 +31,13 @@ class SSEServer:
         GET /sse/dss-health  - Health check
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 7880, queue=None):
+    def __init__(self, host: str = "127.0.0.1", port: int = 7870, queue=None):
         """
         Initialize the SSEServer with network binding and an update queue.
         
         Parameters:
         	host (str): IP address to bind the server to (default "127.0.0.1").
-        	port (int): TCP port to listen on (default 7880).
+        	port (int): TCP port to listen on (default 7870).
         	queue: Optional queue-like object supplying updates; if omitted, obtains the module default via `get_update_queue()`.
         
         Notes:
@@ -169,12 +169,15 @@ class SSEServer:
 
                 while parent._running:
                     events = parent._queue.get_buffered_events()
-                    if len(events) > last_event_count:
+                    current_count = len(events)
+                    if current_count < last_event_count:  # Buffer was cleared
+                        last_event_count = 0
+                    if current_count > last_event_count:
                         for event_json in events[last_event_count:]:
                             if not self._send_event(event_json):
-                                print(f"[DSS SSE] Client disconnected")
+                                print("[DSS SSE] Client disconnected")
                                 return
-                        last_event_count = len(events)
+                        last_event_count = current_count
                         last_heartbeat = time.time()
                     else:
                         # Heartbeat: send SSE comment to prevent timeout
@@ -342,7 +345,7 @@ class SSEServer:
 _sse_server: SSEServer | None = None
 
 
-def get_sse_server(host: str = "127.0.0.1", port: int = 7880) -> SSEServer:
+def get_sse_server(host: str = "127.0.0.1", port: int = 7870) -> SSEServer:
     """
     Return the module-level singleton SSEServer, creating a new instance if none exists or the existing one is not running.
     
@@ -355,13 +358,13 @@ def get_sse_server(host: str = "127.0.0.1", port: int = 7880) -> SSEServer:
     return _sse_server
 
 
-def start_sse_server(host: str = "127.0.0.1", port: int = 7880) -> int:
+def start_sse_server(host: str = "127.0.0.1", port: int = 7870) -> int:
     """
     Start and return the configured SSE server's listening port.
     
     Parameters:
         host (str): Host address to bind the server to (default "127.0.0.1").
-        port (int): Preferred port to bind the server to (default 7880).
+        port (int): Preferred port to bind the server to (default 7870).
     
     Returns:
         int: The port the server is listening on, or `-1` if startup failed.
