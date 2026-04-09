@@ -26,8 +26,9 @@
     var msgCount = 0;
     var phases = {};
     var expandedMessages = {};
-    var topLevelCount = 0;
+    var topLevelIds = {};
     var subPhaseCount = 0;
+    var topLevelProjection = 0;
 
     window.__dss = {
         phases: phases,
@@ -116,8 +117,9 @@
         if (type === 'session_start') {
             if (phasesDiv) phasesDiv.innerHTML = '';
             phases = {};
-            topLevelCount = 0;
+            topLevelIds = {};
             subPhaseCount = 0;
+            topLevelProjection = 0;
             if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
             if (queueDiv) updateQueue(ev.queue, queueDiv);
             if (progressBar && progressText) updateProgress(ev.progress, progressBar, progressText);
@@ -139,7 +141,7 @@
             var pid = ev.phase.id;
             phases[pid] = { name: ev.phase.name, steps: [], active: true };
             if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
-                topLevelCount++;
+                // Track as potential top-level on start, will be confirmed on done
             } else {
                 subPhaseCount++;
             }
@@ -244,6 +246,9 @@
             phases[pid].active = false;
             phases[pid].skipped = ev.phase.skipped;
             phases[pid].elapsed = ev.phase.elapsed;
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                topLevelIds[pid] = true;
+            }
             markPhaseDone(pid, ev.phase.elapsed, ev.phase.skipped);
             updateQueue(ev.queue, queueDiv);
             updateProgress(ev.progress, progressBar, progressText);
@@ -255,6 +260,9 @@
             }
             phases[pid].active = false;
             phases[pid].error = ev.phase.error;
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                topLevelIds[pid] = true;
+            }
             markPhaseError(pid, ev.phase.error);
         } else if (type === 'session_separator') {
             var sep = document.createElement('div');
@@ -268,21 +276,32 @@
 
     function updateQueue(queue, queueDiv) {
         if (!queueDiv) return;
-        if (!queue || !queue.length) { queueDiv.innerHTML = '<span style="color:#484f58;">-</span>'; return; }
+        if (!queue || !queue.length) { topLevelProjection = 0; queueDiv.innerHTML = '<span style="color:#484f58;">-</span>'; return; }
         var html = '';
+        var queueTopLevel = 0;
         for (var i = 0; i < queue.length; i++) {
+            var pid = queue[i].id || '';
+            if (pid.indexOf('.') === -1 && pid.indexOf('[') === -1) {
+                queueTopLevel++;
+            }
             html += '<span style="display:inline-block;background:#21262d;padding:2px 8px;border-radius:4px;margin:2px;font-size:11px;color:#8b949e;">' + queue[i].name + '</span>';
         }
+        console.warn(`queue: ${queueTopLevel}`);
+        topLevelProjection = queueTopLevel;
         queueDiv.innerHTML = html;
     }
 
     function updateProgress(prog, bar, text) {
         if (!prog || !bar) return;
-        var pct = prog.percent || 0;
+        var completed = Object.keys(topLevelIds).length;
+        console.warn(`projection: ${topLevelProjection}`);
+        var topLevelTotal = completed + topLevelProjection;
+        if (completed === 0 && topLevelTotal === 0) { var pct = 0; }
+        else { var pct = Math.floor(completed / topLevelTotal * 100); }
         bar.style.width = pct + '%';
         if (text) {
             var subPhaseText = subPhaseCount ? (' <span style="color:#6e7681;">(' + subPhaseCount + ' sub-phases)</span>') : '';
-            text.innerHTML = (prog.completed || 0) + '/' + topLevelCount + ' (' + pct + '%)' + subPhaseText;
+            text.innerHTML = completed + '/' + topLevelTotal + ' (' + pct + '%)' + subPhaseText;
         }
     }
 
@@ -617,6 +636,7 @@
                 if (phases[pid].steps[i].id === sid) { step = phases[pid].steps[i]; break; }
             }
         }
+        console.log(step, step.data, step.data.updates)
         if (step && step.data && step.data.updates) {
             dataDiv.innerHTML = renderUpdateList(step.data.updates, pid + '-' + sid + '-0', step.data.raw_json, pid, sid);
         }
