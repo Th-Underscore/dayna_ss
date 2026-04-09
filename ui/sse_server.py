@@ -169,12 +169,15 @@ class SSEServer:
 
                 while parent._running:
                     events = parent._queue.get_buffered_events()
-                    if len(events) > last_event_count:
+                    current_count = len(events)
+                    if current_count < last_event_count:  # Buffer was cleared
+                        last_event_count = 0
+                    if current_count > last_event_count:
                         for event_json in events[last_event_count:]:
                             if not self._send_event(event_json):
                                 print(f"[DSS SSE] Client disconnected")
                                 return
-                        last_event_count = len(events)
+                        last_event_count = current_count
                         last_heartbeat = time.time()
                     else:
                         # Heartbeat: send SSE comment to prevent timeout

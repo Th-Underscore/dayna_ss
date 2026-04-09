@@ -89,8 +89,7 @@
 
         eventSource.onmessage = function (e) {
             msgCount++;
-            console.log('[DSS SSE] #' + msgCount + ':', e.data.substring(0, 200));
-            if (debugEl) debugEl.textContent = 'Received ' + msgCount + ' events';
+            if (debugEl) { debugEl.textContent = 'Received ' + msgCount + ' events'; }
             try {
                 handleEvent(JSON.parse(e.data));
             } catch (err) {
@@ -115,11 +114,13 @@
 
         var type = ev.type;
         if (type === 'session_start') {
-            if (phasesDiv) phasesDiv.innerHTML = '';
             phases = {};
+            expandedMessages = {};
             topLevelIds = {};
             subPhaseCount = 0;
             topLevelProjection = 0;
+            if (phasesDiv) { phasesDiv.innerHTML = ''; }
+            if (queueDiv) { queueDiv.innerHTML = ''; }
             if (sessionInfo) sessionInfo.textContent = 'Summarization in progress...';
             if (queueDiv) updateQueue(ev.queue, queueDiv);
             if (progressBar && progressText) updateProgress(ev.progress, progressBar, progressText);
@@ -286,7 +287,6 @@
             }
             html += '<span style="display:inline-block;background:#21262d;padding:2px 8px;border-radius:4px;margin:2px;font-size:11px;color:#8b949e;">' + queue[i].name + '</span>';
         }
-        console.warn(`queue: ${queueTopLevel}`);
         topLevelProjection = queueTopLevel;
         queueDiv.innerHTML = html;
     }
@@ -294,7 +294,6 @@
     function updateProgress(prog, bar, text) {
         if (!prog || !bar) return;
         var completed = Object.keys(topLevelIds).length;
-        console.warn(`projection: ${topLevelProjection}`);
         var topLevelTotal = completed + topLevelProjection;
         if (completed === 0 && topLevelTotal === 0) { var pct = 0; }
         else { var pct = Math.floor(completed / topLevelTotal * 100); }
