@@ -635,7 +635,6 @@
                 if (phases[pid].steps[i].id === sid) { step = phases[pid].steps[i]; break; }
             }
         }
-        console.log(step, step.data, step.data.updates)
         if (step && step.data && step.data.updates) {
             dataDiv.innerHTML = renderUpdateList(step.data.updates, pid + '-' + sid + '-0', step.data.raw_json, pid, sid);
         }
