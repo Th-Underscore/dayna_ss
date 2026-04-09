@@ -1338,6 +1338,7 @@ class Summarizer:
 
         if len(history) < 2 and not history_path.exists():  # New chat
             GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "subjects_schema.json"
+            GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "format_templates.json"
             GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH)
 
             print(f"{_BOLD}Fresh chat detected. Initializing...{_RESET}")
@@ -1360,6 +1361,7 @@ class Summarizer:
 
             required_cache_files = [
                 "subjects_schema.json",
+                "format_templates.json",
                 *[f"{subject}.json" for subject in GLOBAL_SCHEMA_PARSER.subjects.keys()],
             ]
             cache_hit = initial_world_data_path.exists() and all(
@@ -1392,6 +1394,13 @@ class Summarizer:
                     )
                 shutil.copy(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH, schema_cache_path)
                 print(f"{_SUCCESS}Copied global schema to {schema_cache_path}{_RESET}")
+                
+                format_templates_cache_path = initial_world_data_path / "format_templates.json"
+                if not GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH.exists():
+                    raise FileNotFoundError(
+                        f"Global format templates template not found at {GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH}"
+                    )
+                shutil.copy(GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH, format_templates_cache_path)
 
                 try:
                     initial_schema_parser = SchemaParser(schema_cache_path)
