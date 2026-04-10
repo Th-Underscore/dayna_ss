@@ -110,7 +110,6 @@ base_state = {
     "name2": "DAYNA",
     "mode": "instruct",
     "chat-instruct_command": 'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>',
-    "enable_thinking": True,
     "context": (
         "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
         "This context is provided in several parts:\n\n"
