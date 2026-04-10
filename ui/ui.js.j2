@@ -30,6 +30,66 @@
     var subPhaseCount = 0;
     var topLevelProjection = 0;
 
+    function isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+    }
+
+    function autoScrollIfNeeded(el) {
+        if (!el) return;
+
+        window.__dssScrollState ??= {};
+        const stateKey = el.id || 'dss_default_scroll_container';
+        window.__dssScrollState[stateKey] ??= {
+            lastScrollHeight: 0,
+            lastRectTop: el.getBoundingClientRect().top,
+            isDivPaused: false,
+            isViewportPaused: false
+        };
+        const state = window.__dssScrollState[stateKey];
+
+        const { scrollHeight, scrollTop, clientHeight } = el;
+        const rect = el.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        // --- DIV SCROLL INTENT ---
+        const atBottom = scrollTop + clientHeight >= scrollHeight - 5;
+        const shrinking = scrollHeight < state.lastScrollHeight;
+        const scrolledUp = scrollTop + clientHeight < state.lastScrollHeight - 5;
+
+        if (atBottom) {
+            state.isDivPaused = false;
+        } else if (!shrinking && scrolledUp) {
+            state.isDivPaused = true;
+        }
+
+        // --- VIEWPORT SCROLL INTENT ---
+        if (rect.bottom <= viewportHeight + 5) {
+            state.isViewportPaused = false;
+            state.lastRectTop = rect.top;
+        } else {
+            const viewportShift = rect.top - state.lastRectTop;
+            if (viewportShift > 5) state.isViewportPaused = true;
+            state.lastRectTop = rect.top;
+        }
+
+        // --- EXECUTE ---
+        if (!state.isDivPaused) {
+            el.scrollTop = scrollHeight;
+        }
+
+        if (!state.isDivPaused && !state.isViewportPaused && rect.top < viewportHeight) {
+            el.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+        }
+
+        state.lastScrollHeight = scrollHeight;
+    }
+
     window.__dss = {
         phases: phases,
         expanded: expandedMessages
@@ -106,6 +166,7 @@
     }
 
     function handleEvent(ev) {
+        var panelDiv = document.getElementById('dss-status-panel');
         var phasesDiv = document.getElementById('dss-phases');
         var queueDiv = document.getElementById('dss-queue-list');
         var progressBar = document.getElementById('dss-progress-bar');
@@ -273,6 +334,7 @@
             if (sessionInfo) sessionInfo.textContent = 'Done (' + ((ev.progress && ev.progress.elapsed) || 0).toFixed(1) + 's)';
             updateProgress(ev.progress, progressBar, progressText);
         }
+        autoScrollIfNeeded(panelDiv);
     }
 
     function updateQueue(queue, queueDiv) {
