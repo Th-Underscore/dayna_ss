@@ -435,14 +435,17 @@ class EntityGraph:
             return
         
         arcs_data = load_json(arcs_path)
-        
+
         if isinstance(arcs_data, list):
             arcs_list = arcs_data
         elif isinstance(arcs_data, dict):
             arcs_list = arcs_data.get("entries", arcs_data.get("arcs", []))
+            # If arcs_list is a dict (e.g., {"entries": {...}}), convert to iterable of arc dicts
+            if isinstance(arcs_list, dict):
+                arcs_list = list(arcs_list.values())
         else:
             return
-        
+
         for arc_data in arcs_list:
             if not isinstance(arc_data, dict):
                 continue
@@ -572,7 +575,7 @@ class EntityGraph:
                 events.add(event_name)
         return list(events)
     
-    def get_relevant_events(self, character_names: list[str], group_names: list[str] = None, context: str = "") -> list[str]:
+    def get_relevant_events(self, character_names: list[str], group_names: list[str] | None = None, context: str = "") -> list[str]:
         """
         Get events relevant to the given characters and groups.
         
@@ -585,21 +588,23 @@ class EntityGraph:
             List of relevant event/scene names
         """
         relevant = set()
-        
+
         # Get events from character relationships
         for char_name in character_names:
+            character_id = f"character:{char_name}"
             for r in self.relationships:
-                if r.source_id == char_name:
+                if r.source_id == character_id or r.target_id == character_id:
                     relevant.update(r.events)
-        
+
         # Get events from groups
         if group_names:
             for group_name in group_names:
-                node = self.get_node(group_name)
+                group_id = f"group:{group_name}"
+                node = self.get_node(group_id)
                 if node and node.type == "group":
                     events = node.data.get("events", [])
                     relevant.update(events)
-        
+
         return list(relevant)
     
     def get_scene_for_characters(self, character_names: list[str]) -> str | None:
