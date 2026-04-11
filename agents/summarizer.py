@@ -134,13 +134,13 @@ class Summarizer:
     def __init__(self, config_path: PathLike | None = None, phase_manager: PhaseManager | None = None):
         """
         Create a Summarizer and initialize its configuration, tool registry, and UI integration.
-        
+
         If `config_path` is provided, load configuration from that path; otherwise load the default
         `dss_config.json` from the extension root. Initializes internal state used by the summarizer:
         - `self.last` (context cache),
         - tool executors and the tool registry,
         - real-time UI update queue and phase manager.
-        
+
         Parameters:
             config_path (PathLike | None): Path to a JSON configuration file. When `None`, the
                 default configuration at the extension root (`EXTENSION_DIR / "dss_config.json"`)
@@ -267,9 +267,9 @@ class Summarizer:
     ) -> tuple[str, str]:
         """
         Stream model output as token-level step updates to the UI update queue.
-        
+
         Publishes step lifecycle events (prompt assembly, generation start, incremental token snippets, errors, and completion) to self._update_queue while driving generation either through the tool loop or standard streaming generator. Throttles token emissions to avoid flooding the UI and returns the final aggregated output and the stopping reason.
-        
+
         Parameters:
             prompt (str): The assembled prompt passed to the model.
             state (dict): Runtime state used for generation and context.
@@ -279,7 +279,7 @@ class Summarizer:
             stopping_strings (list[str] | None): Strings that, when produced by the model, are treated as a stop condition.
             match_prefix_only (bool): If true, only matches stopping strings against the start of the generated text.
             **kwargs: Additional arguments forwarded to the underlying generation routine.
-        
+
         Returns:
             tuple[str, str]: `response_text` — the final generated text (trimmed); `stop_reason` — the stopping string that ended generation or an empty string if none.
         """
@@ -439,13 +439,13 @@ class Summarizer:
     ) -> Generator[tuple[str, str], Any, None]:
         """
         Stream partial generated text chunks from the configured model and signal when a configured stopping marker is reached.
-        
+
         Yields incremental (text, stop_reason) tuples as the model produces output; when a stopping marker is detected the generator yields the text containing the marker and the matching stopping string as stop_reason and then stops. The generator may yield empty stop_reason for intermediate partial outputs.
-        
+
         Parameters:
             stopping_strings (list[str] | None): List of marker strings that, when detected in the generated text, cause the generator to stop and return that marker as the stop_reason. If None or empty, no automatic stopping based on markers is performed.
             match_prefix_only (bool): If True, a stopping marker is considered matched only when it appears at the start of the generated text after left-stripping whitespace; if False, the marker is matched anywhere in the generated text.
-        
+
         Returns:
             tuple[str, str]: Streamed tuples where the first element is the current generated text chunk and the second element is the stop reason — the matching stopping string when generation ended, or an empty string for ongoing partial outputs.
         """
@@ -658,7 +658,7 @@ class Summarizer:
 
         self.last.is_new_scene_turn = dss_shared.persistent_ui_state.get("next_scene", False)
         is_new_scene_auto = False
-        
+
         next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
         if user_input.startswith(next_scene_prefix):
             print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in prepare_context.{_RESET}")
@@ -685,23 +685,23 @@ class Summarizer:
     ) -> tuple[str, dict, Path, str]:  # After input
         """
         Builds the instruction prompt used to steer the model's character response and returns that prompt plus a snapshot of state, the history path, and a scene timestamp.
-        
+
         The function prepares retrieval context, optionally generates or loads a cached set of plain-text instruction paragraphs (when `do_instr` is true), composes a final prompt for the character, and encodes it when required by the model. It also records a deep-copied custom state and derives a current-scene timestamp to be used for subsequent summarization and chunking.
-        
+
         Parameters:
             user_input (str): The latest user message to be incorporated into the instruction prompt.
             state (dict): The current session state/configuration (may be mutated internally for seed handling).
             history (History): Conversation history used to compute message indices and the history path.
             **kwargs: Optional flags and generation options. Recognized keys include:
                 do_instr (bool): If true, generate detailed instruction paragraphs and persist them to instructions.json.
-        
+
         Returns:
             tuple[str, dict, Path, str]:
                 instr_prompt — The instruction prompt ready for model consumption; encoded string when required by the backend, or the original `user_input` on early stop/failure.
                 custom_state — A deep-copied snapshot of the state used for generating the instruction prompt.
                 history_path — Path to the session's history directory containing cached artifacts.
                 current_timestamp_str — ISO-8601 timestamp string for the current scene (derived from retrieval context when available); `None` when generation was stopped or failed.
-        
+
         Side effects:
             - May persist generated instruction text to <history_path>/instructions.json.
             - Writes a diagnostic dump file (dump.txt) next to the history directory.
@@ -900,15 +900,15 @@ class Summarizer:
     def summarize_latest_state(self, output: str, user_input: str, state: dict, history: History) -> str:  # After output
         """
         Summarizes the latest user/assistant exchange into the session's structured subject data and message chunks.
-        
+
         Prepares retrieval context, runs subject-level summarization and any chapter/arc boundary checks needed for a new scene, generates a concise message summary saved as one or more message chunks, and updates chunk metadata (scene_id and event_id) based on processed events. The method manages PhaseManager phases for each major step and ends the phase session on completion, early stop, or error.
-        
+
         Parameters:
             output (str): The assistant's text output to be summarized.
             user_input (str): The user's input corresponding to the output.
             state (dict): Current session/generation state used for context and persistence.
             history (History): Conversation history (list-like of exchanges); the last entry is the exchange being summarized.
-        
+
         Returns:
             str or None: ISO-8601 timestamp string associated with the processed message (derived from scene time when available) on success, or `None` if summarization was aborted or failed.
         """
@@ -916,9 +916,9 @@ class Summarizer:
         self.log_activity("Summarizing", "Processing latest exchange", "info")
 
         pm = self._phase_manager
-        
+
         subject_names = list(self.last.schema_parser.subjects.keys()) if self.last and self.last.schema_parser else []
-        
+
         # Build summarization phases
         summarization_phases = [
             {"id": "context", "name": "Context Preparation", "weight": 1},
@@ -931,7 +931,7 @@ class Summarizer:
             {"id": "message_summary", "name": "Message Summarization", "weight": 1},
             {"id": "chunking", "name": "Message Chunking", "weight": 1},
         ])
-        
+
         pm.start_turn("Summarization")
         for p in summarization_phases:
             if p["id"] not in pm._phase_lookup:
@@ -1012,15 +1012,15 @@ class Summarizer:
             if self.last and not self.last.is_new_scene_turn:
                 pm.start_phase("scene_detection", "Scene Transition Detection")
                 self.log_activity("Scene Detection", "Checking for scene transition...", "info")
-                
+
                 # Get recent messages for context (last 4 messages = 2 exchanges)
                 recent_history = history[-4:] if len(history) >= 2 else history
-                
+
                 # Ask the LLM if a scene transition occurred
                 scene_transition_detected = self._check_scene_transition(
                     user_input, output, recent_history, custom_state
                 )
-                
+
                 if scene_transition_detected:
                     self.last.is_new_scene_turn = True
                     self.last.is_new_scene_auto_detected = True
@@ -1028,9 +1028,9 @@ class Summarizer:
                     print(f"{_DEBUG}Auto-detected scene transition in last exchange(s){_RESET}")
                 else:
                     self.log_activity("Scene Detection", "No scene transition detected", "info")
-                
+
                 pm.done_phase("scene_detection")
-            
+
             if self.last and self.last.is_new_scene_turn:
                 if "current_scene" in all_subjects_data:
                     events_data = all_subjects_data.get("events", {})
@@ -1231,19 +1231,19 @@ class Summarizer:
     def backtrack_history(self, history: History, history_path: Path) -> bool:
         """
         Attempt to reconcile and repair a session's history on disk by backtracking through prior state and restoring or copying missing/inconsistent history files.
-        
+
         This is a placeholder hook intended to:
         - detect discrepancies between the in-memory `history` and files under `history_path`,
         - create or restore any missing subject/state files, and
         - return whether any changes were made.
-        
+
         Parameters:
             history (History): In-memory history list of exchanges for the session.
             history_path (Path): Path to the session's history directory on disk.
-        
+
         Returns:
             bool: `True` if backtracking made or persisted any changes to disk, `False` if no changes were necessary.
-        
+
         Note:
             The current implementation is a no-op and should be implemented to perform the reconciliation described above.
         """
@@ -1542,23 +1542,23 @@ class Summarizer:
     ) -> bool:
         """
         Check if a scene transition occurred in the recent messages.
-        
+
         Asks the LLM to analyze the recent exchange and determine if:
         1. A new scene should begin (setting, time, or location change)
         2. The current scene has ended
-        
+
         Parameters:
             user_input: The latest user message
             output: The latest bot response
             recent_history: Recent message history for context
             custom_state: The custom state for LLM calls
-            
+
         Returns:
             bool: True if a scene transition was detected, False otherwise
         """
         from modules import shared
         from modules.chat import generate_chat_reply
-        
+
         # Format recent history for context
         history_str = ""
         for i, msg in enumerate(recent_history):
@@ -1566,7 +1566,7 @@ class Summarizer:
             content = msg[1] if len(msg) > 1 else ""
             if content:
                 history_str += f"{role}: {content[:500]}\n"  # Truncate for prompt efficiency
-        
+
         prompt = f"""Analyze the following conversation exchange and determine if a SCENE TRANSITION has occurred.
 
 A scene transition occurs when:
@@ -1590,26 +1590,28 @@ Respond with ONLY one of these exact responses:
 Consider: Would this be a good point to archive the current scene to scenes.json and start a fresh current_scene? If yes, respond YES_SCENE_TRANSITION."""
 
         print(f"{_DEBUG}Checking for scene transition...{_RESET}")
-        
+
         try:
-            # Use a quick synchronous call to check for scene transition
-            response = generate_chat_reply(
+            response_text, _ = self.generate_with_sse(
                 prompt,
                 custom_state,
+                phase_id="scene_detection",
+                step_id="scene_check",
+                history_path=getattr(self.last, 'history_path', None),
+                stopping_strings=["YES_SCENE_TRANSITION", "NO_SCENE_TRANSITION"],
+                match_prefix_only=True,
             )
-            
-            response_text = response.strip().upper() if response else ""
-            
-            # Check the response
-            if "YES_SCENE_TRANSITION" in response_text:
+
+            response_upper = response_text.strip().upper() if response_text else ""
+
+            if "YES_SCENE_TRANSITION" in response_upper:
                 return True
-            elif "NO_SCENE_TRANSITION" in response_text:
+            elif "NO_SCENE_TRANSITION" in response_upper:
                 return False
             else:
-                # Ambiguous response - default to no transition to be safe
-                print(f"{_DEBUG}Ambiguous scene detection response: {response_text[:100]}, defaulting to NO{_RESET}")
+                print(f"{_DEBUG}Ambiguous scene detection response: {response_upper[:100]}, defaulting to NO{_RESET}")
                 return False
-                
+
         except Exception as e:
             print(f"{_ERROR}Error in scene transition detection: {e}{_RESET}")
             traceback.print_exc()
@@ -1670,7 +1672,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
     def _set_internal_fields(self, data: Any, message_node: str = "1_1_1") -> None:
         """Recursively set internal fields (prefixed with _) in data structure.
-        
+
         Args:
             data: The data structure to process (dict, list, or other)
             message_node: The message_node value to set for _message_node fields
@@ -2083,12 +2085,12 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
         pm = self._phase_manager
         subject_names = [name for name, schema_def in schema_parser.get_subject_classes().items() if schema_def.defaults.get("initial_population")]
-        
+
         pm.start_turn("Initial Population")
-        
+
         pm._phases.append({"id": "initial_population", "name": "Initial Population", "weight": 1})
         pm.start_phase("initial_population", "Initial Population")
-        
+
         for subject_name, schema_def in schema_parser.get_subject_classes().items():
             population_config = schema_def.defaults.get("initial_population")
             if not population_config:
@@ -2096,9 +2098,9 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
             mode = population_config.get("mode", "direct")
             phase_id = f"initial_population.{subject_name.lower().replace(' ', '_')}"
-            
+
             print(f"{_DEBUG}Populating '{subject_name}' using mode '{mode}'...{_RESET}")
-            
+
             pm.start_phase(phase_id, f"Populate {subject_name}")
             pm.start_step(phase_id, "populate", f"Populating {subject_name}...")
 
@@ -2127,7 +2129,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                 else:
                     print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
                     pm.skip_phase(phase_id, f"Unknown mode: {mode}")
-                
+
                 if response is not None:
                     pm.done_step(phase_id, "populate", f"Populated {subject_name}: {response}")
                 else:
