@@ -658,7 +658,7 @@ class Summarizer:
 
         self.last.is_new_scene_turn = dss_shared.persistent_ui_state.get("next_scene", False)
         is_new_scene_auto = False
-
+        
         next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
         if user_input.startswith(next_scene_prefix):
             print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in prepare_context.{_RESET}")
@@ -667,9 +667,7 @@ class Summarizer:
             self.last.is_new_scene_auto_detected = False  # Manual trigger
 
         # --- Auto Scene Detection ---
-        # Note: Only runs if no manual trigger was detected and auto-detection is enabled
         if not self.last.is_new_scene_turn and not is_new_scene_auto:
-            # Will be checked after generation in post-process
             pass  # Defer to post-processing
             # NOTE: Doesn't update Gradio checkbox
 
@@ -1542,23 +1540,22 @@ class Summarizer:
     ) -> bool:
         """
         Check if a scene transition occurred in the recent messages.
-
+        
         Asks the LLM to analyze the recent exchange and determine if:
         1. A new scene should begin (setting, time, or location change)
         2. The current scene has ended
-
+        
         Parameters:
             user_input: The latest user message
             output: The latest bot response
             recent_history: Recent message history for context
             custom_state: The custom state for LLM calls
-
+            
         Returns:
             bool: True if a scene transition was detected, False otherwise
         """
         from modules import shared
-        from modules.chat import generate_chat_reply
-
+        
         # Format recent history for context
         history_str = ""
         for i, msg in enumerate(recent_history):
@@ -1566,7 +1563,7 @@ class Summarizer:
             content = msg[1] if len(msg) > 1 else ""
             if content:
                 history_str += f"{role}: {content[:500]}\n"  # Truncate for prompt efficiency
-
+        
         prompt = f"""Analyze the following conversation exchange and determine if a SCENE TRANSITION has occurred.
 
 A scene transition occurs when:
@@ -1590,7 +1587,7 @@ Respond with ONLY one of these exact responses:
 Consider: Would this be a good point to archive the current scene to scenes.json and start a fresh current_scene? If yes, respond YES_SCENE_TRANSITION."""
 
         print(f"{_DEBUG}Checking for scene transition...{_RESET}")
-
+        
         try:
             response_text, _ = self.generate_with_sse(
                 prompt,
@@ -1601,9 +1598,11 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                 stopping_strings=["YES_SCENE_TRANSITION", "NO_SCENE_TRANSITION"],
                 match_prefix_only=True,
             )
-
-            response_upper = response_text.strip().upper() if response_text else ""
-
+            
+            response_str = str(response_text) if response_text is not None else ""
+            response_upper = response_str.strip().upper() if response_str else ""
+            
+            # Check the response
             if "YES_SCENE_TRANSITION" in response_upper:
                 return True
             elif "NO_SCENE_TRANSITION" in response_upper:
@@ -1611,7 +1610,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             else:
                 print(f"{_DEBUG}Ambiguous scene detection response: {response_upper[:100]}, defaulting to NO{_RESET}")
                 return False
-
+                
         except Exception as e:
             print(f"{_ERROR}Error in scene transition detection: {e}{_RESET}")
             traceback.print_exc()
