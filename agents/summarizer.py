@@ -1407,7 +1407,7 @@ class Summarizer:
                 print(f"{_SUCCESS}Copied global schema to {schema_cache_path}{_RESET}")
                 
                 format_templates_cache_path = initial_world_data_path / "format_templates.json"
-                if not GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH.exists():
+                if not GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH.exists():
                     raise FileNotFoundError(
                         f"Global format templates template not found at {GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH}"
                     )

@@ -63,14 +63,38 @@ class EntityGraph:
     def _load_or_build(self):
         """Load from disk or build from source files."""
         graph_path = self.history_path / "entity_graph.json"
-        
+
         if self.persist and graph_path.exists():
-            self._load_from_disk(graph_path)
+            # Check if source files have changed
+            current_fingerprint = self._compute_source_fingerprint()
+            data = load_json(graph_path)
+            saved_fingerprint = data.get("source_fingerprint", {})
+
+            if current_fingerprint == saved_fingerprint:
+                self._load_from_disk(graph_path)
+            else:
+                print(f"{_DEBUG}Source files have changed, rebuilding entity graph...{_RESET}")
+                self._build_from_source_files()
+                self._save_to_disk(graph_path)
         else:
             self._build_from_source_files()
             if self.persist:
                 self._save_to_disk(graph_path)
     
+    def _compute_source_fingerprint(self) -> dict:
+        """Compute fingerprint of source files based on modification times."""
+        fingerprint = {}
+        source_files = ["characters.json", "groups.json", "events.json", "arcs.json"]
+
+        for filename in source_files:
+            file_path = self.history_path / filename
+            if file_path.exists():
+                fingerprint[filename] = file_path.stat().st_mtime
+            else:
+                fingerprint[filename] = None
+
+        return fingerprint
+
     def _load_from_disk(self, graph_path: Path):
         """Load graph from JSON file."""
         data = load_json(graph_path)
@@ -106,6 +130,7 @@ class EntityGraph:
     def _save_to_disk(self, graph_path: Path):
         """Save graph to JSON file for debugging."""
         data = {
+            "source_fingerprint": self._compute_source_fingerprint(),
             "nodes": {
                 node_id: {
                     "id": node.id,
@@ -131,7 +156,7 @@ class EntityGraph:
                 for r in self.relationships
             ]
         }
-        
+
         save_json(data, graph_path)
         print(f"{_DEBUG}Saved entity graph to {graph_path}{_RESET}")
     
@@ -156,27 +181,28 @@ class EntityGraph:
         entries = characters_data.get("entries", characters_data)
         
         for char_name, char_data in entries.items():
+            node_id = f"character:{char_name}"
             node = EntityNode(
-                id=char_name,
+                id=node_id,
                 type="character",
                 name=char_name,
                 data=char_data
             )
-            
+
             # Store relationships
             relationships = char_data.get("relationships", {})
             node.relationships = relationships
-            self.nodes[char_name] = node
-            
+            self.nodes[node_id] = node
+
             # Add relationships to graph
             for target_name, rel_list in relationships.items():
                 if not isinstance(rel_list, list):
                     continue
-                
+
                 for rel in rel_list:
                     if not isinstance(rel, dict):
                         continue
-                    
+
                     importance_data = rel.get("importance", {})
                     if isinstance(importance_data, dict):
                         importance = importance_data.get("score", 0)
@@ -186,10 +212,10 @@ class EntityGraph:
                         importance = importance_data if isinstance(importance_data, int) else 0
                         importance_reason = ""
                         faction = "neutral"
-                    
+
                     relationship = Relationship(
-                        source_id=char_name,
-                        target_id=target_name,
+                        source_id=node_id,
+                        target_id=f"character:{target_name}",
                         relation=rel.get("relation", ""),
                         status=rel.get("status", ""),
                         importance=importance,
@@ -210,22 +236,23 @@ class EntityGraph:
         entries = groups_data.get("entries", groups_data)
         
         for group_name, group_data in entries.items():
+            node_id = f"group:{group_name}"
             node = EntityNode(
-                id=group_name,
+                id=node_id,
                 type="group",
                 name=group_name,
                 data=group_data
             )
-            
+
             # Store character membership
             characters = group_data.get("characters", {})
             node.relationships = {"members": list(characters.keys())}
-            
+
             # Add group->character relationships
             for char_name, char_info in characters.items():
                 relationship = Relationship(
-                    source_id=group_name,
-                    target_id=char_name,
+                    source_id=node_id,
+                    target_id=f"character:{char_name}",
                     relation="member",
                     status="group_membership",
                     importance=50,  # Default importance for group membership
@@ -237,67 +264,169 @@ class EntityGraph:
             group_rels = group_data.get("relationships", {})
             for target_group, rel_data in group_rels.items():
                 relationship = Relationship(
-                    source_id=group_name,
-                    target_id=target_group,
+                    source_id=node_id,
+                    target_id=f"group:{target_group}",
                     relation="related",
                     status=rel_data.get("position", [""])[0] if isinstance(rel_data, dict) else "",
                     importance=50
                 )
                 self.relationships.append(relationship)
-            
-            self.nodes[group_name] = node
+
+            self.nodes[node_id] = node
     
     def _build_events(self):
         """Parse events.json to build event/scene nodes."""
         events_path = self.history_path / "events.json"
         if not events_path.exists():
             return
-        
+
         events_data = load_json(events_path)
-        
+
         # Build scenes
         scenes = events_data.get("scenes", {})
         for scene_name, scene_data in scenes.items():
+            node_id = f"scene:{scene_name}"
             node = EntityNode(
-                id=scene_name,
+                id=node_id,
                 type="scene",
                 name=scene_name,
                 data=scene_data
             )
-            self.nodes[scene_name] = node
-        
+
+            # Extract and store participants
+            participants = scene_data.get("participants", [])
+            if participants:
+                node.data["participants"] = participants
+                # Create edges to participants
+                for participant in participants:
+                    # Ensure participant node exists (create if missing)
+                    participant_id = f"character:{participant}"
+                    if participant_id not in self.nodes:
+                        # Create a minimal node for this participant
+                        self.nodes[participant_id] = EntityNode(
+                            id=participant_id,
+                            type="character",
+                            name=participant,
+                            data={}
+                        )
+
+                    # Add edge from event to participant
+                    relationship = Relationship(
+                        source_id=node_id,
+                        target_id=participant_id,
+                        relation="participant",
+                        status="event_participation",
+                        importance=50
+                    )
+                    self.relationships.append(relationship)
+
+            self.nodes[node_id] = node
+
         # Build past events
         past = events_data.get("past", {})
         for event_name, event_data in past.items():
+            node_id = f"event:{event_name}"
             node = EntityNode(
-                id=event_name,
+                id=node_id,
                 type="event",
                 name=event_name,
                 data=event_data
             )
-            self.nodes[event_name] = node
-        
+
+            # Extract and store participants
+            participants = event_data.get("participants", [])
+            if participants:
+                node.data["participants"] = participants
+                # Create edges to participants
+                for participant in participants:
+                    # Ensure participant node exists (create if missing)
+                    participant_id = f"character:{participant}"
+                    if participant_id not in self.nodes:
+                        # Create a minimal node for this participant
+                        self.nodes[participant_id] = EntityNode(
+                            id=participant_id,
+                            type="character",
+                            name=participant,
+                            data={}
+                        )
+
+                    # Add edge from event to participant
+                    relationship = Relationship(
+                        source_id=node_id,
+                        target_id=participant_id,
+                        relation="participant",
+                        status="event_participation",
+                        importance=50
+                    )
+                    self.relationships.append(relationship)
+
+            self.nodes[node_id] = node
+
         # Build crucial events
         crucial = events_data.get("events", {})
         for event_name, event_data in crucial.items():
+            node_id = f"event:{event_name}"
             node = EntityNode(
-                id=event_name,
+                id=node_id,
                 type="event",
                 name=event_name,
                 data=event_data
             )
-            self.nodes[event_name] = node
-        
-        # Build chapters
+
+            # Extract and store participants
+            participants = event_data.get("participants", [])
+            if participants:
+                node.data["participants"] = participants
+                # Create edges to participants
+                for participant in participants:
+                    # Ensure participant node exists (create if missing)
+                    participant_id = f"character:{participant}"
+                    if participant_id not in self.nodes:
+                        # Create a minimal node for this participant
+                        self.nodes[participant_id] = EntityNode(
+                            id=participant_id,
+                            type="character",
+                            name=participant,
+                            data={}
+                        )
+
+                    # Add edge from event to participant
+                    relationship = Relationship(
+                        source_id=node_id,
+                        target_id=participant_id,
+                        relation="participant",
+                        status="event_participation",
+                        importance=50
+                    )
+                    self.relationships.append(relationship)
+
+            self.nodes[node_id] = node
+
+        # Build chapters (handle both dict and list)
         chapters = events_data.get("chapters", {})
-        for chapter_name, chapter_data in chapters.items():
-            node = EntityNode(
-                id=chapter_name,
-                type="chapter",
-                name=chapter_name,
-                data=chapter_data
-            )
-            self.nodes[chapter_name] = node
+        if isinstance(chapters, dict):
+            for chapter_name, chapter_data in chapters.items():
+                node_id = f"chapter:{chapter_name}"
+                node = EntityNode(
+                    id=node_id,
+                    type="chapter",
+                    name=chapter_name,
+                    data=chapter_data
+                )
+                self.nodes[node_id] = node
+        elif isinstance(chapters, list):
+            for idx, chapter in enumerate(chapters):
+                # Use stable identifier: id, name, or index
+                chapter_id = chapter.get("id") or chapter.get("name") or f"chapter_{idx}"
+                chapter_name = chapter.get("name") or chapter.get("title") or f"Chapter {idx + 1}"
+                node_id = f"chapter:{chapter_id}"
+                node = EntityNode(
+                    id=node_id,
+                    type="chapter",
+                    name=chapter_name,
+                    data=chapter
+                )
+                self.nodes[node_id] = node
     
     def _build_arcs(self):
         """Parse arcs.json to build arc nodes."""
@@ -321,14 +450,15 @@ class EntityGraph:
             arc_title = arc_data.get("title", "")
             if not arc_title:
                 continue
-            
+
+            node_id = f"arc:{arc_title}"
             node = EntityNode(
-                id=arc_title,
+                id=node_id,
                 type="arc",
                 name=arc_title,
                 data=arc_data
             )
-            self.nodes[arc_title] = node
+            self.nodes[node_id] = node
     
     def get_node(self, node_id: str) -> EntityNode | None:
         """Get a node by ID."""
@@ -341,17 +471,18 @@ class EntityGraph:
     def get_character_relationships(self, character_name: str, min_importance: int = 0) -> list[Relationship]:
         """
         Get all relationships for a character.
-        
+
         Args:
             character_name: Name of the character
             min_importance: Minimum importance score to include (default: 0)
-        
+
         Returns:
             List of Relationship objects
         """
+        character_id = f"character:{character_name}"
         return [
             r for r in self.relationships
-            if r.source_id == character_name and r.importance >= min_importance
+            if r.source_id == character_id and r.importance >= min_importance
         ]
     
     def get_important_relationships(self, character_name: str, threshold: int = 75) -> list[Relationship]:
@@ -367,17 +498,20 @@ class EntityGraph:
     def get_groups_for_character(self, character_name: str) -> list[str]:
         """
         Get all groups a character belongs to.
-        
+
         Args:
             character_name: Name of the character
-        
+
         Returns:
             List of group names the character is a member of
         """
+        character_id = f"character:{character_name}"
         groups = []
         for r in self.relationships:
-            if r.target_id == character_name and r.relation == "member":
-                groups.append(r.source_id)
+            if r.target_id == character_id and r.relation == "member":
+                # Extract display name from namespaced ID
+                group_name = r.source_id.split(":", 1)[1] if ":" in r.source_id else r.source_id
+                groups.append(group_name)
         return groups
     
     def get_groups_for_characters(self, character_names: list[str]) -> dict[str, list[str]]:
@@ -417,17 +551,25 @@ class EntityGraph:
     def get_events_for_character(self, character_name: str) -> list[str]:
         """
         Get all events a character is involved in.
-        
+
         Args:
             character_name: Name of the character
-        
+
         Returns:
             List of event names the character is involved in
         """
+        character_id = f"character:{character_name}"
         events = set()
+        # Get events from relationship metadata
         for r in self.relationships:
-            if r.source_id == character_name:
+            if r.source_id == character_id:
                 events.update(r.events)
+        # Get events where character is a participant
+        for r in self.relationships:
+            if r.target_id == character_id and r.relation == "participant":
+                # Extract display name from namespaced ID
+                event_name = r.source_id.split(":", 1)[1] if ":" in r.source_id else r.source_id
+                events.add(event_name)
         return list(events)
     
     def get_relevant_events(self, character_names: list[str], group_names: list[str] = None, context: str = "") -> list[str]:
@@ -478,7 +620,8 @@ class EntityGraph:
     
     def get_group_members(self, group_name: str) -> list[str]:
         """Get all members of a group."""
-        node = self.get_node(group_name)
+        group_id = f"group:{group_name}"
+        node = self.get_node(group_id)
         if node and node.type == "group":
             return node.relationships.get("members", [])
         return []
@@ -486,18 +629,22 @@ class EntityGraph:
     def get_bidirectional_relationship(self, entity1: str, entity2: str) -> dict[str, Relationship]:
         """
         Get relationships between two entities in both directions.
-        
+
         Returns:
             Dict with "forward" and "backward" Relationship objects
         """
+        # Convert to namespaced IDs (assume characters for now)
+        entity1_id = f"character:{entity1}"
+        entity2_id = f"character:{entity2}"
+
         result = {"forward": None, "backward": None}
-        
+
         for r in self.relationships:
-            if r.source_id == entity1 and r.target_id == entity2:
+            if r.source_id == entity1_id and r.target_id == entity2_id:
                 result["forward"] = r
-            elif r.source_id == entity2 and r.target_id == entity1:
+            elif r.source_id == entity2_id and r.target_id == entity1_id:
                 result["backward"] = r
-        
+
         return result
     
     def get_bidirectional_importance(self, entity1: str, entity2: str) -> int:
@@ -529,7 +676,23 @@ class EntityGraph:
     
     def get_entities_involved_in_event(self, event_name: str) -> list[str]:
         """Get all entities involved in an event."""
-        # Could be enhanced to track event involvement
+        # Try event and scene namespaces
+        for prefix in ["event:", "scene:"]:
+            event_id = f"{prefix}{event_name}"
+            node = self.get_node(event_id)
+            if node:
+                # Return participants from node data
+                participants = node.data.get("participants", [])
+                if participants:
+                    return participants
+                # Or follow edges
+                participant_ids = []
+                for r in self.relationships:
+                    if r.source_id == event_id and r.relation == "participant":
+                        # Extract display name from namespaced ID
+                        participant_name = r.target_id.split(":", 1)[1] if ":" in r.target_id else r.target_id
+                        participant_ids.append(participant_name)
+                return participant_ids
         return []
     
     def rebuild(self):
@@ -554,28 +717,29 @@ class EntityGraph:
         """
         self.rebuild()
     
-    def get_relationship_summary(self, character_name: str, max_relationships: int = 5) -> list[dict]:
+    def get_relationship_summary(self, character_name: str, max_relationships: int = 5, threshold: int = 50) -> list[dict]:
         """
         Get a brief summary of a character's important relationships for context inclusion.
-        
+
         Returns a simple list of relationships suitable for always including in context
         without granular details.
-        
+
         Args:
             character_name: Name of the character
             max_relationships: Maximum number of relationships to include (default: 5)
-        
+            threshold: Minimum importance score (default: 50)
+
         Returns:
             List of dicts with basic relationship info: {target, relation, importance}
         """
-        relationships = self.get_important_relationships(character_name, threshold=50)
+        relationships = self.get_important_relationships(character_name, threshold=threshold)
         
         # Sort by importance and take top N
         sorted_rels = sorted(relationships, key=lambda r: r.importance, reverse=True)[:max_relationships]
         
         return [
             {
-                "target": r.target_id,
+                "target": r.target_id.split(":", 1)[1] if ":" in r.target_id else r.target_id,
                 "relation": r.relation,
                 "status": r.status,
                 "importance": r.importance
@@ -596,6 +760,7 @@ class EntityGraph:
         """
         result = {}
         for char_name in character_names:
-            if char_name in self.nodes:
-                result[char_name] = self.get_relationship_summary(char_name)
+            char_id = f"character:{char_name}"
+            if char_id in self.nodes:
+                result[char_name] = self.get_relationship_summary(char_name, threshold=threshold)
         return result

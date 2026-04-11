@@ -282,23 +282,7 @@ class StoryContextRetriever:
                 }]
                 if bidir["forward"].importance >= correlation_threshold:
                     rels[char2] = rel_list
-            
-            # If char2 knows char1 differently (bidirectional), add those too
-            if bidir["backward"] and bidir["backward"].importance >= correlation_threshold:
-                if char2 not in rels:
-                    rels[char2] = []
-                rels[char2].append({
-                    "relation": bidir["backward"].relation,
-                    "status": bidir["backward"].status,
-                    "aliases": bidir["backward"].aliases,
-                    "events": bidir["backward"].events,
-                    "importance": {
-                        "score": bidir["backward"].importance,
-                        "reason": bidir["backward"].importance_reason,
-                        "faction": bidir["backward"].faction
-                    }
-                })
-            
+
             if rels:
                 return rels
         

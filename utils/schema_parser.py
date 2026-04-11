@@ -732,8 +732,9 @@ class SchemaParser:
         # No definitions needed
         if self._is_primitive_schema(main_schema):
             primitive_description = self._get_primitive_type_description(main_schema)
-            self.relative_relevant_json_schemas[root_schema_or_type_hint] = primitive_description
-            return primitive_description
+            json_schema = {"main_schema": primitive_description, "definitions": {}}
+            self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema
+            return json_schema
 
         json_schema = {"main_schema": main_schema, "definitions": relevant_definitions}
         self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema
@@ -762,7 +763,9 @@ class SchemaParser:
         # Plain object (dict) without references - consider primitive-like for simplicity
         if main_schema.get("type") == "object" and not main_schema.get("$ref"):
             properties = main_schema.get("properties", {})
-            if not properties:
+            additional_properties = main_schema.get("additionalProperties")
+            # Only treat as primitive if no properties AND no meaningful additionalProperties
+            if not properties and not (additional_properties and isinstance(additional_properties, dict)):
                 return True
 
         return False
