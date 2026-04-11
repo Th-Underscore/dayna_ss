@@ -98,6 +98,7 @@ class SummarizationContextCache:
     schema_parser: SchemaParser
     history_length: int | None = None
     is_new_scene_turn: bool = False
+    is_new_scene_auto_detected: bool = False
     new_scene_start_node: int | None = None
     detected_new_entities: list | None = None
     force_next_chapter: bool = False
@@ -656,11 +657,20 @@ class Summarizer:
             raise RuntimeError("Summarizer.last not available in prepare_context.")
 
         self.last.is_new_scene_turn = dss_shared.persistent_ui_state.get("next_scene", False)
+        is_new_scene_auto = False
+        
         next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
         if user_input.startswith(next_scene_prefix):
             print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in prepare_context.{_RESET}")
             user_input = user_input[len(next_scene_prefix) :].lstrip()
             self.last.is_new_scene_turn = True
+            self.last.is_new_scene_auto_detected = False  # Manual trigger
+
+        # --- Auto Scene Detection ---
+        # Note: Only runs if no manual trigger was detected and auto-detection is enabled
+        if not self.last.is_new_scene_turn and not is_new_scene_auto:
+            # Will be checked after generation in post-process
+            pass  # Defer to post-processing
             # NOTE: Doesn't update Gradio checkbox
 
         if self.last.is_new_scene_turn:
@@ -998,6 +1008,29 @@ class Summarizer:
                 return None
 
             # Handle special case for new scene turn before processing
+            # --- Auto Scene Detection (if not already manually triggered) ---
+            if self.last and not self.last.is_new_scene_turn:
+                pm.start_phase("scene_detection", "Scene Transition Detection")
+                self.log_activity("Scene Detection", "Checking for scene transition...", "info")
+                
+                # Get recent messages for context (last 4 messages = 2 exchanges)
+                recent_history = history[-4:] if len(history) >= 2 else history
+                
+                # Ask the LLM if a scene transition occurred
+                scene_transition_detected = self._check_scene_transition(
+                    user_input, output, recent_history, custom_state
+                )
+                
+                if scene_transition_detected:
+                    self.last.is_new_scene_turn = True
+                    self.last.is_new_scene_auto_detected = True
+                    self.log_activity("Scene Detection", "Auto-detected new scene transition!", "success")
+                    print(f"{_DEBUG}Auto-detected scene transition in last exchange(s){_RESET}")
+                else:
+                    self.log_activity("Scene Detection", "No scene transition detected", "info")
+                
+                pm.done_phase("scene_detection")
+            
             if self.last and self.last.is_new_scene_turn:
                 if "current_scene" in all_subjects_data:
                     events_data = all_subjects_data.get("events", {})
@@ -1499,6 +1532,88 @@ class Summarizer:
         except Exception as e:
             print(f"{_ERROR}Error getting current scene: {str(e)}{_RESET}")
             return None
+
+    def _check_scene_transition(
+        self,
+        user_input: str,
+        output: str,
+        recent_history: History,
+        custom_state: dict,
+    ) -> bool:
+        """
+        Check if a scene transition occurred in the recent messages.
+        
+        Asks the LLM to analyze the recent exchange and determine if:
+        1. A new scene should begin (setting, time, or location change)
+        2. The current scene has ended
+        
+        Parameters:
+            user_input: The latest user message
+            output: The latest bot response
+            recent_history: Recent message history for context
+            custom_state: The custom state for LLM calls
+            
+        Returns:
+            bool: True if a scene transition was detected, False otherwise
+        """
+        from modules import shared
+        from modules.chat import generate_chat_reply
+        
+        # Format recent history for context
+        history_str = ""
+        for i, msg in enumerate(recent_history):
+            role = "User" if i % 2 == 0 else "Assistant"
+            content = msg[1] if len(msg) > 1 else ""
+            if content:
+                history_str += f"{role}: {content[:500]}\n"  # Truncate for prompt efficiency
+        
+        prompt = f"""Analyze the following conversation exchange and determine if a SCENE TRANSITION has occurred.
+
+A scene transition occurs when:
+- A significant change in location (e.g., leaving a building, entering a new area)
+- A significant time skip or passage of time
+- A major event concludes and a new one begins
+- The setting/scenery changes noticeably
+- A time marker is mentioned (e.g., "later", "the next day", specific time jump)
+
+Recent conversation (last 2 exchanges):
+{history_str}
+
+Latest exchange:
+User: {user_input[:500]}
+Assistant: {output[:500]}
+
+Respond with ONLY one of these exact responses:
+- YES_SCENE_TRANSITION: If a new scene has clearly begun
+- NO_SCENE_TRANSITION: If the scene continues normally
+
+Consider: Would this be a good point to archive the current scene to scenes.json and start a fresh current_scene? If yes, respond YES_SCENE_TRANSITION."""
+
+        print(f"{_DEBUG}Checking for scene transition...{_RESET}")
+        
+        try:
+            # Use a quick synchronous call to check for scene transition
+            response = generate_chat_reply(
+                prompt,
+                custom_state,
+            )
+            
+            response_text = response.strip().upper() if response else ""
+            
+            # Check the response
+            if "YES_SCENE_TRANSITION" in response_text:
+                return True
+            elif "NO_SCENE_TRANSITION" in response_text:
+                return False
+            else:
+                # Ambiguous response - default to no transition to be safe
+                print(f"{_DEBUG}Ambiguous scene detection response: {response_text[:100]}, defaulting to NO{_RESET}")
+                return False
+                
+        except Exception as e:
+            print(f"{_ERROR}Error in scene transition detection: {e}{_RESET}")
+            traceback.print_exc()
+            return False
 
     def format_number(self, num: int):
         """Convert an integer to a pretty string. Currently, it just stringifies the number."""

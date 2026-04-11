@@ -12,6 +12,7 @@ from .update_queue import get_update_queue, reset_update_queue
 DEFAULT_PHASES = [
     {"id": "instr_prompt", "name": "Instruction Generation", "weight": 1},
     {"id": "context", "name": "Context Preparation", "weight": 1},
+    {"id": "scene_detection", "name": "Scene Transition Detection", "weight": 1},
     {"id": "current_scene", "name": "CurrentScene", "weight": 1},
     {"id": "general_info", "name": "GeneralInfo", "weight": 1},
     {"id": "characters", "name": "Characters", "weight": 2},
