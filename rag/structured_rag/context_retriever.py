@@ -821,9 +821,6 @@ class MessageChunker:
 
         # Persist changes
         self.index.storage_context.persist(persist_dir=str(self.storage_dir))
-        import shutil
-
-        shutil.copytree(self.storage_dir, self.history_path / "message_index", dirs_exist_ok=True)
 
     def update_node_metadata_by_message_idx(
         self, message_idx: int, metadata_updates: dict[str, Any], persist_dir: PathLike | None = None
