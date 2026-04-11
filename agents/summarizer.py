@@ -657,7 +657,7 @@ class Summarizer:
 
         self.last.is_new_scene_turn = dss_shared.persistent_ui_state.get("next_scene", False)
         is_new_scene_auto = False
-        
+
         next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
         if user_input.startswith(next_scene_prefix):
             print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in prepare_context.{_RESET}")
@@ -1436,7 +1436,7 @@ class Summarizer:
                     )
                 shutil.copy(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH, schema_cache_path)
                 print(f"{_SUCCESS}Copied global schema to {schema_cache_path}{_RESET}")
-                
+
                 format_templates_cache_path = initial_world_data_path / "format_templates.json"
                 if not GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH.exists():
                     raise FileNotFoundError(
@@ -1476,7 +1476,20 @@ class Summarizer:
         last = getattr(self, "last", None)
         if not last or (history_path and history_path != last.history_path):
             custom_state = copy.deepcopy(state)
-            context_retriever = StoryContextRetriever(history_path)
+            # Initialize schema parser first to get schema classes for entity graph
+            schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
+            print(f"{_SUCCESS}Summarizer.schema_parser loaded for {history_path}{_RESET}")
+
+            # Get schema classes for subjects (Characters, Groups, etc.) to pass to EntityGraph
+            schema_classes = {
+                "Characters": schema_parser.definitions.get("Characters"),
+                "Groups": schema_parser.definitions.get("Groups"),
+                "Events": schema_parser.definitions.get("Events"),
+                "Arcs": schema_parser.definitions.get("Arcs"),
+            }
+            schema_classes = {k: v for k, v in schema_classes.items() if v}
+
+            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes)
 
             # Retrieve last x messages
             last_x = min(len(history), kwargs.get("last_x", 6))  # TODO: Get all in current scene
@@ -1489,10 +1502,6 @@ class Summarizer:
             if original_seed == -1:
                 state["seed"] = random.randint(1, 2**31)
                 print(f"{_BOLD}New seed for session{_RESET}: {state['seed']}")
-
-            # Initialize self.last.schema_parser if it's not already set for this history_path
-            schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
-            print(f"{_SUCCESS}Summarizer.schema_parser loaded for {history_path}{_RESET}")
 
             self.last = SummarizationContextCache(
                 context=(retrieval_context, context_retriever, last_x, last_x_messages),
@@ -1548,22 +1557,22 @@ class Summarizer:
     ) -> bool:
         """
         Check if a scene transition occurred in the recent messages.
-        
+
         Asks the LLM to analyze the recent exchange and determine if:
         1. A new scene should begin (setting, time, or location change)
         2. The current scene has ended
-        
+
         Parameters:
             user_input: The latest user message
             output: The latest bot response
             recent_history: Recent message history for context
             custom_state: The custom state for LLM calls
-            
+
         Returns:
             bool: True if a scene transition was detected, False otherwise
         """
         from modules import shared
-        
+
         # Format recent history for context
         history_str = ""
         for i, msg in enumerate(recent_history):
@@ -1571,7 +1580,7 @@ class Summarizer:
             content = msg[1] if len(msg) > 1 else ""
             if content:
                 history_str += f"{role}: {content[:500]}\n"  # Truncate for prompt efficiency
-        
+
         prompt = f"""Analyze the following conversation exchange and determine if a SCENE TRANSITION has occurred.
 
 A scene transition occurs when:
@@ -1595,7 +1604,7 @@ Respond with ONLY one of these exact responses:
 Consider: Would this be a good point to archive the current scene to scenes.json and start a fresh current_scene? If yes, respond YES_SCENE_TRANSITION."""
 
         print(f"{_DEBUG}Checking for scene transition...{_RESET}")
-        
+
         try:
             response_text, _ = self.generate_with_sse(
                 prompt,
@@ -1606,10 +1615,10 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                 stopping_strings=["YES_SCENE_TRANSITION", "NO_SCENE_TRANSITION"],
                 match_prefix_only=True,
             )
-            
+
             response_str = str(response_text) if response_text is not None else ""
             response_upper = response_str.strip().upper() if response_str else ""
-            
+
             # Check the response
             if "YES_SCENE_TRANSITION" in response_upper:
                 return True
@@ -1618,7 +1627,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             else:
                 print(f"{_DEBUG}Ambiguous scene detection response: {response_upper[:100]}, defaulting to NO{_RESET}")
                 return False
-                
+
         except Exception as e:
             print(f"{_ERROR}Error in scene transition detection: {e}{_RESET}")
             traceback.print_exc()

@@ -110,7 +110,14 @@
         "preferences_placeholder": "The character's likes and dislikes.",
         "status_placeholder": "Example_Status_Name",
         "relationships_placeholder": "Example_Character_Name",
-        "milestones_placeholder": "A list of significant achievements, events, or turning points in the character's life."
+        "milestones_placeholder": "A list of significant achievements, events, or turning points in the character's life.",
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": true,
+            "relationship_definition": "CharacterRelationship"
+          }
+        }
       },
       "triggers": {
         "always": [
@@ -195,7 +202,19 @@
         "resources_placeholder": "What the group possesses or controls (e.g., weapons, territory, technology, connections).",
         "events_placeholder": "A list of significant events the group has been involved in.",
         "relationships_placeholder": "Example_Other_Group_Name",
-        "characters_placeholder": "Example_Character_In_Group"
+        "characters_placeholder": "Example_Character_In_Group",
+        "relationship_format": {
+          "relationships": {
+            "target_type": "group",
+            "bidirectional": true,
+            "relationship_definition": "GroupRelationship"
+          },
+          "characters": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "GroupCharacterInfo"
+          }
+        }
       },
       "triggers": {
         "always": [

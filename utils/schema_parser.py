@@ -137,6 +137,7 @@ class ParsedSchemaClass:
         self.new_entry_query_prompt_template: str | None = None
         self.new_entry_prompt_template: str | None = None
         self.do_expand_into_dict: bool = True
+        self.relationship_format: dict[str, Any] = {}
         self.initial_population: dict[str, Any] | None = None
 
         # Add default values to fields where applicable and parse specific flags/templates from defaults
@@ -159,6 +160,8 @@ class ParsedSchemaClass:
                 self.do_expand_into_dict = bool(value)
             elif field_name_or_flag == "initial_population":
                 self.initial_population = value
+            elif field_name_or_flag == "relationship_format":
+                self.relationship_format = value
             # Field-specific defaults (like descriptions)
             elif self.definition_type == "dataclass" and fields:
                 for field_obj in fields:
@@ -177,6 +180,21 @@ class ParsedSchemaClass:
         if self.definition_type == "dataclass":
             return self._fields.get(name)
         return self._field
+    
+    def get_relationship_fields(self) -> dict[str, dict]:
+        """Get relationship field definitions from schema defaults.
+        
+        Returns:
+            Dict mapping field names to relationship config:
+            {
+                "relationships": {
+                    "target_type": "character",
+                    "bidirectional": true,
+                    "relationship_definition": "CharacterRelationship"
+                }
+            }
+        """
+        return self.relationship_format or {}
 
     def _type_to_json_schema_dict(
         self, type_hint: ParsedSchemaClass | type, all_definitions_map: dict, field_name: str | None = None
