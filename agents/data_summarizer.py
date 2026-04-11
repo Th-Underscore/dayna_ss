@@ -116,7 +116,10 @@ class DataSummarizer:
         if override_config and base_setting_name in override_config:
             return override_config[base_setting_name]
 
-        overrides = data.get("_overrides", {})
+        if not isinstance(data, dict):
+            overrides = {}
+        else:
+            overrides = data.get("_overrides", {})
 
         # 2. Direct override for the base_setting_name
         if base_setting_name in overrides:
