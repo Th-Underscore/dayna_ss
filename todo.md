@@ -134,7 +134,8 @@ Current TODO:
 - [ ] More meaningful “importance”:
     - [ ] Depending on level, character-specific "thoughts" summary on specific events/relationships
     - [ ] `100` = Always on their mind
-`60` = Friend
+`80` = Frequently on their mind
+`50` = Friend
 `30` = Remembers when spoken of
 `20` = Hardly remember when spoken of
 `10` = Struggle to remember

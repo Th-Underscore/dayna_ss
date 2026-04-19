@@ -6,6 +6,15 @@
         "The Rebel Force is a growing organization dedicated to defending humanity against the Subterraneans.",
         "The Rebels have advanced technological capabilities, including advanced weaponry, defense systems, and communication systems."
       ],
+      "purpose": "To defend humanity from the Subterraneans and reclaim Earth from their occupation.",
+      "culture": "Military hierarchy with emphasis on teamwork, loyalty, and innovation. Members are trained to be self-sufficient and resourceful. Strong camaraderie exists among soldiers.",
+      "resources": [
+        "Advanced weaponry and defense systems",
+        "Communication networks",
+        "Technological laboratories",
+        "Underground strongholds",
+        "Strategic intelligence gathering"
+      ],
       "events": [
         "The First Incursion", "The Second Incursion", "The Jones Offensive"
       ],
@@ -39,6 +48,15 @@
         "The Subterraneans are a group of monstrous, human-like creatures that dwelled deep underground prior to The First Incursion.",
         "The Subterraneans carry a deep-seated hatred for humanity, seeking to reclaim their homeland, Earth, and destroy the Rebel Force.",
         "The Subterraneans have an advantage over the Rebels due to their unique technology, utilizing geothermal energy to power their weaponry and defense systems."
+      ],
+      "purpose": "To reclaim Earth from humanity and establish dominance over the surface world.",
+      "culture": " warrior culture driven by survival and conquest. They value strength, discipline, and loyalty to their kind. They view humans as invaders who stole their ancestral home.",
+      "resources": [
+        "Geothermal-powered technology",
+        "Underground tunnels and lairs",
+        "Superior numbers",
+        "Advanced melee weapons",
+        "Darkvision and underground navigation"
       ],
       "events": [
         "The First Incursion", "The Second Incursion", "The Jones Offensive"
