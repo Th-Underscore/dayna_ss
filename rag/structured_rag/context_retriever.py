@@ -328,7 +328,7 @@ class StoryContextRetriever:
             if self.arcs:
                 result.arcs = self.arcs
                 print(f"{_DEBUG}arcs retrieved: {type(result.arcs)}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
-            
+
             chapters_data = self.events.get("chapters", {})
             if chapters_data:
                 result.chapters = chapters_data
@@ -399,8 +399,10 @@ class MessageChunker:
 
         # Download NLTK data and load model once
         if not cls._nltk_downloaded:
-            nltk.download("punkt", download_dir=Path("user_data/nltk_data"), quiet=True)
-            nltk.download("punkt_tab", download_dir=Path("user_data/nltk_data"), quiet=True)
+            nltk_data_path = Path("user_data/nltk_data")
+            nltk.data.path.append(nltk_data_path.resolve())
+            nltk.download("punkt", download_dir=nltk_data_path, quiet=True)
+            nltk.download("punkt_tab", download_dir=nltk_data_path, quiet=True)
             cls._nltk_downloaded = True
 
         if cls._embed_model is None:
@@ -431,7 +433,6 @@ class MessageChunker:
     ):
         print(f"{_BOLD}Initializing MessageChunker...{_RESET}")
 
-        # Initialize shared resources (only once across all instances)
         MessageChunker._init_shared_resources()
 
         # Use class-level shared resources
