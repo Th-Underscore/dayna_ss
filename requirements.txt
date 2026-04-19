@@ -1,5 +1,5 @@
-llama-index-core==0.12.42
-llama-index-embeddings-huggingface==0.5.*
+llama-index-core>=0.12.42
+llama-index-embeddings-huggingface>=0.5.0
 sentence-transformers>=5.1.0
 spacy>=3.8.7
 json-with-comments>=1.2.10

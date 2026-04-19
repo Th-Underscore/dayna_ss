@@ -461,7 +461,7 @@ class Summarizer:
                         return
                     instr_prompt = generate_chat_prompt(prompt, state, **kwargs)
                     encoded_instr_prompt = (
-                        encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
+                        encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ not in ["LlamaServer", "LMDeployModel"] else instr_prompt
                     )
                     text = ""
                     token_count = 0
