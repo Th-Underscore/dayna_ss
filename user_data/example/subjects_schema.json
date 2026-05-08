@@ -7,17 +7,26 @@
         "do_expand_into_dict": false
       }
     },
-    "CharacterStatus": {
+    "CharacterGroupStatus": {
       "type": "dataclass",
       "fields": {
         "position": "list[str]",
         "aliases": "list[str]",
-        "events": "list[str]"
+        "events": "list[str]",
+        "importance": "Importance"
+      },
+      "relationship_format": {
+        "_self": {
+          "target_type": "group",
+          "bidirectional": false,
+          "relationship_definition": "CharacterGroupStatus"
+        }
       },
       "defaults": {
         "position_placeholder": "The character's roles or ranks within this specific status context (e.g., 'Commander', 'Enemy').",
         "aliases_placeholder": "Alternative names or titles for the character within this specific status context (e.g., 'Leader', 'Hellion').",
-        "events_placeholder": "A list of significant events related to the character under this specific status."
+        "events_placeholder": "A list of significant events related to the character under this specific status.",
+        "importance_placeholder": "The importance of this status context RELATIVE TO THAT GROUP. Score (0-100): 100=Primary defining role WITHIN THIS GROUP, 80=Frequently referenced, 50=Important context, 30=Occasional mention, 10=Rarely mentioned, 0=Not referenced. Faction: RELATIVE to the group perspective - 'positive' if they are an ally/friend TO THAT GROUP, 'negative' if enemy/rival TO THAT GROUP, 'neutral' otherwise. Example: A group's enemy would have faction='negative' FROM THE GROUP'S standpoint, but might have faction='positive' FROM ANOTHER GROUP'S standpoint."
       }
     },
     "Importance": {
@@ -28,9 +37,9 @@
         "faction": "str"
       },
       "defaults": {
-        "score_placeholder": "A numerical value representing the significance (0-100). Higher values mean more important to the story/narrative. In the real JSON, this would be an integer, not a string.",
-        "reason_placeholder": "A brief explanation of why this importance level is appropriate for this item.",
-        "faction_placeholder": "The favorability of this relationship from the perspective of the subject. Options: 'positive' (ally, friend, family), 'negative' (enemy, rival, hostile), or 'neutral' (barely known, acquaintance)."
+        "score_placeholder": "A numerical value representing significance (0-100) RELATIVE TO THE SPECIFIC CONTEXT. For characters in events: 100=Central to that event (main focus), 80=Key participant, 50=Supporting role, 20=Witness. For group status: 100=Founder/Leader, 80=Core member, 50=Active member, 20=Occasional. Higher = more central TO THAT SPECIFIC CONTEXT, NOT to the overall story. In the real JSON, this would be an integer, not a string.",
+        "reason_placeholder": "A brief explanation of why this importance level is appropriate for this specific context.",
+        "faction_placeholder": "RELATIVE TO THE SUBJECT'S PERSPECTIVE. Options: 'positive' (ally, friend, family - benefits them), 'negative' (enemy, rival, hostile - threatens them), 'neutral' (barely known, acquaintance). Example: John's status in 'Subterraneans' as 'enemy' would have faction='negative' (from John's perspective), but from the Subterraneans' perspective of John, faction would also be 'negative' (John is THEIR enemy). The Council's faction in Subterraneans should be 'positive' because they are allies TO the Subterraneans."
       },
       "triggers": {
         "on_new_scene": [
@@ -52,7 +61,7 @@
         "status_placeholder": "The connection these two characters have for this relationship (e.g., 'Family', 'School', 'Army')",
         "aliases_placeholder": "A list of nicknames or alternative terms for the related character in the context of this specific relationship (e.g., 'Bro').",
         "events_placeholder": "A list of events relevant to this specific relationship between the characters.",
-        "importance_placeholder": "The importance of this relationship. Score (0-100): 100=Always on their mind, 80=Frequently on their mind, 50=Friend, 30=Remembers when spoken of, 20=Hardly remember when spoken of, 10=Struggle to remember, 5=Familiar/tip of tongue, 0=Stranger. Faction: 'positive' (ally, friend, family), 'negative' (enemy, rival, hostile), or 'neutral'."
+        "importance_placeholder": "The importance of this RELATIONSHIP, RELATIVE TO THIS CHARACTER. Score (0-100): 100=Always on their mind, 80=Frequently on their mind, 50=Friend, 30=Remembers when spoken of, 20=Hardly remember when spoken of, 10=Struggle to remember, 5=Familiar/tip of tongue, 0=Stranger. Faction: RELATIVE TO THIS CHARACTER - 'positive' if this character views the other as ally/friend, 'negative' if enemy/rival, 'neutral' otherwise. Example: If John killed Harry, John's relationship importance to Harry would be faction='negative' (Harry views John negatively), but the score could still be high (80) if Harry constantly thinks about revenge."
       }
     },
     "CharacterPreferences": {
@@ -77,6 +86,13 @@
         "scenes": "list[int]",
         "importance": "Importance"
       },
+      "relationship_format": {
+        "_self": {
+          "target_type": "event",
+          "bidirectional": false,
+          "relationship_definition": "CharacterMilestone"
+        }
+      },
       "defaults": {
         "description_placeholder": "A list of strings describing a significant achievement or consequential event in the character's life, either positive or negative.",
         "scenes_placeholder": "A list of scene numbers where this milestone is relevant or occurred."
@@ -93,7 +109,7 @@
         "quirks": "list[str]",
         "fears": "list[str]",
         "preferences": "CharacterPreferences",
-        "status": "dict[str, CharacterStatus]",
+        "group_status": "dict[str, CharacterGroupStatus]",
         "relationships": "dict[str, CharacterRelationships]",
         "milestones": "list[CharacterMilestone]"
       },
@@ -108,7 +124,7 @@
         "quirks_placeholder": "A list of distinctive habits, quirks, or idiosyncratic behaviors that make the character unique.",
         "fears_placeholder": "A list of things that frighten or concern the character.",
         "preferences_placeholder": "The character's likes and dislikes.",
-        "status_placeholder": "Example_Status_Name",
+        "group_status_placeholder": "Example_Group_Status_Name",
         "relationships_placeholder": "Example_Character_Name",
         "milestones_placeholder": "A list of significant achievements, events, or turning points in the character's life.",
         "relationship_format": {
@@ -116,6 +132,16 @@
             "target_type": "character",
             "bidirectional": true,
             "relationship_definition": "CharacterRelationship"
+          },
+          "group_status": {
+            "target_type": "group",
+            "bidirectional": false,
+            "relationship_definition": "CharacterGroupStatus"
+          },
+          "milestones": {
+            "target_type": "event",
+            "bidirectional": false,
+            "relationship_definition": "CharacterMilestone"
           }
         }
       },
@@ -155,8 +181,25 @@
           "mode": "identify",
           "target_files": ["characters.json", "groups.json"],
           "target_key": "entries",
-          "identification_prompt": "From the provided character context and greeting, identify and list all distinct character names and group names. For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('character' or 'group'), 'name' (string), and 'descriptor' (string).\n\nCharacter Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nExample Output:\n```json\n[\n  {\"type\": \"character\", \"name\": \"Elara\", \"descriptor\": \"A young sorceress searching for ancient artifacts.\"},\n  {\"type\": \"group\", \"name\": \"The Silver Hand\", \"descriptor\": \"A secretive guild of mages.\"}\n]\n```\n\nIdentify and list all distinct character names and group names. For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('character' or 'group'), 'name' (string), and 'descriptor' (string).\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON list.",
-          "population_prompt": "Based on the provided character context, greeting, and the identified entities, generate the full data for the {{ entity_type }} named '{{ entity_name }}'.\n\nDescriptor: {{ descriptor }}\n\nRelevant Schema for a {{ entity_type }}:\n```json\n{{ schema_definition_json }}\n```\n\nExample JSON structure for a {{ entity_type }}:\n```json\n{{ example_json }}\n```\n\nCharacter Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nPlease provide your response as a complete JSON object for this {{ entity_type }}."
+          "identification_prompt": "From the provided character context and greeting, identify and list ONLY those character names and group names that are EXPLICITLY MENTIONED in the text. Do NOT infer, assume, or create entities that are not directly named or referred to in the provided context and greeting.\n\nOnly include characters/groups that:\n- Are directly named (e.g., 'John', 'The Royal Guard')\n- Are explicitly referred to by a specific title/name (e.g., 'the Captain', 'your brother')\n\nDo NOT include:\n- Characters implied by relationships but not named (e.g., 'your mother' when mother isn't named)\n- Generic roles without specific names (e.g., 'a guard', 'some soldiers' unless given a specific group name)\n- Speculative or backstory characters not mentioned in the provided text\n\nCharacter Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nExample Output:\n```json\n[\n  {\"type\": \"character\", \"name\": \"Elara\", \"descriptor\": \"A young sorceress searching for ancient artifacts.\"},\n  {\"type\": \"group\", \"name\": \"The Silver Hand\", \"descriptor\": \"A secretive guild of mages.\"}\n]\n```\n\nIdentify and list ONLY the explicitly mentioned character names and group names. For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('character' or 'group'), 'name' (string), and 'descriptor' (string).\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON list. Only include entities that are EXPLICITLY named in the provided text.",
+          "population_prompt": "Based ONLY on the explicitly mentioned information in the provided character context and greeting, generate the full data for the {{ entity_type }} named '{{ entity_name }}'.\n\nIMPORTANT: Only use information that is EXPLICITLY STATED in the provided text. Do NOT infer, assume, or add details that are not directly mentioned.\n- Use 'N/A' or an empty value for any field where information is not explicitly provided\n- Do NOT fabricate names, traits, relationships, or details that aren't in the text\n- Only populate fields with what is directly stated or can be directly inferred from explicit text\n\nDescriptor: {{ descriptor }}\n\nRelevant Schema for a {{ entity_type }}:\n```json\n{{ schema_definition_json }}\n```\n\nExample JSON structure for a {{ entity_type }}:\n```json\n{{ example_json }}\n```\n\nCharacter Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nPlease provide your response as a complete JSON object for this {{ entity_type }}, using ONLY explicitly mentioned information."
+        },
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": true,
+            "relationship_definition": "CharacterRelationship"
+          },
+          "group_status": {
+            "target_type": "group",
+            "bidirectional": false,
+            "relationship_definition": "CharacterGroupStatus"
+          },
+          "milestones": {
+            "target_type": "event",
+            "bidirectional": false,
+            "relationship_definition": "CharacterMilestone"
+          }
         }
       }
     },
@@ -241,6 +284,20 @@
       "type": "dataclass",
       "fields": {
         "entries": "GroupMap"
+      },
+      "defaults": {
+        "relationship_format": {
+          "relationships": {
+            "target_type": "group",
+            "bidirectional": true,
+            "relationship_definition": "GroupRelationship"
+          },
+          "characters": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "GroupCharacterInfo"
+          }
+        }
       }
     },
     "SceneCharacter": {
@@ -376,7 +433,7 @@
         "now_placeholder": "The current, up-to-date state of the scene as it is unfolding.",
         "initial_population": {
           "target_file": "current_scene.json",
-          "prompt_template": "You are an expert data extractor. Based on the provided character context and initial greeting, populate the fields for an initial CurrentScene object. You MUST strictly adhere to the provided JSON schemas. The primary object to generate is 'CurrentScene'. All necessary schema definitions are provided under the 'definitions' key.\n\nFocus on the 'start' state. The 'greeting' often sets the immediate scene. If information for a specific field is not present, use sensible defaults (empty string, empty list, null) or omit the field if optional, ensuring the output strictly adheres to the schema.\n\n{{ char_context_str }}\n{{ char_greeting_str }}\nComplete JSON Schema Definitions (including CurrentScene and all its dependencies):\n```json\n{{ all_relevant_definitions_json_str }}\n```\n\nExample of the expected JSON structure for CurrentScene:\n```json\n{{ example_json }}\n```\n\n{{ retry_feedback_placeholder }}\nYour output must be a single valid JSON object for 'CurrentScene' matching the schema and mirroring the structure of the example.\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON object."
+          "prompt_template": "You are an expert data extractor. Based ONLY on the provided character context and initial greeting, populate the fields for an initial CurrentScene object. You MUST strictly adhere to the provided JSON schemas. The primary object to generate is 'CurrentScene'. All necessary schema definitions are provided under the 'definitions' key.\n\nIMPORTANT: Only use information that is EXPLICITLY STATED in the provided text. Do NOT infer, assume, or add details that are not directly mentioned in the character context or greeting.\n- Use 'N/A' or an empty value for any field where information is not explicitly provided\n- Do NOT fabricate locations, times, characters, or events that aren't in the provided text\n- Only populate fields with what is directly stated or can be directly inferred from explicit text\n\nFocus on the 'start' state. The 'greeting' often sets the immediate scene. If information for a specific field is not present, use sensible defaults (empty string, empty list, null) or omit the field if optional, ensuring the output strictly adheres to the schema.\n\n{{ char_context_str }}\n{{ char_greeting_str }}\nComplete JSON Schema Definitions (including CurrentScene and all its dependencies):\n```json\n{{ all_relevant_definitions_json_str }}\n```\n\nExample of the expected JSON structure for CurrentScene:\n```json\n{{ example_json }}\n```\n\n{{ retry_feedback_placeholder }}\nYour output must be a single valid JSON object for 'CurrentScene' matching the schema and mirroring the structure of the example.\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON object. Only use EXPLICITLY mentioned information."
         }
       }
     },
@@ -394,6 +451,13 @@
         "specific_time_placeholder": "A precise time for the time point, if applicable (e.g., '05:30', '14:32')."
       }
     },
+    "EventParticipant": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "importance": "Importance"
+      }
+    },
     "StoryEvent": {
       "type": "dataclass",
       "fields": {
@@ -405,8 +469,15 @@
         "summary": "str",
         "catalyst": "str",
         "outcome": "str",
-        "participants": "list[str]",
+        "participants": "dict[str, EventParticipant]",
         "importance": "Importance"
+      },
+      "relationship_format": {
+        "participants": {
+          "target_type": "character",
+          "bidirectional": false,
+          "relationship_definition": "EventParticipant"
+        }
       },
       "defaults": {
         "name_placeholder": "The unique name or title of the story event.",
@@ -417,7 +488,7 @@
         "summary_placeholder": "A textual summary describing the key occurrences and outcomes of the event.",
         "catalyst_placeholder": "What triggered or caused this event to happen.",
         "outcome_placeholder": "The result or consequence of this event.",
-        "participants_placeholder": "A list of characters and/or groups involved in this event."
+        "participants_placeholder": "A mapping of character/group names to their participation importance in this event."
       }
     },
     "StoryEvents": {
@@ -639,9 +710,13 @@
         "tone_placeholder": "The primary emotional tone or mood of the story. This guides the feeling of the narrative (e.g., 'Tense and suspenseful', 'Hopeful but grim', 'Witty and adventurous').",
         "themes_placeholder": "A comma-separated list of the central themes or underlying ideas being explored in the story (e.g., 'The cost of survival', 'Betrayal and redemption', 'Man vs. Nature').",
         "setting_placeholder": "A description of the world, location, and environment where the story takes place (e.g., 'Post-apocalyptic Earth, 2087, ruined cities overrun by Subterraneans').",
-        "rules_placeholder": "A list of rules or laws that govern the story's world (e.g., 'Magic requires mana crystals to cast', 'Technology level: post-nanite apocalypse').",
+        "rules_placeholder": "A list of world-building rules or laws that govern the story's world (e.g., 'Magic requires mana crystals to cast', 'Technology level: post-nanite apocalypse'). Some overarching plot points about the world can also be included here if they are fundamental to the story and unlikely to change (e.g., 'The nanite plague has devastated humanity, leading to the rise of Subterranean factions' or 'Comms systems are down globally'), but nothing character-specific.",
         "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
-        "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
+        "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward.",
+        "initial_population": {
+          "target_files": ["general_info.json"],
+          "prompt_template": "Based ONLY on the provided character context and initial greeting, generate the full GeneralInfo data for this story.\n\nIMPORTANT: Only use information that is EXPLICITLY STATED in the provided text. Do NOT infer, assume, or add details that are not directly mentioned.\n- Use 'N/A' or an empty value for any field where information is not explicitly provided\n- Do NOT fabricate themes, rules, or details that aren't in the text\n- Only populate fields with what is directly stated or can be directly inferred from explicit text\n\nCharacter Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nRelevant Schema for GeneralInfo:\n```json\n{{ schema_definition_json }}\n```\n\nExample JSON structure for GeneralInfo:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for GeneralInfo, using ONLY explicitly mentioned information."
+        }
       },
       "triggers": {
         "on_existing_scene": [

@@ -1,80 +1,81 @@
 {
   "entries": {
     "Rebel Force": {
-      "aliases": ["Rebels"],
-      "description": [
-        "The Rebel Force is a growing organization dedicated to defending humanity against the Subterraneans.",
-        "The Rebels have advanced technological capabilities, including advanced weaponry, defense systems, and communication systems."
-      ],
-      "purpose": "To defend humanity from the Subterraneans and reclaim Earth from their occupation.",
-      "culture": "Military hierarchy with emphasis on teamwork, loyalty, and innovation. Members are trained to be self-sufficient and resourceful. Strong camaraderie exists among soldiers.",
-      "resources": [
-        "Advanced weaponry and defense systems",
-        "Communication networks",
-        "Technological laboratories",
-        "Underground strongholds",
-        "Strategic intelligence gathering"
-      ],
-      "events": [
-        "The First Incursion", "The Second Incursion", "The Jones Offensive"
-      ],
+      "aliases": ["Rebels", "The Resistance", "RF"],
+      "description": ["The main resistance against the Subterraneans."],
+      "purpose": "Defend humanity from Subterraneans.",
+      "culture": "Military hierarchy. Values teamwork and loyalty.",
+      "resources": ["Advanced weaponry", "Underground strongholds", "Technology"],
+      "events": ["The First Incursion", "The Jones Offensive"],
       "relationships": {
-        "Subterraneans": {
-          "position": ["Enemy"]
-        }
+        "Subterraneans": [
+          {"relation": "enemy", "status": "Enemy", "importance": {"score": 100, "reason": "Main enemy", "faction": "negative"}}
+        ]
       },
       "characters": {
-        "John Jones": {
-          "position": ["Commander", "Leader"],
-          "events": ["Relevant Event 1", "..."]
-        },
-        "Amy Harrison": {
-          "position": ["Chief Scientist", "Lead Technological Strategist"],
-          "events": ["Relevant Event 2", "..."]
-        },
-        "Paul Jones": {
-          "position": ["General"],
-          "events": ["Relevant Event 3", "..."]
-        },
-        "Angelina Kristi": {
-          "position": ["Soldier"],
-          "events": ["Relevant Event 4", "..."]
-        }
+        "John Jones": {"position": ["Commander"], "events": ["The Jones Offensive"], "importance": {"score": 100}},
+        "Paul Jones": {"position": ["General"], "events": ["The Jones Offensive"], "importance": {"score": 90}},
+        "Amy Harrison": {"position": ["Chief Scientist"], "events": [], "importance": {"score": 85}},
+        "Marcus Chen": {"position": ["Strategist"], "events": ["The Jones Offensive"], "importance": {"score": 80}},
+        "Elena Vasquez": {"position": ["Operative"], "events": [], "importance": {"score": 75}},
+        "Angelina Kristi": {"position": ["Soldier"], "events": [], "importance": {"score": 45}},
+        "Sarah Mitchell": {"position": ["Medic"], "events": [], "importance": {"score": 40}},
+        "David Park": {"position": ["Comm Specialist"], "events": [], "importance": {"score": 30}},
+        "Captain Rodriguez": {"position": ["Captain"], "events": ["The First Incursion"], "importance": {"score": 35}},
+        "Rachel Torres": {"position": ["Recruit"], "events": [], "importance": {"score": 15}}
       }
     },
     "Subterraneans": {
       "aliases": ["STs"],
-      "description": [
-        "The Subterraneans are a group of monstrous, human-like creatures that dwelled deep underground prior to The First Incursion.",
-        "The Subterraneans carry a deep-seated hatred for humanity, seeking to reclaim their homeland, Earth, and destroy the Rebel Force.",
-        "The Subterraneans have an advantage over the Rebels due to their unique technology, utilizing geothermal energy to power their weaponry and defense systems."
-      ],
-      "purpose": "To reclaim Earth from humanity and establish dominance over the surface world.",
-      "culture": " warrior culture driven by survival and conquest. They value strength, discipline, and loyalty to their kind. They view humans as invaders who stole their ancestral home.",
-      "resources": [
-        "Geothermal-powered technology",
-        "Underground tunnels and lairs",
-        "Superior numbers",
-        "Advanced melee weapons",
-        "Darkvision and underground navigation"
-      ],
-      "events": [
-        "The First Incursion", "The Second Incursion", "The Jones Offensive"
-      ],
+      "description": ["Enemy forces from underground."],
+      "purpose": "Reclaim Earth from humanity.",
+      "culture": "Warrior culture.",
       "relationships": {
-        "Rebel Force": {
-          "position": ["Enemy"]
-        }
+        "Rebel Force": [
+          {"relation": "enemy", "status": "Enemy", "importance": {"score": 100, "reason": "Main enemy", "faction": "negative"}}
+        ]
       },
       "characters": {
-        "John Doe": {
-          "position": ["Leader"],
-          "events": ["Relevant Event 1", "..."]
-        },
-        "Jane Doe": {
-          "position": ["Soldier"],
-          "events": ["Relevant Event 2", "..."]
-        }
+        "Subterranean Leader": {"position": ["Leader"], "events": ["The First Incursion"], "importance": {"score": 100}},
+        "Subterranean Commander Vex": {"position": ["Commander"], "events": ["The Second Incursion"], "importance": {"score": 85}},
+        "Subterranean Scout Alpha": {"position": ["Scout"], "events": [], "importance": {"score": 10}}
+      }
+    },
+    "Subterranean Intelligence Unit": {
+      "aliases": ["SIU"],
+      "description": ["Intelligence gathering division."],
+      "purpose": "Gather intelligence on Rebel movements.",
+      "characters": {}
+    },
+    "Medical Corps": {
+      "aliases": ["Medics"],
+      "description": ["Rebel Force medical division."],
+      "purpose": "Treat the wounded.",
+      "characters": {
+        "Sarah Mitchell": {"position": ["Medic"], "events": [], "importance": {"score": 40}}
+      }
+    },
+    "Merchant Guild": {
+      "aliases": ["Traders"],
+      "description": ["Civilian traders who supply both sides."],
+      "purpose": "Profit from war.",
+      "characters": {
+        "Trader Jenkins": {"position": ["Trader"], "events": [], "importance": {"score": 20}}
+      }
+    },
+    "The Council": {
+      "aliases": ["Elders"],
+      "description": ["Ancient Subterranean governing body."],
+      "purpose": "Rule the Subterraneans.",
+      "characters": {}
+    },
+    "Recruit Training Division": {
+      "aliases": ["Training"],
+      "description": ["Training new Rebel recruits."],
+      "purpose": "Train soldiers.",
+      "characters": {
+        "Captain Rodriguez": {"position": ["Instructor"], "events": [], "importance": {"score": 35}},
+        "Rachel Torres": {"position": ["Recruit"], "events": [], "importance": {"score": 15}}
       }
     }
   }

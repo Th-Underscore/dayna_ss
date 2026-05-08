@@ -1,10 +1,11 @@
 {
-  "what": "Rebel Force Reconnaissance Mission Preparation",
+  "what": "Mission Planning - The Jones Offensive",
   "start": {
     "who": {
       "characters": [
         {"name": "John Jones", "location": "Rebel Force Headquarters"},
-        {"name": "Amy Harrison", "location": "Technology Lab"}
+        {"name": "Amy Harrison", "location": "Technology Lab"},
+        {"name": "Marcus Chen", "location": "War Room"}
       ],
       "groups": [
         {"name": "Rebel Force", "location": "Underground Base"},
@@ -13,55 +14,58 @@
     },
     "when": {
       "_message_node": "140_1_1",
-      "date": "October 15, 2028",
-      "time": "Pre-dawn hours",
-      "specific_time": "05:30"
+      "date": "May 14, 2028",
+      "time": "Evening",
+      "specific_time": "19:30"
     },
     "where": "Rebel Force Headquarters - Strategic Planning Room",
     "why": [
       {
-        "name": "Mission Preparation",
-        "details": "Gathering intelligence on Subterranean troop movements near the Eastern Perimeter"
+        "name": "Mission Finalization",
+        "details": "Finalizing plans for the major offensive against Subterranean strongholds"
       },
       {
-        "name": "Technological Integration",
-        "details": "Amy Harrison finalizing advanced reconnaissance drone prototypes for the upcoming mission"
+        "name": "Technology Integration",
+        "details": "Amy Harrison presenting new reconnaissance drone prototypes"
       }
     ]
   },
   "now": {
     "who": {
       "characters": [
-        {"name": "John Jones", "location": "Mission Staging Area"},
-        {"name": "Paul Jones", "location": "Communications Center"},
-        {"name": "Angelina Kristi", "location": "Infiltration Position"},
-        {"name": "Amy Harrison", "location": "Technology Lab"}
+        {"name": "John Jones", "location": "War Room - Center"},
+        {"name": "Paul Jones", "location": "War Room - Left"},
+        {"name": "Marcus Chen", "location": "War Room - Right, at map table"},
+        {"name": "Amy Harrison", "location": "Technology Lab - Presenting remotely via screen"}
       ],
       "groups": [
-        {"name": "Rebel Force", "location": "Mobilization Zone"},
-        {"name": "Subterranean Patrol", "location": "Eastern Perimeter"},
-        {"name": "Subterranean Intelligence Unit", "location": "Unknown"}
+        {"name": "Rebel Force", "location": "Underground Base - Full Mobilization"},
+        {"name": "Subterranean Intelligence Unit", "location": "Eastern Perimeter - Reconnaissance"}
       ]
     },
     "when": {
       "_message_node": null,
-      "date": "October 15, 2028",
-      "time": "Dawn breaking",
-      "specific_time": "06:15"
+      "date": "May 14, 2028",
+      "time": "Evening",
+      "specific_time": "20:15"
     },
-    "where": "Eastern Perimeter - Borderlands between Rebel Territory and Subterranean Zones",
+    "where": "Rebel Force Headquarters - War Room",
     "why": [
       {
-        "name": "Strategic Reconnaissance",
-        "details": "Conducting covert mission to map Subterranean troop positions and identify potential weak points"
+        "name": "Final Briefing",
+        "details": "John presenting final assault plan to the team"
       },
       {
-        "name": "Intelligence Gathering",
-        "details": "Angelina Kristi secretly collecting information for potential infiltration, while John Jones leads the primary mission"
+        "name": "Tech Demonstration",
+        "details": "Amy demonstrating new drone capabilities for reconnaissance"
+      },
+      {
+        "name": "Role Assignment",
+        "details": "Assigning specific roles for the upcoming offensive"
       }
     ]
   },
-  "_scene_number": 3,
-  "_chapter_number": 1,
+  "_scene_number": 18,
+  "_chapter_number": 2,
   "_arc_number": 1
 }

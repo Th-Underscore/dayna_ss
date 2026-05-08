@@ -2,20 +2,16 @@ from typing import Any, Callable, Generator, TextIO, TYPE_CHECKING
 from os import PathLike
 import copy
 import hashlib
-import io
 import json
 import jsonc
 import random
 import re
 import shutil
-import sys
 import time
 import traceback
-from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
-from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 if TYPE_CHECKING:
     from torch import no_grad
@@ -47,13 +43,10 @@ from ..utils.helpers import (
     _RESET,
     _DEBUG,
     History,
-    Histories,
     load_json,
     save_json,
-    recursive_get,
     expand_lists_in_data_for_llm,
     get_values,
-    enumerate_list,
     strip_thinking,
     strip_response,
     format_str_or_jinja,
@@ -120,7 +113,20 @@ base_state = {
         "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
         "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
         "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
-        "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
+        "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.\n\n"
+        "CRITICAL STYLE CONSTRAINTS:\n"
+        "- AVOID: 'It wasn't X, it was Y' structures (negative parallelism).\n"
+        "- AVOID: 'hidden part,' 'something shifted,' 'a weight settled,' 'quietly [verb]' phrases.\n"
+        "- AVOID: Ending scenes with sudden emotional realizations or 'newfound' understanding.\n"
+        "- AVOID: Excessive em dashes (—) or colons (:) linking clauses.\n"
+        "- AVOID: 'Here's the thing,' 'Here's the kicker,' 'Here's where it gets interesting,' 'At the end of the day.'\n"
+        "- AVOID: False suspense transitions like 'Not X. Not Y. Just Z.' or rhetorical questions 'The result? Devastating.'\n"
+        "- AVOID: 'In conclusion,' 'To sum up,' 'In summary' (signposted conclusions).\n"
+        "- AVOID: Repetitive metaphors, similes, or wordplay that get beaten into the ground across a scene.\n"
+        "- AVOID: 'Game changer,' 'double-edged sword,' 'tip of the iceberg,' 'perfect storm' (clichéd idioms).\n"
+        "- AVOID: Cliffhangers or artificially dramatic endings to individual messages. Each response should flow naturally into the next, feeling like part of a continuous scene, not a self-contained one-shot.\n"
+        "- PREFER: Rough edges, unexpected word choices, varied sentence lengths (very short mixed with long), sensory details (sound, smell, touch).\n"
+        "- TONE: Show the scene through direct action and specific sensory experience, not through narrator reflection or summary."
     ),
     "auto_max_new_tokens": True,
     "temperature": 0.3,
@@ -618,7 +624,7 @@ class Summarizer:
         tool_result = self.tool_registry.execute_tool_call(result.call)
         return tool_result
 
-    def save_message_chunks(self, message: str, index: int, current_timestamp: str, path: Path | None = None) -> None:
+    def save_message_chunks(self, message: str, index: int, current_timestamp: str, path: Path | None = None, do_determine_speakers: bool = True) -> None:
         """Save message chunks to the history path with timestamp."""
         print(f"{_BOLD}save_message_chunks{_RESET} Path: {path}, Index: {index}, Timestamp: {current_timestamp}")
         if not path:
@@ -637,11 +643,45 @@ class Summarizer:
                 raise TypeError(f"Expected StoryContextRetriever, got {type(context_retriever)}")
 
             chunker = context_retriever.chunker
-            chunks = chunker.process_message(message, index, current_timestamp)
+            chunks = chunker.process_message(message, index, current_timestamp, do_determine_speakers=do_determine_speakers)
             print(f"{_SUCCESS}Stored {len(chunks)} message chunks for index {index}{_RESET}")
         except Exception as e:
             print(f"{_ERROR}Error processing message chunks for index {index}: {str(e)}{_RESET}")
             traceback.print_exc()
+
+    def update_previous_message_speakers(self, current_message_idx: int) -> bool:
+        """Update speakers for the previous message (current_message_idx - 1) using current state.
+
+        Args:
+            current_message_idx: The current message index (e.g., from output). The previous message index
+                is calculated as current_message_idx - 1.
+
+        Returns:
+            bool: True if update succeeded, False otherwise.
+        """
+        previous_idx = current_message_idx - 1
+        print(f"{_BOLD}update_previous_message_speakers{_RESET} Previous index: {previous_idx}")
+
+        try:
+            if not self.last or not self.last.context:
+                print(f"{_ERROR}Summarizer.last.context not available for update_previous_message_speakers.{_RESET}")
+                return False
+
+            context_retriever = self.last.context[1]
+            if not isinstance(context_retriever, StoryContextRetriever):
+                raise TypeError(f"Expected StoryContextRetriever, got {type(context_retriever)}")
+
+            chunker = context_retriever.chunker
+            success = chunker.update_message_speakers(previous_idx)
+            if success:
+                print(f"{_SUCCESS}Updated speakers for previous message index {previous_idx}{_RESET}")
+            else:
+                print(f"{_DEBUG}Could not update speakers for previous message index {previous_idx}.{_RESET}")
+            return success
+        except Exception as e:
+            print(f"{_ERROR}Error updating speakers for previous message index {previous_idx}: {str(e)}{_RESET}")
+            traceback.print_exc()
+            return False
 
     def prepare_context(self, user_input: str, state: dict, history: History, **kwargs):
         """Retrieve and format context for the prompt, as well as detecting a new scene turn.
@@ -849,10 +889,10 @@ class Summarizer:
                             f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
                         )
                     encoded_instr_prompt = (
-                        encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
+                        encode(instr_prompt, add_bos_token=True) if do_enc(model) else instr_prompt
                     )
                     print(
-                        f"{_SUCCESS}Encoded instruct prompt: {True if model.__class__.__name__ != 'LlamaServer' else False}{_RESET}"
+                        f"{_SUCCESS}Encoded instruct prompt: {True if do_enc(model) else False}{_RESET}"
                     )
 
                     print(f"{_SUCCESS}State set{_RESET}")
@@ -1318,17 +1358,20 @@ class Summarizer:
             if data is None:
                 continue
 
+            messages_metadata = getattr(retrieval_context, "messages_metadata", [])
+
             if data_type == "lines":
                 lines_data = {
                     "messages": data,
-                    "metadata": getattr(retrieval_context, "messages_metadata", []),
+                    "metadata": messages_metadata,
                 }
                 scene_names = getattr(retrieval_context.events, "get", lambda k, d={}: d.get(k, "Unknown"))("scenes", {})
                 scene_name_map = {name.lower(): name for name in scene_names.keys()} if isinstance(scene_names, dict) else {}
-                extra_context = {"scene_names": scene_name_map}
+                extra_context = {"scene_names": scene_name_map, "metadata": messages_metadata}
                 formatted = FormattedData(lines_data, data_type, parser=None, extra_context=extra_context).st
             else:
-                formatted = FormattedData(data, data_type, self.last.schema_parser).st
+                extra_context = {"metadata": messages_metadata}
+                formatted = FormattedData(data, data_type, self.last.schema_parser, extra_context=extra_context).st
 
             if to_context:
                 custom_state["context"] += f"\n\n{formatted}"
@@ -1489,7 +1532,7 @@ class Summarizer:
             }
             schema_classes = {k: v for k, v in schema_classes.items() if v}
 
-            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes)
+            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes, summarizer=self)
 
             # Retrieve last x messages
             last_x = min(len(history), kwargs.get("last_x", 6))  # TODO: Get all in current scene
@@ -1753,10 +1796,13 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             # Format the prompt template with context variables using Jinja
             prompt = format_str_or_jinja(
                 prompt_template,
+                char_context=char_context,
+                char_greeting=char_greeting,
                 char_context_str=char_context_str,
                 char_greeting_str=char_greeting_str,
                 all_relevant_definitions_json_str=all_definitions_str,
                 example_json=example_json_str,
+                schema_definition_json=all_definitions_str,
                 retry_feedback_placeholder="",
             )
 
@@ -1811,10 +1857,13 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                 error_feedback += f"- {err}\n"
                             prompt = format_str_or_jinja(
                                 prompt_template,
+                                char_context=char_context,
+                                char_greeting=char_greeting,
                                 char_context_str=char_context_str,
                                 char_greeting_str=char_greeting_str,
                                 all_relevant_definitions_json_str=all_definitions_str,
                                 example_json=example_json_str,
+                                schema_definition_json=all_definitions_str,
                                 retry_feedback_placeholder=error_feedback + "\n",
                             )
                 except json.JSONDecodeError as e:
@@ -1824,10 +1873,13 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                         error_feedback = f"The previous JSON was invalid. Ensure valid JSON output.\n"
                         prompt = format_str_or_jinja(
                             prompt_template,
+                            char_context=char_context,
+                            char_greeting=char_greeting,
                             char_context_str=char_context_str,
                             char_greeting_str=char_greeting_str,
                             all_relevant_definitions_json_str=all_definitions_str,
                             example_json=example_json_str,
+                            schema_definition_json=all_definitions_str,
                             retry_feedback_placeholder=error_feedback,
                         )
                 except Exception as e:
@@ -1880,8 +1932,11 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
         print(f"{_DEBUG}Attempting to populate entities via identification for '{subject_name}'{_RESET}")
 
+        # TODO: Pass in more context variables (example json, schema definitions, etc.) to the prompts
         char_context = state.get("context", "")
+        char_context_str = f'Character Context:\n"""\n{char_context}\n"""\n\n' if char_context else ""
         char_greeting = state["history"]["internal"][0][1]
+        char_greeting_str = f'Initial Greeting:\n"""\n{char_greeting}\n"""\n\n'
 
         custom_state = copy.deepcopy(state)
         custom_state.update(copy.deepcopy(base_state))
@@ -1892,6 +1947,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             identification_prompt_template,
             char_context=char_context,
             char_greeting=char_greeting,
+            char_context_str=char_context_str,
+            char_greeting_str=char_greeting_str,
         )
 
         print(f"{_DEBUG}Prompting LLM for entity identification...{_RESET}")
@@ -1971,6 +2028,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                         example_json=example_json_str,
                         char_context=char_context,
                         char_greeting=char_greeting,
+                        char_context_str=char_context_str,
+                        char_greeting_str=char_greeting_str,
                     )
 
                     custom_state_detail = copy.deepcopy(custom_state)
@@ -2174,7 +2233,11 @@ class MessageSummarizer:
         self.current_timestamp = current_timestamp
 
     def generate(self, exchange: tuple[str, str], message_idxs: tuple[int, int]) -> None:
-        """Summarize messages and store in vector database with metadata."""
+        """Summarize messages and store in vector database with metadata.
+
+        Note: Speakers are extracted per-node in context_retriever.py (chunk_message).
+        This generates summaries with subjects_referenced at the summary level.
+        """
         print(f"{_BOLD}Summarizing messages for indices {message_idxs}{_RESET}")
 
         pm = self.summarizer._phase_manager
@@ -2198,7 +2261,6 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                     return
                 summary_text = strip_thinking(summary_text)
 
-                summary_speakers = ["System"]  # TODO: Derive from context
                 summary_chars_present = self.chunker._extract_entities(summary_text, self.chunker.character_name_patterns)
                 summary_groups_ref = self.chunker._extract_entities(summary_text, self.chunker.group_name_patterns)
                 summary_events_ref = self.chunker._extract_entities(summary_text, self.chunker.event_name_patterns)
@@ -2216,13 +2278,13 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                         current_message_idx,
                         0,
                         0,
-                    ],  # Use 0,0 to indicate this is a summary
+                    ],
                     "timestamp": self.current_timestamp,
-                    "speakers": summary_speakers,
+                    "speakers": [],
                     "characters_present": summary_chars_present,
                     "subjects_referenced": summary_subjects_referenced,
-                    "scene_id": None,  # Scene not yet determined
-                    "event_id": None,  # Same as scene_id
+                    "scene_id": None,
+                    "event_id": None,
                     "is_summary": True,
                 }
                 self.chunker.store_chunks([summary_chunk_data], persist_dir=(self.history_path / "message_index"))
@@ -2359,6 +2421,8 @@ class FormattedData:
 
             if extra_context:
                 context.update(extra_context)
+                if "metadata" in extra_context:
+                    context["metadata"] = extra_context["metadata"]
 
             rendered = template.render(**context)
             return rendered.strip()
@@ -2473,3 +2537,6 @@ class FormattedData:
         """
         cleaned_string = re.sub(r" <<<<<<<<<<<< [^\n]*", "", string or self._str)
         return cleaned_string
+
+def do_enc(model):
+    return model.__class__.__name__ not in ["LlamaServer", "LMDeployModel"]

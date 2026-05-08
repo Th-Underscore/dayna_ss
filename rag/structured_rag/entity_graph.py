@@ -29,6 +29,7 @@ class Relationship:
     target_id: str
     relation: str  # e.g., "brother", "enemy", "member"
     status: str  # e.g., "Family", "Rebel Force"
+    field_name: str = ""
     importance: int = 0
     importance_reason: str = ""
     faction: str = "neutral"  # "positive", "negative", "neutral"
@@ -60,6 +61,9 @@ class EntityGraph:
 
         self.nodes: dict[str, EntityNode] = {}
         self.relationships: list[Relationship] = []
+
+        self.adjacency: dict[str, dict[str, set[str]]] = {}  # source_type -> target_type -> {target_ids}
+        self.adjacency_built: bool = False
 
         self._load_or_build()
 
@@ -179,6 +183,8 @@ class EntityGraph:
 
         print(f"{_SUCCESS}Built entity graph with {len(self.nodes)} nodes and {len(self.relationships)} relationships{_RESET}")
 
+        self.build_adjacency()
+
     def _build_from_schema(self):
         """Build graph using schema-defined relationship formats."""
         # Map subject names to entity types and JSON files
@@ -240,11 +246,18 @@ class EntityGraph:
                     # Dict of target -> list of relationships (like character relationships)
                     self._process_relationship_dict(
                         node_id, entity_name, target_type, field_data,
-                        relationship_def, is_bidirectional
+                        relationship_def, is_bidirectional, field_name
                     )
                 elif isinstance(field_data, dict) and field_name == "characters" and entity_type == "group":
                     # Group character membership (special case)
-                    self._process_group_membership(node_id, field_data)
+                    self._process_group_membership(node_id, field_data, field_name)
+
+                # Also process list fields (like milestones)
+                elif isinstance(field_data, list):
+                    self._process_list_relationships(
+                        node_id, entity_name, target_type, field_data,
+                        relationship_def, field_name
+                    )
 
             self.nodes[node_id] = node
 
@@ -255,7 +268,8 @@ class EntityGraph:
         target_type: str,
         rel_dict: dict,
         relationship_def: str,
-        bidirectional: bool
+        bidirectional: bool,
+        field_name: str = ""
     ):
         """Process a dictionary of relationships (target -> list of relationship objects)."""
         for target_name, rel_list in rel_dict.items():
@@ -284,6 +298,7 @@ class EntityGraph:
                     target_id=target_id,
                     relation=rel.get("relation", ""),
                     status=rel.get("status", ""),
+                    field_name=field_name,
                     importance=importance,
                     importance_reason=importance_reason,
                     faction=faction,
@@ -292,7 +307,7 @@ class EntityGraph:
                 )
                 self.relationships.append(relationship)
 
-    def _process_group_membership(self, group_id: str, members: dict):
+    def _process_group_membership(self, group_id: str, members: dict, field_name: str = "characters"):
         """Process group membership (character -> GroupCharacterInfo)."""
         for char_name, char_info in members.items():
             if not isinstance(char_info, dict):
@@ -303,8 +318,55 @@ class EntityGraph:
                 target_id=f"character:{char_name}",
                 relation="member",
                 status="group_membership",
+                field_name=field_name,
                 importance=50,
                 events=char_info.get("events", [])
+            )
+            self.relationships.append(relationship)
+
+    def _process_list_relationships(
+        self,
+        source_id: str,
+        source_name: str,
+        target_type: str,
+        rel_list: list,
+        field_name: str
+    ):
+        """Process a list of relationship targets (like milestones -> events, participants -> characters)."""
+        for rel_item in rel_list:
+            if isinstance(rel_item, dict):
+                # Dict item - use title/name and importance
+                target_name = rel_item.get("title", rel_item.get("name", ""))
+                importance_data = rel_item.get("importance", {})
+                if isinstance(importance_data, dict):
+                    importance = importance_data.get("score", 0)
+                    importance_reason = importance_data.get("reason", "")
+                    faction = importance_data.get("faction", "neutral")
+                else:
+                    importance = importance_data if isinstance(importance_data, int) else 0
+                    importance_reason = ""
+                    faction = "neutral"
+            elif isinstance(rel_item, str):
+                target_name = rel_item
+                importance = 0
+                importance_reason = ""
+                faction = "neutral"
+            else:
+                continue
+
+            if not target_name:
+                continue
+
+            target_id = f"{target_type}:{target_name}"
+            relationship = Relationship(
+                source_id=source_id,
+                target_id=target_id,
+                relation="participant",
+                status=field_name,
+                field_name=field_name,
+                importance=importance,
+                importance_reason=importance_reason,
+                faction=faction
             )
             self.relationships.append(relationship)
 
@@ -929,3 +991,162 @@ class EntityGraph:
             if char_id in self.nodes:
                 result[char_name] = self.get_relationship_summary(char_name, threshold=threshold)
         return result
+
+    def build_adjacency(self):
+        """Build adjacency dict from relationships list for O(1) traversal."""
+        self.adjacency = {}
+        for rel in self.relationships:
+            source_type = rel.source_id.split(":")[0] if ":" in rel.source_id else "unknown"
+            target_type = rel.target_id.split(":")[0] if ":" in rel.target_id else "unknown"
+
+            if source_type not in self.adjacency:
+                self.adjacency[source_type] = {}
+            if target_type not in self.adjacency[source_type]:
+                self.adjacency[source_type][target_type] = set()
+            self.adjacency[source_type][target_type].add(rel.target_id)
+
+        self.adjacency_built = True
+        print(f"{_DEBUG}Built adjacency: {len(self.adjacency)} source types{_RESET}")
+
+    def get_neighbors(
+        self,
+        entity_name: str,
+        entity_type: str,
+        target_type: str = None,
+        field_name: str = None,
+        min_importance: int = 0,
+        direction: str = "outgoing"
+    ):
+        """Get neighboring entity names through relationships.
+
+        Args:
+            entity_name: Name of the entity
+            entity_type: Type of entity (character, group, event)
+            target_type: Optional target type to filter by
+            field_name: Optional field name to filter by (relationships, group_status, etc.)
+            min_importance: Minimum importance score
+            direction: "outgoing", "incoming", or "both"
+
+        Returns:
+            List of neighboring entity names (without type prefix)
+        """
+        entity_id = f"{entity_type}:{entity_name}"
+        result = []
+
+        for rel in self.relationships:
+            include = False
+
+            if direction in ("outgoing", "both"):
+                if rel.source_id == entity_id:
+                    include = True
+                    if target_type and not rel.target_id.startswith(target_type + ":"):
+                        include = False
+                    if field_name and rel.field_name != field_name:
+                        include = False
+                    if min_importance and rel.importance < min_importance:
+                        include = False
+
+            if direction in ("incoming", "both") and not include:
+                if rel.target_id == entity_id:
+                    include = True
+                    if target_type and not rel.source_id.startswith(target_type + ":"):
+                        include = False
+                    if field_name and rel.field_name != field_name:
+                        include = False
+                    if min_importance and rel.importance < min_importance:
+                        include = False
+
+            if include:
+                target = rel.target_id if direction != "incoming" else rel.source_id
+                target_clean = target.split(":", 1)[1] if ":" in target else target
+                if target_clean not in result:
+                    result.append(target_clean)
+
+        return result
+
+    def traverse_graph(
+        self,
+        initial_entities: dict[str, set[str]],
+        field_map: dict[str, dict[str, str]] = None,
+        min_importance: int = 75,
+        max_depth: int = 10,
+    ) -> dict[str, set[str]]:
+        """Traverse graph from initial entities, returning all discovered entities by type.
+
+        Args:
+            initial_entities: Dict of entity_type -> set of entity names
+                e.g., {"character": {"John", "Amy"}, "group": {"Rebel Force"}}
+            field_map: Optional relationship map (source_type -> {field_name: target_type})
+                If None, derived from schema_classes
+            min_importance: Minimum importance score for filtering
+            max_depth: Maximum traversal depth
+
+        Returns:
+            Dict of entity_type -> set of discovered entity names
+        """
+        if field_map is None:
+            field_map = self.get_schema_relationship_map()
+
+        relevant: dict[str, set[str]] = {etype: set() for etype in ["character", "group", "event"]}
+
+        for etype, names in initial_entities.items():
+            if etype in relevant:
+                relevant[etype].update(names)
+
+        visited: dict[str, set[str]] = {etype: set() for etype in relevant}
+
+        for depth in range(max_depth):
+            new_entities = False
+
+            for source_type in list(relevant.keys()):
+                source_names = relevant.get(source_type, set())
+                if not source_names:
+                    continue
+
+                field_config = field_map.get(source_type, {})
+                if not field_config:
+                    continue
+
+                for source_name in list(source_names):
+                    if source_name in visited.get(source_type, set()):
+                        continue
+                    visited[source_type].add(source_name)
+
+                    for field_name, target_type in field_config.items():
+                        neighbors = self.get_neighbors(
+                            source_name, source_type,
+                            target_type=target_type,
+                            field_name=field_name if field_name != "_self" else None,
+                            min_importance=min_importance,
+                            direction="outgoing"
+                        )
+
+                        for neighbor in neighbors:
+                            if neighbor not in relevant.get(target_type, set()):
+                                relevant[target_type].add(neighbor)
+                                new_entities = True
+
+            if not new_entities and depth > 0:
+                break
+
+        return relevant
+
+    def get_schema_relationship_map(self) -> dict[str, dict[str, str]]:
+        """Load relationship map from schema_classes.
+
+        Returns:
+            Dict of source_type -> {field_name: target_type}
+            e.g., {"character": {"relationships": "character", "group_status": "group", ...}}
+        """
+        field_map: dict[str, dict[str, str]] = {}
+
+        for schema_name, schema_class in self.schema_classes.items():
+            source_type = schema_name.lower()
+            rel_fields = schema_class.get_relationship_fields()
+            field_map[source_type] = {}
+
+            for field_name, config in rel_fields.items():
+                target_type = config.get("target_type", "unknown")
+                field_map[source_type][field_name] = target_type.lower()
+
+        return field_map

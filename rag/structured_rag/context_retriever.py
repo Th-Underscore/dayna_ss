@@ -1,4 +1,5 @@
-# TODO: Make subject-relationships dynamic indexing (schema?)
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any
 
 import jsonc
 import logging
@@ -8,7 +9,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import traceback
 from os import PathLike
-from typing import TYPE_CHECKING
 
 from llama_index.core import (
     VectorStoreIndex,
@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     import spacy
     from spacy.tokens import Doc
     from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+    from extensions.dayna_ss_graph.agents.summarizer import Summarizer
 else:
     nltk = None
     spacy = None
@@ -42,7 +43,9 @@ from ...utils.helpers import (
     _BOLD,
     _RESET,
     _DEBUG,
+    _WARNING,
 )
+
 
 from ...utils.background_importer import (
     start_background_import,
@@ -68,15 +71,19 @@ class RetrievalContext:
     general_info: dict[str, dict] = field(default_factory=dict)
     messages: list[str] = field(default_factory=list)
     messages_metadata: list[dict] = field(default_factory=list)
+    character_status: dict[str, dict] = field(default_factory=dict)
+    character_milestones: dict[str, list[dict]] = field(default_factory=dict)
+    relevant_entities: dict[str, set[str]] = field(default_factory=dict)
 
 
 class StoryContextRetriever:
-    def __init__(self, history_path: PathLike, schema_classes: dict | None = None):
+    def __init__(self, history_path: PathLike, schema_classes: dict | None = None, summarizer: 'Summarizer' | None = None):
         """Initialize the context retriever with a history path.
-        
+
         Args:
             history_path: Path to the history directory.
             schema_classes: Optional dict of ParsedSchemaClass objects for schema-driven entity graph.
+            summarizer: Optional Summarizer instance for LLM-based speaker extraction.
         """
         history_path = Path(history_path)
         if not history_path.exists():
@@ -111,7 +118,11 @@ class StoryContextRetriever:
         self.entity_graph = EntityGraph(history_path, persist=True, schema_classes=schema_classes)
         print(f"{_DEBUG}EntityGraph initialized with {len(self.entity_graph.nodes)} nodes{_RESET}")
 
-        self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene)
+        # Store summarizer and pass to chunker for LLM-based speaker extraction
+        self.summarizer = summarizer
+        # TODO: Make this configurable via UI toggle
+        self.use_llm_for_speakers = True  # Toggle: True to always use LLM, False to use regex/spaCy
+        self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene, summarizer=summarizer, use_llm_for_speakers=self.use_llm_for_speakers)
 
         # Create character name patterns for recognition (from both JSON and graph)
         self.character_patterns = self._create_character_patterns()
@@ -119,18 +130,18 @@ class StoryContextRetriever:
     def _create_character_patterns(self) -> dict[str, re.Pattern]:
         """Create regex patterns for character name recognition."""
         patterns = {}
-        
+
         # Get characters from graph (primary source)
         char_names = []
         if hasattr(self, 'entity_graph') and self.entity_graph:
             graph_char_nodes = self.entity_graph.get_nodes_by_type("character")
             char_names = [node.name for node in graph_char_nodes]
-        
+
         # Fallback to JSON if no graph characters
         if not char_names:
             characters_data = self.characters.get("entries", self.characters)
             char_names = list(characters_data.keys())
-        
+
         for char_name in char_names:
             # Create pattern that matches full name and possible first/last name only
             names = char_name.split()
@@ -219,7 +230,7 @@ class StoryContextRetriever:
 
     def query_messages(self, query: str, n_results: int = 5) -> tuple[list[str], list[dict]]:
         """Query messages using semantic search.
-        
+
         Returns:
             tuple of (messages, metadata)
         """
@@ -266,11 +277,11 @@ class StoryContextRetriever:
     ) -> dict[str, list[dict]]:
         """Get relationships between two characters in the same scene, regardless of importance."""
         characters_data = self.characters.get("entries", self.characters)
-        
+
         # Try using graph first for bidirectional relationship lookup
         if hasattr(self, 'entity_graph') and self.entity_graph:
             bidir = self.entity_graph.get_bidirectional_relationship(char1, char2)
-            
+
             rels = {}
             # Check forward relationship (char1 -> char2)
             if bidir["forward"]:
@@ -290,7 +301,7 @@ class StoryContextRetriever:
 
             if rels:
                 return rels
-        
+
         # Fallback to JSON-based lookup
         if char1 not in characters_data or char2 not in characters_data:
             return {}
@@ -373,6 +384,219 @@ class StoryContextRetriever:
 
         return {"entries": result}
 
+    def _unified_entity_aggregation(
+        self,
+        initial_entities: dict[str, set[str]],
+        all_data: dict[str, dict],
+        importance_threshold: int = 75,
+        max_depth: int = 10,
+    ) -> dict[str, set[str]]:
+        """Unified dynamic entity aggregation using EntityGraph.traverse_graph().
+
+        Delegates all relationship traversal to the entity graph for O(1) neighbor lookups
+        and bidirectional traversal. Falls back to legacy logic only if entity_graph is unavailable.
+
+        Args:
+            initial_entities: Dict of entity_type -> initial set of entity names
+                e.g., {"Character": {"John", "Amy"}, "Group": {"Rebel Force"}}
+            all_data: Dict of entity_type -> entity data dict (unused when using entity graph)
+            importance_threshold: Minimum importance score for filtering
+            max_depth: Maximum recursion depth
+
+        Returns:
+            Dict of entity_type -> aggregated set of entity names
+        """
+        if not hasattr(self, 'entity_graph') or not self.entity_graph:
+            return {"character": set(), "group": set(), "event": set()}
+
+        field_map = self.entity_graph.get_schema_relationship_map()
+        if not field_map:
+            field_map = {
+                "character": {"relationships": "character", "group_status": "group", "milestones": "event"},
+                "group": {"characters": "character", "relationships": "group", "events": "event"},
+                "event": {"participants": "character"},
+            }
+
+        graph_initial = {}
+        for etype, names in initial_entities.items():
+            if etype.lower() in ("character", "group", "event"):
+                graph_initial[etype.lower()] = names
+
+        result = self.entity_graph.traverse_graph(
+            graph_initial,
+            field_map=field_map,
+            min_importance=importance_threshold,
+            max_depth=max_depth,
+        )
+
+        return result
+
+    def _get_character_group_status(
+        self,
+        char_name: str,
+        current_scene: dict,
+        importance_threshold: int = 75,
+    ) -> dict[str, dict]:
+        """Get a character's group statuses meeting Condition A (high importance) OR Condition B (in current scene).
+
+        Args:
+            char_name: Name of the character
+            current_scene: Current scene data for scene matching
+            importance_threshold: Minimum importance score for Condition A
+
+        Returns:
+            Dict of status_name -> status_data
+        """
+        characters_data = self.characters.get("entries", self.characters)
+        if char_name not in characters_data:
+            return {}
+
+        char_data = characters_data[char_name]
+        group_status = char_data.get("group_status", char_data.get("status", {}))
+
+        if not group_status:
+            return {}
+
+        result = {}
+        current_scene_what = current_scene.get("what", "") if current_scene else ""
+        current_scene_characters = []
+        if current_scene and "who" in current_scene.get("now", {}):
+            current_scene_characters = [
+                c["name"] for c in current_scene["now"]["who"].get("characters", [])
+            ]
+
+        for status_name, status_data in group_status.items():
+            include_status = False
+
+            importance = status_data.get("importance", {})
+            importance_score = importance.get("score", 0) if isinstance(importance, dict) else 0
+
+            if importance_score >= importance_threshold:
+                include_status = True
+            elif status_name in current_scene_characters or re.search(status_name, current_scene_what, re.IGNORECASE):
+                include_status = True
+            elif status_data.get("events"):
+                for event_name in status_data["events"]:
+                    if re.search(event_name, current_scene_what, re.IGNORECASE):
+                        include_status = True
+                        break
+
+            if include_status:
+                result[status_name] = status_data
+
+        return result
+
+    def _get_character_milestones(
+        self,
+        char_name: str,
+        current_scene: dict,
+        importance_threshold: int = 75,
+    ) -> list[dict]:
+        """Get a character's milestones meeting Condition A (high importance) OR Condition B (in current scene).
+
+        Args:
+            char_name: Name of the character
+            current_scene: Current scene data for scene matching
+            importance_threshold: Minimum importance score for Condition A
+
+        Returns:
+            List of milestone dicts
+        """
+        characters_data = self.characters.get("entries", self.characters)
+        if char_name not in characters_data:
+            return []
+
+        char_data = characters_data[char_name]
+        milestones = char_data.get("milestones", [])
+
+        if not milestones:
+            return []
+
+        result = []
+        current_scene_number = current_scene.get("_scene_number") if current_scene else None
+        current_scene_what = current_scene.get("what", "") if current_scene else ""
+
+        for milestone in milestones:
+            include_milestone = False
+
+            importance = milestone.get("importance", {})
+            importance_score = importance.get("score", 0) if isinstance(importance, dict) else 0
+
+            if importance_score >= importance_threshold:
+                include_milestone = True
+            elif current_scene_number:
+                milestone_scenes = milestone.get("scenes", [])
+                if current_scene_number in milestone_scenes:
+                    include_milestone = True
+
+            if not include_milestone:
+                milestone_title = milestone.get("title", "")
+                if re.search(milestone_title, current_scene_what, re.IGNORECASE):
+                    include_milestone = True
+
+            if include_milestone:
+                result.append(milestone)
+
+        return result
+
+    def _get_all_relevant_status_and_milestones(
+        self,
+        initial_characters: list[str],
+        all_groups: dict[str, dict],
+        all_characters: dict[str, dict],
+        all_events: dict[str, dict],
+        current_scene: dict,
+        importance_threshold: int = 75,
+        max_depth: int = 10,
+    ) -> tuple[dict[str, dict], dict[str, list[dict]]]:
+        """Get all relevant statuses and milestones using unified entity aggregation.
+
+        Uses _unified_entity_aggregation to get the complete pool of relevant
+        characters and groups, then extracts statuses and milestones from that pool.
+
+        Args:
+            initial_characters: Initial list of characters in the scene
+            all_groups: Full groups data dict
+            all_characters: Full characters data dict
+            all_events: Full events data dict
+            current_scene: Current scene data
+            importance_threshold: Minimum importance score
+            max_depth: Maximum recursion depth
+
+        Returns:
+            Tuple of (character_status dict, character_milestones dict)
+        """
+        initial_entities = {"Character": set(initial_characters)}
+        all_data = {
+            "Character": all_characters,
+            "Group": all_groups,
+            "Event": all_events,
+        }
+
+        relevant = self._unified_entity_aggregation(
+            initial_entities, all_data, importance_threshold=importance_threshold, max_depth=max_depth
+        )
+
+        relevant_chars = relevant.get("character", set())
+        characters_data = all_characters.get("entries", all_characters)
+
+        result_status = {}
+        result_milestones = {}
+
+        for char_name in relevant_chars:
+            if char_name not in characters_data:
+                continue
+
+            group_status = self._get_character_group_status(char_name, current_scene, importance_threshold)
+            if group_status:
+                result_status[char_name] = group_status
+
+            milestones = self._get_character_milestones(char_name, current_scene, importance_threshold)
+            if milestones:
+                result_milestones[char_name] = milestones
+
+        return result_status, result_milestones
+
     def retrieve_context(self, current_context: str, last_x_messages: list[str]) -> RetrievalContext:
         """Main method to retrieve all relevant context based on current state."""
         result = RetrievalContext(general_info=self.general_info)
@@ -398,14 +622,33 @@ class StoryContextRetriever:
             print(f"{_DEBUG}retrieve_context try block starting. general_info type: {type(result.general_info)}, is empty: {not result.general_info}{_RESET}")
             print(f"{_DEBUG}scene_characters to look up: {scene_characters}{_RESET}")
             print(f"{_DEBUG}self.characters keys: {list(self.characters.keys()) if self.characters else 'empty'}{_RESET}")
-            # Get character relationships and related data
-            result.characters = self._get_all_relevant_character_relationships(scene_characters)
+
+            initial_entities = {"Character": set(scene_characters)}
+            all_data = {
+                "Character": self.characters,
+                "Group": self.groups,
+                "Event": self.events,
+            }
+            unified_result = self._unified_entity_aggregation(
+                initial_entities, all_data, importance_threshold=75, max_depth=10
+            )
+            result.relevant_entities = unified_result
+            unified_chars = unified_result.get("character", set())
+            unified_groups = unified_result.get("group", set())
+            unified_events = unified_result.get("event", set())
+            print(f"{_DEBUG}unified aggregation: {len(unified_chars)} chars, {len(unified_groups)} groups, {len(unified_events)} events{_RESET}")
+
+            # Get character relationships using unified pool
+            result.characters = self._get_all_relevant_character_relationships(list(unified_chars))
             print(f"{_DEBUG}characters retrieved: {type(result.characters)}, count: {len(result.characters) if result.characters else 0}{_RESET}")
-            result.groups = self._get_relevant_groups(scene_characters, context_to_search)
+            result.groups = {"entries": {g: self.groups.get("entries", self.groups).get(g, {}) for g in unified_groups}}
             print(f"{_DEBUG}groups retrieved: {type(result.groups)}, count: {len(result.groups) if result.groups else 0}{_RESET}")
-            result.events = self._get_relevant_events(scene_characters, result.groups, context_to_search)
+
+            events_dict = self.events.get("scenes", {})
+            events_dict.update(self.events.get("events", {}))
+            result.events = {"entries": {e: events_dict.get(e, {}) for e in unified_events}}
             print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
-            
+
             if self.arcs:
                 result.arcs = self.arcs
                 print(f"{_DEBUG}arcs retrieved: {type(result.arcs)}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
@@ -414,6 +657,12 @@ class StoryContextRetriever:
             if chapters_data:
                 result.chapters = chapters_data
                 print(f"{_DEBUG}chapters retrieved: {type(result.chapters)}, count: {len(result.chapters) if result.chapters else 0}{_RESET}")
+
+            result.character_status, result.character_milestones = self._get_all_relevant_status_and_milestones(
+                scene_characters, self.groups, self.characters, self.events, current_scene
+            )
+            print(f"{_DEBUG}character_status retrieved: {type(result.character_status)}, count: {len(result.character_status) if result.character_status else 0}{_RESET}")
+            print(f"{_DEBUG}character_milestones retrieved: {type(result.character_milestones)}, count: {len(result.character_milestones) if result.character_milestones else 0}{_RESET}")
 
             # Get messages using both retrieval methods
             # scene_messages = self._get_message_chunks()  # Index-based retrieval
@@ -511,6 +760,8 @@ class MessageChunker:
         groups_data: dict[str, Any],
         events_data: dict[str, Any],
         current_scene_data: dict[str, Any],
+        summarizer: 'Summarizer' | None = None,
+        use_llm_for_speakers: bool = True,
     ):
         print(f"{_BOLD}Initializing MessageChunker...{_RESET}")
 
@@ -518,6 +769,9 @@ class MessageChunker:
 
         # Use class-level shared resources
         self.nlp = MessageChunker._nlp
+        self.summarizer = summarizer
+        # TODO: Make configurable via UI toggle
+        self.use_llm_for_speakers = use_llm_for_speakers
 
         self.history_path = Path(history_path)
         self.storage_dir = self.history_path / "message_index"
@@ -631,11 +885,11 @@ class MessageChunker:
         return list(found_entities)
 
     def _determine_speakers(self, paragraph_text: str) -> list[str]:
-        """Determine speakers from text using regex for 'Name: Dialogue' and spaCy for quoted speech."""
+        """Determine speakers from text using LLM (primary) with regex "Name:" as quick pre-filter."""
         speakers = set()
         doc = self.nlp(paragraph_text)
 
-        # 1. Check for "Name: Dialogue" format line by line (existing refined logic)
+        # 1. Check for "Name: Dialogue" format line by line
         lines = paragraph_text.split("\n")
         char_patterns_for_speakers = {
             name: pattern for name, pattern in self.character_name_patterns.items() if isinstance(pattern, re.Pattern)
@@ -662,46 +916,73 @@ class MessageChunker:
                         speakers.add(name)
                         break  # Found speaker for this line by "Name:" pattern
 
-        # 2. spaCy-based analysis for quoted speech and other dialogue indicators within sentences
-        for sent in doc.sents:
-            # Basic check for quotes. More sophisticated quote detection might be needed for complex cases.
-            has_quote = (
-                '"' in sent.text
-                or "'" in sent.text
-                or "“" in sent.text
-                or "”" in sent.text
-                or "‘" in sent.text
-                or "’" in sent.text
-            )
+        # Use LLM for speaker extraction if enabled (more accurate than regex/spaCy)
+        # TODO: Make configurable via UI toggle
+        if self.use_llm_for_speakers and self.summarizer:
+            try:
+                prompt = f'''Analyze the following text in context and identify the names of the character(s) who are speaking or being addressed.
 
-            for token in sent:
-                # Check for dialogue verbs
-                if token.lemma_.lower() in self.DIALOGUE_VERBS and token.pos_ == "VERB":
-                    # Find subject of the verb (potential speaker)
-                    subject_token = None
-                    for child in token.children:
-                        if child.dep_ == "nsubj":
-                            subject_token = child
-                            break
+Respond with a JSON array of character names:
+["Character1", "Character2", ...]
 
-                    if subject_token:
-                        # Extract text of the subject (could be a single name or a phrase)
-                        # We can check the subject token itself or its subtree for more complex subjects.
-                        subject_text = subject_token.text
-                        potential_speakers_from_subject = self._extract_entities(subject_text, self.character_name_patterns)
-                        for speaker_name in potential_speakers_from_subject:
-                            if has_quote:
-                                speakers.add(speaker_name)
+Text:
+```
+{paragraph_text}
+```
 
-                    # Additionally, check for character names directly preceding/following quotes if not caught by subject-verb
-                    # This part can be expanded with more rules.
-                    # For example, if token is a quote, check previous/next tokens for names.
+Do not include generic terms like "you", "someone", "they". Only include characters that are explicitly or implicitly mentioned as speaking.'''
+                response_text, _ = self.summarizer.generate_with_sse(prompt, self.summarizer.last.custom_state, "determine_speakers", "speakers_llm", None)
+                if response_text:
+                    try:
+                        llm_speakers = jsonc.loads(response_text.strip())
+                        if isinstance(llm_speakers, list):
+                            speakers.update(llm_speakers)
+                    except jsonc.JSONDecodeError:
+                        pass
+            except Exception:
+                pass
 
-            if has_quote and not speakers.intersection(self._extract_entities(sent.text, self.character_name_patterns)):
-                chars_in_sentence_with_quote = self._extract_entities(sent.text, self.character_name_patterns)
-                for char_name in chars_in_sentence_with_quote:
-                    # A more robust check would analyze proximity to quote marks.
-                    speakers.add(char_name)  # This might over-generate, needs refinement or context.
+        if not speakers:
+            # 2. Fall back to spaCy-based analysis for quoted speech and other dialogue indicators within sentences
+            for sent in doc.sents:
+                # Basic check for quotes. More sophisticated quote detection might be needed for complex cases.
+                has_quote = (
+                    '"' in sent.text
+                    or "'" in sent.text
+                    or "“" in sent.text
+                    or "”" in sent.text
+                    or "‘" in sent.text
+                    or "’" in sent.text
+                )
+
+                for token in sent:
+                    # Check for dialogue verbs
+                    if token.lemma_.lower() in self.DIALOGUE_VERBS and token.pos_ == "VERB":
+                        # Find subject of the verb (potential speaker)
+                        subject_token = None
+                        for child in token.children:
+                            if child.dep_ == "nsubj":
+                                subject_token = child
+                                break
+
+                        if subject_token:
+                            # Extract text of the subject (could be a single name or a phrase)
+                            # We can check the subject token itself or its subtree for more complex subjects.
+                            subject_text = subject_token.text
+                            potential_speakers_from_subject = self._extract_entities(subject_text, self.character_name_patterns)
+                            for speaker_name in potential_speakers_from_subject:
+                                if has_quote:
+                                    speakers.add(speaker_name)
+
+                        # Additionally, check for character names directly preceding/following quotes if not caught by subject-verb
+                        # This part can be expanded with more rules.
+                        # For example, if token is a quote, check previous/next tokens for names.
+
+                if has_quote and not speakers.intersection(self._extract_entities(sent.text, self.character_name_patterns)):
+                    chars_in_sentence_with_quote = self._extract_entities(sent.text, self.character_name_patterns)
+                    for char_name in chars_in_sentence_with_quote:
+                        # A more robust check would analyze proximity to quote marks.
+                        speakers.add(char_name)  # This might over-generate, needs refinement or context.
 
         return list(speakers)
 
@@ -809,7 +1090,7 @@ class MessageChunker:
 
         return tagged_text
 
-    def chunk_message(self, message: str, message_idx: int, current_timestamp: str) -> list:
+    def chunk_message(self, message: str, message_idx: int, current_timestamp: str, do_determine_speakers: bool = True) -> list:
         """Split message into chunks at different granularities, enrich with metadata."""
         chunks = []
 
@@ -835,8 +1116,10 @@ class MessageChunker:
             for sent_idx, sentence_text in enumerate(sentences, start=1):
                 chunk_id = f"{message_idx}_{para_idx}_{sent_idx}"
 
-                # Speaker detection (current logic, to be reviewed later)
-                speakers = self._determine_speakers(paragraph)
+                if do_determine_speakers:
+                    speakers = self._determine_speakers(paragraph)
+                else:
+                    speakers = [None]  # Placeholder
 
                 # Extract entities directly mentioned in the current sentence
                 characters_mentioned_in_sentence = self._extract_entities(sentence_text, self.character_name_patterns)
@@ -935,15 +1218,60 @@ class MessageChunker:
         else:
             print(f"{_HILITE}No nodes found for message_idx {message_idx} to update metadata.{_RESET}")
 
-    def process_message(self, message: str, message_idx: int, current_timestamp: str):
+    def process_message(self, message: str, message_idx: int, current_timestamp: str, do_determine_speakers: bool = True) -> list:
         """Process and store a new message. Overwrites existing chunks if message_idx exists."""
         # Delete existing chunks for this message if any
         self.delete_message_chunks(message_idx)
 
         # Create and store new chunks
-        chunks = self.chunk_message(message, message_idx, current_timestamp)
+        chunks = self.chunk_message(message, message_idx, current_timestamp, do_determine_speakers=do_determine_speakers)
         self.store_chunks(chunks)
         return chunks
+
+    def update_message_speakers(self, message_idx: int) -> bool:
+        """Update speakers for existing chunks of a message using current state.
+
+        Uses the current stored message text to re-determine speakers via LLM,
+        then updates the metadata for all chunks with that message_idx.
+
+        Args:
+            message_idx: The message index to update speakers for.
+
+        Returns:
+            bool: True if update succeeded, False otherwise.
+        """
+        try:
+            all_nodes = self.index.docstore.docs
+            message_chunks = []
+            for node_id, node in all_nodes.items():
+                if node.metadata.get("message_idx") == message_idx:
+                    message_chunks.append(node)
+
+            if not message_chunks:
+                print(f"{_WARNING}No chunks found for message_idx {message_idx} to update speakers.{_RESET}")
+                return False
+
+            first_chunk = message_chunks[0]
+            message_text = first_chunk.text
+
+            paragraphs = [p.strip() for p in message_text.split("\n\n") if p.strip()]
+            if not paragraphs:
+                print(f"{_WARNING}No text found in chunks for message_idx {message_idx}.{_RESET}")
+                return False
+
+            full_message_text = "\n\n".join(paragraphs)
+            speakers = self._determine_speakers(full_message_text)
+
+            if not speakers:
+                print(f"{_DEBUG}No speakers determined for message_idx {message_idx}.{_RESET}")
+
+            self.update_node_metadata_by_message_idx(message_idx, {"speakers": speakers})
+            return True
+
+        except Exception as e:
+            print(f"{_ERROR}Error updating speakers for message_idx {message_idx}: {str(e)}{_RESET}")
+            traceback.print_exc()
+            return False
 
     def store_chunks(self, chunks: list, persist_dir: PathLike | None = None):
         """Store chunks using LlamaIndex."""

@@ -2012,7 +2012,11 @@ Respond with ONLY the JSON object for this arc."""
         )
 
         print(f"{_INPUT}Updated {parent_item_name_prefix}.{field_name} from '''\n{_RESET}{field_value}{_INPUT}\n''' to '''\n{_BOLD}{updated_value}{_INPUT}\n'''{_RESET}")
-        parent_data_object.update({ field_name: updated_value })
+        if isinstance(parent_data_object, list):
+            parent_data_object[field_name] = updated_value
+        else:
+            parent_data_object.update({ field_name: updated_value })
+
 
     def _resolve_cross_branch_reference(self, reference: str) -> str:
         """Resolve a {subjects.X.Y.Z} style reference to a formatted string.

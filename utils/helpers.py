@@ -403,18 +403,86 @@ def format_str(string: str, **kwargs) -> str:
 _jinja_env = None
 
 
-def _last_item(d):
+def _last_item(d: dict):
     """Return the last value from a dict by insertion order (Python 3.7+).
-    
+
     Args:
         d: A dictionary
-        
+
     Returns:
         The last value in the dict, or None if empty
     """
     if not d:
         return None
     return list(d.values())[-1]
+
+
+def _scene_messages(metadata: list, scene_number: int | None = None):
+    """Filter messages metadata to get only messages from a specific scene.
+
+    Args:
+        metadata: List of message metadata dicts
+        scene_number: Optional scene number to filter by. If None, returns all.
+
+    Returns:
+        List of metadata dicts for the specified scene (or all if no scene_number)
+    """
+    if not metadata:
+        return []
+    if scene_number is None:
+        return metadata
+    return [m for m in metadata if m.get("scene_number") == scene_number]
+
+
+def _get_param(metadata, param, include_system=False):
+    """Extract a specific parameter from messages metadata.
+
+    Args:
+        metadata: List of message metadata dicts
+        param: Parameter name to extract. Common options:
+            - "speakers": List of unique speakers
+            - "characters_present": Characters present in each message
+            - "summary" / "text": Summary text from is_summary=True messages
+            - "subjects_referenced": Dict with characters/groups/events
+            - "scene_number": Scene numbers
+        include_system: For "speakers" param only - whether to include "System"
+
+    Returns:
+        For most params: List of unique values
+        For "summary"/"text": List of summary texts from is_summary=True messages
+        For "subjects_referenced": Dict with aggregated characters/groups/events
+    """
+    if not metadata:
+        return [] if param != "subjects_referenced" else {}
+
+    if param in ("summary", "text"):
+        return [m.get("text", "") for m in metadata if m.get("is_summary", False)]
+
+    if param == "subjects_referenced":
+        chars = set()
+        groups = set()
+        events = set()
+        for m in metadata:
+            refs = m.get("subjects_referenced", {})
+            chars.update(refs.get("characters", []))
+            groups.update(refs.get("groups", []))
+            events.update(refs.get("events", []))
+        return {"characters": sorted(chars), "groups": sorted(groups), "events": sorted(events)}
+
+    unique_vals = set()
+    for m in metadata:
+        vals = m.get(param, [])
+        if isinstance(vals, list):
+            if param == "speakers" and not include_system:
+                unique_vals.update(v for v in vals if v != "System")
+            else:
+                unique_vals.update(vals)
+        elif vals:
+            unique_vals.add(vals)
+
+    if param == "speakers":
+        return sorted(unique_vals)
+    return sorted(unique_vals, key=lambda x: str(x))
 
 
 def _get_jinja_env():
@@ -427,6 +495,8 @@ def _get_jinja_env():
             undefined=jinja2.Undefined,
         )
         _jinja_env.filters['last_item'] = _last_item
+        _jinja_env.filters['scene_messages'] = _scene_messages
+        _jinja_env.filters['get_param'] = _get_param
     return _jinja_env
 
 
