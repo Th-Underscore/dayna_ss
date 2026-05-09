@@ -68,6 +68,18 @@ class EntityGraph:
 
         self._load_or_build()
 
+    def _resolve_participant_id(self, participant: str) -> tuple[str, str]:
+        """Resolve a participant name to (node_id, entity_type).
+
+        Checks self.nodes for existing keys, explicit prefixes, then defaults to character.
+        """
+        if participant in self.nodes:
+            return participant, self.nodes[participant].type
+        if ":" in participant:
+            prefix = participant.split(":", 1)[0]
+            return participant, prefix
+        return f"character:{participant}", "character"
+
     def _load_or_build(self):
         """Load from disk or build from source files."""
         graph_path = self.history_path / "entity_graph.json"
@@ -129,7 +141,9 @@ class EntityGraph:
                 faction=r.get("faction", "neutral"),
                 bidirectional=r.get("bidirectional", False),
                 aliases=r.get("aliases", []),
-                events=r.get("events", [])
+                events=r.get("events", []),
+                field_name=r.get("field_name", ""),
+                scenes=r.get("scenes", [])
             )
             for r in data.get("relationships", [])
         ]
@@ -161,7 +175,9 @@ class EntityGraph:
                     "faction": r.faction,
                     "bidirectional": r.bidirectional,
                     "aliases": r.aliases,
-                    "events": r.events
+                    "events": r.events,
+                    "field_name": r.field_name,
+                    "scenes": r.scenes
                 }
                 for r in self.relationships
             ]
@@ -206,7 +222,11 @@ class EntityGraph:
             if not rel_fields:
                 continue
 
-            self._build_entities_from_schema(entity_type, filename, rel_fields)
+            # Use specialized builders for event-like schemas that have nested structure
+            if subject_name == "events":
+                self._build_events()
+            else:
+                self._build_entities_from_schema(entity_type, filename, rel_fields)
 
         # Apply bidirectional rules based on schema config
         self._apply_bidirectional_rules_from_schema()
@@ -243,15 +263,15 @@ class EntityGraph:
                 node.relationships[field_name] = field_data
 
                 # Build relationships based on field type
-                if isinstance(field_data, dict):
+                if isinstance(field_data, dict) and field_name == "characters" and entity_type == "group":
+                    # Group character membership (special case)
+                    self._process_group_membership(node_id, field_data, field_name)
+                elif isinstance(field_data, dict):
                     # Dict of target -> list of relationships (like character relationships)
                     self._process_relationship_dict(
                         node_id, entity_name, target_type, field_data,
                         relationship_def, is_bidirectional, field_name
                     )
-                elif isinstance(field_data, dict) and field_name == "characters" and entity_type == "group":
-                    # Group character membership (special case)
-                    self._process_group_membership(node_id, field_data, field_name)
 
                 # Also process list fields (like milestones)
                 elif isinstance(field_data, list):
@@ -303,7 +323,8 @@ class EntityGraph:
                     importance_reason=importance_reason,
                     faction=faction,
                     aliases=rel.get("aliases", []),
-                    events=rel.get("events", [])
+                    events=rel.get("events", []),
+                    scenes=rel.get("scenes", [])
                 )
                 self.relationships.append(relationship)
 
@@ -320,7 +341,8 @@ class EntityGraph:
                 status="group_membership",
                 field_name=field_name,
                 importance=50,
-                events=char_info.get("events", [])
+                events=char_info.get("events", []),
+                scenes=char_info.get("scenes", [])
             )
             self.relationships.append(relationship)
 
@@ -381,8 +403,8 @@ class EntityGraph:
             rel_fields = schema_class.get_relationship_fields()
             for field_name, config in rel_fields.items():
                 if config.get("bidirectional", False):
-                    source_type = schema_name.lower()
-                    target_type = config.get("target_type", "unknown")
+                    source_type = schema_name.lower().rstrip("s")
+                    target_type = config.get("target_type", "unknown").lower().rstrip("s")
                     bidir_rules.append((source_type, target_type))
 
         # Mark relationships as bidirectional in metadata
@@ -523,14 +545,25 @@ class EntityGraph:
                 node.data["participants"] = participants
                 # Create edges to participants
                 for participant in participants:
+                    participant_id, ptype = self._resolve_participant_id(participant if isinstance(participant, str) else "")
+                    # Determine importance for this participant
+                    importance_val = 50
+                    if isinstance(participants, dict):
+                        pinfo = participants.get(participant, {})
+                        if isinstance(pinfo, dict):
+                            imp = pinfo.get("importance", {})
+                            if isinstance(imp, dict):
+                                importance_val = imp.get("score", 50)
+                            elif isinstance(imp, int):
+                                importance_val = imp
                     # Ensure participant node exists (create if missing)
-                    participant_id = f"character:{participant}"
                     if participant_id not in self.nodes:
-                        # Create a minimal node for this participant
+                        # Determine the name portion from participant_id
+                        pname = participant_id.split(":", 1)[1] if ":" in participant_id else participant_id
                         self.nodes[participant_id] = EntityNode(
                             id=participant_id,
-                            type="character",
-                            name=participant,
+                            type=ptype,
+                            name=pname,
                             data={}
                         )
 
@@ -540,7 +573,7 @@ class EntityGraph:
                         target_id=participant_id,
                         relation="participant",
                         status="event_participation",
-                        importance=50
+                        importance=importance_val
                     )
                     self.relationships.append(relationship)
 
@@ -563,14 +596,23 @@ class EntityGraph:
                 node.data["participants"] = participants
                 # Create edges to participants
                 for participant in participants:
+                    participant_id, ptype = self._resolve_participant_id(participant if isinstance(participant, str) else "")
+                    importance_val = 50
+                    if isinstance(participants, dict):
+                        pinfo = participants.get(participant, {})
+                        if isinstance(pinfo, dict):
+                            imp = pinfo.get("importance", {})
+                            if isinstance(imp, dict):
+                                importance_val = imp.get("score", 50)
+                            elif isinstance(imp, int):
+                                importance_val = imp
                     # Ensure participant node exists (create if missing)
-                    participant_id = f"character:{participant}"
                     if participant_id not in self.nodes:
-                        # Create a minimal node for this participant
+                        pname = participant_id.split(":", 1)[1] if ":" in participant_id else participant_id
                         self.nodes[participant_id] = EntityNode(
                             id=participant_id,
-                            type="character",
-                            name=participant,
+                            type=ptype,
+                            name=pname,
                             data={}
                         )
 
@@ -580,7 +622,7 @@ class EntityGraph:
                         target_id=participant_id,
                         relation="participant",
                         status="event_participation",
-                        importance=50
+                        importance=importance_val
                     )
                     self.relationships.append(relationship)
 
@@ -603,14 +645,23 @@ class EntityGraph:
                 node.data["participants"] = participants
                 # Create edges to participants
                 for participant in participants:
+                    participant_id, ptype = self._resolve_participant_id(participant if isinstance(participant, str) else "")
+                    importance_val = 50
+                    if isinstance(participants, dict):
+                        pinfo = participants.get(participant, {})
+                        if isinstance(pinfo, dict):
+                            imp = pinfo.get("importance", {})
+                            if isinstance(imp, dict):
+                                importance_val = imp.get("score", 50)
+                            elif isinstance(imp, int):
+                                importance_val = imp
                     # Ensure participant node exists (create if missing)
-                    participant_id = f"character:{participant}"
                     if participant_id not in self.nodes:
-                        # Create a minimal node for this participant
+                        pname = participant_id.split(":", 1)[1] if ":" in participant_id else participant_id
                         self.nodes[participant_id] = EntityNode(
                             id=participant_id,
-                            type="character",
-                            name=participant,
+                            type=ptype,
+                            name=pname,
                             data={}
                         )
 
@@ -620,7 +671,7 @@ class EntityGraph:
                         target_id=participant_id,
                         relation="participant",
                         status="event_participation",
-                        importance=50
+                        importance=importance_val
                     )
                     self.relationships.append(relationship)
 
@@ -1350,12 +1401,12 @@ class EntityGraph:
         field_map: dict[str, dict[str, str]] = {}
 
         for schema_name, schema_class in self.schema_classes.items():
-            source_type = schema_name.lower()
+            source_type = schema_name.lower().rstrip("s")
             rel_fields = schema_class.get_relationship_fields()
             field_map[source_type] = {}
 
             for field_name, config in rel_fields.items():
-                target_type = config.get("target_type", "unknown")
-                field_map[source_type][field_name] = target_type.lower()
+                target_type = config.get("target_type", "unknown").lower().rstrip("s")
+                field_map[source_type][field_name] = target_type
 
         return field_map

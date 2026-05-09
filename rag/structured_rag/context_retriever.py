@@ -344,9 +344,10 @@ class StoryContextRetriever:
                         important_rels = {}
                         for rel in graph_rels:
                             target = rel.target_id
-                            if target not in important_rels:
-                                important_rels[target] = []
-                            important_rels[target].append({
+                            normalized_target = target.split(":", 1)[1] if ":" in target else target
+                            if normalized_target not in important_rels:
+                                important_rels[normalized_target] = []
+                            important_rels[normalized_target].append({
                                 "relation": rel.relation,
                                 "status": rel.status,
                                 "aliases": rel.aliases,
@@ -812,7 +813,8 @@ class StoryContextRetriever:
 
             scenes = self._get_field_value(self.events, "Event", "scenes", {})
             events = self._get_field_value(self.events, "Event", "events", {})
-            events_dict = {**scenes, **events}
+            past = self._get_field_value(self.events, "Event", "past", {})
+            events_dict = {**scenes, **events, **past}
             result.events = {"entries": {e: events_dict.get(e, {}) for e in unified_events}}
             print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
 
@@ -1280,13 +1282,14 @@ Do not include generic terms like "you", "someone", "they". Only include charact
             # Split paragraph into sentences
             sentences = nltk.sent_tokenize(paragraph)
 
+            if do_determine_speakers:
+                paragraph_speakers = self._determine_speakers(paragraph)
+            else:
+                paragraph_speakers = [None]  # Placeholder
+
             for sent_idx, sentence_text in enumerate(sentences, start=1):
                 chunk_id = f"{message_idx}_{para_idx}_{sent_idx}"
-
-                if do_determine_speakers:
-                    speakers = self._determine_speakers(paragraph)
-                else:
-                    speakers = [None]  # Placeholder
+                speakers = paragraph_speakers
 
                 # Extract entities directly mentioned in the current sentence
                 characters_mentioned_in_sentence = self._extract_entities(sentence_text, self.character_name_patterns)
@@ -1419,9 +1422,10 @@ Do not include generic terms like "you", "someone", "they". Only include charact
                 return False
 
             first_chunk = message_chunks[0]
-            message_text = first_chunk.text
+            message_chunks_sorted = sorted(message_chunks, key=lambda n: n.metadata.get("indices", [0, 0, 0]))
+            full_message_text = "\n\n".join(n.text for n in message_chunks_sorted if n.text)
 
-            paragraphs = [p.strip() for p in message_text.split("\n\n") if p.strip()]
+            paragraphs = [p.strip() for p in full_message_text.split("\n\n") if p.strip()]
             if not paragraphs:
                 print(f"{_WARNING}No text found in chunks for message_idx {message_idx}.{_RESET}")
                 return False

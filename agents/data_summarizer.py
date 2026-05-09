@@ -1013,7 +1013,7 @@ Respond with ONLY the JSON object for this arc."""
             unexpanded_formatted_data: Unexpanded formatted data.
             target_schema_class: Schema class to process.
             keys: Path keys to the data location.
-            trigger_update: If True, allow LLM calls for leaf fields. Defaults to False.
+            trigger_update: If True, allow LLM calls for leaf fields. Defaults to False (opt-in).
         """
         if shared.stop_everything:
             return data
@@ -1104,7 +1104,7 @@ Respond with ONLY the JSON object for this arc."""
             unexpanded_formatted_data (FormattedData): Unexpanded formatted view used when creating prompts that require original/unexpanded values.
             schema_class (ParsedSchemaClass): Schema description that determines traversal behavior (dataclass, alias/field, wrapped list/dict, or nested schema).
             keys (list): List of keys/indices representing the path within `formatted_data.data` corresponding to `data`.
-            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False.
+            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False (opt-in).
         """
 
         # --- Case A: Dataclass (object with defined fields) ---
@@ -1140,7 +1140,8 @@ Respond with ONLY the JSON object for this arc."""
                     formatted_data,
                     unexpanded_formatted_data,
                     effective_child_schema,
-                    keys
+                    keys,
+                    trigger_update=trigger_update
                 )
                 return
 
@@ -1168,7 +1169,8 @@ Respond with ONLY the JSON object for this arc."""
                                 formatted_data,
                                 unexpanded_formatted_data,
                                 effective_item_schema,
-                                new_keys
+                                new_keys,
+                                trigger_update=trigger_update
                             )
                             recursive_set(formatted_data.data, new_keys, item_data)
                             pm.done_phase(sub_phase_id)
@@ -1188,7 +1190,8 @@ Respond with ONLY the JSON object for this arc."""
                                 formatted_data=formatted_data,
                                 parent_schema_class=schema_class,          # Alias as parent for prompts
                                 field=dummy_field,
-                                keys=keys
+                                keys=keys,
+                                trigger_update=trigger_update
                             )
 
             # 3. Dict container
@@ -1217,7 +1220,8 @@ Respond with ONLY the JSON object for this arc."""
                                 formatted_data,
                                 unexpanded_formatted_data,
                                 effective_val_schema,
-                                new_keys
+                                new_keys,
+                                trigger_update=trigger_update
                             )
                             recursive_set(formatted_data.data, new_keys, val_data)
                             pm.done_phase(sub_phase_id)
@@ -1237,7 +1241,8 @@ Respond with ONLY the JSON object for this arc."""
                                 formatted_data=formatted_data,
                                 parent_schema_class=schema_class,          # Alias as parent for prompts
                                 field=dummy_field,
-                                keys=keys
+                                keys=keys,
+                                trigger_update=trigger_update
                             )
 
     def _process_field(
@@ -1269,7 +1274,7 @@ Respond with ONLY the JSON object for this arc."""
             unexpanded_formatted_data (FormattedData): Unexpanded formatted data used when generating prompts that require raw content.
             parent_schema_class (ParsedSchemaClass): Schema class of the parent, used for inheriting defaults for nested schemas.
             parent_keys (list): List of keys representing the path to the parent within the formatted data structure.
-            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False.
+            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False (opt-in).
         """
         field_name = field_def.name
         full_path = f"{parent_path}.{field_name}" if parent_path else field_name
@@ -2002,7 +2007,7 @@ Respond with ONLY the JSON object for this arc."""
             parent_schema_class (ParsedSchemaClass): Schema of the parent object.
             field (ParsedSchemaField): The field in question.
             keys (list, optional): Path keys to the parent object. Defaults to [].
-            trigger_update (bool, optional): If False, skip LLM call. Defaults to False.
+            trigger_update (bool, optional): If True, allow LLM call. Defaults to False (opt-in).
         """
         if not trigger_update:
             print(f"{_GRAY}Skipping update for {parent_item_name_prefix}.{field_name} (trigger_update=False){_RESET}")

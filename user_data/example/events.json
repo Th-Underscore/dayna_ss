@@ -2,8 +2,8 @@
   "past": {},
   "scenes": {
     "Surviving The First Incursion": {
-      "start": {"message_node": "1_1_1", "date": "2027-09-05", "time": "Noon", "specific_time": "12:07"},
-      "end": {"message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon", "specific_time": "14:32"},
+      "start": {"_message_node": "1_1_1", "date": "2027-09-05", "time": "Noon", "specific_time": "12:07"},
+      "end": {"_message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon", "specific_time": "14:32"},
       "summary": "Group survived first attack.",
       "catalyst": "First major Subterranean attack.",
       "outcome": "Rebel Force formed.",
@@ -13,8 +13,8 @@
       }
     },
     "Escaping The First Incursion": {
-      "start": {"message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon"},
-      "end": {"message_node": "10_2_5", "date": "2027-09-08", "time": "Evening"},
+      "start": {"_message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon"},
+      "end": {"_message_node": "10_2_5", "date": "2027-09-08", "time": "Evening"},
       "summary": "Escaped but Harry was killed.",
       "catalyst": "Subterranean pursuit.",
       "outcome": "Harry Kristi killed.",
@@ -67,8 +67,8 @@
   },
   "events": {
     "The First Incursion": {
-      "start": {"message_node": "1_1_1", "date": "2027-09-05", "time": "Noon"},
-      "end": {"message_node": "11_1_3", "date": "2027-09-08", "time": "Late evening"},
+      "start": {"_message_node": "1_1_1", "date": "2027-09-05", "time": "Noon"},
+      "end": {"_message_node": "11_1_3", "date": "2027-09-08", "time": "Late evening"},
       "summary": "First major attack that started the war.",
       "catalyst": "Subterraneans emerged.",
       "outcome": "Massive casualties, Rebel Force formed.",

@@ -1518,6 +1518,8 @@ class Summarizer:
 
         last = getattr(self, "last", None)
         if not last or (history_path and history_path != last.history_path):
+            # Point format templates loader to session-local path
+            FormattedData.set_session_templates_path(history_path / "format_templates.json")
             custom_state = copy.deepcopy(state)
             # Initialize schema parser first to get schema classes for entity graph
             schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
@@ -2355,16 +2357,27 @@ class FormattedData:
         return self.data[index]
 
     _format_templates_cache: dict | None = None
+    _session_templates_path: Path | None = None
+
+    @staticmethod
+    def set_session_templates_path(path: Path):
+        """Set the session-local templates path and invalidate the cache."""
+        FormattedData._session_templates_path = path
+        FormattedData._format_templates_cache = None
 
     @staticmethod
     def _load_format_templates() -> dict:
-        """Load format templates from the templates JSON file."""
+        """Load format templates, preferring session-local over global."""
         if FormattedData._format_templates_cache is not None:
             return FormattedData._format_templates_cache
 
         try:
             dss_dir = Path(__file__).parent.parent
-            template_path = dss_dir / "user_data" / "example" / "format_templates.json"
+            # Try session-local path first
+            if FormattedData._session_templates_path and FormattedData._session_templates_path.exists():
+                template_path = FormattedData._session_templates_path
+            else:
+                template_path = dss_dir / "user_data" / "example" / "format_templates.json"
             templates = load_json(template_path) or {}
             FormattedData._format_templates_cache = templates
             print(f"{_DEBUG}Loaded {len(templates)} format templates{_RESET}")

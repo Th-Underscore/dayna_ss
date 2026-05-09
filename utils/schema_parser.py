@@ -1236,7 +1236,10 @@ class SchemaWrapper:
                     else:
                         return default
                 else:
-                    current = self.get_field_value(current, entity_type, part)
+                    if part in current:
+                        current = current[part]
+                    else:
+                        current = self.get_field_value(current, entity_type, part)
                     if current is None:
                         return default
             elif isinstance(current, list):
@@ -1272,14 +1275,15 @@ class SchemaWrapper:
                 }
 
         defaults = schema_class.defaults or {}
+        relationship_map = defaults.get("relationship_format", {})
         for key, value in defaults.items():
             if key.endswith("_placeholder"):
                 continue
             if key not in result:
                 result[key] = {"default": value}
 
-            if "relationship_format" in value:
-                result[key]["relationship_config"] = value["relationship_format"].get(key)
+            if key in relationship_map:
+                result[key]["relationship_config"] = relationship_map[key]
 
         return result
 

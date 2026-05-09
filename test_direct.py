@@ -76,7 +76,11 @@ def test_entity_graph_logic():
                 for member_name, member_info in group_data.get("characters", {}).items():
                     member_score = 0
                     if isinstance(member_info, dict):
-                        member_score = member_info.get("importance", 0)
+                        imp = member_info.get("importance", 0)
+                        if isinstance(imp, dict):
+                            member_score = imp.get("score", 0)
+                        else:
+                            member_score = imp if isinstance(imp, int) else 0
                     rels.append({
                         "source": f"group:{group_name}",
                         "target": f"character:{member_name}",
@@ -94,24 +98,26 @@ def test_entity_graph_logic():
     def traverse(start_char, min_score, max_depth):
         """Simulate EntityGraph.traverse_graph()"""
         relevant = {"character": {start_char}, "group": set()}
+        visited = set()
+        current_frontier = {start_char}
         
         for depth in range(max_depth):
-            new = False
+            if not current_frontier:
+                break
+            next_frontier = set()
             for rel in relationships:
-                # Outgoing
-                if rel["source"] == f"character:{start_char}" and rel["score"] >= min_score:
+                source_char = rel["source"].replace("character:", "")
+                if source_char in current_frontier and rel["score"] >= min_score:
                     if rel["target"].startswith("character:"):
                         target = rel["target"].replace("character:", "")
                         if target not in relevant["character"]:
                             relevant["character"].add(target)
-                            new = True
-                            start_char = target  # Continue from this
+                            next_frontier.add(target)
                     elif rel["target"].startswith("group:"):
                         target = rel["target"].replace("group:", "")
                         relevant["group"].add(target)
-            
-            if not new:
-                break
+            visited.update(current_frontier)
+            current_frontier = {c for c in next_frontier if c not in visited}
         
         return relevant
     

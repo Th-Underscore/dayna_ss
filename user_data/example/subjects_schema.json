@@ -207,20 +207,28 @@
       "type": "dataclass",
       "fields": {
         "position": "list[str]",
-        "events": "list[str]"
+        "events": "list[str]",
+        "importance": "Importance"
       },
       "defaults": {
         "position_placeholder": "The character's role or rank within this specific group.",
-        "events_placeholder": "A list of events relevant to this character's involvement with the group."
+        "events_placeholder": "A list of events relevant to this character's involvement with the group.",
+        "importance_placeholder": "The importance of this character's membership to the group. Score (0-100): 100=Core member, 80=Frequent, 50=Member, 30=Occasional, 10=Associate, 0=Not affiliated. Faction: 'positive', 'negative', or 'neutral'."
       }
     },
     "GroupRelationship": {
       "type": "dataclass",
       "fields": {
-        "position": "list[str]"
+        "position": "list[str]",
+        "relation": "str",
+        "status": "str",
+        "importance": "Importance"
       },
       "defaults": {
-        "position_placeholder": "Describes the nature of the relationship this group has with another group (e.g., 'Associate', 'Enemy')."
+        "position_placeholder": "Describes the nature of the relationship this group has with another group (e.g., 'Associate', 'Enemy').",
+        "relation_placeholder": "The type of relationship (e.g., 'ally', 'enemy', 'neutral').",
+        "status_placeholder": "The current status of the relationship (e.g., 'active', 'dormant', 'hostile').",
+        "importance_placeholder": "The significance of this relationship. Score (0-100): 100=Alliance/Conflict defining, 80=Major, 50=Significant, 30=Minor, 10=Background, 0=Irrelevant. Faction: 'positive' for ally, 'negative' for enemy, 'neutral' otherwise."
       }
     },
     "Group": {
@@ -454,7 +462,6 @@
     "EventParticipant": {
       "type": "dataclass",
       "fields": {
-        "name": "str",
         "importance": "Importance"
       }
     },
