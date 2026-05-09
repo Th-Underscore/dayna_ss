@@ -10,6 +10,8 @@ from pathlib import Path
 import traceback
 from os import PathLike
 
+from ...utils.schema_parser import SchemaWrapper
+
 from llama_index.core import (
     VectorStoreIndex,
     StorageContext,
@@ -115,6 +117,8 @@ class StoryContextRetriever:
         print(f"  arcs count: {len(self.arcs) if self.arcs else 0}{_RESET}")
 
         # Initialize entity graph for relationship tracking
+        self.schema_classes = schema_classes or {}
+        self.schema_wrapper = SchemaWrapper(self.schema_classes) if self.schema_classes else None
         self.entity_graph = EntityGraph(history_path, persist=True, schema_classes=schema_classes)
         print(f"{_DEBUG}EntityGraph initialized with {len(self.entity_graph.nodes)} nodes{_RESET}")
 
@@ -139,7 +143,7 @@ class StoryContextRetriever:
 
         # Fallback to JSON if no graph characters
         if not char_names:
-            characters_data = self.characters.get("entries", self.characters)
+            characters_data = self._get_entries(self.characters, "Character")
             char_names = list(characters_data.keys())
 
         for char_name in char_names:
@@ -164,29 +168,27 @@ class StoryContextRetriever:
     def _get_relevant_groups(self, characters: list[str], context: str) -> dict[str, dict]:
         """Get groups relevant to the current context and characters."""
         relevant_groups = {}
-        groups_data = self.groups.get("entries", self.groups)
+        groups_data = self._get_entries(self.groups, "Group")
 
-        # Use graph for character->group mapping (primary source)
         if hasattr(self, 'entity_graph') and self.entity_graph:
             graph_groups = self.entity_graph.get_relevant_groups(characters, context)
             for group_name in graph_groups:
                 if group_name in groups_data:
                     relevant_groups[group_name] = groups_data[group_name]
         else:
-            # Fallback: check if any character is in this group
             for group_name, group_data in groups_data.items():
                 for char in characters:
-                    if char in group_data.get("characters", {}):
+                    group_chars = self._get_field_value(group_data, "Group", "characters", {})
+                    if char in group_chars:
                         relevant_groups[group_name] = group_data
                         break
 
-        # Complement: check via text matching for groups not already included
         for group_name, group_data in groups_data.items():
             if group_name in relevant_groups:
                 continue
-            # Check if group is mentioned in context
+            group_aliases = self._get_field_value(group_data, "Group", "aliases", [])
             if re.search(group_name, context, flags=re.IGNORECASE) or any(
-                alias for alias in group_data.get("aliases", []) if re.search(alias, context, flags=re.IGNORECASE)
+                alias for alias in group_aliases if re.search(alias, context, flags=re.IGNORECASE)
             ):
                 relevant_groups[group_name] = group_data
 
@@ -196,16 +198,16 @@ class StoryContextRetriever:
         """Get events relevant to the current context and groups."""
         relevant_events = {}
 
-        if "scenes" in self.events:
-            for scene_name, scene in self.events["scenes"].items():
-                # Check if event is mentioned in context
+        scenes = self._get_field_value(self.events, "Event", "scenes", {})
+        if scenes:
+            for scene_name, scene in scenes.items():
                 if re.search(scene_name, context, flags=re.IGNORECASE):
                     relevant_events[scene_name] = scene
                     continue
 
-                # Check if event is associated with any relevant group
                 for group_data in groups.values():
-                    if scene_name in group_data.get("events", []):
+                    group_events = self._get_field_value(group_data, "Group", "events", [])
+                    if scene_name in group_events:
                         relevant_events[scene_name] = scene
                         break
 
@@ -256,17 +258,18 @@ class StoryContextRetriever:
 
     def _get_character_important_relationships(self, char_name: str, importance_threshold: int = 75) -> dict[str, list[dict]]:
         """Get a character's important relationships."""
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
         if char_name not in characters_data:
             return {}
 
         char_data = characters_data[char_name]
         rels = {}
 
-        if "relationships" in char_data:
-            print(f"{_GRAY}relationships{_RESET}: {char_data['relationships']}")
-            for related_char, rel_list in char_data["relationships"].items():
-                important_rels = [rel for rel in rel_list if rel.get("importance", {}).get("score", 0) >= importance_threshold]
+        char_rels = self._get_field_value(char_data, "Character", "relationships")
+        if char_rels:
+            print(f"{_GRAY}relationships{_RESET}: {char_rels}")
+            for related_char, rel_list in char_rels.items():
+                important_rels = [rel for rel in rel_list if self._get_importance(rel, "Character", "relationships") >= importance_threshold]
                 if important_rels:
                     rels[related_char] = important_rels
 
@@ -276,7 +279,7 @@ class StoryContextRetriever:
         self, char1: str, char2: str, correlation_threshold: int = 0
     ) -> dict[str, list[dict]]:
         """Get relationships between two characters in the same scene, regardless of importance."""
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
 
         # Try using graph first for bidirectional relationship lookup
         if hasattr(self, 'entity_graph') and self.entity_graph:
@@ -309,9 +312,10 @@ class StoryContextRetriever:
         char_data = characters_data[char1]
         rels = {}
 
-        if "relationships" in char_data and char2 in char_data["relationships"]:
-            rel_list = char_data["relationships"][char2]
-            scene_rels = [rel for rel in rel_list if rel.get("importance", {}).get("score", 0) >= correlation_threshold]
+        char_rels = self._get_field_value(char_data, "Character", "relationships")
+        if char_rels and char2 in char_rels:
+            rel_list = char_rels[char2]
+            scene_rels = [rel for rel in rel_list if self._get_importance(rel, "Character", "relationships") >= correlation_threshold]
             if scene_rels:
                 rels[char2] = scene_rels
 
@@ -326,7 +330,7 @@ class StoryContextRetriever:
         """Get all relevant relationships for characters, including both important and scene-based relationships."""
         result = {}
         processed_chars = []
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
 
         # First pass: Get important relationships for all characters
         for char_name in scene_characters:
@@ -358,29 +362,28 @@ class StoryContextRetriever:
                 else:
                     important_rels = self._get_character_important_relationships(char_name, importance_threshold)
 
-                # Add character and their important relationships
-                if not char_data.get("relationships"):
-                    char_data["relationships"] = {}
-                char_data["relationships"].update(important_rels)
+                char_rels = self._get_field_value(char_data, "Character", "relationships")
+                if not char_rels:
+                    char_rels = {}
+                char_rels.update(important_rels)
+                char_data["relationships"] = char_rels
                 result[char_name] = char_data
 
-                # Add related characters to be processed
                 for related_char in important_rels:
                     if related_char in characters_data and related_char not in scene_characters:
                         scene_characters.append(related_char)
 
-        # Second pass: Get scene-based relationships between characters
         for char1 in scene_characters:
             for char2 in scene_characters:
                 if char1 != char2 and char1 in result:
-                    # Get relationships between scene characters
                     scene_rels = self._get_character_scene_relationships(char1, char2, correlation_threshold)
 
-                    # Add scene relationships if they exist and aren't already included
-                    if scene_rels and char2 not in result[char1].get("relationships", {}):
-                        if "relationships" not in result[char1]:
-                            result[char1]["relationships"] = {}
-                        result[char1]["relationships"].update(scene_rels)
+                    result_rels = self._get_field_value(result[char1], "Character", "relationships")
+                    if scene_rels and char2 not in (result_rels or {}):
+                        if not result_rels:
+                            result_rels = {}
+                        result_rels.update(scene_rels)
+                        result[char1]["relationships"] = result_rels
 
         return {"entries": result}
 
@@ -447,12 +450,15 @@ class StoryContextRetriever:
         Returns:
             Dict of status_name -> status_data
         """
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
         if char_name not in characters_data:
             return {}
 
         char_data = characters_data[char_name]
-        group_status = char_data.get("group_status", char_data.get("status", {}))
+        group_status = self._get_field_value(char_data, "Character", "group_status")
+        if not group_status:
+            fallback_status = self._get_field_value(char_data, "Character", "status")
+            group_status = fallback_status if fallback_status else {}
 
         if not group_status:
             return {}
@@ -468,18 +474,19 @@ class StoryContextRetriever:
         for status_name, status_data in group_status.items():
             include_status = False
 
-            importance = status_data.get("importance", {})
-            importance_score = importance.get("score", 0) if isinstance(importance, dict) else 0
+            importance_score = self._get_importance(status_data, "Character", "group_status")
 
             if importance_score >= importance_threshold:
                 include_status = True
             elif status_name in current_scene_characters or re.search(status_name, current_scene_what, re.IGNORECASE):
                 include_status = True
-            elif status_data.get("events"):
-                for event_name in status_data["events"]:
-                    if re.search(event_name, current_scene_what, re.IGNORECASE):
-                        include_status = True
-                        break
+            else:
+                events = self._get_field_value(status_data, "Character", "events", [])
+                if events:
+                    for event_name in events:
+                        if re.search(event_name, current_scene_what, re.IGNORECASE):
+                            include_status = True
+                            break
 
             if include_status:
                 result[status_name] = status_data
@@ -502,12 +509,12 @@ class StoryContextRetriever:
         Returns:
             List of milestone dicts
         """
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
         if char_name not in characters_data:
             return []
 
         char_data = characters_data[char_name]
-        milestones = char_data.get("milestones", [])
+        milestones = self._get_field_value(char_data, "Character", "milestones", [])
 
         if not milestones:
             return []
@@ -519,18 +526,17 @@ class StoryContextRetriever:
         for milestone in milestones:
             include_milestone = False
 
-            importance = milestone.get("importance", {})
-            importance_score = importance.get("score", 0) if isinstance(importance, dict) else 0
+            importance_score = self._get_importance(milestone, "Character", "milestones")
 
             if importance_score >= importance_threshold:
                 include_milestone = True
             elif current_scene_number:
-                milestone_scenes = milestone.get("scenes", [])
+                milestone_scenes = self._get_field_value(milestone, "Character", "scenes", [])
                 if current_scene_number in milestone_scenes:
                     include_milestone = True
 
             if not include_milestone:
-                milestone_title = milestone.get("title", "")
+                milestone_title = self._get_field_value(milestone, "Character", "title", "")
                 if re.search(milestone_title, current_scene_what, re.IGNORECASE):
                     include_milestone = True
 
@@ -538,6 +544,149 @@ class StoryContextRetriever:
                 result.append(milestone)
 
         return result
+
+    def _get_character_milestones_from_graph(
+        self,
+        char_name: str,
+        importance_threshold: int = 75,
+        current_scene: int | None = None
+    ) -> list[dict]:
+        """Get character milestones from entity graph with schema-driven filtering.
+
+        This method uses the entity graph instead of hardcoded JSON access,
+        leveraging the schema's relationship_format for field resolution.
+
+        Args:
+            char_name: Name of the character
+            importance_threshold: Minimum importance score
+            current_scene: Optional scene number for filtering
+
+        Returns:
+            List of milestone dicts from graph
+        """
+        if not hasattr(self, 'entity_graph') or not self.entity_graph:
+            return []
+
+        return self.entity_graph.get_character_milestones(
+            char_name,
+            importance_threshold=importance_threshold,
+            current_scene=current_scene
+        )
+
+    def _get_character_group_status_from_graph(
+        self,
+        char_name: str,
+        importance_threshold: int = 75,
+        current_scene: int | None = None
+    ) -> dict:
+        """Get character group status from entity graph with schema-driven filtering.
+
+        Args:
+            char_name: Name of the character
+            importance_threshold: Minimum importance score
+            current_scene: Optional scene number for filtering
+
+        Returns:
+            Dict mapping group name to status data from graph
+        """
+        if not hasattr(self, 'entity_graph') or not self.entity_graph:
+            return {}
+
+        relationships = self.entity_graph.get_relationships_by_field(
+            char_name,
+            field_name="group_status",
+            min_importance=importance_threshold,
+            current_scene=current_scene
+        )
+
+        result = {}
+        for r in relationships:
+            group_name = r.target_id.split(":", 1)[1] if ":" in r.target_id else r.target_id
+            result[group_name] = {
+                "position": [r.relation],
+                "importance": {"score": r.importance, "reason": r.importance_reason, "faction": r.faction},
+            }
+
+        return result
+
+    def _get_entries(self, data: dict, subject_type: str) -> dict:
+        """Get entries from data dict using schema-driven key resolution.
+
+        Args:
+            data: The data dict (e.g., self.characters)
+            subject_type: Subject type (e.g., "Character", "Group")
+
+        Returns:
+            The entries dict or the data itself if no entries wrapper
+        """
+        if self.schema_wrapper:
+            entity_type = subject_type.capitalize()
+            all_fields = self.schema_wrapper.get_entity_fields(entity_type)
+            if "entries" in all_fields or "entries" in data:
+                return data.get("entries", data)
+        return data.get("entries", data)
+
+    def _get_field_value(self, entity_data: dict, entity_type: str, field_name: str, default=None):
+        """Get a field value from entity data using schema-driven resolution.
+
+        Args:
+            entity_data: The entity's data dict
+            entity_type: Entity type (e.g., "Character", "Group")
+            field_name: Field name
+            default: Default value
+
+        Returns:
+            Field value or default
+        """
+        if self.schema_wrapper:
+            return self.schema_wrapper.get_field_value(entity_data, entity_type, field_name, default)
+        return entity_data.get(field_name, default)
+
+    def _get_nested_field_value(self, entity_data: dict, entity_type: str, path: str, default=None):
+        """Get a nested field value using schema-driven dot notation resolution.
+
+        Args:
+            entity_data: The entity's data dict
+            entity_type: Entity type (e.g., "Character")
+            path: Dot-separated path (e.g., "group_status.Rebel Force.importance.score")
+            default: Default value
+
+        Returns:
+            Value at path or default
+        """
+        if self.schema_wrapper:
+            return self.schema_wrapper.get_nested_field_value(entity_data, entity_type, path, default)
+        parts = path.split(".")
+        current = entity_data
+        for part in parts:
+            if isinstance(current, dict):
+                current = current.get(part)
+            else:
+                return default
+        return current if current is not None else default
+
+    def _get_importance(self, item_data: dict, item_type: str, field_name: str) -> int:
+        """Get importance score for an item using schema-driven path resolution.
+
+        Args:
+            item_data: The item's data dict (e.g., milestone, status)
+            item_type: Parent entity type (e.g., "Character")
+            field_name: Field name (e.g., "milestones", "group_status")
+
+        Returns:
+            Importance score (0-100) or 0 if not found
+        """
+        if self.schema_wrapper:
+            path = f"{field_name}.importance.score"
+            score = self._get_nested_field_value(item_data, item_type, path, 0)
+            if isinstance(score, int):
+                return score
+            if isinstance(score, dict):
+                return score.get("score", 0)
+        importance = item_data.get("importance", {})
+        if isinstance(importance, dict):
+            return importance.get("score", 0)
+        return importance if isinstance(importance, int) else 0
 
     def _get_all_relevant_status_and_milestones(
         self,
@@ -577,8 +726,9 @@ class StoryContextRetriever:
             initial_entities, all_data, importance_threshold=importance_threshold, max_depth=max_depth
         )
 
-        relevant_chars = relevant.get("character", set())
-        characters_data = all_characters.get("entries", all_characters)
+        char_key = "character"
+        relevant_chars = relevant.get(char_key, set())
+        characters_data = self._get_entries(all_characters, "Character")
 
         result_status = {}
         result_milestones = {}
@@ -587,11 +737,24 @@ class StoryContextRetriever:
             if char_name not in characters_data:
                 continue
 
-            group_status = self._get_character_group_status(char_name, current_scene, importance_threshold)
+            current_scene_number = current_scene.get("_scene_number") if current_scene else None
+            group_status = self._get_character_group_status_from_graph(
+                char_name,
+                importance_threshold=importance_threshold,
+                current_scene=current_scene_number
+            )
+            if not group_status:
+                group_status = self._get_character_group_status(char_name, current_scene, importance_threshold)
             if group_status:
                 result_status[char_name] = group_status
 
-            milestones = self._get_character_milestones(char_name, current_scene, importance_threshold)
+            milestones = self._get_character_milestones_from_graph(
+                char_name,
+                importance_threshold=importance_threshold,
+                current_scene=current_scene_number
+            )
+            if not milestones:
+                milestones = self._get_character_milestones(char_name, current_scene, importance_threshold)
             if milestones:
                 result_milestones[char_name] = milestones
 
@@ -633,19 +796,23 @@ class StoryContextRetriever:
                 initial_entities, all_data, importance_threshold=75, max_depth=10
             )
             result.relevant_entities = unified_result
-            unified_chars = unified_result.get("character", set())
-            unified_groups = unified_result.get("group", set())
-            unified_events = unified_result.get("event", set())
+            char_key = "character"
+            group_key = "group"
+            event_key = "event"
+            unified_chars = unified_result.get(char_key, set())
+            unified_groups = unified_result.get(group_key, set())
+            unified_events = unified_result.get(event_key, set())
             print(f"{_DEBUG}unified aggregation: {len(unified_chars)} chars, {len(unified_groups)} groups, {len(unified_events)} events{_RESET}")
 
-            # Get character relationships using unified pool
             result.characters = self._get_all_relevant_character_relationships(list(unified_chars))
             print(f"{_DEBUG}characters retrieved: {type(result.characters)}, count: {len(result.characters) if result.characters else 0}{_RESET}")
-            result.groups = {"entries": {g: self.groups.get("entries", self.groups).get(g, {}) for g in unified_groups}}
+            groups_entries = self._get_entries(self.groups, "Group")
+            result.groups = {"entries": {g: groups_entries.get(g, {}) for g in unified_groups}}
             print(f"{_DEBUG}groups retrieved: {type(result.groups)}, count: {len(result.groups) if result.groups else 0}{_RESET}")
 
-            events_dict = self.events.get("scenes", {})
-            events_dict.update(self.events.get("events", {}))
+            scenes = self._get_field_value(self.events, "Event", "scenes", {})
+            events = self._get_field_value(self.events, "Event", "events", {})
+            events_dict = {**scenes, **events}
             result.events = {"entries": {e: events_dict.get(e, {}) for e in unified_events}}
             print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
 
@@ -653,7 +820,7 @@ class StoryContextRetriever:
                 result.arcs = self.arcs
                 print(f"{_DEBUG}arcs retrieved: {type(result.arcs)}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
 
-            chapters_data = self.events.get("chapters", {})
+            chapters_data = self._get_field_value(self.events, "Event", "chapters", {})
             if chapters_data:
                 result.chapters = chapters_data
                 print(f"{_DEBUG}chapters retrieved: {type(result.chapters)}, count: {len(result.chapters) if result.chapters else 0}{_RESET}")

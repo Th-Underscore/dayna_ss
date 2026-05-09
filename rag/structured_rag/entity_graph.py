@@ -36,6 +36,7 @@ class Relationship:
     bidirectional: bool = False
     aliases: list[str] = field(default_factory=list)
     events: list[str] = field(default_factory=list)
+    scenes: list[int] = field(default_factory=list)
 
 
 class EntityGraph:
@@ -255,8 +256,7 @@ class EntityGraph:
                 # Also process list fields (like milestones)
                 elif isinstance(field_data, list):
                     self._process_list_relationships(
-                        node_id, entity_name, target_type, field_data,
-                        relationship_def, field_name
+                        node_id, entity_name, target_type, field_data, field_name
                     )
 
             self.nodes[node_id] = node
@@ -334,8 +334,8 @@ class EntityGraph:
     ):
         """Process a list of relationship targets (like milestones -> events, participants -> characters)."""
         for rel_item in rel_list:
+            scenes = []
             if isinstance(rel_item, dict):
-                # Dict item - use title/name and importance
                 target_name = rel_item.get("title", rel_item.get("name", ""))
                 importance_data = rel_item.get("importance", {})
                 if isinstance(importance_data, dict):
@@ -346,6 +346,7 @@ class EntityGraph:
                     importance = importance_data if isinstance(importance_data, int) else 0
                     importance_reason = ""
                     faction = "neutral"
+                scenes = rel_item.get("scenes", [])
             elif isinstance(rel_item, str):
                 target_name = rel_item
                 importance = 0
@@ -366,7 +367,8 @@ class EntityGraph:
                 field_name=field_name,
                 importance=importance,
                 importance_reason=importance_reason,
-                faction=faction
+                faction=faction,
+                scenes=scenes
             )
             self.relationships.append(relationship)
 
@@ -714,11 +716,45 @@ class EntityGraph:
         """Get important relationships for a character (importance >= threshold)."""
         return self.get_character_relationships(character_name, min_importance=threshold)
 
+    def get_relationships_by_field(
+        self,
+        character_name: str,
+        field_name: str,
+        min_importance: int = 0,
+        current_scene: int | None = None
+    ) -> list[Relationship]:
+        """Get relationships for a character filtered by field_name (e.g., 'group_status', 'relationships').
+
+        Args:
+            character_name: Name of the character
+            field_name: Field name to filter by (e.g., "group_status", "relationships", "milestones")
+            min_importance: Minimum importance score
+            current_scene: Optional scene number for filtering
+
+        Returns:
+            List of Relationship objects matching the criteria
+        """
+        character_id = f"character:{character_name}"
+        results = []
+
+        for r in self.relationships:
+            if r.source_id != character_id:
+                continue
+            if r.field_name != field_name:
+                continue
+            if r.importance < min_importance:
+                continue
+            if current_scene is not None and r.scenes:
+                if current_scene not in r.scenes:
+                    continue
+            results.append(r)
+
+        return results
+
     def get_scene_characters(self, scene_name: str) -> list[str]:
         """Get all characters in a scene."""
-        # This would need to be enhanced with scene->character mapping
-        # For now, return empty list - can be expanded later
-        return []
+        scene_id = f"scene:{scene_name}"
+        return self.get_entities_involved_in_event(scene_name)
 
     def get_groups_for_character(self, character_name: str) -> list[str]:
         """
@@ -797,7 +833,51 @@ class EntityGraph:
                 events.add(event_name)
         return list(events)
 
-    def get_relevant_events(self, character_names: list[str], group_names: list[str] | None = None, context: str = "") -> list[str]:
+    def get_character_milestones(
+        self,
+        character_name: str,
+        importance_threshold: int = 0,
+        current_scene: int | None = None
+    ) -> list[dict]:
+        """
+        Get milestones for a character filtered by importance and/or scene.
+
+        Args:
+            character_name: Name of the character
+            importance_threshold: Minimum importance score (0-100)
+            current_scene: Optional scene number to filter by
+
+        Returns:
+            List of milestone dicts with name, importance, scenes
+        """
+        character_id = f"character:{character_name}"
+        milestones = []
+
+        for r in self.relationships:
+            if r.source_id == character_id and r.field_name == "milestones":
+                if r.importance < importance_threshold:
+                    continue
+                if current_scene is not None and r.scenes:
+                    if current_scene not in r.scenes:
+                        continue
+                target_name = r.target_id.split(":", 1)[1] if ":" in r.target_id else r.target_id
+                milestones.append({
+                    "title": target_name,
+                    "importance": r.importance,
+                    "importance_reason": r.importance_reason,
+                    "faction": r.faction,
+                    "scenes": r.scenes
+                })
+
+        return milestones
+
+    def get_relevant_events(
+        self,
+        character_names: list[str],
+        group_names: list[str] | None = None,
+        context: str = "",
+        current_scene: int | None = None
+    ) -> list[str]:
         """
         Get events relevant to the given characters and groups.
 
@@ -805,20 +885,22 @@ class EntityGraph:
             character_names: List of character names
             group_names: Optional list of group names
             context: Optional context string (for future text-based matching)
+            current_scene: Optional scene number to filter by
 
         Returns:
             List of relevant event/scene names
         """
         relevant = set()
 
-        # Get events from character relationships
         for char_name in character_names:
             character_id = f"character:{char_name}"
             for r in self.relationships:
                 if r.source_id == character_id or r.target_id == character_id:
+                    if current_scene is not None and r.scenes:
+                        if current_scene not in r.scenes:
+                            continue
                     relevant.update(r.events)
 
-        # Get events from groups
         if group_names:
             for group_name in group_names:
                 group_id = f"group:{group_name}"
@@ -903,20 +985,19 @@ class EntityGraph:
 
     def get_entities_involved_in_event(self, event_name: str) -> list[str]:
         """Get all entities involved in an event."""
-        # Try event and scene namespaces
         for prefix in ["event:", "scene:"]:
             event_id = f"{prefix}{event_name}"
             node = self.get_node(event_id)
             if node:
-                # Return participants from node data
                 participants = node.data.get("participants", [])
                 if participants:
-                    return participants
-                # Or follow edges
+                    if isinstance(participants, dict):
+                        return list(participants.keys())
+                    elif isinstance(participants, list):
+                        return participants
                 participant_ids = []
                 for r in self.relationships:
                     if r.source_id == event_id and r.relation == "participant":
-                        # Extract display name from namespaced ID
                         participant_name = r.target_id.split(":", 1)[1] if ":" in r.target_id else r.target_id
                         participant_ids.append(participant_name)
                 return participant_ids
@@ -1063,6 +1144,134 @@ class EntityGraph:
                     result.append(target_clean)
 
         return result
+
+    def query(
+        self,
+        source_entity: str | None = None,
+        source_type: str | None = None,
+        target_type: str | None = None,
+        field_name: str | None = None,
+        min_importance: int = 0,
+        max_importance: int = 100,
+        current_scene: int | None = None,
+        direction: str = "outgoing",
+    ) -> list[Relationship]:
+        """Unified query method for graph traversal and filtering.
+
+        This method provides a generic interface to query relationships with
+        various filters, replacing multiple specialized get_* methods.
+
+        Args:
+            source_entity: Name of source entity (e.g., "John Jones")
+            source_type: Type of source entity ("character", "group", "event", "scene")
+            target_type: Optional target type to filter by ("character", "group", "event")
+            field_name: Optional field name to filter by ("relationships", "group_status", "milestones")
+            min_importance: Minimum importance score (inclusive)
+            max_importance: Maximum importance score (inclusive)
+            current_scene: Optional scene number to filter relationships by scene presence
+            direction: "outgoing", "incoming", or "both"
+
+        Returns:
+            List of Relationship objects matching all criteria
+
+        Examples:
+            # Get all character milestones with importance >= 75
+            graph.query(source_entity="John", source_type="character", field_name="milestones", min_importance=75)
+
+            # Get group status for character in scene 5
+            graph.query(source_entity="John", source_type="character", target_type="group", field_name="group_status", current_scene=5)
+
+            # Get all events a character is involved in
+            graph.query(source_entity="John", source_type="character", target_type="event")
+        """
+        results = []
+
+        for rel in self.relationships:
+            source_id = rel.source_id
+            target_id = rel.target_id
+
+            source_parts = source_id.split(":", 1) if ":" in source_id else ["", source_id]
+            source_prefix = source_parts[0]
+            source_name = source_parts[1] if len(source_parts) > 1 else source_id
+
+            target_parts = target_id.split(":", 1) if ":" in target_id else ["", target_id]
+            target_prefix = target_parts[0]
+            target_name = target_parts[1] if len(target_parts) > 1 else target_id
+
+            source_match = True
+            if source_entity:
+                source_match = source_name == source_entity
+
+            type_match = True
+            if source_type:
+                type_match = source_prefix == source_type.lower()
+
+            target_type_match = True
+            if target_type:
+                target_type_match = target_prefix == target_type.lower()
+
+            field_match = True
+            if field_name:
+                field_match = rel.field_name == field_name
+
+            importance_match = min_importance <= rel.importance <= max_importance
+
+            scene_match = True
+            if current_scene is not None and rel.scenes:
+                scene_match = current_scene in rel.scenes
+
+            direction_match = True
+            if direction == "outgoing":
+                direction_match = source_prefix == source_type.lower() if source_type else True
+            elif direction == "incoming":
+                direction_match = target_prefix == source_type.lower() if source_type else True
+
+            if source_match and type_match and target_type_match and field_match and importance_match and scene_match and direction_match:
+                results.append(rel)
+
+        return results
+
+    def query_names(
+        self,
+        source_entity: str | None = None,
+        source_type: str | None = None,
+        target_type: str | None = None,
+        field_name: str | None = None,
+        min_importance: int = 0,
+        max_importance: int = 100,
+        current_scene: int | None = None,
+        direction: str = "outgoing",
+    ) -> list[str]:  # Unused
+        """Query and return just target entity names (convenience wrapper).
+
+        Args:
+            Same as query()
+
+        Returns:
+            List of target entity names (without type prefix)
+        """
+        relationships = self.query(
+            source_entity=source_entity,
+            source_type=source_type,
+            target_type=target_type,
+            field_name=field_name,
+            min_importance=min_importance,
+            max_importance=max_importance,
+            current_scene=current_scene,
+            direction=direction,
+        )
+
+        names = []
+        for rel in relationships:
+            target_id = rel.target_id
+            if ":" in target_id:
+                target_name = target_id.split(":", 1)[1]
+            else:
+                target_name = target_id
+            if target_name not in names:
+                names.append(target_name)
+
+        return names
 
     def traverse_graph(
         self,
