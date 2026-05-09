@@ -47,7 +47,7 @@ class EntityGraph:
     otherwise falls back to hardcoded parsing.
     """
 
-    def __init__(self, history_path: Path, persist: bool = True, schema_classes: dict = None):
+    def __init__(self, history_path: Path, persist: bool = True, schema_classes: dict | None = None):
         """
         Initialize the entity graph.
 
@@ -66,19 +66,66 @@ class EntityGraph:
         self.adjacency: dict[str, dict[str, set[str]]] = {}  # source_type -> target_type -> {target_ids}
         self.adjacency_built: bool = False
 
+        self.source_fingerprint: dict = {}
         self._load_or_build()
 
     def _resolve_participant_id(self, participant: str) -> tuple[str, str]:
         """Resolve a participant name to (node_id, entity_type).
 
-        Checks self.nodes for existing keys, explicit prefixes, then defaults to character.
+        Checks self.nodes for existing keys (including suffix matches for raw names),
+        explicit prefixes, then defaults to character.
         """
         if participant in self.nodes:
             return participant, self.nodes[participant].type
+        for node_id in self.nodes:
+            if node_id.endswith(f":{participant}"):
+                return node_id, self.nodes[node_id].type
         if ":" in participant:
             prefix = participant.split(":", 1)[0]
             return participant, prefix
         return f"character:{participant}", "character"
+
+    def _attach_participants_to_event(self, node_id: str, participants: list) -> None:
+        """Create participant nodes and relationship edges for an event/scene node.
+
+        Handles both string and dict participant entries, extracting importance
+        from dict shapes.
+        """
+        if not participants:
+            return
+        for participant in participants:
+            if isinstance(participant, str):
+                participant_id, ptype = self._resolve_participant_id(participant)
+                importance_val = 50
+            elif isinstance(participant, dict):
+                name = participant.get("name", "") or participant.get("id", "")
+                if not name:
+                    continue
+                participant_id, ptype = self._resolve_participant_id(name)
+                imp = participant.get("importance", {})
+                if isinstance(imp, dict):
+                    importance_val = imp.get("score", 50)
+                elif isinstance(imp, int):
+                    importance_val = imp
+                else:
+                    importance_val = 50
+            else:
+                continue
+            if participant_id not in self.nodes:
+                pname = participant_id.split(":", 1)[1] if ":" in participant_id else participant_id
+                self.nodes[participant_id] = EntityNode(
+                    id=participant_id,
+                    type=ptype,
+                    name=pname,
+                    data={}
+                )
+            self.relationships.append(Relationship(
+                source_id=node_id,
+                target_id=participant_id,
+                relation="participant",
+                status="event_participation",
+                importance=importance_val
+            ))
 
     def _load_or_build(self):
         """Load from disk or build from source files."""
@@ -86,11 +133,11 @@ class EntityGraph:
 
         if self.persist and graph_path.exists():
             # Check if source files have changed
-            current_fingerprint = self._compute_source_fingerprint()
+            self.source_fingerprint = self._compute_source_fingerprint()
             data = load_json(graph_path)
             saved_fingerprint = data.get("source_fingerprint", {})
 
-            if current_fingerprint == saved_fingerprint:
+            if self.source_fingerprint == saved_fingerprint:
                 self._load_from_disk(graph_path)
             else:
                 print(f"{_DEBUG}Source files have changed, rebuilding entity graph...{_RESET}")
@@ -98,6 +145,7 @@ class EntityGraph:
                 self._save_to_disk(graph_path)
         else:
             self._build_from_source_files()
+            self.source_fingerprint = self._compute_source_fingerprint()
             if self.persist:
                 self._save_to_disk(graph_path)
 
@@ -394,6 +442,23 @@ class EntityGraph:
             )
             self.relationships.append(relationship)
 
+    @staticmethod
+    def _singularize(name: str) -> str:
+        """Singularize an entity type name, matching subject_mapping convention."""
+        subject_mapping = {
+            "characters": "character", "groups": "group",
+            "events": "event", "arcs": "arc",
+        }
+        lower = name.lower()
+        result = subject_mapping.get(lower)
+        if result is not None:
+            return result
+        if lower.endswith("ies"):
+            return lower[:-3] + "y"
+        if lower.endswith("s"):
+            return lower[:-1]
+        return lower
+
     def _apply_bidirectional_rules_from_schema(self):
         """Apply bidirectional relationship rules based on schema configuration."""
         # Get bidirectional rules from schema
@@ -401,10 +466,10 @@ class EntityGraph:
 
         for schema_name, schema_class in self.schema_classes.items():
             rel_fields = schema_class.get_relationship_fields()
-            for field_name, config in rel_fields.items():
+            for config in rel_fields.values():
                 if config.get("bidirectional", False):
-                    source_type = schema_name.lower().rstrip("s")
-                    target_type = config.get("target_type", "unknown").lower().rstrip("s")
+                    source_type = self._singularize(schema_name)
+                    target_type = self._singularize(config.get("target_type", "unknown"))
                     bidir_rules.append((source_type, target_type))
 
         # Mark relationships as bidirectional in metadata
@@ -539,44 +604,10 @@ class EntityGraph:
                 data=scene_data
             )
 
-            # Extract and store participants
             participants = scene_data.get("participants", [])
             if participants:
                 node.data["participants"] = participants
-                # Create edges to participants
-                for participant in participants:
-                    participant_id, ptype = self._resolve_participant_id(participant if isinstance(participant, str) else "")
-                    # Determine importance for this participant
-                    importance_val = 50
-                    if isinstance(participants, dict):
-                        pinfo = participants.get(participant, {})
-                        if isinstance(pinfo, dict):
-                            imp = pinfo.get("importance", {})
-                            if isinstance(imp, dict):
-                                importance_val = imp.get("score", 50)
-                            elif isinstance(imp, int):
-                                importance_val = imp
-                    # Ensure participant node exists (create if missing)
-                    if participant_id not in self.nodes:
-                        # Determine the name portion from participant_id
-                        pname = participant_id.split(":", 1)[1] if ":" in participant_id else participant_id
-                        self.nodes[participant_id] = EntityNode(
-                            id=participant_id,
-                            type=ptype,
-                            name=pname,
-                            data={}
-                        )
-
-                    # Add edge from event to participant
-                    relationship = Relationship(
-                        source_id=node_id,
-                        target_id=participant_id,
-                        relation="participant",
-                        status="event_participation",
-                        importance=importance_val
-                    )
-                    self.relationships.append(relationship)
-
+            self._attach_participants_to_event(node_id, participants)
             self.nodes[node_id] = node
 
         # Build past events
@@ -590,42 +621,10 @@ class EntityGraph:
                 data=event_data
             )
 
-            # Extract and store participants
             participants = event_data.get("participants", [])
             if participants:
                 node.data["participants"] = participants
-                # Create edges to participants
-                for participant in participants:
-                    participant_id, ptype = self._resolve_participant_id(participant if isinstance(participant, str) else "")
-                    importance_val = 50
-                    if isinstance(participants, dict):
-                        pinfo = participants.get(participant, {})
-                        if isinstance(pinfo, dict):
-                            imp = pinfo.get("importance", {})
-                            if isinstance(imp, dict):
-                                importance_val = imp.get("score", 50)
-                            elif isinstance(imp, int):
-                                importance_val = imp
-                    # Ensure participant node exists (create if missing)
-                    if participant_id not in self.nodes:
-                        pname = participant_id.split(":", 1)[1] if ":" in participant_id else participant_id
-                        self.nodes[participant_id] = EntityNode(
-                            id=participant_id,
-                            type=ptype,
-                            name=pname,
-                            data={}
-                        )
-
-                    # Add edge from event to participant
-                    relationship = Relationship(
-                        source_id=node_id,
-                        target_id=participant_id,
-                        relation="participant",
-                        status="event_participation",
-                        importance=importance_val
-                    )
-                    self.relationships.append(relationship)
-
+            self._attach_participants_to_event(node_id, participants)
             self.nodes[node_id] = node
 
         # Build crucial events
@@ -639,42 +638,10 @@ class EntityGraph:
                 data=event_data
             )
 
-            # Extract and store participants
             participants = event_data.get("participants", [])
             if participants:
                 node.data["participants"] = participants
-                # Create edges to participants
-                for participant in participants:
-                    participant_id, ptype = self._resolve_participant_id(participant if isinstance(participant, str) else "")
-                    importance_val = 50
-                    if isinstance(participants, dict):
-                        pinfo = participants.get(participant, {})
-                        if isinstance(pinfo, dict):
-                            imp = pinfo.get("importance", {})
-                            if isinstance(imp, dict):
-                                importance_val = imp.get("score", 50)
-                            elif isinstance(imp, int):
-                                importance_val = imp
-                    # Ensure participant node exists (create if missing)
-                    if participant_id not in self.nodes:
-                        pname = participant_id.split(":", 1)[1] if ":" in participant_id else participant_id
-                        self.nodes[participant_id] = EntityNode(
-                            id=participant_id,
-                            type=ptype,
-                            name=pname,
-                            data={}
-                        )
-
-                    # Add edge from event to participant
-                    relationship = Relationship(
-                        source_id=node_id,
-                        target_id=participant_id,
-                        relation="participant",
-                        status="event_participation",
-                        importance=importance_val
-                    )
-                    self.relationships.append(relationship)
-
+            self._attach_participants_to_event(node_id, participants)
             self.nodes[node_id] = node
 
         # Build chapters (handle both dict and list)
@@ -804,7 +771,6 @@ class EntityGraph:
 
     def get_scene_characters(self, scene_name: str) -> list[str]:
         """Get all characters in a scene."""
-        scene_id = f"scene:{scene_name}"
         return self.get_entities_involved_in_event(scene_name)
 
     def get_groups_for_character(self, character_name: str) -> list[str]:
@@ -1068,13 +1034,18 @@ class EntityGraph:
         """
         Rebuild the graph if source files have been modified.
 
-        Currently always rebuilds since we don't track file modification times.
-        Can be enhanced later to compare file timestamps.
-
         Args:
-            force: If True, always rebuild. If False, currently always rebuilds.
+            force: If True, always rebuild. If False, only rebuild if sources changed.
         """
+        if force:
+            self.rebuild()
+            self.source_fingerprint = self._compute_source_fingerprint()
+            return
+        current = self._compute_source_fingerprint()
+        if current == self.source_fingerprint:
+            return
         self.rebuild()
+        self.source_fingerprint = current
 
     def get_relationship_summary(self, character_name: str, max_relationships: int = 5, threshold: int = 50) -> list[dict]:
         """
@@ -1144,8 +1115,8 @@ class EntityGraph:
         self,
         entity_name: str,
         entity_type: str,
-        target_type: str = None,
-        field_name: str = None,
+        target_type: str | None = None,
+        field_name: str | None = None,
         min_importance: int = 0,
         direction: str = "outgoing"
     ):
@@ -1249,18 +1220,6 @@ class EntityGraph:
             target_prefix = target_parts[0]
             target_name = target_parts[1] if len(target_parts) > 1 else target_id
 
-            source_match = True
-            if source_entity:
-                source_match = source_name == source_entity
-
-            type_match = True
-            if source_type:
-                type_match = source_prefix == source_type.lower()
-
-            target_type_match = True
-            if target_type:
-                target_type_match = target_prefix == target_type.lower()
-
             field_match = True
             if field_name:
                 field_match = rel.field_name == field_name
@@ -1271,13 +1230,20 @@ class EntityGraph:
             if current_scene is not None and rel.scenes:
                 scene_match = current_scene in rel.scenes
 
-            direction_match = True
             if direction == "outgoing":
-                direction_match = source_prefix == source_type.lower() if source_type else True
+                source_match = source_name == source_entity if source_entity else True
+                type_match = source_prefix == source_type.lower() if source_type else True
+                target_type_match = target_prefix == target_type.lower() if target_type else True
             elif direction == "incoming":
-                direction_match = target_prefix == source_type.lower() if source_type else True
+                source_match = target_name == source_entity if source_entity else True
+                type_match = target_prefix == source_type.lower() if source_type else True
+                target_type_match = source_prefix == target_type.lower() if target_type else True
+            else:
+                source_match = (source_name == source_entity if source_entity else True) or (target_name == source_entity if source_entity else True)
+                type_match = (source_prefix == source_type.lower() if source_type else True) or (target_prefix == source_type.lower() if source_type else True)
+                target_type_match = (target_prefix == target_type.lower() if target_type else True) or (source_prefix == target_type.lower() if target_type else True)
 
-            if source_match and type_match and target_type_match and field_match and importance_match and scene_match and direction_match:
+            if source_match and type_match and target_type_match and field_match and importance_match and scene_match:
                 results.append(rel)
 
         return results
@@ -1327,7 +1293,7 @@ class EntityGraph:
     def traverse_graph(
         self,
         initial_entities: dict[str, set[str]],
-        field_map: dict[str, dict[str, str]] = None,
+        field_map: dict[str, dict[str, str]] | None = None,
         min_importance: int = 75,
         max_depth: int = 10,
     ) -> dict[str, set[str]]:
@@ -1401,12 +1367,12 @@ class EntityGraph:
         field_map: dict[str, dict[str, str]] = {}
 
         for schema_name, schema_class in self.schema_classes.items():
-            source_type = schema_name.lower().rstrip("s")
+            source_type = self._singularize(schema_name)
             rel_fields = schema_class.get_relationship_fields()
             field_map[source_type] = {}
 
             for field_name, config in rel_fields.items():
-                target_type = config.get("target_type", "unknown").lower().rstrip("s")
+                target_type = self._singularize(config.get("target_type", "unknown"))
                 field_map[source_type][field_name] = target_type
 
         return field_map

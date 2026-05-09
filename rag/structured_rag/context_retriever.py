@@ -678,6 +678,13 @@ class StoryContextRetriever:
             Importance score (0-100) or 0 if not found
         """
         if self.schema_wrapper:
+            # First try: resolve importance directly on the item itself
+            score = self._get_nested_field_value(item_data, item_type, "importance.score", 0)
+            if isinstance(score, int):
+                return score
+            if isinstance(score, dict):
+                return score.get("score", 0)
+            # Fallback: try the prefixed path (for schema-wrapped single-item dicts)
             path = f"{field_name}.importance.score"
             score = self._get_nested_field_value(item_data, item_type, path, 0)
             if isinstance(score, int):

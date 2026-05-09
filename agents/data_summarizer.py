@@ -1297,7 +1297,7 @@ Respond with ONLY the JSON object for this arc."""
 
         # Determine if this field should trigger updates (from parent schema defaults)
         field_update_key = f"{field_name}_update"
-        field_trigger_update = parent_schema_class.defaults.get(field_update_key, False)
+        field_trigger_update = parent_schema_class.defaults.get(field_update_key, trigger_update)
 
         # 4. Handle Recursion for nested Schema Classes
         if isinstance(field_type, ParsedSchemaClass):

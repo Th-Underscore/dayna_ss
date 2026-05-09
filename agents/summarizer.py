@@ -2356,20 +2356,22 @@ class FormattedData:
         """Allow dictionary-like access to the (potentially expanded) data."""
         return self.data[index]
 
-    _format_templates_cache: dict | None = None
+    _format_templates_caches: dict[str, dict] = {}
     _session_templates_path: Path | None = None
 
     @staticmethod
     def set_session_templates_path(path: Path):
-        """Set the session-local templates path and invalidate the cache."""
+        """Set the session-local templates path and invalidate its cache entry."""
+        path_str = str(path)
         FormattedData._session_templates_path = path
-        FormattedData._format_templates_cache = None
+        FormattedData._format_templates_caches.pop(path_str, None)
 
     @staticmethod
     def _load_format_templates() -> dict:
         """Load format templates, preferring session-local over global."""
-        if FormattedData._format_templates_cache is not None:
-            return FormattedData._format_templates_cache
+        cache_key = str(FormattedData._session_templates_path) if FormattedData._session_templates_path else ""
+        if cache_key in FormattedData._format_templates_caches:
+            return FormattedData._format_templates_caches[cache_key]
 
         try:
             dss_dir = Path(__file__).parent.parent
@@ -2379,7 +2381,7 @@ class FormattedData:
             else:
                 template_path = dss_dir / "user_data" / "example" / "format_templates.json"
             templates = load_json(template_path) or {}
-            FormattedData._format_templates_cache = templates
+            FormattedData._format_templates_caches[str(template_path)] = templates
             print(f"{_DEBUG}Loaded {len(templates)} format templates{_RESET}")
             return templates
         except Exception as e:

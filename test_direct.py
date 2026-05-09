@@ -29,7 +29,7 @@ def test_entity_graph_logic():
     groups = load_json("groups.json")
     events = load_json("events.json")
     
-    print(f"\nData loaded:")
+    print("\nData loaded:")
     print(f"  Characters: {len(characters.get('entries', {}))}")
     print(f"  Groups: {len(groups.get('entries', {}))}")
     print(f"  Events: {len(events.get('events', {}))}")
@@ -244,43 +244,6 @@ def test_context_retriever_logic():
     return True
 
 
-def main():
-    print("Running direct integration tests...\n")
-
-    tests = [
-        ("Entity Graph Logic", test_entity_graph_logic),
-        ("Context Retriever Logic", test_context_retriever_logic),
-        ("Entity Graph With Schema", test_entity_graph_with_schema),
-    ]
-
-    results = []
-
-    for test_name, test_func in tests:
-        try:
-            success = test_func()
-            results.append((test_name, success))
-        except Exception as e:
-            print(f"ERROR in {test_name}: {e}")
-            import traceback
-            traceback.print_exc()
-            results.append((test_name, False))
-
-    print("\n" + "=" * 60)
-    print("RESULTS")
-    print("=" * 60)
-
-    passed = 0
-    for name, success in results:
-        status = "✓ PASS" if success else "✗ FAIL"
-        print(f"  {status}: {name}")
-        if success:
-            passed += 1
-    
-    print(f"\nTotal: {passed}/{len(results)} passed")
-    
-    return 0 if passed == len(results) else 1
-
-
 def test_entity_graph_with_schema():
     """Test SchemaWrapper runtime introspection methods (Phase 4)."""
     print("=" * 60)
@@ -300,7 +263,7 @@ def test_entity_graph_with_schema():
         print(f"Available entity types: {SchemaWrapper(schema_classes).get_entity_types()}")
 
         schema_wrapper = SchemaWrapper(schema_classes)
-        print(f"SchemaWrapper initialized")
+        print("SchemaWrapper initialized")
 
         print("\nTesting runtime schema introspection:")
 
@@ -348,6 +311,43 @@ def test_entity_graph_with_schema():
         import traceback
         traceback.print_exc()
         return False
+
+
+def main():
+    print("Running direct integration tests...\n")
+
+    tests = [
+        ("Entity Graph Logic", test_entity_graph_logic),
+        ("Context Retriever Logic", test_context_retriever_logic),
+        ("Entity Graph With Schema", test_entity_graph_with_schema),
+    ]
+
+    results = []
+
+    for test_name, test_func in tests:
+        try:
+            success = test_func()
+            results.append((test_name, success))
+        except Exception as e:
+            print(f"ERROR in {test_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            results.append((test_name, False))
+
+    print("\n" + "=" * 60)
+    print("RESULTS")
+    print("=" * 60)
+
+    passed = 0
+    for name, success in results:
+        status = "✓ PASS" if success else "✗ FAIL"
+        print(f"  {status}: {name}")
+        if success:
+            passed += 1
+    
+    print(f"\nTotal: {passed}/{len(results)} passed")
+    
+    return 0 if passed == len(results) else 1
 
 
 if __name__ == "__main__":

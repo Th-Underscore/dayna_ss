@@ -74,9 +74,9 @@
         ]
       },
       "milestones": [
-        {"title": "Founding the Rebel Force", "scenes": [1], "importance": {"score": 100, "reason": "Created the main resistance"}},
-        {"title": "Killing 139 Subterraneans", "scenes": [15], "importance": {"score": 85, "reason": "Earned fearsome reputation"}},
-        {"title": "Leading The Jones Offensive", "scenes": [18], "importance": {"score": 95, "reason": "Major military victory"}}
+        {"title": "Founding the Rebel Force", "scenes": [1], "importance": {"score": 100, "reason": "Created the main resistance", "faction": "positive"}},
+        {"title": "Killing 139 Subterraneans", "scenes": [15], "importance": {"score": 85, "reason": "Earned fearsome reputation", "faction": "positive"}},
+        {"title": "Leading The Jones Offensive", "scenes": [18], "importance": {"score": 95, "reason": "Major military victory", "faction": "positive"}}
       ]
     },
     "Paul Jones": {
@@ -111,9 +111,9 @@
         ]
       },
       "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [1], "importance": {"score": 80, "reason": "Joined his brother's cause"}},
-        {"title": "Rising to General", "scenes": [10], "importance": {"score": 70, "reason": "Achieved high rank"}},
-        {"title": "Injury at The Jones Offensive", "scenes": [18], "importance": {"score": 85, "reason": "Battle injury earned respect"}}
+        {"title": "Joining the Rebel Force", "scenes": [1], "importance": {"score": 80, "reason": "Joined his brother's cause", "faction": "positive"}},
+        {"title": "Rising to General", "scenes": [10], "importance": {"score": 70, "reason": "Achieved high rank", "faction": "positive"}},
+        {"title": "Injury at The Jones Offensive", "scenes": [18], "importance": {"score": 85, "reason": "Battle injury earned respect", "faction": "positive"}}
       ]
     },
     "Amy Harrison": {
@@ -134,8 +134,8 @@
         ]
       },
       "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [1], "importance": {"score": 90, "reason": "Early joiner with crucial skills"}},
-        {"title": "Developing Recharge Tech", "scenes": [8], "importance": {"score": 80, "reason": "Breakthrough technology"}}
+        {"title": "Joining the Rebel Force", "scenes": [1], "importance": {"score": 90, "reason": "Early joiner with crucial skills", "faction": "positive"}},
+        {"title": "Developing Recharge Tech", "scenes": [8], "importance": {"score": 80, "reason": "Breakthrough technology", "faction": "positive"}}
       ]
     },
     "Marcus Chen": {
@@ -156,8 +156,8 @@
         ]
       },
       "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [2], "importance": {"score": 75, "reason": "Valuable strategic mind"}},
-        {"title": "Planning The Jones Offensive", "scenes": [12], "importance": {"score": 85, "reason": "Created major victory"}}
+        {"title": "Joining the Rebel Force", "scenes": [2], "importance": {"score": 75, "reason": "Valuable strategic mind", "faction": "positive"}},
+        {"title": "Planning The Jones Offensive", "scenes": [12], "importance": {"score": 85, "reason": "Created major victory", "faction": "positive"}}
       ]
     },
     "Elena Vasquez": {
@@ -178,7 +178,7 @@
         ]
       },
       "milestones": [
-        {"title": "Infiltrating Subterranean Base", "scenes": [14], "importance": {"score": 70, "reason": "Critical intelligence"}}
+        {"title": "Infiltrating Subterranean Base", "scenes": [14], "importance": {"score": 70, "reason": "Critical intelligence", "faction": "positive"}}
       ]
     },
     "Angelina Kristi": {
@@ -199,7 +199,7 @@
         ]
       },
       "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [5], "importance": {"score": 50, "reason": "Joined after brother's death"}}
+        {"title": "Joining the Rebel Force", "scenes": [5], "importance": {"score": 50, "reason": "Joined after brother's death", "faction": "positive"}}
       ]
     },
     "Subterranean Leader": {
@@ -220,8 +220,8 @@
         ]
       },
       "milestones": [
-        {"title": "Beginning The First Incursion", "scenes": [1], "importance": {"score": 100, "reason": "Started the war"}},
-        {"title": "Launching The Second Incursion", "scenes": [16], "importance": {"score": 90, "reason": "Escalated the war"}}
+        {"title": "Beginning The First Incursion", "scenes": [1], "importance": {"score": 100, "reason": "Started the war", "faction": "negative"}},
+        {"title": "Launching The Second Incursion", "scenes": [16], "importance": {"score": 90, "reason": "Escalated the war", "faction": "negative"}}
       ]
     },
     "Harry Kristi": {
