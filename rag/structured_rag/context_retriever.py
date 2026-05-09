@@ -410,8 +410,20 @@ class StoryContextRetriever:
         Returns:
             Dict of entity_type -> aggregated set of entity names
         """
-        if not hasattr(self, 'entity_graph') or not self.entity_graph:
-            return {"character": set(), "group": set(), "event": set()}
+        if not getattr(self, 'entity_graph', None):
+            fallback = {"character": set(), "group": set(), "event": set()}
+            for etype, names in initial_entities.items():
+                key = etype.lower()
+                if key in fallback:
+                    fallback[key] = set(names)
+            if all_data:
+                if "Group" not in initial_entities and "Group" in all_data and all_data["Group"]:
+                    fallback["group"] = set(all_data["Group"].get("entries", all_data["Group"]).keys())
+                if "Event" not in initial_entities and "Event" in all_data and all_data["Event"]:
+                    entries = all_data["Event"].get("events", all_data["Event"].get("entries", all_data["Event"]))
+                    if isinstance(entries, dict):
+                        fallback["event"] = set(entries.keys())
+            return fallback
 
         field_map = self.entity_graph.get_schema_relationship_map()
         if not field_map:
@@ -1096,7 +1108,7 @@ class MessageChunker:
         # TODO: Make configurable via UI toggle
         if self.use_llm_for_speakers and self.summarizer:
             try:
-                prompt = f'''Analyze the following text in context and identify the names of the character(s) who are speaking or being addressed.
+                prompt = f'''Analyze the following text in context and identify the names of the character(s) who are speaking.
 
 Respond with a JSON array of character names:
 ["Character1", "Character2", ...]
@@ -1106,7 +1118,7 @@ Text:
 {paragraph_text}
 ```
 
-Do not include generic terms like "you", "someone", "they". Only include characters that are explicitly or implicitly mentioned as speaking.'''
+Do not include generic terms like "you", "someone", "they". Only include characters that are explicitly or implicitly mentioned as speaking. Do not include characters who are only being addressed but not speaking.'''
                 response_text, _ = self.summarizer.generate_with_sse(prompt, self.summarizer.last.custom_state, "determine_speakers", "speakers_llm", None)
                 if response_text:
                     try:
@@ -1428,8 +1440,10 @@ Do not include generic terms like "you", "someone", "they". Only include charact
                 print(f"{_WARNING}No chunks found for message_idx {message_idx} to update speakers.{_RESET}")
                 return False
 
-            first_chunk = message_chunks[0]
-            message_chunks_sorted = sorted(message_chunks, key=lambda n: n.metadata.get("indices", [0, 0, 0]))
+            message_chunks_sorted = sorted(message_chunks, key=lambda n: (
+                n.metadata.get("paragraph_idx", 0),
+                n.metadata.get("sentence_idx", 0),
+            ))
             full_message_text = "\n\n".join(n.text for n in message_chunks_sorted if n.text)
 
             paragraphs = [p.strip() for p in full_message_text.split("\n\n") if p.strip()]

@@ -69,26 +69,26 @@ def test_entity_graph_logic():
                     "field": "group_status",
                     "score": score,
                 })
-            
-            # Group -> Character (reverse)
-            group_entries = groups.get("entries", {})
-            for group_name, group_data in group_entries.items():
-                for member_name, member_info in group_data.get("characters", {}).items():
-                    member_score = 0
-                    if isinstance(member_info, dict):
-                        imp = member_info.get("importance", 0)
-                        if isinstance(imp, dict):
-                            member_score = imp.get("score", 0)
-                        else:
-                            member_score = imp if isinstance(imp, int) else 0
-                    rels.append({
-                        "source": f"group:{group_name}",
-                        "target": f"character:{member_name}",
-                        "relation": "member",
-                        "field": "characters",
-                        "score": member_score,
-                    })
-        
+
+        # Group -> Character (reverse)
+        group_entries = groups.get("entries", {})
+        for group_name, group_data in group_entries.items():
+            for member_name, member_info in group_data.get("characters", {}).items():
+                member_score = 0
+                if isinstance(member_info, dict):
+                    imp = member_info.get("importance", 0)
+                    if isinstance(imp, dict):
+                        member_score = imp.get("score", 0)
+                    else:
+                        member_score = imp if isinstance(imp, int) else 0
+                rels.append({
+                    "source": f"group:{group_name}",
+                    "target": f"character:{member_name}",
+                    "relation": "member",
+                    "field": "characters",
+                    "score": member_score,
+                })
+
         return rels
     
     relationships = build_relationships()

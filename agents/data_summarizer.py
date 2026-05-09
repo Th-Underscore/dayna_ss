@@ -1099,7 +1099,7 @@ Respond with ONLY the JSON object for this arc."""
         
         Parameters:
             item_name_prefix (str): Human-readable path prefix used for prompts and phase ids (e.g., "chapter.scenes" or "characters[0]").
-            data (dict | list): The current branch of data to traverse and potentially update.
+            data (dict): The current branch of data to traverse and potentially update.
             formatted_data (FormattedData): Formatted view of the data used to render prompts and to update contextual markers; this will be kept in sync with changes.
             unexpanded_formatted_data (FormattedData): Unexpanded formatted view used when creating prompts that require original/unexpanded values.
             schema_class (ParsedSchemaClass): Schema description that determines traversal behavior (dataclass, alias/field, wrapped list/dict, or nested schema).
@@ -1144,55 +1144,6 @@ Respond with ONLY the JSON object for this arc."""
                     trigger_update=trigger_update
                 )
                 return
-
-            # 2. List container
-            if hasattr(wrapped_type, "__origin__") and wrapped_type.__origin__ is list:
-                item_type = wrapped_type.__args__[0]
-
-                if isinstance(data, list):
-                    # 2a. List of Schema Classes (Recurse)
-                    if isinstance(item_type, ParsedSchemaClass):
-                        pm = self._phase_manager
-                        for i, item_data in enumerate(data):
-                            effective_item_schema = self._inherit_defaults_from_parent(
-                                item_type,
-                                schema_class,
-                                defaults_to_inherit
-                            )
-                            # Sync formatted data to keep context fresh
-                            new_keys = [*keys, i]
-                            sub_phase_id = f"{item_name_prefix}[{i}]".lower().replace(" ", "_")
-                            pm.start_phase(sub_phase_id, f"{item_name_prefix}[{i}]")
-                            self._update_recursive(
-                                f"{item_name_prefix}[{i}]",
-                                item_data,
-                                formatted_data,
-                                unexpanded_formatted_data,
-                                effective_item_schema,
-                                new_keys,
-                                trigger_update=trigger_update
-                            )
-                            recursive_set(formatted_data.data, new_keys, item_data)
-                            pm.done_phase(sub_phase_id)
-
-                    # 2b. List of Primitives (Leaf update)
-                    else:
-                        # Create a dummy field definition to represent the list item
-                        dummy_field = copy.copy(schema_class._field)
-                        dummy_field.type = item_type
-
-                        for i, item_val in enumerate(data):
-                            self._update_field(
-                                parent_item_name_prefix=item_name_prefix,  # Path up to list
-                                parent_data_object=data,                   # The list itself
-                                field_name=i,
-                                field_value=item_val,
-                                formatted_data=formatted_data,
-                                parent_schema_class=schema_class,          # Alias as parent for prompts
-                                field=dummy_field,
-                                keys=keys,
-                                trigger_update=trigger_update
-                            )
 
             # 3. Dict container
             elif hasattr(wrapped_type, "__origin__") and wrapped_type.__origin__ is dict:
@@ -2046,10 +1997,8 @@ Respond with ONLY the JSON object for this arc."""
         )
 
         print(f"{_INPUT}Updated {parent_item_name_prefix}.{field_name} from '''\n{_RESET}{field_value}{_INPUT}\n''' to '''\n{_BOLD}{updated_value}{_INPUT}\n'''{_RESET}")
-        if isinstance(parent_data_object, list):
-            parent_data_object[field_name] = updated_value
-        else:
-            parent_data_object.update({ field_name: updated_value })
+        parent_data_object[field_name] = updated_value
+        return updated_value
 
 
     def _resolve_cross_branch_reference(self, reference: str) -> str:

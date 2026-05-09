@@ -1332,7 +1332,8 @@ class Summarizer:
         print(f"  messages: {retrieval_context.messages}")
         print(f"  messages_metadata: {retrieval_context.messages_metadata}{_RESET}")
 
-        context_order = FormattedData.get_context_order()
+        session_id = str(self.last.history_path.resolve()) if self.last and self.last.history_path else ""
+        context_order = FormattedData.get_context_order(session_id=session_id)
         context_attr_map = {
             "general_info": "general_info",
             "current_scene": "current_scene",
@@ -1519,7 +1520,7 @@ class Summarizer:
         last = getattr(self, "last", None)
         if not last or (history_path and history_path != last.history_path):
             # Point format templates loader to session-local path
-            FormattedData.set_session_templates_path(history_path / "format_templates.json")
+            FormattedData.set_session_templates_path(str(history_path), history_path / "format_templates.json")
             custom_state = copy.deepcopy(state)
             # Initialize schema parser first to get schema classes for entity graph
             schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
@@ -2357,41 +2358,56 @@ class FormattedData:
         return self.data[index]
 
     _format_templates_caches: dict[str, dict] = {}
-    _session_templates_path: Path | None = None
+    _session_templates_paths: dict[str, Path] = {}
 
     @staticmethod
-    def set_session_templates_path(path: Path):
-        """Set the session-local templates path and invalidate its cache entry."""
+    def set_session_templates_path(session_id: str, path: Path):
+        """Set the session-local templates path and invalidate only that session's cache entry."""
         path_str = str(path)
-        FormattedData._session_templates_path = path
+        FormattedData._session_templates_paths[session_id] = path
         FormattedData._format_templates_caches.pop(path_str, None)
 
     @staticmethod
-    def _load_format_templates() -> dict:
-        """Load format templates, preferring session-local over global."""
-        cache_key = str(FormattedData._session_templates_path) if FormattedData._session_templates_path else ""
-        if cache_key in FormattedData._format_templates_caches:
-            return FormattedData._format_templates_caches[cache_key]
+    def _load_format_templates(session_id: str = "") -> dict:
+        """Load format templates, preferring session-local over global.
+
+        If session_id is provided and a path is registered for it, loads from that path.
+        Otherwise falls back to the default global templates.
+        """
+        template_path = None
+        dss_dir = Path(__file__).parent.parent
+
+        if session_id and session_id in FormattedData._session_templates_paths:
+            candidate = FormattedData._session_templates_paths[session_id]
+            if candidate.exists():
+                template_path = candidate
+
+        if template_path is None and not session_id:
+            for sid, p in FormattedData._session_templates_paths.items():
+                if p.exists():
+                    template_path = p
+                    break
+
+        if template_path is None:
+            template_path = dss_dir / "user_data" / "example" / "format_templates.json"
+
+        cache_key = str(template_path)
+        # if cache_key in FormattedData._format_templates_caches:
+        #     return FormattedData._format_templates_caches[cache_key]
 
         try:
-            dss_dir = Path(__file__).parent.parent
-            # Try session-local path first
-            if FormattedData._session_templates_path and FormattedData._session_templates_path.exists():
-                template_path = FormattedData._session_templates_path
-            else:
-                template_path = dss_dir / "user_data" / "example" / "format_templates.json"
             templates = load_json(template_path) or {}
-            FormattedData._format_templates_caches[str(template_path)] = templates
-            print(f"{_DEBUG}Loaded {len(templates)} format templates{_RESET}")
+            # FormattedData._format_templates_caches[cache_key] = templates
+            print(f"{_DEBUG}Loaded {len(templates)} format templates from {cache_key}{_RESET}")
             return templates
         except Exception as e:
             print(f"{_WARNING}Failed to load format templates: {e}{_RESET}")
             return {}
 
     @staticmethod
-    def get_context_order() -> list[dict]:
+    def get_context_order(session_id: str = "") -> list[dict]:
         """Get the context order configuration from templates."""
-        templates = FormattedData._load_format_templates()
+        templates = FormattedData._load_format_templates(session_id=session_id)
         return templates.get("_context_order", [])
 
     @staticmethod
@@ -2472,7 +2488,8 @@ class FormattedData:
                     print(f"{_DEBUG}Using user template for {data_type}{_RESET}")
                     return rendered
 
-            templates = FormattedData._load_format_templates()
+            session_id = str(context_cache.history_path) if context_cache and context_cache.history_path else ""
+            templates = FormattedData._load_format_templates(session_id=session_id)
             template_str = templates.get(data_type)
             if template_str:
                 rendered = FormattedData._render_jinja_template(

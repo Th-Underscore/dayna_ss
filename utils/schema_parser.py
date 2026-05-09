@@ -1230,11 +1230,14 @@ class SchemaWrapper:
         for i, part in enumerate(parts):
             if isinstance(current, dict):
                 if part.isdigit():
-                    idx = int(part)
-                    if isinstance(current, list) and idx < len(current):
-                        current = current[idx]
+                    if part in current:
+                        current = current[part]
                     else:
-                        return default
+                        idx = int(part)
+                        if isinstance(current, list) and idx < len(current):
+                            current = current[idx]
+                        else:
+                            return default
                 else:
                     if part in current:
                         current = current[part]

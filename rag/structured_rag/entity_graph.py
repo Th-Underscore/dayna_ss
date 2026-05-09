@@ -85,24 +85,44 @@ class EntityGraph:
             return participant, prefix
         return f"character:{participant}", "character"
 
-    def _attach_participants_to_event(self, node_id: str, participants: list) -> None:
+    def _attach_participants_to_event(self, node_id: str, participants: list | dict) -> None:
         """Create participant nodes and relationship edges for an event/scene node.
 
-        Handles both string and dict participant entries, extracting importance
+        Handles both list and dict participant entries, extracting importance
         from dict shapes.
         """
         if not participants:
             return
-        for participant in participants:
-            if isinstance(participant, str):
-                participant_id, ptype = self._resolve_participant_id(participant)
+        if isinstance(participants, dict):
+            iterable = participants.items()
+        else:
+            iterable = enumerate(participants)
+
+        for entry in iterable:
+            if isinstance(entry, tuple) and len(entry) == 2:
+                if isinstance(entry[0], str):
+                    participant_name = entry[0]
+                    participant_val = entry[1]
+                else:
+                    participant_name = None
+                    participant_val = entry[1]
+            else:
+                participant_name = None
+                participant_val = entry
+
+            if isinstance(participant_val, str):
+                participant_id, ptype = self._resolve_participant_id(participant_val)
                 importance_val = 50
-            elif isinstance(participant, dict):
-                name = participant.get("name", "") or participant.get("id", "")
+            elif isinstance(participant_val, dict):
+                name = (
+                    participant_name
+                    or participant_val.get("name", "")
+                    or participant_val.get("id", "")
+                )
                 if not name:
                     continue
                 participant_id, ptype = self._resolve_participant_id(name)
-                imp = participant.get("importance", {})
+                imp = participant_val.get("importance", {})
                 if isinstance(imp, dict):
                     importance_val = imp.get("score", 50)
                 elif isinstance(imp, int):
@@ -124,6 +144,7 @@ class EntityGraph:
                 target_id=participant_id,
                 relation="participant",
                 status="event_participation",
+                field_name="participants",
                 importance=importance_val
             ))
 
@@ -267,8 +288,6 @@ class EntityGraph:
                 continue
 
             rel_fields = schema_class.get_relationship_fields()
-            if not rel_fields:
-                continue
 
             # Use specialized builders for event-like schemas that have nested structure
             if subject_name == "events":
@@ -917,6 +936,10 @@ class EntityGraph:
                         if current_scene not in r.scenes:
                             continue
                     relevant.update(r.events)
+                    for rel_id in (r.source_id, r.target_id):
+                        if rel_id != character_id and (rel_id.startswith("event:") or rel_id.startswith("scene:")):
+                            event_or_scene_name = rel_id.split(":", 1)[1] if ":" in rel_id else rel_id
+                            relevant.add(event_or_scene_name)
 
         if group_names:
             for group_name in group_names:

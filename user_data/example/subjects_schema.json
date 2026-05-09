@@ -579,7 +579,7 @@
     },
     "Arcs": {
       "type": "alias",
-      "field": "list[Arc]",
+      "field": "dict[str, Arc]",
       "defaults": {
         "suggested_min_chapters": 2,
         "suggested_max_chapters": 5,
