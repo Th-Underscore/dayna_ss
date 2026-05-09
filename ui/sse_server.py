@@ -31,12 +31,12 @@ class SSEServer:
         GET /sse/dss-health  - Health check
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 7870, queue=None):
+    def __init__(self, host: str = "0.0.0.0", port: int = 7870, queue=None):
         """
         Initialize the SSEServer with network binding and an update queue.
         
         Parameters:
-        	host (str): IP address to bind the server to (default "127.0.0.1").
+        	host (str): IP address to bind the server to (default "0.0.0.0").
         	port (int): TCP port to listen on (default 7870).
         	queue: Optional queue-like object supplying updates; if omitted, obtains the module default via `get_update_queue()`.
         
@@ -345,7 +345,7 @@ class SSEServer:
 _sse_server: SSEServer | None = None
 
 
-def get_sse_server(host: str = "127.0.0.1", port: int = 7870) -> SSEServer:
+def get_sse_server(host: str = "0.0.0.0", port: int = 7870) -> SSEServer:
     """
     Return the module-level singleton SSEServer, creating a new instance if none exists or the existing one is not running.
     
@@ -358,12 +358,12 @@ def get_sse_server(host: str = "127.0.0.1", port: int = 7870) -> SSEServer:
     return _sse_server
 
 
-def start_sse_server(host: str = "127.0.0.1", port: int = 7870) -> int:
+def start_sse_server(host: str = "0.0.0.0", port: int = 7870) -> int:
     """
     Start and return the configured SSE server's listening port.
     
     Parameters:
-        host (str): Host address to bind the server to (default "127.0.0.1").
+        host (str): Host address to bind the server to (default "0.0.0.0").
         port (int): Preferred port to bind the server to (default 7870).
     
     Returns:
