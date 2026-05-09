@@ -183,11 +183,7 @@ def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
     return [key.strip() for key in keys if key.strip()]
 
 
-from typing import Any
-from ..utils.schema_parser import ParsedSchemaClass, SchemaParser, TYPE_MAP
-
-
-def expand_lists_in_data_for_llm(data: dict | list, schema_type: ParsedSchemaClass | None, parser: SchemaParser) -> Any:
+def expand_lists_in_data_for_llm(data: dict | list, schema_type, parser) -> Any:
     """Recursively traverse data and expand lists into dictionaries
     with stringified integer keys if the corresponding schema indicates to do so.
 
@@ -202,6 +198,8 @@ def expand_lists_in_data_for_llm(data: dict | list, schema_type: ParsedSchemaCla
     Returns:
         out (Any): A new data structure with specified lists expanded.
     """
+    from ..utils.schema_parser import ParsedSchemaClass, TYPE_MAP
+
     if schema_type in TYPE_MAP.values() or data is None:
         return data
 
@@ -273,7 +271,7 @@ def _is_dict_expandable_to_list(data: dict) -> bool:
     return all(int_keys[i] == i for i in range(len(int_keys)))
 
 
-def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | None, parser: SchemaParser) -> Any:
+def unexpand_lists_in_data_from_llm(data: Any, schema_type, parser) -> Any:
     """
     Recursively traverse data and convert dictionaries with stringified integer keys
     back into lists if the corresponding schema indicates to do so, or if no schema is provided
@@ -290,6 +288,8 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | 
     Returns:
         out (Any): A new data structure with specified dictionaries converted to lists.
     """
+    from ..utils.schema_parser import ParsedSchemaClass, TYPE_MAP
+
     if schema_type in TYPE_MAP.values() or data is None:
         return data
 

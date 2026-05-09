@@ -1295,4 +1295,73 @@ class SchemaWrapper:
         """
         return f"{field_name}.importance.score"
 
-        return filterable
+    def get_entity_types(self) -> list[str]:
+        """Get all available entity type names from the schema.
+
+        Returns:
+            List of entity type names (e.g., ["Character", "Group", "Event"])
+        """
+        return list(self.schema_classes.keys())
+
+    def get_relationship_targets(self, entity_type: str, field_name: str) -> dict[str, Any] | None:
+        """Get the target entity type and configuration for a relationship field.
+
+        Args:
+            entity_type: Entity type name (e.g., "Character")
+            field_name: Field name (e.g., "relationships", "group_status")
+
+        Returns:
+            Dict with keys: target_type, target_class, bidirectional, or None if not a relationship field
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return None
+
+        relationship_format = schema_class.get_relationship_fields()
+        rel_config = relationship_format.get(field_name)
+
+        if not rel_config:
+            return None
+
+        return {
+            "target_type": rel_config.get("target_type"),
+            "target_class": rel_config.get("relationship_definition"),
+            "bidirectional": rel_config.get("bidirectional", False),
+            "config": rel_config,
+        }
+
+    def get_importance(self, entity_data: dict, entity_type: str, field_name: str, default: int = 0) -> int:
+        """Get the importance score for an item within a field.
+
+        Args:
+            entity_data: The entity's data dict
+            entity_type: Entity type name
+            field_name: Field name containing the item (e.g., "milestones", "relationships")
+            default: Default importance if not found
+
+        Returns:
+            Importance score as integer
+        """
+        entity_field = entity_data.get(field_name)
+        if not entity_field:
+            return default
+
+        if isinstance(entity_field, list):
+            if len(entity_field) > 0:
+                first_item = entity_field[0]
+                if isinstance(first_item, dict):
+                    importance = first_item.get("importance")
+                    if isinstance(importance, dict):
+                        return importance.get("score", default)
+                    elif isinstance(importance, int):
+                        return importance
+            return default
+
+        if isinstance(entity_field, dict):
+            importance = entity_field.get("importance")
+            if isinstance(importance, dict):
+                return importance.get("score", default)
+            elif isinstance(importance, int):
+                return importance
+
+        return default
