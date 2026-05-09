@@ -1000,10 +1000,20 @@ Respond with ONLY the JSON object for this arc."""
         unexpanded_formatted_data: FormattedData,
         target_schema_class: ParsedSchemaClass,
         keys: list = [],
+        trigger_update: bool = False,
     ) -> dict:
         """
         Entry point for processing a specific Schema Class node against a data object.
         Handles Triggers (Add New, Gate Check, Branch Query) before drilling down.
+
+        Args:
+            item_name_prefix: Path prefix for the item.
+            data: Data to update.
+            formatted_data: Formatted data for prompts.
+            unexpanded_formatted_data: Unexpanded formatted data.
+            target_schema_class: Schema class to process.
+            keys: Path keys to the data location.
+            trigger_update: If True, allow LLM calls for leaf fields. Defaults to False.
         """
         if shared.stop_everything:
             return data
@@ -1066,7 +1076,8 @@ Respond with ONLY the JSON object for this arc."""
             formatted_data,
             unexpanded_formatted_data,
             target_schema_class,
-            keys
+            keys,
+            trigger_update=trigger_update
         )
 
         return data
@@ -1078,7 +1089,8 @@ Respond with ONLY the JSON object for this arc."""
         formatted_data: FormattedData,
         unexpanded_formatted_data: FormattedData,
         schema_class: ParsedSchemaClass,
-        keys: list
+        keys: list,
+        trigger_update: bool = False,
     ):
         """
         Traverse and update `data` according to `schema_class`, recursing into nested schema classes, lists, and dicts.
@@ -1092,6 +1104,7 @@ Respond with ONLY the JSON object for this arc."""
             unexpanded_formatted_data (FormattedData): Unexpanded formatted view used when creating prompts that require original/unexpanded values.
             schema_class (ParsedSchemaClass): Schema description that determines traversal behavior (dataclass, alias/field, wrapped list/dict, or nested schema).
             keys (list): List of keys/indices representing the path within `formatted_data.data` corresponding to `data`.
+            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False.
         """
 
         # --- Case A: Dataclass (object with defined fields) ---
@@ -1104,7 +1117,8 @@ Respond with ONLY the JSON object for this arc."""
                     formatted_data=formatted_data,
                     unexpanded_formatted_data=unexpanded_formatted_data,
                     parent_schema_class=schema_class,
-                    parent_keys=keys
+                    parent_keys=keys,
+                    trigger_update=trigger_update
                 )
 
         # --- Case B: Alias (wrapper around a type) ---
@@ -1234,7 +1248,8 @@ Respond with ONLY the JSON object for this arc."""
         formatted_data: FormattedData,
         unexpanded_formatted_data: FormattedData,
         parent_schema_class: ParsedSchemaClass,
-        parent_keys: list
+        parent_keys: list,
+        trigger_update: bool = False,
     ):
         """
         Process and update a single field within a parent data object according to its schema definition.
@@ -1254,6 +1269,7 @@ Respond with ONLY the JSON object for this arc."""
             unexpanded_formatted_data (FormattedData): Unexpanded formatted data used when generating prompts that require raw content.
             parent_schema_class (ParsedSchemaClass): Schema class of the parent, used for inheriting defaults for nested schemas.
             parent_keys (list): List of keys representing the path to the parent within the formatted data structure.
+            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False.
         """
         field_name = field_def.name
         full_path = f"{parent_path}.{field_name}" if parent_path else field_name
@@ -1274,6 +1290,10 @@ Respond with ONLY the JSON object for this arc."""
         current_value = parent_data[field_name]
         field_type = field_def.type
 
+        # Determine if this field should trigger updates (from parent schema defaults)
+        field_update_key = f"{field_name}_update"
+        field_trigger_update = parent_schema_class.defaults.get(field_update_key, False)
+
         # 4. Handle Recursion for nested Schema Classes
         if isinstance(field_type, ParsedSchemaClass):
             # Create effective schema for the child (inheriting prompt templates from parent)
@@ -1292,7 +1312,8 @@ Respond with ONLY the JSON object for this arc."""
                 formatted_data,
                 unexpanded_formatted_data,
                 effective_child_schema,
-                current_keys
+                current_keys,
+                trigger_update=field_trigger_update
             )
             recursive_set(formatted_data.data, current_keys, current_value)
             pm.done_phase(sub_phase_id)
@@ -1318,7 +1339,8 @@ Respond with ONLY the JSON object for this arc."""
                         formatted_data,
                         unexpanded_formatted_data,
                         effective_schema,
-                        [*current_keys, i]
+                        [*current_keys, i],
+                        trigger_update=field_trigger_update
                     )
                     recursive_set(formatted_data.data, [*current_keys, i], item)
                     pm.done_phase(sub_phase_id)
@@ -1339,7 +1361,8 @@ Respond with ONLY the JSON object for this arc."""
                         formatted_data,
                         unexpanded_formatted_data,
                         effective_schema,
-                        [*current_keys, k]
+                        [*current_keys, k],
+                        trigger_update=field_trigger_update
                     )
                     recursive_set(formatted_data.data, [*current_keys, k], v)
                     pm.done_phase(sub_phase_id)
@@ -1354,7 +1377,8 @@ Respond with ONLY the JSON object for this arc."""
             formatted_data,
             parent_schema_class,
             field_def,
-            parent_keys
+            parent_keys,
+            trigger_update=field_trigger_update
         )
 
     def _initialize_field(self, data: dict, field_name: str, field_def: ParsedSchemaField):
@@ -1963,6 +1987,7 @@ Respond with ONLY the JSON object for this arc."""
         parent_schema_class: ParsedSchemaClass,
         field: ParsedSchemaField,
         keys: list = [],
+        trigger_update: bool = False,
     ) -> Any:
         """Update a single field using the _generate_field_update method.
         Checks for overrides in parent_data_object for prompt templates.
@@ -1977,7 +2002,11 @@ Respond with ONLY the JSON object for this arc."""
             parent_schema_class (ParsedSchemaClass): Schema of the parent object.
             field (ParsedSchemaField): The field in question.
             keys (list, optional): Path keys to the parent object. Defaults to [].
+            trigger_update (bool, optional): If False, skip LLM call. Defaults to False.
         """
+        if not trigger_update:
+            print(f"{_GRAY}Skipping update for {parent_item_name_prefix}.{field_name} (trigger_update=False){_RESET}")
+            return field_value
         prompt_template: str | None = self._get_effective_setting(
             parent_data_object, parent_schema_class, "update_prompt_template", field_name_context=field_name
         )
