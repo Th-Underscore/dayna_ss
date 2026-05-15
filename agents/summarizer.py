@@ -2098,6 +2098,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                         example_json=example_json_str,
                                         char_context=char_context,
                                         char_greeting=char_greeting,
+                                        char_context_str=char_context_str,
+                                        char_greeting_str=char_greeting_str,
                                     ) + "\n" + error_feedback
                         except json.JSONDecodeError as e:
                             print(f"{_ERROR}Failed to parse LLM response for '{entity_name}' as JSON: {e}{_RESET}")
@@ -2112,6 +2114,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                     example_json=example_json_str,
                                     char_context=char_context,
                                     char_greeting=char_greeting,
+                                    char_context_str=char_context_str,
+                                    char_greeting_str=char_greeting_str,
                                 ) + "\nThe previous JSON was invalid. Ensure valid JSON output.\n"
                         except Exception as e:
                             print(f"{_ERROR}Unexpected error processing '{entity_name}' on attempt {attempt + 1}: {e}{_RESET}")
@@ -2381,12 +2385,6 @@ class FormattedData:
             candidate = FormattedData._session_templates_paths[session_id]
             if candidate.exists():
                 template_path = candidate
-
-        if template_path is None and not session_id:
-            for sid, p in FormattedData._session_templates_paths.items():
-                if p.exists():
-                    template_path = p
-                    break
 
         if template_path is None:
             template_path = dss_dir / "user_data" / "example" / "format_templates.json"

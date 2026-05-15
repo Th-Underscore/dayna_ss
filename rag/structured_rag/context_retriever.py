@@ -119,14 +119,20 @@ class StoryContextRetriever:
         # Initialize entity graph for relationship tracking
         self.schema_classes = schema_classes or {}
         self.schema_wrapper = SchemaWrapper(self.schema_classes) if self.schema_classes else None
-        self.entity_graph = EntityGraph(history_path, persist=True, schema_classes=schema_classes)
-        print(f"{_DEBUG}EntityGraph initialized with {len(self.entity_graph.nodes)} nodes{_RESET}")
+        try:
+            self.entity_graph = EntityGraph(history_path, persist=True, schema_classes=schema_classes)
+            print(f"{_DEBUG}EntityGraph initialized with {len(self.entity_graph.nodes)} nodes{_RESET}")
+        except Exception as e:
+            print(f"{_ERROR}Failed to initialize EntityGraph: {e}{_RESET}")
+            self.entity_graph = None
 
         # Store summarizer and pass to chunker for LLM-based speaker extraction
         self.summarizer = summarizer
         # TODO: Make this configurable via UI toggle
         self.use_llm_for_speakers = True  # Toggle: True to always use LLM, False to use regex/spaCy
-        self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene, summarizer=summarizer, use_llm_for_speakers=self.use_llm_for_speakers)
+        characters_map = self.characters.get("entries", self.characters)
+        groups_map = self.groups.get("entries", self.groups)
+        self.chunker = MessageChunker(history_path, characters_map, groups_map, self.events, self.current_scene, summarizer=summarizer, use_llm_for_speakers=self.use_llm_for_speakers)
 
         # Create character name patterns for recognition (from both JSON and graph)
         self.character_patterns = self._create_character_patterns()
@@ -149,9 +155,12 @@ class StoryContextRetriever:
         for char_name in char_names:
             # Create pattern that matches full name and possible first/last name only
             names = char_name.split()
-            pattern = f"({char_name}"
+            safe_full = re.escape(char_name)
+            safe_first = re.escape(names[0])
+            safe_last = re.escape(names[-1])
+            pattern = f"({safe_full}"
             if len(names) > 1:
-                pattern += f"|{names[0]}|{names[-1]}"
+                pattern += f"|{safe_first}|{safe_last}"
             pattern += ")"
             patterns[char_name] = re.compile(pattern, flags=re.IGNORECASE)
         return patterns
@@ -416,13 +425,6 @@ class StoryContextRetriever:
                 key = etype.lower()
                 if key in fallback:
                     fallback[key] = set(names)
-            if all_data:
-                if "Group" not in initial_entities and "Group" in all_data and all_data["Group"]:
-                    fallback["group"] = set(all_data["Group"].get("entries", all_data["Group"]).keys())
-                if "Event" not in initial_entities and "Event" in all_data and all_data["Event"]:
-                    entries = all_data["Event"].get("events", all_data["Event"].get("entries", all_data["Event"]))
-                    if isinstance(entries, dict):
-                        fallback["event"] = set(entries.keys())
             return fallback
 
         field_map = self.entity_graph.get_schema_relationship_map()
@@ -690,19 +692,18 @@ class StoryContextRetriever:
             Importance score (0-100) or 0 if not found
         """
         if self.schema_wrapper:
-            # First try: resolve importance directly on the item itself
-            score = self._get_nested_field_value(item_data, item_type, "importance.score", 0)
+            score = self._get_nested_field_value(item_data, item_type, "importance.score", None)
             if isinstance(score, int):
                 return score
             if isinstance(score, dict):
                 return score.get("score", 0)
-            # Fallback: try the prefixed path (for schema-wrapped single-item dicts)
-            path = f"{field_name}.importance.score"
-            score = self._get_nested_field_value(item_data, item_type, path, 0)
-            if isinstance(score, int):
-                return score
-            if isinstance(score, dict):
-                return score.get("score", 0)
+            if score is None:
+                path = f"{field_name}.importance.score"
+                score = self._get_nested_field_value(item_data, item_type, path, None)
+                if isinstance(score, int):
+                    return score
+                if isinstance(score, dict):
+                    return score.get("score", 0)
         importance = item_data.get("importance", {})
         if isinstance(importance, dict):
             return importance.get("score", 0)
@@ -1304,7 +1305,7 @@ Do not include generic terms like "you", "someone", "they". Only include charact
             if do_determine_speakers:
                 paragraph_speakers = self._determine_speakers(paragraph)
             else:
-                paragraph_speakers = [None]  # Placeholder
+                paragraph_speakers = []  # Unknown; caller should treat empty as unknown
 
             for sent_idx, sentence_text in enumerate(sentences, start=1):
                 chunk_id = f"{message_idx}_{para_idx}_{sent_idx}"
@@ -1444,9 +1445,25 @@ Do not include generic terms like "you", "someone", "they". Only include charact
                 n.metadata.get("paragraph_idx", 0),
                 n.metadata.get("sentence_idx", 0),
             ))
-            full_message_text = "\n\n".join(n.text for n in message_chunks_sorted if n.text)
 
-            paragraphs = [p.strip() for p in full_message_text.split("\n\n") if p.strip()]
+            paragraphs = []
+            current_para_idx = None
+            current_para_sentences = []
+            for chunk in message_chunks_sorted:
+                para_idx = chunk.metadata.get("paragraph_idx", 0)
+                if para_idx != current_para_idx and current_para_sentences:
+                    para_text = " ".join(s for s in current_para_sentences if s)
+                    if para_text.strip():
+                        paragraphs.append(para_text.strip())
+                    current_para_sentences = []
+                current_para_idx = para_idx
+                if chunk.text:
+                    current_para_sentences.append(chunk.text)
+            if current_para_sentences:
+                para_text = " ".join(s for s in current_para_sentences if s)
+                if para_text.strip():
+                    paragraphs.append(para_text.strip())
+
             if not paragraphs:
                 print(f"{_WARNING}No text found in chunks for message_idx {message_idx}.{_RESET}")
                 return False

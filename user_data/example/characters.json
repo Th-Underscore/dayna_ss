@@ -90,6 +90,19 @@
         "Injured his leg during The Jones Offensive."
       ],
       "traits": ["Loyal to John.", "More emotionally expressive.", "Strategic thinker."],
+      "attributes": [
+        "Strength: Above average.",
+        "Stamina: Average.",
+        "Combat: Skilled melee and ranged.",
+        "Intelligence: Strategic thinker."
+      ],
+      "voice": "Speaks with conviction, slightly louder than necessary.",
+      "quirks": ["Limps on his injured leg when tired.", "Calls everyone 'brother' or 'sister'."],
+      "fears": ["Failing his brother John.", "Being seen as weak due to his injury."],
+      "preferences": {
+        "likes": ["Tactical discussions", "Morning drills", "Simple food"],
+        "dislikes": ["Being pitied", "Insubordination", "Idle chatter"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["General", "Deputy Commander"],
@@ -120,6 +133,19 @@
       "description": ["Amy Harrison is the chief scientist of the Rebel Force.", "A 32-year-old woman with brown hair, green eyes."],
       "biography": ["Leading researcher before The First Incursion.", "Joined early, became chief scientific advisor."],
       "traits": ["Brilliant and innovative.", "Calm under pressure."],
+      "attributes": [
+        "Intelligence: Exceptional.",
+        "Technical skill: Expert in energy systems.",
+        "Combat: Minimal.",
+        "Stamina: Average."
+      ],
+      "voice": "Speaks precisely and carefully, choosing each word.",
+      "quirks": ["Mumbles calculations under her breath.", "Taps her fingers rhythmically when thinking."],
+      "fears": ["Her research being used for harm.", "Losing her mental edge."],
+      "preferences": {
+        "likes": ["Quiet laboratories", "Experimental technology", "Black coffee"],
+        "dislikes": ["Loud noises", "Interruptions during experiments", "Wasteful tactics"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Chief Scientist"],
@@ -142,6 +168,19 @@
       "description": ["Marcus Chen is the lead strategist for the Rebel Force.", "A 35-year-old man with graying hair."],
       "biography": ["Former military strategist.", "Developed many battle plans."],
       "traits": ["Analytical and methodical.", "Calm in high-pressure."],
+      "attributes": [
+        "Intelligence: Strategic genius.",
+        "Combat: Below average.",
+        "Stamina: Below average.",
+        "Leadership: Inspires through logic."
+      ],
+      "voice": "Quiet, measured tone. Rarely raises his voice.",
+      "quirks": ["Draws tactical diagrams on any available surface.", "Mutters probabilities under his breath."],
+      "fears": ["Making a mistake that costs lives.", "Being outmaneuvered by the enemy."],
+      "preferences": {
+        "likes": ["Chess", "Silence", "Well-organized command centers"],
+        "dislikes": ["Impulsive decisions", "Loud music", "Uncertainty"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Strategist", "Head of Tactical Planning"],
@@ -164,6 +203,19 @@
       "description": ["Elena Vasquez is an elite operative.", "A 27-year-old woman with black hair."],
       "biography": ["Former spy and infiltrator.", "Specializes in reconnaissance."],
       "traits": ["Reserved and mysterious.", "Deadly in combat."],
+      "attributes": [
+        "Stealth: Exceptional.",
+        "Combat: Expert in close quarters.",
+        "Intelligence: High situational awareness.",
+        "Stamina: High."
+      ],
+      "voice": "Barely above a whisper, with a slight accent.",
+      "quirks": ["Never sits with her back to a door.", "Speaks in the fewest words possible."],
+      "fears": ["Being captured and interrogated.", "Losing her cover identity."],
+      "preferences": {
+        "likes": ["Shadows", "Solo missions", "Silent entry"],
+        "dislikes": ["Crowds", "Loud weapons", "Unnecessary chatter"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Operative"],
@@ -185,6 +237,19 @@
       "description": ["Angelina Kristi is a soldier.", "A 25-year-old woman with blonde hair."],
       "biography": ["Joined after The First Incursion.", "Harry Kristi's sister."],
       "traits": ["Brave and determined.", "Carries guilt about her brother."],
+      "attributes": [
+        "Combat: Skilled.",
+        "Stamina: High.",
+        "Intelligence: Average.",
+        "Stealth: Below average."
+      ],
+      "voice": "Trembles slightly when emotional, otherwise steady.",
+      "quirks": ["Checks her gear obsessively before every mission.", "Talks to her brother's photo."],
+      "fears": ["Dying before avenging her brother.", "Being forgotten like Harry."],
+      "preferences": {
+        "likes": ["Close combat training", "Night watches", "Silence"],
+        "dislikes": ["Mention of Harry's death", "John Jones", "Crowded spaces"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Soldier"],
@@ -206,6 +271,19 @@
       "description": ["The Subterranean Leader commands the enemy forces.", "An ancient, powerful figure."],
       "biography": ["Leads the Subterraneans in their war."],
       "traits": ["Calculating and patient.", "Deeply hateful."],
+      "attributes": [
+        "Strength: Superhuman.",
+        "Intelligence: Ancient wisdom.",
+        "Combat: Legendary.",
+        "Stamina: Nearly limitless."
+      ],
+      "voice": "Deep, rumbling, echoes as if from a cavern.",
+      "quirks": ["Never blinks in conversation.", "Speaks in third person."],
+      "fears": ["Being overthrown by a rival.", "Humanity reclaiming the surface."],
+      "preferences": {
+        "likes": ["Absolute obedience", "Ancient rituals", "Darkness"],
+        "dislikes": ["Sunlight", "Disobedience", "The Rebel Force"]
+      },
       "group_status": {
         "Subterraneans": {
           "position": ["Leader"],
@@ -228,6 +306,14 @@
       "description": ["Harry Kristi was Angelina's brother.", "Killed by John Jones during escape."],
       "biography": ["Died in The First Incursion.", "Killed by John Jones."],
       "traits": ["Unknown."],
+      "attributes": ["Unknown; deceased before detailed records."],
+      "voice": "Unknown.",
+      "quirks": ["Unknown."],
+      "fears": ["Unknown."],
+      "preferences": {
+        "likes": ["Unknown."],
+        "dislikes": ["Unknown."]
+      },
       "relationships": {
         "Angelina Kristi": [
           {"relation": "brother", "status": "Family", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": {"score": 40, "reason": "Family tie", "faction": "positive"}}
@@ -244,6 +330,19 @@
       "description": ["Sarah Mitchell is a medic in the Rebel Force.", "A 30-year-old woman with red hair."],
       "biography": ["Former emergency room doctor.", "Joined after The First Incursion."],
       "traits": ["Compassionate.", "Calm under pressure."],
+      "attributes": [
+        "Medical skill: Expert.",
+        "Combat: Minimal.",
+        "Stamina: Average.",
+        "Intelligence: High."
+      ],
+      "voice": "Gentle and reassuring, with a steady bedside manner.",
+      "quirks": ["Hums while working on patients.", "Keeps a detailed journal of every treatment."],
+      "fears": ["Running out of medical supplies during a crisis.", "Losing a patient she could have saved."],
+      "preferences": {
+        "likes": ["Organized medical stations", "Herbal remedies", "Training medics"],
+        "dislikes": ["Reckless soldiers", "Unsanitary conditions", "Wasteful triage"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Medic", "Medical Officer"],
@@ -265,6 +364,19 @@
       "description": ["David Park is a communications specialist.", "A 28-year-old man."],
       "biography": ["Ran comms for early Rebel operations."],
       "traits": ["Technical mind.", "Quiet."],
+      "attributes": [
+        "Technical skill: Expert communicator.",
+        "Combat: Below average.",
+        "Intelligence: High.",
+        "Stamina: Average."
+      ],
+      "voice": "Low and even, with a slight radio crackle habit from years of comms work.",
+      "quirks": ["Taps out Morse code rhythms on his thigh unconsciously.", "Prefers written messages to speaking."],
+      "fears": ["Communications being intercepted.", "Being cut off from the team."],
+      "preferences": {
+        "likes": ["Radio equipment", "Silence", "Repairing tech"],
+        "dislikes": ["Loud environments", "Small talk", "Outdated equipment"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Communications Specialist"],
@@ -280,6 +392,19 @@
       "description": ["Captain Rodriguez leads a small squad.", "A veteran soldier."],
       "biography": ["Led a squad in The First Incursion.", "Now trains new recruits."],
       "traits": ["Strict.", "Experienced."],
+      "attributes": [
+        "Combat: Veteran.",
+        "Leadership: Strong squad leader.",
+        "Stamina: Above average.",
+        "Intelligence: Tactical."
+      ],
+      "voice": "Authoritative bark, softened by a fatherly tone with recruits.",
+      "quirks": ["Calls everyone 'soldier' regardless of rank.", "Polishes his boots obsessively."],
+      "fears": ["Losing his squad like in The First Incursion.", "Becoming obsolete."],
+      "preferences": {
+        "likes": ["Drills", "Discipline", "Veteran stories"],
+        "dislikes": ["Sloppy formations", "New recruits who don't listen", "Politics"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Captain"],
@@ -297,6 +422,19 @@
       "description": ["Rachel Torres is a new recruit.", "A 22-year-old eager soldier."],
       "biography": ["Joined recently.", "Very little experience."],
       "traits": ["Eager.", "Naive."],
+      "attributes": [
+        "Combat: In training.",
+        "Stamina: High (youthful energy).",
+        "Intelligence: Average.",
+        "Marksmanship: Below average but improving."
+      ],
+      "voice": "Bright and enthusiastic, still carries civilian speech patterns.",
+      "quirks": ["Asks too many questions during briefings.", "Keeps a journal of everything she learns."],
+      "fears": ["Being sent home as a failure.", "Freezing in combat."],
+      "preferences": {
+        "likes": ["Learning new skills", "Listening to veteran stories", "Proving herself"],
+        "dislikes": ["Being treated like a child", "Patronizing attitudes", "KP duty"]
+      },
       "group_status": {
         "Rebel Force": {
           "position": ["Recruit"],
@@ -314,6 +452,19 @@
       "description": ["A Subterranean scout.", "Seen only briefly during reconnaissance."],
       "biography": ["Part of intelligence gathering.", "Killed in action."],
       "traits": ["Stealthy.", "Observant."],
+      "attributes": [
+        "Stealth: High.",
+        "Combat: Low.",
+        "Speed: High.",
+        "Stamina: Average."
+      ],
+      "voice": "Skittering clicks and hisses.",
+      "quirks": ["Twitches antenna-like sensors constantly.", "Never stays still."],
+      "fears": ["Being spotted.", "Failure of the mission."],
+      "preferences": {
+        "likes": ["Dark tunnels", "Silence", "Reporting findings"],
+        "dislikes": ["Open areas", "Bright light", "Noise"]
+      },
       "group_status": {
         "Subterraneans": {
           "position": ["Scout"],
@@ -331,6 +482,19 @@
       "description": ["Vex is a Subterranean commander.", "Second in command to the Leader."],
       "biography": ["Commands ground forces.", "Known for brutality."],
       "traits": ["Brutal.", "Strategic."],
+      "attributes": [
+        "Strength: Superhuman.",
+        "Combat: Elite.",
+        "Intelligence: Tactical.",
+        "Stamina: High."
+      ],
+      "voice": "Guttural roar that drops to a threatening whisper.",
+      "quirks": ["Cracks knuckles before every engagement.", "Collects trophies from defeated enemies."],
+      "fears": ["Displeasing the Subterranean Leader.", "Being outsmarted by humans."],
+      "preferences": {
+        "likes": ["Brute force tactics", "Trophies of war", "Total obedience"],
+        "dislikes": ["Retreat", "Human resistance", "Being questioned"]
+      },
       "group_status": {
         "Subterraneans": {
           "position": ["Commander"],
@@ -352,6 +516,19 @@
       "description": ["Trader Jenkins is a civilian merchant.", "Supplies both sides for profit."],
       "biography": ["Makes deals with anyone.", "Neutral party."],
       "traits": ["Greedy.", "Pragmatic."],
+      "attributes": [
+        "Negotiation: Expert.",
+        "Combat: Below average.",
+        "Intelligence: Street-smart.",
+        "Connections: Extensive."
+      ],
+      "voice": "Smooth and ingratiating, with a salesman's cadence.",
+      "quirks": ["Always carries a small scale for weighing currency.", "Bargains habitually even for non-transactions."],
+      "fears": ["Being caught in a crossfire.", "Losing his supply routes."],
+      "preferences": {
+        "likes": ["Profitable deals", "Neutral ground", "Good merchandise"],
+        "dislikes": ["Violence", "Scavengers undercutting his prices", "Taking sides"]
+      },
       "group_status": {
         "Merchant Guild": {
           "position": ["Trader"],

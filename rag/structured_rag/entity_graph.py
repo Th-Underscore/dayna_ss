@@ -292,6 +292,8 @@ class EntityGraph:
             # Use specialized builders for event-like schemas that have nested structure
             if subject_name == "events":
                 self._build_events()
+            elif subject_name == "arcs":
+                self._build_arcs(schema_rel_fields=rel_fields)
             else:
                 self._build_entities_from_schema(entity_type, filename, rel_fields)
 
@@ -316,37 +318,44 @@ class EntityGraph:
                 data=entity_data
             )
 
-            # Process each relationship field defined in schema
-            for field_name, rel_config in rel_fields.items():
-                if field_name not in entity_data:
-                    continue
-
-                field_data = entity_data[field_name]
-                target_type = rel_config.get("target_type", "unknown")
-                is_bidirectional = rel_config.get("bidirectional", False)
-                relationship_def = rel_config.get("relationship_definition", "")
-
-                # Store original relationships in node
-                node.relationships[field_name] = field_data
-
-                # Build relationships based on field type
-                if isinstance(field_data, dict) and field_name == "characters" and entity_type == "group":
-                    # Group character membership (special case)
-                    self._process_group_membership(node_id, field_data, field_name)
-                elif isinstance(field_data, dict):
-                    # Dict of target -> list of relationships (like character relationships)
-                    self._process_relationship_dict(
-                        node_id, entity_name, target_type, field_data,
-                        relationship_def, is_bidirectional, field_name
-                    )
-
-                # Also process list fields (like milestones)
-                elif isinstance(field_data, list):
-                    self._process_list_relationships(
-                        node_id, entity_name, target_type, field_data, field_name
-                    )
-
+            if rel_fields:
+                self._process_relationship_fields(node, entity_data, entity_type, entity_name, node_id, rel_fields)
             self.nodes[node_id] = node
+
+    def _process_relationship_fields(
+        self,
+        node: EntityNode,
+        entity_data: dict,
+        entity_type: str,
+        entity_name: str,
+        node_id: str,
+        rel_fields: dict[str, dict],
+    ):
+        """Process relationship fields defined in schema for a given entity node."""
+        for field_name, rel_config in rel_fields.items():
+            if field_name not in entity_data:
+                continue
+
+            field_data = entity_data[field_name]
+            target_type = rel_config.get("target_type", "unknown")
+            is_bidirectional = rel_config.get("bidirectional", False)
+            relationship_def = rel_config.get("relationship_definition", "")
+
+            # Store original relationships in node
+            node.relationships[field_name] = field_data
+
+            # Build relationships based on field type
+            if isinstance(field_data, dict) and field_name == "characters" and entity_type == "group":
+                self._process_group_membership(node_id, field_data, field_name)
+            elif isinstance(field_data, dict):
+                self._process_relationship_dict(
+                    node_id, entity_name, target_type, field_data,
+                    relationship_def, is_bidirectional, field_name
+                )
+            elif isinstance(field_data, list):
+                self._process_list_relationships(
+                    node_id, entity_name, target_type, field_data, field_name
+                )
 
     def _process_relationship_dict(
         self,
@@ -689,8 +698,13 @@ class EntityGraph:
                 )
                 self.nodes[node_id] = node
 
-    def _build_arcs(self):
-        """Parse arcs.json to build arc nodes."""
+    def _build_arcs(self, schema_rel_fields: dict[str, dict] | None = None):
+        """Parse arcs.json to build arc nodes.
+
+        Args:
+            schema_rel_fields: Optional relationship field config from schema,
+                               passed when called from schema mode.
+        """
         arcs_path = self.history_path / "arcs.json"
         if not arcs_path.exists():
             return
@@ -701,9 +715,8 @@ class EntityGraph:
             arcs_list = arcs_data
         elif isinstance(arcs_data, dict):
             arcs_list = arcs_data.get("entries", arcs_data.get("arcs", []))
-            # If arcs_list is a dict (e.g., {"entries": {...}}), convert to iterable of arc dicts
             if isinstance(arcs_list, dict):
-                arcs_list = list(arcs_list.values())
+                arcs_list = [{"title": k, **(v if isinstance(v, dict) else {})} for k, v in arcs_list.items()]
         else:
             return
 
@@ -723,6 +736,9 @@ class EntityGraph:
                 data=arc_data
             )
             self.nodes[node_id] = node
+
+            if schema_rel_fields:
+                self._process_relationship_fields(node, arc_data, schema_rel_fields)
 
     def get_node(self, node_id: str) -> EntityNode | None:
         """Get a node by ID."""
@@ -972,7 +988,10 @@ class EntityGraph:
         group_id = f"group:{group_name}"
         node = self.get_node(group_id)
         if node and node.type == "group":
-            return node.relationships.get("members", [])
+            members = node.relationships.get("members", [])
+            if not members:
+                members = list(node.relationships.get("characters", {}).keys())
+            return members
         return []
 
     def get_bidirectional_relationship(self, entity1: str, entity2: str) -> dict[str, Relationship]:
@@ -1161,10 +1180,12 @@ class EntityGraph:
 
         for rel in self.relationships:
             include = False
+            matched_from_outgoing = False
 
             if direction in ("outgoing", "both"):
                 if rel.source_id == entity_id:
                     include = True
+                    matched_from_outgoing = True
                     if target_type and not rel.target_id.startswith(target_type + ":"):
                         include = False
                     if field_name and rel.field_name != field_name:
@@ -1175,6 +1196,7 @@ class EntityGraph:
             if direction in ("incoming", "both") and not include:
                 if rel.target_id == entity_id:
                     include = True
+                    matched_from_outgoing = False
                     if target_type and not rel.source_id.startswith(target_type + ":"):
                         include = False
                     if field_name and rel.field_name != field_name:
@@ -1183,7 +1205,7 @@ class EntityGraph:
                         include = False
 
             if include:
-                target = rel.target_id if direction != "incoming" else rel.source_id
+                target = rel.target_id if matched_from_outgoing else rel.source_id
                 target_clean = target.split(":", 1)[1] if ":" in target else target
                 if target_clean not in result:
                     result.append(target_clean)

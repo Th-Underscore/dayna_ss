@@ -712,7 +712,7 @@ Respond with ONLY the JSON object for this chapter."""
 
         # Load arcs data
         arcs_path = self.history_path / "arcs.json"
-        arcs_data = load_json(arcs_path) or []
+        arcs_data = load_json(arcs_path) or {}
 
         # Count chapters in current arc
         chapters_dict = events_data.get("chapters", {})
@@ -867,8 +867,9 @@ Respond with ONLY the JSON object for this arc."""
                 if "summary" not in arc_data:
                     arc_data["summary"] = recent_chapter_summary
 
-                # Add arc to list
-                arcs_data.append(arc_data)
+                # Add arc to dict keyed by title
+                arc_key = arc_data.get("title", arc_title)
+                arcs_data[arc_key] = arc_data
                 save_json(arcs_data, arcs_path)
 
                 new_arc_number = current_arc_number + 1
@@ -2279,10 +2280,10 @@ Respond with ONLY the JSON object for this arc."""
 
         # For chapters in current arc: count chapters since last arc transition
         chapters_in_arc = chapters_count
-        arcs_data = self.all_subjects_data.get("arcs", [])
-        if isinstance(arcs_data, list) and arcs_data:
-            last_arc = arcs_data[-1] if arcs_data else {}
-            last_arc_ending_chapter = last_arc.get("ending_chapter", 0)
+        arcs_data = self.all_subjects_data.get("arcs", {})
+        if isinstance(arcs_data, dict) and arcs_data:
+            last_arc = max(arcs_data.values(), key=lambda a: a.get("ending_chapter", 0) if isinstance(a, dict) else 0)
+            last_arc_ending_chapter = last_arc.get("ending_chapter", 0) if isinstance(last_arc, dict) else 0
             chapters_in_arc = max(1, chapters_count - last_arc_ending_chapter)
 
         chapter_in_arc = chapters_in_arc  # Current chapter position within arc

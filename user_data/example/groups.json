@@ -30,9 +30,11 @@
       "description": ["Enemy forces from underground."],
       "purpose": "Reclaim Earth from humanity.",
       "culture": "Warrior culture.",
+      "resources": ["Underground networks", "Advanced weaponry", "Numbers"],
+      "events": ["The First Incursion", "The Second Incursion"],
       "relationships": {
         "Rebel Force": [
-          {"relation": "enemy", "status": "Enemy", "importance": {"score": 100, "reason": "Main enemy", "faction": "negative"}}
+          {"position": "Enemy", "relation": "enemy", "status": "Enemy", "importance": {"score": 100, "reason": "Main enemy", "faction": "negative"}}
         ]
       },
       "characters": {
@@ -45,12 +47,20 @@
       "aliases": ["SIU"],
       "description": ["Intelligence gathering division."],
       "purpose": "Gather intelligence on Rebel movements.",
+      "culture": "Secrecy and efficiency.",
+      "resources": ["Scouting equipment", "Encrypted communication lines"],
+      "events": [],
+      "relationships": {},
       "characters": {}
     },
     "Medical Corps": {
       "aliases": ["Medics"],
       "description": ["Rebel Force medical division."],
       "purpose": "Treat the wounded.",
+      "culture": "Care and urgency.",
+      "resources": ["Medical supplies", "Field hospitals", "Surgical equipment"],
+      "events": [],
+      "relationships": {},
       "characters": {
         "Sarah Mitchell": {"position": ["Medic"], "events": [], "importance": {"score": 40}}
       }
@@ -59,6 +69,10 @@
       "aliases": ["Traders"],
       "description": ["Civilian traders who supply both sides."],
       "purpose": "Profit from war.",
+      "culture": "Neutrality and profit.",
+      "resources": ["Trade routes", "Supply caches", "Currency"],
+      "events": [],
+      "relationships": {},
       "characters": {
         "Trader Jenkins": {"position": ["Trader"], "events": [], "importance": {"score": 20}}
       }
@@ -67,12 +81,20 @@
       "aliases": ["Elders"],
       "description": ["Ancient Subterranean governing body."],
       "purpose": "Rule the Subterraneans.",
+      "culture": "Ancient tradition and hierarchy.",
+      "resources": ["Authority", "Ancient knowledge"],
+      "events": [],
+      "relationships": {},
       "characters": {}
     },
     "Recruit Training Division": {
       "aliases": ["Training"],
       "description": ["Training new Rebel recruits."],
       "purpose": "Train soldiers.",
+      "culture": "Discipline and growth.",
+      "resources": ["Training grounds", "Training equipment", "Instructors"],
+      "events": [],
+      "relationships": {},
       "characters": {
         "Captain Rodriguez": {"position": ["Instructor"], "events": [], "importance": {"score": 35}},
         "Rachel Torres": {"position": ["Recruit"], "events": [], "importance": {"score": 15}}

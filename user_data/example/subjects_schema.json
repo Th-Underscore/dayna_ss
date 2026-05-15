@@ -219,17 +219,21 @@
     "GroupRelationship": {
       "type": "dataclass",
       "fields": {
-        "position": "list[str]",
+        "position": "str",
         "relation": "str",
         "status": "str",
         "importance": "Importance"
       },
       "defaults": {
-        "position_placeholder": "Describes the nature of the relationship this group has with another group (e.g., 'Associate', 'Enemy').",
+        "position_placeholder": "A one-word summary of this specific relationship the group has with the target group (e.g., 'Ally', 'Enemy', 'Neutral').",
         "relation_placeholder": "The type of relationship (e.g., 'ally', 'enemy', 'neutral').",
         "status_placeholder": "The current status of the relationship (e.g., 'active', 'dormant', 'hostile').",
         "importance_placeholder": "The significance of this relationship. Score (0-100): 100=Alliance/Conflict defining, 80=Major, 50=Significant, 30=Minor, 10=Background, 0=Irrelevant. Faction: 'positive' for ally, 'negative' for enemy, 'neutral' otherwise."
       }
+    },
+    "GroupRelationships": {
+      "type": "alias",
+      "field": "list[GroupRelationship]"
     },
     "Group": {
       "type": "dataclass",
@@ -240,7 +244,7 @@
         "culture": "str",
         "resources": "list[str]",
         "events": "list[str]",
-        "relationships": "dict[str, GroupRelationship]",
+        "relationships": "dict[str, GroupRelationships]",
         "characters": "dict[str, GroupCharacterInfo]"
       },
       "defaults": {
@@ -298,7 +302,7 @@
           "relationships": {
             "target_type": "group",
             "bidirectional": true,
-            "relationship_definition": "GroupRelationship"
+            "relationship_definition": "GroupRelationships"
           },
           "characters": {
             "target_type": "character",
