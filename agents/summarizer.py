@@ -1369,10 +1369,10 @@ class Summarizer:
                 scene_names = getattr(retrieval_context.events, "get", lambda k, d={}: d.get(k, "Unknown"))("scenes", {})
                 scene_name_map = {name.lower(): name for name in scene_names.keys()} if isinstance(scene_names, dict) else {}
                 extra_context = {"scene_names": scene_name_map, "metadata": messages_metadata}
-                formatted = FormattedData(lines_data, data_type, parser=None, extra_context=extra_context).st
+                formatted = FormattedData(lines_data, data_type, parser=None, context_cache=self.last, extra_context=extra_context).st
             else:
                 extra_context = {"metadata": messages_metadata}
-                formatted = FormattedData(data, data_type, self.last.schema_parser, extra_context=extra_context).st
+                formatted = FormattedData(data, data_type, self.last.schema_parser, context_cache=self.last, extra_context=extra_context).st
 
             if to_context:
                 custom_state["context"] += f"\n\n{formatted}"

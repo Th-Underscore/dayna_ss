@@ -1,6 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
+import copy
 import jsonc
 import logging
 import re
@@ -344,7 +345,7 @@ class StoryContextRetriever:
         # First pass: Get important relationships for all characters
         for char_name in scene_characters:
             if char_name in characters_data:
-                char_data = characters_data[char_name].copy()  # Copy to avoid modifying original
+                char_data = copy.deepcopy(characters_data[char_name])  # Deep copy to avoid modifying original
 
                 # Get important relationships
                 if hasattr(self, 'entity_graph') and self.entity_graph:
@@ -375,8 +376,10 @@ class StoryContextRetriever:
                 char_rels = self._get_field_value(char_data, "Character", "relationships")
                 if not char_rels:
                     char_rels = {}
-                char_rels.update(important_rels)
-                char_data["relationships"] = char_rels
+                # Create new dict instead of updating in place
+                new_char_rels = dict(char_rels)
+                new_char_rels.update(important_rels)
+                char_data["relationships"] = new_char_rels
                 result[char_name] = char_data
 
                 for related_char in important_rels:
@@ -1446,35 +1449,36 @@ Do not include generic terms like "you", "someone", "they". Only include charact
                 n.metadata.get("sentence_idx", 0),
             ))
 
-            paragraphs = []
+            # Group chunks by paragraph to determine speakers per paragraph
+            paragraph_groups = []
             current_para_idx = None
-            current_para_sentences = []
+            current_para_chunks = []
             for chunk in message_chunks_sorted:
                 para_idx = chunk.metadata.get("paragraph_idx", 0)
-                if para_idx != current_para_idx and current_para_sentences:
-                    para_text = " ".join(s for s in current_para_sentences if s)
-                    if para_text.strip():
-                        paragraphs.append(para_text.strip())
-                    current_para_sentences = []
+                if para_idx != current_para_idx and current_para_chunks:
+                    paragraph_groups.append((current_para_idx, current_para_chunks))
+                    current_para_chunks = []
                 current_para_idx = para_idx
-                if chunk.text:
-                    current_para_sentences.append(chunk.text)
-            if current_para_sentences:
-                para_text = " ".join(s for s in current_para_sentences if s)
-                if para_text.strip():
-                    paragraphs.append(para_text.strip())
+                current_para_chunks.append(chunk)
+            if current_para_chunks:
+                paragraph_groups.append((current_para_idx, current_para_chunks))
 
-            if not paragraphs:
+            if not paragraph_groups:
                 print(f"{_WARNING}No text found in chunks for message_idx {message_idx}.{_RESET}")
                 return False
 
-            full_message_text = "\n\n".join(paragraphs)
-            speakers = self._determine_speakers(full_message_text)
+            # Determine speakers per paragraph and update each paragraph's chunks
+            for para_idx, para_chunks in paragraph_groups:
+                para_sentences = [chunk.text for chunk in para_chunks if chunk.text]
+                para_text = " ".join(para_sentences).strip()
 
-            if not speakers:
-                print(f"{_DEBUG}No speakers determined for message_idx {message_idx}.{_RESET}")
+                if para_text:
+                    speakers = self._determine_speakers(para_text)
 
-            self.update_node_metadata_by_message_idx(message_idx, {"speakers": speakers})
+                    # Update metadata for all chunks in this paragraph
+                    for chunk in para_chunks:
+                        chunk.metadata["speakers"] = speakers
+
             return True
 
         except Exception as e:

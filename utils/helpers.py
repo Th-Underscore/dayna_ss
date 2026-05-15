@@ -198,7 +198,7 @@ def expand_lists_in_data_for_llm(data: dict | list, schema_type, parser) -> Any:
     Returns:
         out (Any): A new data structure with specified lists expanded.
     """
-    from ..utils.schema_parser import ParsedSchemaClass, TYPE_MAP
+    from .schema_parser import ParsedSchemaClass, TYPE_MAP
 
     if schema_type in TYPE_MAP.values() or data is None:
         return data
@@ -288,7 +288,7 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type, parser) -> Any:
     Returns:
         out (Any): A new data structure with specified dictionaries converted to lists.
     """
-    from ..utils.schema_parser import ParsedSchemaClass, TYPE_MAP
+    from .schema_parser import ParsedSchemaClass, TYPE_MAP
 
     if schema_type in TYPE_MAP.values() or data is None:
         return data

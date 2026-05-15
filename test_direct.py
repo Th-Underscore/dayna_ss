@@ -98,27 +98,39 @@ def test_entity_graph_logic():
     def traverse(start_char, min_score, max_depth):
         """Simulate EntityGraph.traverse_graph()"""
         relevant = {"character": {start_char}, "group": set()}
-        visited = set()
-        current_frontier = {start_char}
-        
+        visited = {"character": set(), "group": set()}
+        current_frontier = [("character", start_char)]
+
         for depth in range(max_depth):
             if not current_frontier:
                 break
-            next_frontier = set()
+            next_frontier = []
             for rel in relationships:
-                source_char = rel["source"].replace("character:", "")
-                if source_char in current_frontier and rel["score"] >= min_score:
-                    if rel["target"].startswith("character:"):
-                        target = rel["target"].replace("character:", "")
-                        if target not in relevant["character"]:
-                            relevant["character"].add(target)
-                            next_frontier.add(target)
-                    elif rel["target"].startswith("group:"):
-                        target = rel["target"].replace("group:", "")
-                        relevant["group"].add(target)
-            visited.update(current_frontier)
-            current_frontier = {c for c in next_frontier if c not in visited}
-        
+                # Check if any frontier node matches the relationship source
+                for node_type, node_name in current_frontier:
+                    source_prefix = f"{node_type}:"
+                    if rel["source"] == f"{source_prefix}{node_name}" and rel["score"] >= min_score:
+                        # Add discovered targets
+                        if rel["target"].startswith("character:"):
+                            target = rel["target"].replace("character:", "")
+                            if target not in relevant["character"]:
+                                relevant["character"].add(target)
+                                if target not in visited["character"]:
+                                    next_frontier.append(("character", target))
+                        elif rel["target"].startswith("group:"):
+                            target = rel["target"].replace("group:", "")
+                            if target not in relevant["group"]:
+                                relevant["group"].add(target)
+                            if target not in visited["group"]:
+                                next_frontier.append(("group", target))
+
+            # Mark current frontier as visited
+            for node_type, node_name in current_frontier:
+                visited[node_type].add(node_name)
+
+            # Filter next_frontier to exclude visited nodes
+            current_frontier = [(t, n) for t, n in next_frontier if n not in visited[t]]
+
         return relevant
     
     print("\n" + "-" * 40)

@@ -738,7 +738,7 @@ class EntityGraph:
             self.nodes[node_id] = node
 
             if schema_rel_fields:
-                self._process_relationship_fields(node, arc_data, schema_rel_fields)
+                self._process_relationship_fields(node, arc_data, "arc", arc_title, node_id, schema_rel_fields)
 
     def get_node(self, node_id: str) -> EntityNode | None:
         """Get a node by ID."""
@@ -1358,13 +1358,14 @@ class EntityGraph:
         if field_map is None:
             field_map = self.get_schema_relationship_map()
 
-        relevant: dict[str, set[str]] = {etype: set() for etype in ["character", "group", "event"]}
+        # Initialize relevant with all entity types from field_map and initial_entities
+        all_entity_types = set(field_map.keys()) | set(initial_entities.keys())
+        relevant: dict[str, set[str]] = {etype: set() for etype in all_entity_types}
 
         for etype, names in initial_entities.items():
-            if etype in relevant:
-                relevant[etype].update(names)
+            relevant[etype].update(names)
 
-        visited: dict[str, set[str]] = {etype: set() for etype in relevant}
+        visited: dict[str, set[str]] = {etype: set() for etype in all_entity_types}
 
         for depth in range(max_depth):
             new_entities = False
@@ -1393,7 +1394,13 @@ class EntityGraph:
                         )
 
                         for neighbor in neighbors:
-                            if neighbor not in relevant.get(target_type, set()):
+                            # Ensure target_type exists in relevant dict
+                            if target_type not in relevant:
+                                relevant[target_type] = set()
+                            if target_type not in visited:
+                                visited[target_type] = set()
+
+                            if neighbor not in relevant[target_type]:
                                 relevant[target_type].add(neighbor)
                                 new_entities = True
 
