@@ -1350,12 +1350,20 @@ class Summarizer:
             data_type = item.get("type")
             prompt = item.get("prompt", "")
             to_context = item.get("to_context", False)
+            no_prompt = item.get("no_prompt", False)
 
             attr_name = context_attr_map.get(data_type)
+            data = getattr(retrieval_context, attr_name, None) if attr_name else None
+
+            if no_prompt:
+                formatted = FormattedData(data if data is not None else {}, data_type, parser=None, context_cache=self.last).st
+                if to_context and formatted:
+                    custom_state["context"] += f"\n\n{formatted}"
+                continue
+
             if not attr_name:
                 continue
 
-            data = getattr(retrieval_context, attr_name, None)
             if data is None:
                 continue
 

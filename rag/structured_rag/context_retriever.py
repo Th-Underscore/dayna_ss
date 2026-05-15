@@ -63,6 +63,23 @@ start_background_import("llama_index.embeddings.huggingface", "HuggingFaceEmbedd
 
 
 @dataclass
+class DecayConfig:
+    method: str = "path_min_gated"
+    decay_exponent: float = 0.4
+    broad_threshold: int = 42
+    final_threshold: int = 75
+
+    convergence_enabled: bool = True
+    pull_rate: float = 0.4
+
+    re_traverse_enabled: bool = True
+    re_traverse_threshold: int = 65
+    re_traverse_min_importance: int = 42
+
+    max_depth: int = 10
+
+
+@dataclass
 class RetrievalContext:
     context: str = ""
     current_scene: dict[str, dict] = field(default_factory=dict)
@@ -76,7 +93,7 @@ class RetrievalContext:
     messages_metadata: list[dict] = field(default_factory=list)
     character_status: dict[str, dict] = field(default_factory=dict)
     character_milestones: dict[str, list[dict]] = field(default_factory=dict)
-    relevant_entities: dict[str, set[str]] = field(default_factory=dict)
+    relevant_entities: dict[str, dict[str, float]] = field(default_factory=dict)
 
 
 class StoryContextRetriever:
@@ -406,29 +423,19 @@ class StoryContextRetriever:
         all_data: dict[str, dict],
         importance_threshold: int = 75,
         max_depth: int = 10,
-    ) -> dict[str, set[str]]:
-        """Unified dynamic entity aggregation using EntityGraph.traverse_graph().
-
-        Delegates all relationship traversal to the entity graph for O(1) neighbor lookups
-        and bidirectional traversal. Falls back to legacy logic only if entity_graph is unavailable.
-
-        Args:
-            initial_entities: Dict of entity_type -> initial set of entity names
-                e.g., {"Character": {"John", "Amy"}, "Group": {"Rebel Force"}}
-            all_data: Dict of entity_type -> entity data dict (unused when using entity graph)
-            importance_threshold: Minimum importance score for filtering
-            max_depth: Maximum recursion depth
-
-        Returns:
-            Dict of entity_type -> aggregated set of entity names
-        """
+        decay_config: DecayConfig | None = None,
+    ) -> dict[str, dict[str, float]]:
         if not getattr(self, 'entity_graph', None):
-            fallback = {"character": set(), "group": set(), "event": set()}
+            fallback: dict[str, dict[str, float]] = {"character": {}, "group": {}, "event": {}}
             for etype, names in initial_entities.items():
                 key = etype.lower()
                 if key in fallback:
-                    fallback[key] = set(names)
+                    for name in names:
+                        fallback[key][name] = float(importance_threshold)
             return fallback
+
+        if decay_config is None:
+            decay_config = DecayConfig()
 
         field_map = self.entity_graph.get_schema_relationship_map()
         if not field_map:
@@ -438,19 +445,132 @@ class StoryContextRetriever:
                 "event": {"participants": "character"},
             }
 
-        graph_initial = {}
+        graph_initial: dict[str, set[str]] = {}
         for etype, names in initial_entities.items():
             if etype.lower() in ("character", "group", "event"):
                 graph_initial[etype.lower()] = names
 
-        result = self.entity_graph.traverse_graph(
+        initial_scene_entities: set[str] = set()
+        for etype, names in graph_initial.items():
+            for name in names:
+                initial_scene_entities.add(f"{etype}:{name}")
+
+        # ---- Pass 1: Broad Discovery ----
+        init_rel: dict[str, float] = {}
+        for etype, names in graph_initial.items():
+            for name in names:
+                init_rel[f"{etype}:{name}"] = float(decay_config.final_threshold)
+        scoring, path_records = self.entity_graph.traverse_graph_detailed(
             graph_initial,
+            initial_relevance=init_rel,
             field_map=field_map,
-            min_importance=importance_threshold,
-            max_depth=max_depth,
+            decay_config=decay_config,
         )
 
-        return result
+        entity_relevance: dict[str, dict[str, float]] = {
+            etype: {} for etype in scoring
+        }
+
+        def _apply_convergence(source_map: dict[str, dict[str, float]]):
+            source_relevance: dict[str, float] = {}
+            for etype, entities in source_map.items():
+                for name, rel in entities.items():
+                    source_relevance[f"{etype}:{name}"] = rel
+
+            for etype, entities in source_map.items():
+                for name, base_rel in entities.items():
+                    record = path_records.get(f"{etype}:{name}")
+                    if record is None:
+                        entity_relevance[etype][name] = base_rel
+                        continue
+
+                    n_paths = len(record.source_ids)
+                    if n_paths <= 1:
+                        entity_relevance[etype][name] = base_rel
+                        continue
+
+                    total_vouch = 0.0
+                    weighted_sum = 0.0
+                    for source_id in record.source_ids:
+                        src_rel = source_relevance.get(source_id, 50.0)
+                        edge = self.entity_graph.get_edge(source_id, f"{etype}:{name}")
+                        if edge is None:
+                            continue
+                        vouch = (src_rel / 100.0) * (edge.importance / 100.0)
+                        total_vouch += vouch
+                        weighted_sum += src_rel * vouch
+
+                    if total_vouch == 0:
+                        entity_relevance[etype][name] = base_rel
+                        continue
+
+                    pull_target = weighted_sum / total_vouch
+                    pull_strength = min(1.0, total_vouch * decay_config.pull_rate)
+
+                    relevance = base_rel + (pull_target - base_rel) * pull_strength
+                    entity_relevance[etype][name] = relevance
+
+        # ---- Pass 2: Convergence Scoring ----
+        if decay_config.convergence_enabled:
+            _apply_convergence(scoring)
+        else:
+            for etype, entities in scoring.items():
+                for name, base_rel in entities.items():
+                    entity_relevance[etype][name] = base_rel
+
+        # ---- Pass 3: Re-traversal (optional) ----
+        if decay_config.re_traverse_enabled:
+            new_seeds: dict[str, float] = {}
+            for etype, entities in entity_relevance.items():
+                for name, rel in entities.items():
+                    named_id = f"{etype}:{name}"
+                    if rel >= decay_config.re_traverse_threshold and named_id not in initial_scene_entities:
+                        new_seeds[named_id] = rel
+
+            for seed_id, seed_rel in new_seeds.items():
+                seed_type = seed_id.split(":")[0]
+                seed_name = seed_id.split(":", 1)[1]
+                for target_type in field_map.get(seed_type, {}).values():
+                    nbrs = self.entity_graph.get_neighbors_decayed(
+                        seed_name, seed_type,
+                        source_relevance=seed_rel,
+                        target_type=target_type,
+                        decay_config=decay_config,
+                        direction="outgoing",
+                    )
+                    for nbr in nbrs:
+                        nbr_name = nbr["name"]
+                        edge_imp = nbr["importance"]
+                        if edge_imp < decay_config.re_traverse_min_importance:
+                            continue
+                        if nbr_name not in entity_relevance.get(target_type, {}):
+                            if target_type not in entity_relevance:
+                                entity_relevance[target_type] = {}
+                            path_min = min(seed_rel, float(edge_imp))
+                            entity_relevance[target_type][nbr_name] = path_min
+
+            # Note: _apply_convergence here uses the original path_records from Pass 1,
+            # which don't include paths discovered during re-traversal. This means
+            # convergence only reflects pre-re-traversal paths — intentional since
+            # re-traversal is a secondary discovery pass using single-edge P4 decay.
+            # If path_records were updated, re-run convergence would strengthen
+            # entities with newly discovered paths.
+            if decay_config.convergence_enabled:
+                _apply_convergence(entity_relevance)
+
+        # ---- Pass 4: Pruning ----
+        final_threshold = decay_config.final_threshold
+        pruned: dict[str, dict[str, float]] = {}
+        for etype, entities in entity_relevance.items():
+            scored = {
+                name: rel
+                for name, rel in entities.items()
+                if rel >= final_threshold
+            }
+            if scored:
+                pruned[etype] = scored
+
+        return pruned
 
     def _get_character_group_status(
         self,
@@ -747,11 +867,13 @@ class StoryContextRetriever:
         }
 
         relevant = self._unified_entity_aggregation(
-            initial_entities, all_data, importance_threshold=importance_threshold, max_depth=max_depth
+            initial_entities, all_data,
+            importance_threshold=importance_threshold,
+            max_depth=max_depth,
         )
 
         char_key = "character"
-        relevant_chars = relevant.get(char_key, set())
+        relevant_chars = relevant.get(char_key, {}).keys()
         characters_data = self._get_entries(all_characters, "Character")
 
         result_status = {}
@@ -816,16 +938,20 @@ class StoryContextRetriever:
                 "Group": self.groups,
                 "Event": self.events,
             }
+            decay_config = DecayConfig()
             unified_result = self._unified_entity_aggregation(
-                initial_entities, all_data, importance_threshold=75, max_depth=10
+                initial_entities, all_data,
+                importance_threshold=decay_config.final_threshold,
+                max_depth=decay_config.max_depth,
+                decay_config=decay_config,
             )
             result.relevant_entities = unified_result
             char_key = "character"
             group_key = "group"
             event_key = "event"
-            unified_chars = unified_result.get(char_key, set())
-            unified_groups = unified_result.get(group_key, set())
-            unified_events = unified_result.get(event_key, set())
+            unified_chars = list(unified_result.get(char_key, {}).keys())
+            unified_groups = list(unified_result.get(group_key, {}).keys())
+            unified_events = list(unified_result.get(event_key, {}).keys())
             print(f"{_DEBUG}unified aggregation: {len(unified_chars)} chars, {len(unified_groups)} groups, {len(unified_events)} events{_RESET}")
 
             result.characters = self._get_all_relevant_character_relationships(list(unified_chars))

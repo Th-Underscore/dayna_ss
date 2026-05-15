@@ -39,6 +39,32 @@ class Relationship:
     scenes: list[int] = field(default_factory=list)
 
 
+@dataclass
+class EdgeRef:
+    target_id: str
+    importance: int
+    relation: str
+    faction: str
+
+
+@dataclass
+class EntityPath:
+    edges: list[EdgeRef]
+    path_min: int
+    depth: int
+    source_entity_id: str
+    effective_imp: float
+
+
+@dataclass
+class PathRecord:
+    name: str
+    entity_type: str
+    paths: list[EntityPath]
+    best_effective: float
+    source_ids: set[str]
+
+
 class EntityGraph:
     """
     Graph-based representation of story entities and their relationships.
@@ -219,8 +245,43 @@ class EntityGraph:
 
         print(f"{_SUCCESS}Loaded entity graph with {len(self.nodes)} nodes and {len(self.relationships)} relationships{_RESET}")
 
+    def _compute_graph_stats(self) -> dict[str, dict]:
+        node_out: dict[str, list[int]] = {}
+        node_in: dict[str, list[int]] = {}
+        node_bidi: dict[str, int] = {}
+        node_relations: dict[str, set[str]] = {}
+
+        for r in self.relationships:
+            node_out.setdefault(r.source_id, []).append(r.importance)
+            node_in.setdefault(r.target_id, []).append(r.importance)
+            node_relations.setdefault(r.source_id, set()).add(r.relation)
+            node_relations.setdefault(r.target_id, set()).add(r.relation)
+            if r.bidirectional:
+                node_bidi[r.source_id] = node_bidi.get(r.source_id, 0) + 1
+                if r.source_id != r.target_id:
+                    node_bidi[r.target_id] = node_bidi.get(r.target_id, 0) + 1
+
+        stats = {}
+        for node_id in self.nodes:
+            out_imps = node_out.get(node_id, [])
+            in_imps = node_in.get(node_id, [])
+            all_imps = out_imps + in_imps
+            stats[node_id] = {
+                "outgoing_count": len(out_imps),
+                "incoming_count": len(in_imps),
+                "total_connections": len(all_imps),
+                "outgoing_importance_avg": round(sum(out_imps) / len(out_imps), 1) if out_imps else 0,
+                "outgoing_importance_max": max(out_imps) if out_imps else 0,
+                "outgoing_importance_min": min(out_imps) if out_imps else 0,
+                "incoming_importance_avg": round(sum(in_imps) / len(in_imps), 1) if in_imps else 0,
+                "bidirectional_count": node_bidi.get(node_id, 0),
+                "relation_types": sorted(node_relations.get(node_id, set())),
+            }
+        return stats
+
     def _save_to_disk(self, graph_path: Path):
         """Save graph to JSON file for debugging."""
+        node_stats = self._compute_graph_stats()
         data = {
             "source_fingerprint": self._compute_source_fingerprint(),
             "nodes": {
@@ -229,7 +290,8 @@ class EntityGraph:
                     "type": node.type,
                     "name": node.name,
                     "data": node.data,
-                    "relationships": node.relationships
+                    "relationships": node.relationships,
+                    "stats": node_stats.get(node_id, {})
                 }
                 for node_id, node in self.nodes.items()
             },
@@ -1010,6 +1072,20 @@ class EntityGraph:
 
         return result
 
+    def get_edge(
+        self,
+        source_id: str,
+        target_id: str,
+        field_name: str | None = None,
+    ) -> Relationship | None:
+        best = None
+        for rel in self.relationships:
+            if rel.source_id == source_id and rel.target_id == target_id:
+                if field_name is None or rel.field_name == field_name:
+                    if best is None or rel.importance > best.importance:
+                        best = rel
+        return best
+
     def get_bidirectional_importance(self, entity1: str, entity2: str) -> int:
         """
         Get combined importance score for bidirectional relationship.
@@ -1204,6 +1280,72 @@ class EntityGraph:
                 target_clean = target.split(":", 1)[1] if ":" in target else target
                 if target_clean not in result:
                     result.append(target_clean)
+
+        return result
+
+    def get_neighbors_decayed(
+        self,
+        entity_name: str,
+        entity_type: str,
+        source_relevance: float = 100.0,
+        target_type: str | None = None,
+        field_name: str | None = None,
+        min_importance: int = 0,
+        decay_config: 'DecayConfig | None' = None,
+        direction: str = "outgoing",
+    ) -> list[dict]:
+        entity_id = f"{entity_type}:{entity_name}"
+        if decay_config is None:
+            from .context_retriever import DecayConfig
+            decay_config = DecayConfig()
+        result = []
+
+        for rel in self.relationships:
+            include = False
+            matched_from_outgoing = False
+
+            if direction in ("outgoing", "both"):
+                if rel.source_id == entity_id:
+                    include = True
+                    matched_from_outgoing = True
+                    if target_type and not rel.target_id.startswith(target_type + ":"):
+                        include = False
+                    if field_name and rel.field_name != field_name:
+                        include = False
+
+            if direction in ("incoming", "both") and not include:
+                if rel.target_id == entity_id:
+                    include = True
+                    matched_from_outgoing = False
+                    if target_type and not rel.source_id.startswith(target_type + ":"):
+                        include = False
+                    if field_name and rel.field_name != field_name:
+                        include = False
+
+            if include:
+                edge_imp = rel.importance
+                if edge_imp < min_importance:
+                    continue
+                effective_imp = edge_imp
+                target = rel.target_id if matched_from_outgoing else rel.source_id
+                target_clean = target.split(":", 1)[1] if ":" in target else target
+                result.append({
+                    "name": target_clean,
+                    "entity_type": target.split(":")[0] if ":" in target else entity_type,
+                    "importance": edge_imp,
+                    "effective_importance": effective_imp,
+                    "relation": rel.relation,
+                    "faction": rel.faction,
+                    "field_name": rel.field_name,
+                    "path_min": edge_imp,
+                    "edges": [EdgeRef(
+                        target_id=target,
+                        importance=edge_imp,
+                        relation=rel.relation,
+                        faction=rel.faction,
+                    )],
+                    "source_entity_id": entity_id,
+                })
 
         return result
 
@@ -1403,6 +1545,149 @@ class EntityGraph:
                 break
 
         return relevant
+
+    def traverse_graph_detailed(
+        self,
+        initial_entities: dict[str, set[str]],
+        initial_relevance: dict[str, float] | None = None,
+        field_map: dict[str, dict[str, str]] | None = None,
+        decay_config: 'DecayConfig | None' = None,
+    ) -> tuple[dict[str, dict[str, float]], dict[str, PathRecord]]:
+        if decay_config is None:
+            from .context_retriever import DecayConfig
+            decay_config = DecayConfig()
+        if field_map is None:
+            field_map = self.get_schema_relationship_map()
+
+        all_entity_types = set(field_map.keys()) | set(initial_entities.keys())
+        max_depth = decay_config.max_depth
+        min_importance = decay_config.broad_threshold
+
+        relevant: dict[str, set[str]] = {etype: set() for etype in all_entity_types}
+        for etype, names in initial_entities.items():
+            relevant[etype].update(names)
+
+        visited: dict[str, set[str]] = {etype: set() for etype in all_entity_types}
+        path_records: dict[str, PathRecord] = {}
+
+        for depth in range(max_depth):
+            new_entities = False
+
+            for source_type in list(relevant.keys()):
+                source_names = relevant.get(source_type, set())
+                if not source_names:
+                    continue
+
+                field_config = field_map.get(source_type, {})
+                if not field_config:
+                    continue
+
+                for source_name in list(source_names):
+                    if source_name in visited.get(source_type, set()):
+                        continue
+                    visited[source_type].add(source_name)
+
+                    for field_name, target_type in field_config.items():
+                        neighbors = self.get_neighbors_decayed(
+                            source_name, source_type,
+                            target_type=target_type,
+                            field_name=field_name if field_name != "_self" else None,
+                            min_importance=min_importance,
+                            decay_config=decay_config,
+                            direction="outgoing",
+                        )
+
+                        for nbr in neighbors:
+                            nbr_name = nbr["name"]
+                            if target_type not in relevant:
+                                relevant[target_type] = set()
+                            if target_type not in visited:
+                                visited[target_type] = set()
+
+                            effective = nbr["effective_importance"]
+                            nbr_entity_type = nbr.get("entity_type", target_type)
+                            nbr_id = f"{nbr_entity_type}:{nbr_name}"
+                            source_id = nbr["source_entity_id"]
+
+                            previous_paths: list[EntityPath] = []
+                            source_record = path_records.get(f"{source_type}:{source_name}")
+                            if source_record is not None:
+                                previous_paths = source_record.paths
+
+                            if previous_paths:
+                                for prev_path in previous_paths:
+                                    combined_edges = prev_path.edges + nbr["edges"]
+                                    combined_path_min = min(prev_path.path_min, nbr["path_min"])
+                                    combined_depth = prev_path.depth + 1
+                                    combined_alpha = (combined_path_min / 100.0) ** decay_config.decay_exponent
+                                    combined_effective = combined_path_min * (combined_alpha ** (combined_depth - 1))
+                                    path_obj = EntityPath(
+                                        edges=combined_edges,
+                                        path_min=combined_path_min,
+                                        depth=prev_path.depth + 1,
+                                        source_entity_id=prev_path.source_entity_id,
+                                        effective_imp=combined_effective,
+                                    )
+
+                                    if nbr_id not in path_records:
+                                        path_records[nbr_id] = PathRecord(
+                                            name=nbr_name,
+                                            entity_type=nbr_entity_type,
+                                            paths=[],
+                                            best_effective=combined_effective,
+                                            source_ids=set(),
+                                        )
+
+                                    record = path_records[nbr_id]
+                                    record.paths.append(path_obj)
+                                    record.source_ids.add(source_id)
+                                    if combined_effective > record.best_effective:
+                                        record.best_effective = combined_effective
+                            else:
+                                path_obj = EntityPath(
+                                    edges=nbr["edges"],
+                                    path_min=nbr["path_min"],
+                                    depth=depth + 1,
+                                    source_entity_id=source_id,
+                                    effective_imp=effective,
+                                )
+
+                                if nbr_id not in path_records:
+                                    path_records[nbr_id] = PathRecord(
+                                        name=nbr_name,
+                                        entity_type=nbr_entity_type,
+                                        paths=[],
+                                        best_effective=effective,
+                                        source_ids=set(),
+                                    )
+
+                                record = path_records[nbr_id]
+                                record.paths.append(path_obj)
+                                record.source_ids.add(source_id)
+                                if effective > record.best_effective:
+                                    record.best_effective = effective
+
+                            if nbr_name not in relevant[target_type]:
+                                relevant[target_type].add(nbr_name)
+                                new_entities = True
+
+            if not new_entities and depth > 0:
+                break
+
+        scoring: dict[str, dict[str, float]] = {}
+        for etype in all_entity_types:
+            scored = {}
+            for name in relevant.get(etype, set()):
+                record = path_records.get(f"{etype}:{name}")
+                if record:
+                    scored[name] = record.best_effective
+                elif initial_relevance is not None:
+                    scored[name] = initial_relevance.get(f"{etype}:{name}", 0.0)
+                else:
+                    scored[name] = 0.0
+            scoring[etype] = scored
+
+        return scoring, path_records
 
     def get_schema_relationship_map(self) -> dict[str, dict[str, str]]:
         """Load relationship map from schema_classes.

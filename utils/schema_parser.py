@@ -484,6 +484,11 @@ class SchemaParser:
         self._parse_definitions()
         self._parse_subjects()
 
+    @property
+    def defaults(self) -> dict[str, dict]:
+        """Get all defaults from all parsed definitions."""
+        return {name: defn.defaults for name, defn in self.definitions.items()}
+
     def _load_schema(self) -> dict:
         """Load the JSON schema file."""
         try:
