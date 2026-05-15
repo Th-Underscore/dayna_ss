@@ -714,16 +714,6 @@ Respond with ONLY the JSON object for this chapter."""
         arcs_path = self.history_path / "arcs.json"
         arcs_data = load_json(arcs_path) or {}
 
-        # Normalize legacy list format to dict
-        if isinstance(arcs_data, list):
-            normalized = {}
-            for item in arcs_data:
-                if isinstance(item, dict):
-                    arc_key = item.get("title", "")
-                    if arc_key:
-                        normalized[arc_key] = item
-            arcs_data = normalized
-
         # Count chapters in current arc
         chapters_dict = events_data.get("chapters", {})
         total_chapters = len(chapters_dict) if chapters_dict else 0

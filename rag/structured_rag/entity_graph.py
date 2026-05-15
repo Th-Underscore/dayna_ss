@@ -710,22 +710,17 @@ class EntityGraph:
             return
 
         arcs_data = load_json(arcs_path)
-
-        if isinstance(arcs_data, list):
-            arcs_list = arcs_data
-        elif isinstance(arcs_data, dict):
-            arcs_list = arcs_data.get("entries", arcs_data.get("arcs", []))
-            if isinstance(arcs_list, dict):
-                arcs_list = [{"title": k, **(v if isinstance(v, dict) else {})} for k, v in arcs_list.items()]
-        else:
+        if not isinstance(arcs_data, dict):
             return
 
-        for arc_data in arcs_list:
-            if not isinstance(arc_data, dict):
-                continue
+        entries = arcs_data.get("entries", arcs_data.get("arcs", None))
+        if entries is None:
+            entries = arcs_data
+        elif not isinstance(entries, dict):
+            return
 
-            arc_title = arc_data.get("title", "")
-            if not arc_title:
+        for arc_title, arc_data in entries.items():
+            if not isinstance(arc_data, dict):
                 continue
 
             node_id = f"arc:{arc_title}"

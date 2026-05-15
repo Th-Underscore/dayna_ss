@@ -1288,15 +1288,16 @@ Do not include generic terms like "you", "someone", "they". Only include charact
 
         # Determine characters present in the current scene once
         scene_active_characters = []
-        if (
-            self.current_scene_data
-            and isinstance(self.current_scene_data.get("now"), dict)
-            and isinstance(self.current_scene_data["now"].get("who"), dict)
-            and isinstance(self.current_scene_data["now"]["who"].get("characters"), dict)
-        ):
-            for char_info in self.current_scene_data["now"]["who"]["characters"].values():
-                if isinstance(char_info, dict) and "name" in char_info:
-                    scene_active_characters.append(char_info["name"])
+        if self.current_scene_data and isinstance(self.current_scene_data.get("now"), dict) and isinstance(self.current_scene_data["now"].get("who"), dict):
+            characters = self.current_scene_data["now"]["who"].get("characters")
+            if isinstance(characters, dict):
+                for char_info in characters.values():
+                    if isinstance(char_info, dict) and "name" in char_info:
+                        scene_active_characters.append(char_info["name"])
+            elif isinstance(characters, list):
+                for char_info in characters:
+                    if isinstance(char_info, dict) and "name" in char_info:
+                        scene_active_characters.append(char_info["name"])
 
         # Split into paragraphs
         paragraphs = [p.strip() for p in message.split("\n\n") if p.strip()]
@@ -1478,6 +1479,20 @@ Do not include generic terms like "you", "someone", "they". Only include charact
                     # Update metadata for all chunks in this paragraph
                     for chunk in para_chunks:
                         chunk.metadata["speakers"] = speakers
+
+            # Persist metadata changes
+            nodes_to_update = []
+            for chunk in message_chunks_sorted:
+                updated_node = TextNode(
+                    text=chunk.text,
+                    id_=chunk.id_,
+                    metadata=chunk.metadata,
+                )
+                nodes_to_update.append(updated_node)
+
+            if nodes_to_update:
+                self.index.insert_nodes(nodes_to_update)
+                self.index.storage_context.persist(persist_dir=str(self.storage_dir))
 
             return True
 
