@@ -171,6 +171,10 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
 def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
     """Split a string of keys into a list, handling both dot separators and square brackets.
 
+    Square bracket notation (e.g., "[Mrs. Patterson]") treats the bracketed content
+    as a single key regardless of dots inside. This is useful for key names that
+    contain literal dots.
+
     Does not accept default values with keys.
 
     Args:
@@ -179,7 +183,33 @@ def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
         out (list[str]): The list of keys.
     """
     if isinstance(keys, str):
-        keys = re.sub(r"\[([^\]]+)\]", r".\1", keys).replace('"', "").split(".")
+        keys = keys.replace('"', "").replace("'", "")
+        result = []
+        i = 0
+        while i < len(keys):
+            if keys[i] == '[':
+                end = keys.find(']', i)
+                if end != -1:
+                    part = keys[i+1:end].strip()
+                    if part:
+                        result.append(part)
+                    i = end + 1
+                    if i < len(keys) and keys[i] == '.':
+                        i += 1
+                else:
+                    result.append(keys[i])
+                    i += 1
+            elif keys[i] == '.':
+                i += 1
+            else:
+                j = i
+                while j < len(keys) and keys[j] != '.' and keys[j] != '[':
+                    j += 1
+                part = keys[i:j].strip()
+                if part:
+                    result.append(part)
+                i = j
+        return result
     return [key.strip() for key in keys if key.strip()]
 
 

@@ -2027,7 +2027,7 @@ Respond with ONLY the JSON object for this arc."""
             ref_content = ref_content[:-5]
 
         # Parse path parts
-        parts = ref_content.split(".")
+        parts = split_keys_to_list(ref_content)
 
         if not parts or parts[0] != "subjects":
             return f"[Invalid reference: {reference}]"

@@ -794,7 +794,8 @@ class StoryContextRetriever:
         """
         if self.schema_wrapper:
             return self.schema_wrapper.get_nested_field_value(entity_data, entity_type, path, default)
-        parts = path.split(".")
+        from ...utils.helpers import split_keys_to_list
+        parts = split_keys_to_list(path)
         current = entity_data
         for part in parts:
             if isinstance(current, dict):

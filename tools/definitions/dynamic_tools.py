@@ -4,6 +4,8 @@ import json
 if TYPE_CHECKING:
     from ...agents.summarizer import Summarizer
 
+from ...utils.helpers import split_keys_to_list
+
 
 def create_dss_tool_definitions() -> list[dict]:
     """Create OpenAI-compatible tool definitions for DSS tools."""
@@ -15,7 +17,8 @@ def create_dss_tool_definitions() -> list[dict]:
                 "description": """Retrieve information from the story knowledge base using a dot-notation path.
             
 Use this when you need specific information about characters, groups, scenes, events, or general story info.
-The path follows the schema structure: category.subcategory.field
+The path follows the schema structure: category.subcategory.field.
+If a key name contains a dot, wrap it in square brackets: "[Mrs. Patterson]".
 
 Examples:
   - "characters.John Jones" - Get all info about John Jones
@@ -34,7 +37,7 @@ Available top-level categories: characters, groups, current_scene, events, gener
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Dot-notation path to the information (e.g., 'characters.John.relationships' or 'current_scene.now.where')"
+                            "description": "Dot-notation path to the information (e.g., 'characters.John.relationships' or 'current_scene.now.where'). Use [brackets] around key names that contain dots."
                         }
                     },
                     "required": ["path"]
@@ -76,6 +79,7 @@ Examples:
                 "description": """List available information paths in the knowledge base.
             
 Use this to discover what information is available when you don't know the exact structure.
+Use [brackets] around key names that contain dots.
 
 Examples:
   - "" or omit parameter - List top-level categories
@@ -86,7 +90,7 @@ Examples:
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Parent path to list children of (leave empty for top-level)",
+                            "description": "Parent path to list children of (leave empty for top-level). Use [brackets] around key names containing dots.",
                             "default": ""
                         }
                     }
@@ -100,6 +104,7 @@ Examples:
                 "description": """Update information in the story knowledge base using a dot-notation path.
             
 Use this to record changes to characters, scenes, events, or other story elements.
+Use [brackets] around key names that contain dots.
 
 Examples:
   - path="characters.John Jones.status.current_mood", value="angry" - Update John's mood
@@ -112,7 +117,7 @@ CAUTION: This modifies the knowledge base. Use dss_get_info first to understand 
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Dot-notation path to the field to update"
+                            "description": "Dot-notation path to the field to update. Use [brackets] around key names that contain dots."
                         },
                         "value": {
                             "description": "The new value (string, number, boolean, or object depending on field type)"
@@ -218,7 +223,7 @@ def _get_info(summarizer: "Summarizer", path: str) -> dict:
         return {"error": "No context available. Start a conversation first."}
 
     retrieval_context = summarizer.last.context[0]
-    parts = path.split(".")
+    parts = split_keys_to_list(path)
 
     try:
         result = _navigate_path(retrieval_context, parts)
@@ -373,7 +378,7 @@ def _list_paths(summarizer: "Summarizer", path: str) -> dict:
             "description": "Top-level categories in the knowledge base"
         }
 
-    parts = path.split(".")
+    parts = split_keys_to_list(path)
     try:
         data = _navigate_path(retrieval_context, parts)
     except Exception:
@@ -391,7 +396,7 @@ def _list_paths(summarizer: "Summarizer", path: str) -> dict:
             "path": path,
             "paths": keys,
             "count": len(keys),
-            "hint": f"Access with {path}.<name>"
+            "hint": f"Access with {path}.<name>. Use [brackets] around names containing dots."
         }
     elif isinstance(data, (list, tuple)):
         return {
@@ -412,7 +417,7 @@ def _set_info(summarizer: "Summarizer", path: str, value: Any) -> dict:
         return {"error": "No context available. Start a conversation first."}
 
     retrieval_context = summarizer.last.context[0]
-    parts = path.split(".")
+    parts = split_keys_to_list(path)
 
     if len(parts) < 2:
         return {

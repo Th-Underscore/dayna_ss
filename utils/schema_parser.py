@@ -17,7 +17,8 @@ from .helpers import (
     _BOLD,
     _RESET,
     _DEBUG,
-    _WARNING
+    _WARNING,
+    split_keys_to_list,
 )
 
 # Basic type mapping
@@ -1229,7 +1230,7 @@ class SchemaWrapper:
         Returns:
             Value at path or default
         """
-        parts = path.split(".")
+        parts = split_keys_to_list(path)
         current = entity_data
 
         for i, part in enumerate(parts):
