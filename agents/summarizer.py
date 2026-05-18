@@ -2,20 +2,16 @@ from typing import Any, Callable, Generator, TextIO, TYPE_CHECKING
 from os import PathLike
 import copy
 import hashlib
-import io
 import json
 import jsonc
 import random
 import re
 import shutil
-import sys
 import time
 import traceback
-from contextlib import redirect_stdout, redirect_stderr
 from pathlib import Path
 from dataclasses import dataclass
 from datetime import datetime
-from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 if TYPE_CHECKING:
     from torch import no_grad
@@ -47,13 +43,10 @@ from ..utils.helpers import (
     _RESET,
     _DEBUG,
     History,
-    Histories,
     load_json,
     save_json,
-    recursive_get,
     expand_lists_in_data_for_llm,
     get_values,
-    enumerate_list,
     strip_thinking,
     strip_response,
     format_str_or_jinja,
@@ -111,7 +104,6 @@ base_state = {
     "name2": "DAYNA",
     "mode": "instruct",
     "chat-instruct_command": 'Continue the chat dialogue below. Write a single reply for the character "DAYNA". Answer questions flawlessly. Follow instructions to a T.\n\n<|prompt|>',
-    "enable_thinking": True,
     "context": (
         "You are DAYNA, an advanced AI assistant integrated into a comprehensive story-writing and world-building environment. Your primary function is to act as a collaborative partner, generating responses that continue a narrative based on a rich, structured context.\n\n"
         "This context is provided in several parts:\n\n"
@@ -121,7 +113,20 @@ base_state = {
         "4.  **Relevant Events:** Summaries of past or ongoing events that influence the current situation.\n"
         "5.  **Relevant Messages:** Specific dialogue snippets from earlier in the story that have been identified as relevant.\n"
         "6.  **Recent Dialogue:** The last few exchanges in the conversation to ensure continuity.\n\n"
-        "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones."
+        "Your instructions are delivered by the SYSTEM. You must follow them precisely. Your goal is to generate a natural, in-character response for your designated persona that seamlessly continues the story, respecting all the provided context and instructions. You are creative, adaptable, and capable of writing in diverse styles and tones.\n\n"
+        "CRITICAL STYLE CONSTRAINTS:\n"
+        "- AVOID: 'It wasn't X, it was Y' structures (negative parallelism).\n"
+        "- AVOID: 'hidden part,' 'something shifted,' 'a weight settled,' 'quietly [verb]' phrases.\n"
+        "- AVOID: Ending scenes with sudden emotional realizations or 'newfound' understanding.\n"
+        "- AVOID: Excessive em dashes (—) or colons (:) linking clauses.\n"
+        "- AVOID: 'Here's the thing,' 'Here's the kicker,' 'Here's where it gets interesting,' 'At the end of the day.'\n"
+        "- AVOID: False suspense transitions like 'Not X. Not Y. Just Z.' or rhetorical questions 'The result? Devastating.'\n"
+        "- AVOID: 'In conclusion,' 'To sum up,' 'In summary' (signposted conclusions).\n"
+        "- AVOID: Repetitive metaphors, similes, or wordplay that get beaten into the ground across a scene.\n"
+        "- AVOID: 'Game changer,' 'double-edged sword,' 'tip of the iceberg,' 'perfect storm' (clichéd idioms).\n"
+        "- AVOID: Cliffhangers or artificially dramatic endings to individual messages. Each response should flow naturally into the next, feeling like part of a continuous scene, not a self-contained one-shot.\n"
+        "- PREFER: Rough edges, unexpected word choices, varied sentence lengths (very short mixed with long), sensory details (sound, smell, touch).\n"
+        "- TONE: Show the scene through direct action and specific sensory experience, not through narrator reflection or summary."
     ),
     "auto_max_new_tokens": True,
     "temperature": 0.3,
@@ -619,7 +624,7 @@ class Summarizer:
         tool_result = self.tool_registry.execute_tool_call(result.call)
         return tool_result
 
-    def save_message_chunks(self, message: str, index: int, current_timestamp: str, path: Path | None = None) -> None:
+    def save_message_chunks(self, message: str, index: int, current_timestamp: str, path: Path | None = None, do_determine_speakers: bool = True) -> None:
         """Save message chunks to the history path with timestamp."""
         print(f"{_BOLD}save_message_chunks{_RESET} Path: {path}, Index: {index}, Timestamp: {current_timestamp}")
         if not path:
@@ -638,11 +643,45 @@ class Summarizer:
                 raise TypeError(f"Expected StoryContextRetriever, got {type(context_retriever)}")
 
             chunker = context_retriever.chunker
-            chunks = chunker.process_message(message, index, current_timestamp)
+            chunks = chunker.process_message(message, index, current_timestamp, do_determine_speakers=do_determine_speakers)
             print(f"{_SUCCESS}Stored {len(chunks)} message chunks for index {index}{_RESET}")
         except Exception as e:
             print(f"{_ERROR}Error processing message chunks for index {index}: {str(e)}{_RESET}")
             traceback.print_exc()
+
+    def update_previous_message_speakers(self, current_message_idx: int) -> bool:
+        """Update speakers for the previous message (current_message_idx - 1) using current state.
+
+        Args:
+            current_message_idx: The current message index (e.g., from output). The previous message index
+                is calculated as current_message_idx - 1.
+
+        Returns:
+            bool: True if update succeeded, False otherwise.
+        """
+        previous_idx = current_message_idx - 1
+        print(f"{_BOLD}update_previous_message_speakers{_RESET} Previous index: {previous_idx}")
+
+        try:
+            if not self.last or not self.last.context:
+                print(f"{_ERROR}Summarizer.last.context not available for update_previous_message_speakers.{_RESET}")
+                return False
+
+            context_retriever = self.last.context[1]
+            if not isinstance(context_retriever, StoryContextRetriever):
+                raise TypeError(f"Expected StoryContextRetriever, got {type(context_retriever)}")
+
+            chunker = context_retriever.chunker
+            success = chunker.update_message_speakers(previous_idx)
+            if success:
+                print(f"{_SUCCESS}Updated speakers for previous message index {previous_idx}{_RESET}")
+            else:
+                print(f"{_DEBUG}Could not update speakers for previous message index {previous_idx}.{_RESET}")
+            return success
+        except Exception as e:
+            print(f"{_ERROR}Error updating speakers for previous message index {previous_idx}: {str(e)}{_RESET}")
+            traceback.print_exc()
+            return False
 
     def prepare_context(self, user_input: str, state: dict, history: History, **kwargs):
         """Retrieve and format context for the prompt, as well as detecting a new scene turn.
@@ -658,7 +697,7 @@ class Summarizer:
 
         self.last.is_new_scene_turn = dss_shared.persistent_ui_state.get("next_scene", False)
         is_new_scene_auto = False
-        
+
         next_scene_prefix = "NEXT SCENE:"  # NEW SCENE:
         if user_input.startswith(next_scene_prefix):
             print(f"{_DEBUG}Found '{next_scene_prefix}' in user input in prepare_context.{_RESET}")
@@ -850,10 +889,10 @@ class Summarizer:
                             f'REMEMBER: You are "{name2}" replying to "{name1}". Write from {name2}\'s perspective.'
                         )
                     encoded_instr_prompt = (
-                        encode(instr_prompt, add_bos_token=True) if model.__class__.__name__ != "LlamaServer" else instr_prompt
+                        encode(instr_prompt, add_bos_token=True) if do_enc(model) else instr_prompt
                     )
                     print(
-                        f"{_SUCCESS}Encoded instruct prompt: {True if model.__class__.__name__ != 'LlamaServer' else False}{_RESET}"
+                        f"{_SUCCESS}Encoded instruct prompt: {True if do_enc(model) else False}{_RESET}"
                     )
 
                     print(f"{_SUCCESS}State set{_RESET}")
@@ -1293,7 +1332,8 @@ class Summarizer:
         print(f"  messages: {retrieval_context.messages}")
         print(f"  messages_metadata: {retrieval_context.messages_metadata}{_RESET}")
 
-        context_order = FormattedData.get_context_order()
+        session_id = str(self.last.history_path.resolve()) if self.last and self.last.history_path else ""
+        context_order = FormattedData.get_context_order(session_id=session_id)
         context_attr_map = {
             "general_info": "general_info",
             "current_scene": "current_scene",
@@ -1310,26 +1350,37 @@ class Summarizer:
             data_type = item.get("type")
             prompt = item.get("prompt", "")
             to_context = item.get("to_context", False)
+            no_prompt = item.get("no_prompt", False)
 
             attr_name = context_attr_map.get(data_type)
+            data = getattr(retrieval_context, attr_name, None) if attr_name else None
+
+            if no_prompt:
+                formatted = FormattedData(data if data is not None else {}, data_type, parser=None, context_cache=self.last).st
+                if to_context and formatted:
+                    custom_state["context"] += f"\n\n{formatted}"
+                continue
+
             if not attr_name:
                 continue
 
-            data = getattr(retrieval_context, attr_name, None)
             if data is None:
                 continue
+
+            messages_metadata = getattr(retrieval_context, "messages_metadata", [])
 
             if data_type == "lines":
                 lines_data = {
                     "messages": data,
-                    "metadata": getattr(retrieval_context, "messages_metadata", []),
+                    "metadata": messages_metadata,
                 }
                 scene_names = getattr(retrieval_context.events, "get", lambda k, d={}: d.get(k, "Unknown"))("scenes", {})
                 scene_name_map = {name.lower(): name for name in scene_names.keys()} if isinstance(scene_names, dict) else {}
-                extra_context = {"scene_names": scene_name_map}
-                formatted = FormattedData(lines_data, data_type, parser=None, extra_context=extra_context).st
+                extra_context = {"scene_names": scene_name_map, "metadata": messages_metadata}
+                formatted = FormattedData(lines_data, data_type, parser=None, context_cache=self.last, extra_context=extra_context).st
             else:
-                formatted = FormattedData(data, data_type, self.last.schema_parser).st
+                extra_context = {"metadata": messages_metadata}
+                formatted = FormattedData(data, data_type, self.last.schema_parser, context_cache=self.last, extra_context=extra_context).st
 
             if to_context:
                 custom_state["context"] += f"\n\n{formatted}"
@@ -1381,6 +1432,7 @@ class Summarizer:
 
         if len(history) < 2 and not history_path.exists():  # New chat
             GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "subjects_schema.json"
+            GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "format_templates.json"
             GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH)
 
             print(f"{_BOLD}Fresh chat detected. Initializing...{_RESET}")
@@ -1403,6 +1455,7 @@ class Summarizer:
 
             required_cache_files = [
                 "subjects_schema.json",
+                "format_templates.json",
                 *[f"{subject}.json" for subject in GLOBAL_SCHEMA_PARSER.subjects.keys()],
             ]
             cache_hit = initial_world_data_path.exists() and all(
@@ -1436,6 +1489,13 @@ class Summarizer:
                 shutil.copy(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH, schema_cache_path)
                 print(f"{_SUCCESS}Copied global schema to {schema_cache_path}{_RESET}")
 
+                format_templates_cache_path = initial_world_data_path / "format_templates.json"
+                if not GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH.exists():
+                    raise FileNotFoundError(
+                        f"Global format templates template not found at {GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH}"
+                    )
+                shutil.copy(GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH, format_templates_cache_path)
+
                 try:
                     initial_schema_parser = SchemaParser(schema_cache_path)
                 except Exception as e:
@@ -1467,8 +1527,23 @@ class Summarizer:
 
         last = getattr(self, "last", None)
         if not last or (history_path and history_path != last.history_path):
+            # Point format templates loader to session-local path
+            FormattedData.set_session_templates_path(str(history_path), history_path / "format_templates.json")
             custom_state = copy.deepcopy(state)
-            context_retriever = StoryContextRetriever(history_path)
+            # Initialize schema parser first to get schema classes for entity graph
+            schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
+            print(f"{_SUCCESS}Summarizer.schema_parser loaded for {history_path}{_RESET}")
+
+            # Get schema classes for subjects (Characters, Groups, etc.) to pass to EntityGraph
+            schema_classes = {
+                "Characters": schema_parser.definitions.get("Characters"),
+                "Groups": schema_parser.definitions.get("Groups"),
+                "Events": schema_parser.definitions.get("Events"),
+                "Arcs": schema_parser.definitions.get("Arcs"),
+            }
+            schema_classes = {k: v for k, v in schema_classes.items() if v}
+
+            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes, summarizer=self)
 
             # Retrieve last x messages
             last_x = min(len(history), kwargs.get("last_x", 6))  # TODO: Get all in current scene
@@ -1481,10 +1556,6 @@ class Summarizer:
             if original_seed == -1:
                 state["seed"] = random.randint(1, 2**31)
                 print(f"{_BOLD}New seed for session{_RESET}: {state['seed']}")
-
-            # Initialize self.last.schema_parser if it's not already set for this history_path
-            schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
-            print(f"{_SUCCESS}Summarizer.schema_parser loaded for {history_path}{_RESET}")
 
             self.last = SummarizationContextCache(
                 context=(retrieval_context, context_retriever, last_x, last_x_messages),
@@ -1540,22 +1611,22 @@ class Summarizer:
     ) -> bool:
         """
         Check if a scene transition occurred in the recent messages.
-        
+
         Asks the LLM to analyze the recent exchange and determine if:
         1. A new scene should begin (setting, time, or location change)
         2. The current scene has ended
-        
+
         Parameters:
             user_input: The latest user message
             output: The latest bot response
             recent_history: Recent message history for context
             custom_state: The custom state for LLM calls
-            
+
         Returns:
             bool: True if a scene transition was detected, False otherwise
         """
         from modules import shared
-        
+
         # Format recent history for context
         history_str = ""
         for i, msg in enumerate(recent_history):
@@ -1563,7 +1634,7 @@ class Summarizer:
             content = msg[1] if len(msg) > 1 else ""
             if content:
                 history_str += f"{role}: {content[:500]}\n"  # Truncate for prompt efficiency
-        
+
         prompt = f"""Analyze the following conversation exchange and determine if a SCENE TRANSITION has occurred.
 
 A scene transition occurs when:
@@ -1587,7 +1658,7 @@ Respond with ONLY one of these exact responses:
 Consider: Would this be a good point to archive the current scene to scenes.json and start a fresh current_scene? If yes, respond YES_SCENE_TRANSITION."""
 
         print(f"{_DEBUG}Checking for scene transition...{_RESET}")
-        
+
         try:
             response_text, _ = self.generate_with_sse(
                 prompt,
@@ -1598,10 +1669,10 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                 stopping_strings=["YES_SCENE_TRANSITION", "NO_SCENE_TRANSITION"],
                 match_prefix_only=True,
             )
-            
+
             response_str = str(response_text) if response_text is not None else ""
             response_upper = response_str.strip().upper() if response_str else ""
-            
+
             # Check the response
             if "YES_SCENE_TRANSITION" in response_upper:
                 return True
@@ -1610,7 +1681,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             else:
                 print(f"{_DEBUG}Ambiguous scene detection response: {response_upper[:100]}, defaulting to NO{_RESET}")
                 return False
-                
+
         except Exception as e:
             print(f"{_ERROR}Error in scene transition detection: {e}{_RESET}")
             traceback.print_exc()
@@ -1736,10 +1807,13 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             # Format the prompt template with context variables using Jinja
             prompt = format_str_or_jinja(
                 prompt_template,
+                char_context=char_context,
+                char_greeting=char_greeting,
                 char_context_str=char_context_str,
                 char_greeting_str=char_greeting_str,
                 all_relevant_definitions_json_str=all_definitions_str,
                 example_json=example_json_str,
+                schema_definition_json=all_definitions_str,
                 retry_feedback_placeholder="",
             )
 
@@ -1794,10 +1868,13 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                 error_feedback += f"- {err}\n"
                             prompt = format_str_or_jinja(
                                 prompt_template,
+                                char_context=char_context,
+                                char_greeting=char_greeting,
                                 char_context_str=char_context_str,
                                 char_greeting_str=char_greeting_str,
                                 all_relevant_definitions_json_str=all_definitions_str,
                                 example_json=example_json_str,
+                                schema_definition_json=all_definitions_str,
                                 retry_feedback_placeholder=error_feedback + "\n",
                             )
                 except json.JSONDecodeError as e:
@@ -1807,10 +1884,13 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                         error_feedback = f"The previous JSON was invalid. Ensure valid JSON output.\n"
                         prompt = format_str_or_jinja(
                             prompt_template,
+                            char_context=char_context,
+                            char_greeting=char_greeting,
                             char_context_str=char_context_str,
                             char_greeting_str=char_greeting_str,
                             all_relevant_definitions_json_str=all_definitions_str,
                             example_json=example_json_str,
+                            schema_definition_json=all_definitions_str,
                             retry_feedback_placeholder=error_feedback,
                         )
                 except Exception as e:
@@ -1863,8 +1943,11 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
         print(f"{_DEBUG}Attempting to populate entities via identification for '{subject_name}'{_RESET}")
 
+        # TODO: Pass in more context variables (example json, schema definitions, etc.) to the prompts
         char_context = state.get("context", "")
+        char_context_str = f'Character Context:\n"""\n{char_context}\n"""\n\n' if char_context else ""
         char_greeting = state["history"]["internal"][0][1]
+        char_greeting_str = f'Initial Greeting:\n"""\n{char_greeting}\n"""\n\n'
 
         custom_state = copy.deepcopy(state)
         custom_state.update(copy.deepcopy(base_state))
@@ -1875,6 +1958,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             identification_prompt_template,
             char_context=char_context,
             char_greeting=char_greeting,
+            char_context_str=char_context_str,
+            char_greeting_str=char_greeting_str,
         )
 
         print(f"{_DEBUG}Prompting LLM for entity identification...{_RESET}")
@@ -1954,6 +2039,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                         example_json=example_json_str,
                         char_context=char_context,
                         char_greeting=char_greeting,
+                        char_context_str=char_context_str,
+                        char_greeting_str=char_greeting_str,
                     )
 
                     custom_state_detail = copy.deepcopy(custom_state)
@@ -2019,6 +2106,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                         example_json=example_json_str,
                                         char_context=char_context,
                                         char_greeting=char_greeting,
+                                        char_context_str=char_context_str,
+                                        char_greeting_str=char_greeting_str,
                                     ) + "\n" + error_feedback
                         except json.JSONDecodeError as e:
                             print(f"{_ERROR}Failed to parse LLM response for '{entity_name}' as JSON: {e}{_RESET}")
@@ -2033,6 +2122,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                     example_json=example_json_str,
                                     char_context=char_context,
                                     char_greeting=char_greeting,
+                                    char_context_str=char_context_str,
+                                    char_greeting_str=char_greeting_str,
                                 ) + "\nThe previous JSON was invalid. Ensure valid JSON output.\n"
                         except Exception as e:
                             print(f"{_ERROR}Unexpected error processing '{entity_name}' on attempt {attempt + 1}: {e}{_RESET}")
@@ -2157,7 +2248,11 @@ class MessageSummarizer:
         self.current_timestamp = current_timestamp
 
     def generate(self, exchange: tuple[str, str], message_idxs: tuple[int, int]) -> None:
-        """Summarize messages and store in vector database with metadata."""
+        """Summarize messages and store in vector database with metadata.
+
+        Note: Speakers are extracted per-node in context_retriever.py (chunk_message).
+        This generates summaries with subjects_referenced at the summary level.
+        """
         print(f"{_BOLD}Summarizing messages for indices {message_idxs}{_RESET}")
 
         pm = self.summarizer._phase_manager
@@ -2181,7 +2276,6 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                     return
                 summary_text = strip_thinking(summary_text)
 
-                summary_speakers = ["System"]  # TODO: Derive from context
                 summary_chars_present = self.chunker._extract_entities(summary_text, self.chunker.character_name_patterns)
                 summary_groups_ref = self.chunker._extract_entities(summary_text, self.chunker.group_name_patterns)
                 summary_events_ref = self.chunker._extract_entities(summary_text, self.chunker.event_name_patterns)
@@ -2199,13 +2293,13 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                         current_message_idx,
                         0,
                         0,
-                    ],  # Use 0,0 to indicate this is a summary
+                    ],
                     "timestamp": self.current_timestamp,
-                    "speakers": summary_speakers,
+                    "speakers": [],
                     "characters_present": summary_chars_present,
                     "subjects_referenced": summary_subjects_referenced,
-                    "scene_id": None,  # Scene not yet determined
-                    "event_id": None,  # Same as scene_id
+                    "scene_id": None,
+                    "event_id": None,
                     "is_summary": True,
                 }
                 self.chunker.store_chunks([summary_chunk_data], persist_dir=(self.history_path / "message_index"))
@@ -2275,29 +2369,51 @@ class FormattedData:
         """Allow dictionary-like access to the (potentially expanded) data."""
         return self.data[index]
 
-    _format_templates_cache: dict | None = None
+    _format_templates_caches: dict[str, dict] = {}
+    _session_templates_paths: dict[str, Path] = {}
 
     @staticmethod
-    def _load_format_templates() -> dict:
-        """Load format templates from the templates JSON file."""
-        if FormattedData._format_templates_cache is not None:
-            return FormattedData._format_templates_cache
+    def set_session_templates_path(session_id: str, path: Path):
+        """Set the session-local templates path and invalidate only that session's cache entry."""
+        path_str = str(path)
+        FormattedData._session_templates_paths[session_id] = path
+        FormattedData._format_templates_caches.pop(path_str, None)
+
+    @staticmethod
+    def _load_format_templates(session_id: str = "") -> dict:
+        """Load format templates, preferring session-local over global.
+
+        If session_id is provided and a path is registered for it, loads from that path.
+        Otherwise falls back to the default global templates.
+        """
+        template_path = None
+        dss_dir = Path(__file__).parent.parent
+
+        if session_id and session_id in FormattedData._session_templates_paths:
+            candidate = FormattedData._session_templates_paths[session_id]
+            if candidate.exists():
+                template_path = candidate
+
+        if template_path is None:
+            template_path = dss_dir / "user_data" / "example" / "format_templates.json"
+
+        cache_key = str(template_path)
+        # if cache_key in FormattedData._format_templates_caches:
+        #     return FormattedData._format_templates_caches[cache_key]
 
         try:
-            dss_dir = Path(__file__).parent.parent
-            template_path = dss_dir / "user_data" / "example" / "format_templates.json"
             templates = load_json(template_path) or {}
-            FormattedData._format_templates_cache = templates
-            print(f"{_DEBUG}Loaded {len(templates)} format templates{_RESET}")
+            # FormattedData._format_templates_caches[cache_key] = templates
+            print(f"{_DEBUG}Loaded {len(templates)} format templates from {cache_key}{_RESET}")
             return templates
         except Exception as e:
             print(f"{_WARNING}Failed to load format templates: {e}{_RESET}")
             return {}
 
     @staticmethod
-    def get_context_order() -> list[dict]:
+    def get_context_order(session_id: str = "") -> list[dict]:
         """Get the context order configuration from templates."""
-        templates = FormattedData._load_format_templates()
+        templates = FormattedData._load_format_templates(session_id=session_id)
         return templates.get("_context_order", [])
 
     @staticmethod
@@ -2342,6 +2458,8 @@ class FormattedData:
 
             if extra_context:
                 context.update(extra_context)
+                if "metadata" in extra_context:
+                    context["metadata"] = extra_context["metadata"]
 
             rendered = template.render(**context)
             return rendered.strip()
@@ -2376,7 +2494,8 @@ class FormattedData:
                     print(f"{_DEBUG}Using user template for {data_type}{_RESET}")
                     return rendered
 
-            templates = FormattedData._load_format_templates()
+            session_id = str(context_cache.history_path) if context_cache and context_cache.history_path else ""
+            templates = FormattedData._load_format_templates(session_id=session_id)
             template_str = templates.get(data_type)
             if template_str:
                 rendered = FormattedData._render_jinja_template(
@@ -2456,3 +2575,6 @@ class FormattedData:
         """
         cleaned_string = re.sub(r" <<<<<<<<<<<< [^\n]*", "", string or self._str)
         return cleaned_string
+
+def do_enc(model):
+    return model.__class__.__name__ not in ["LlamaServer", "LMDeployModel"]

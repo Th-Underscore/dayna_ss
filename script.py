@@ -45,7 +45,7 @@ def _find_available_port(start_port, max_attempts=10):
     for port in range(start_port, start_port + max_attempts):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind(('127.0.0.1', port))
+                s.bind(('0.0.0.0', port))
                 return port
         except OSError:
             continue
@@ -152,7 +152,7 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
         tgwui_integration.add_dss_tools_to_state(custom_state, tgwui_integration._dss_tool_definitions)
         if timestamp_str:
             # TODO: Only rewrite if not _continue or regenerate
-            summarizer.save_message_chunks(user_input, index, timestamp_str)
+            summarizer.save_message_chunks(user_input, index, timestamp_str, do_determine_speakers=False)
 
         kwargs.pop("_continue", False)
         prompt = generate_chat_prompt(instr_prompt, custom_state, **kwargs)
@@ -215,6 +215,7 @@ def handle_output(output: str, state: dict, history: Histories):
                 shared.stop_everything = False
                 return ""
             if timestamp_str:
+                summarizer.update_previous_message_speakers(index)
                 summarizer.save_message_chunks(output, index, timestamp_str)
 
         except Exception as e:
@@ -304,7 +305,7 @@ def setup():
         return dss_shared.persistent_ui_state.get("dss_toggle", True)
     tgwui_integration.set_dss_enabled_check(dss_enabled_check)
 
-    _sse_port = start_sse_server(host="127.0.0.1", port=params["sse_internal_port"])
+    _sse_port = start_sse_server(host="0.0.0.0", port=params["sse_internal_port"])
     if _sse_port > 0:
         params["sse_internal_port"] = _sse_port
         print(f"{_SUCCESS}DSS SSE server started on port {_sse_port}{_RESET}")

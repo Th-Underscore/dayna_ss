@@ -17,7 +17,8 @@ from .helpers import (
     _BOLD,
     _RESET,
     _DEBUG,
-    _WARNING
+    _WARNING,
+    split_keys_to_list,
 )
 
 # Basic type mapping
@@ -137,6 +138,7 @@ class ParsedSchemaClass:
         self.new_entry_query_prompt_template: str | None = None
         self.new_entry_prompt_template: str | None = None
         self.do_expand_into_dict: bool = True
+        self.relationship_format: dict[str, Any] = {}
         self.initial_population: dict[str, Any] | None = None
 
         # Add default values to fields where applicable and parse specific flags/templates from defaults
@@ -159,6 +161,8 @@ class ParsedSchemaClass:
                 self.do_expand_into_dict = bool(value)
             elif field_name_or_flag == "initial_population":
                 self.initial_population = value
+            elif field_name_or_flag == "relationship_format":
+                self.relationship_format = value
             # Field-specific defaults (like descriptions)
             elif self.definition_type == "dataclass" and fields:
                 for field_obj in fields:
@@ -177,6 +181,21 @@ class ParsedSchemaClass:
         if self.definition_type == "dataclass":
             return self._fields.get(name)
         return self._field
+    
+    def get_relationship_fields(self) -> dict[str, dict]:
+        """Get relationship field definitions from schema defaults.
+        
+        Returns:
+            Dict mapping field names to relationship config:
+            {
+                "relationships": {
+                    "target_type": "character",
+                    "bidirectional": true,
+                    "relationship_definition": "CharacterRelationship"
+                }
+            }
+        """
+        return self.relationship_format or {}
 
     def _type_to_json_schema_dict(
         self, type_hint: ParsedSchemaClass | type, all_definitions_map: dict, field_name: str | None = None
@@ -466,6 +485,11 @@ class SchemaParser:
         self._parse_definitions()
         self._parse_subjects()
 
+    @property
+    def defaults(self) -> dict[str, dict]:
+        """Get all defaults from all parsed definitions."""
+        return {name: defn.defaults for name, defn in self.definitions.items()}
+
     def _load_schema(self) -> dict:
         """Load the JSON schema file."""
         try:
@@ -729,9 +753,95 @@ class SchemaParser:
             # Scan the generated schema for more references to add to the queue.
             self._collect_refs_from_schema_part(current_schema_json, queue, visited, all_definition_keys)
 
+        # No definitions needed
+        if self._is_primitive_schema(main_schema):
+            primitive_description = self._get_primitive_type_description(main_schema)
+            json_schema = {"main_schema": primitive_description, "definitions": {}}
+            self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema
+            return json_schema
+
         json_schema = {"main_schema": main_schema, "definitions": relevant_definitions}
         self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema
         return json_schema
+
+    def _is_primitive_schema(self, main_schema: dict) -> bool:
+        """
+        Check if the main schema represents a primitive type that doesn't need complex JSON schema.
+        Returns True for simple types like string, integer, number, boolean, or array of primitives.
+        """
+        if not isinstance(main_schema, dict):
+            return True
+
+        # Single primitive type
+        if "type" in main_schema and main_schema["type"] in ("string", "integer", "number", "boolean", "null"):
+            return True
+
+        # Array of primitives (e.g., {"type": "array", "items": {"type": "string"}})
+        if main_schema.get("type") == "array":
+            items_type = main_schema.get("items", {})
+            if isinstance(items_type, dict) and items_type.get("type") in ("string", "integer", "number", "boolean", "null"):
+                return True
+            if isinstance(items_type, dict) and "enum" in items_type:
+                return True
+
+        # Plain object (dict) without references - consider primitive-like for simplicity
+        if main_schema.get("type") == "object" and not main_schema.get("$ref"):
+            properties = main_schema.get("properties", {})
+            additional_properties = main_schema.get("additionalProperties")
+            # Only treat as primitive if no properties AND no meaningful additionalProperties
+            if not properties and not (additional_properties and isinstance(additional_properties, dict)):
+                return True
+
+        return False
+
+    def _get_primitive_type_description(self, main_schema: dict) -> dict:
+        """
+        Generate a simplified description for primitive types.
+        Returns a dict with a friendly description instead of complex JSON schema.
+        """
+        schema_type = main_schema.get("type", "unknown")
+
+        description = ""
+        if schema_type == "string":
+            description = "A plain text string value"
+        elif schema_type == "integer":
+            description = "An integer number"
+        elif schema_type == "number":
+            description = "A number (integer or decimal)"
+        elif schema_type == "boolean":
+            description = "A true/false value"
+        elif schema_type == "null":
+            description = "A null value"
+        elif schema_type == "object":
+            properties = main_schema.get("properties", {})
+            if properties:
+                # Has properties, not a primitive - shouldn't happen with _is_primitive_schema returning True
+                description = "An object with fields"
+            else:
+                description = "A simple key-value map (dictionary without defined fields)"
+        elif main_schema.get("type") == "array":
+            items = main_schema.get("items", {})
+            item_type = items.get("type", "unknown") if isinstance(items, dict) else "unknown"
+            if item_type == "string":
+                description = "A list of text strings"
+            elif item_type == "integer":
+                description = "A list of integers"
+            elif item_type == "number":
+                description = "A list of numbers"
+            else:
+                description = "A list of items"
+            # Check for enum
+            if isinstance(items, dict) and "enum" in items:
+                allowed = items["enum"]
+                description = f"A list (choose from: {', '.join(str(v) for v in allowed)})"
+        else:
+            description = "A value"
+
+        return {
+            "type": "primitive",
+            "description": description,
+            "schema": main_schema
+        }
 
     def _parse_subjects(self):
         """Parse the 'subjects' section, resolving types."""
@@ -946,3 +1056,325 @@ if __name__ == "__main__":
 
     except (FileNotFoundError, ValueError) as e:
         print(f"Error: {e}")
+
+
+class SchemaWrapper:
+    """Wrapper for schema that provides dynamic field access and introspection."""
+
+    def __init__(self, schema_classes: dict[str, ParsedSchemaClass]):
+        self.schema_classes = schema_classes
+
+    def get_field_info(self, entity_type: str, field_name: str) -> dict | None:
+        """Get metadata for a field including type, default, and relationship config.
+
+        Args:
+            entity_type: Entity type name (e.g., "Character", "Group")
+            field_name: Field name (e.g., "milestones", "relationships")
+
+        Returns:
+            Dict with keys: type, default, placeholder, relationship_config, or None if not found
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return None
+
+        if schema_class.definition_type == "dataclass":
+            field = schema_class.get_field(field_name)
+            if field:
+                return {
+                    "type": field.type,
+                    "name": field.name,
+                    "default": field.default,
+                }
+
+        defaults = schema_class.defaults or {}
+        placeholder_key = f"{field_name}_placeholder"
+        return {
+            "type": None,
+            "default": defaults.get(field_name),
+            "placeholder": defaults.get(placeholder_key),
+            "relationship_config": defaults.get("relationship_format", {}).get(field_name),
+        }
+
+    def get_all_data_fields(self, entity_type: str) -> list[str]:
+        """Get all data field names for an entity type (excluding placeholder keys).
+
+        Args:
+            entity_type: Entity type name (e.g., "Character", "Group")
+
+        Returns:
+            List of field names that hold data (not placeholder descriptions)
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return []
+
+        if schema_class.definition_type == "dataclass":
+            return [f.name for f in schema_class.get_fields()]
+
+        return []
+
+    def get_relationship_fields(self, entity_type: str) -> dict[str, dict]:
+        """Get all relationship field configurations for an entity type.
+
+        Args:
+            entity_type: Entity type name (e.g., "Character", "Group")
+
+        Returns:
+            Dict mapping field names to relationship config dicts
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return {}
+
+        return schema_class.get_relationship_fields()
+
+    def resolve_field_type(self, entity_type: str, field_name: str) -> type | ParsedSchemaClass | None:
+        """Resolve the actual type for a field, following aliases.
+
+        Args:
+            entity_type: Entity type name
+            field_name: Field name
+
+        Returns:
+            Resolved type (primitive type, ParsedSchemaClass, or None)
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return None
+
+        if schema_class.definition_type == "dataclass":
+            field = schema_class.get_field(field_name)
+            if field:
+                return self._resolve_type_recursive(field.type)
+
+        return None
+
+    def _resolve_type_recursive(self, t: type | ParsedSchemaClass) -> type | ParsedSchemaClass:
+        """Recursively resolve type through aliases."""
+        if isinstance(t, ParsedSchemaClass) and t.definition_type == "alias":
+            if t._field:
+                return self._resolve_type_recursive(t._field.type)
+        return t
+
+    def get_filterable_fields(self, entity_type: str) -> list[str]:
+        """Get fields that can be used for filtering based on schema defaults.
+
+        Args:
+            entity_type: Entity type name
+
+        Returns:
+            List of field names that have importance or scene metadata
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return []
+
+        filterable = []
+        defaults = schema_class.defaults or {}
+
+        for key, value in defaults.items():
+            if key.endswith("_placeholder"):
+                continue
+            if key in ["importance", "score", "faction"]:
+                continue
+            if isinstance(value, dict):
+                if "importance" in value or "scenes" in value:
+                    filterable.append(key)
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict) and ("importance" in item or "scenes" in item):
+                        if key not in filterable:
+                            filterable.append(key)
+                        break
+
+        return filterable
+
+    def get_field_value(self, entity_data: dict, entity_type: str, field_name: str, default=None):
+        """Get a field value from entity data using schema-defined field names.
+
+        Supports fallback: tries exact field name first, then common variations.
+
+        Args:
+            entity_data: The entity's data dict (e.g., character entry)
+            entity_type: Entity type name (e.g., "Character")
+            field_name: Field name to get
+            default: Default value if not found
+
+        Returns:
+            Field value or default
+        """
+        if field_name in entity_data:
+            return entity_data[field_name]
+
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return default
+
+        defaults = schema_class.defaults or {}
+        placeholder_key = f"{field_name}_placeholder"
+        if placeholder_key in defaults:
+            return entity_data.get(field_name, default)
+
+        return default
+
+    def get_nested_field_value(self, entity_data: dict, entity_type: str, path: str, default=None):
+        """Get a nested field value using dot notation (e.g., "relationships.Bob.0.status").
+
+        Args:
+            entity_data: The entity's data dict
+            entity_type: Entity type name
+            path: Dot-separated path (e.g., "group_status.Rebel Force.position")
+            default: Default value if not found
+
+        Returns:
+            Value at path or default
+        """
+        parts = split_keys_to_list(path)
+        current = entity_data
+
+        for i, part in enumerate(parts):
+            if isinstance(current, dict):
+                if part.isdigit():
+                    if part in current:
+                        current = current[part]
+                    else:
+                        idx = int(part)
+                        if isinstance(current, list) and idx < len(current):
+                            current = current[idx]
+                        else:
+                            return default
+                else:
+                    if part in current:
+                        current = current[part]
+                    else:
+                        current = self.get_field_value(current, entity_type, part)
+                    if current is None:
+                        return default
+            elif isinstance(current, list):
+                if part.isdigit():
+                    idx = int(part)
+                    if idx < len(current):
+                        current = current[idx]
+                    else:
+                        return default
+                else:
+                    return default
+            else:
+                return default
+
+        return current if current is not None else default
+
+    def get_entity_fields(self, entity_type: str) -> dict[str, dict]:
+        """Get all fields for an entity type with their metadata.
+
+        Returns:
+            Dict mapping field names to field metadata (type, relationship_config, etc.)
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return {}
+
+        result = {}
+        if schema_class.definition_type == "dataclass":
+            for field in schema_class.get_fields():
+                result[field.name] = {
+                    "type": field.type,
+                    "default": field.default,
+                }
+
+        defaults = schema_class.defaults or {}
+        relationship_map = defaults.get("relationship_format", {})
+        for key, value in defaults.items():
+            if key.endswith("_placeholder"):
+                continue
+            if key not in result:
+                result[key] = {"default": value}
+
+            if key in relationship_map:
+                result[key]["relationship_config"] = relationship_map[key]
+
+        return result
+
+    def get_importance_field_path(self, entity_type: str, field_name: str) -> str:
+        """Get the path to the importance score for a field (e.g., "importance.score").
+
+        Args:
+            entity_type: Entity type name
+            field_name: Field name (e.g., "milestones", "group_status")
+
+        Returns:
+            Dot-separated path to importance (e.g., "importance.score")
+        """
+        return f"{field_name}.importance.score"
+
+    def get_entity_types(self) -> list[str]:
+        """Get all available entity type names from the schema.
+
+        Returns:
+            List of entity type names (e.g., ["Character", "Group", "Event"])
+        """
+        return list(self.schema_classes.keys())
+
+    def get_relationship_targets(self, entity_type: str, field_name: str) -> dict[str, Any] | None:
+        """Get the target entity type and configuration for a relationship field.
+
+        Args:
+            entity_type: Entity type name (e.g., "Character")
+            field_name: Field name (e.g., "relationships", "group_status")
+
+        Returns:
+            Dict with keys: target_type, target_class, bidirectional, or None if not a relationship field
+        """
+        schema_class = self.schema_classes.get(entity_type)
+        if not schema_class:
+            return None
+
+        relationship_format = schema_class.get_relationship_fields()
+        rel_config = relationship_format.get(field_name)
+
+        if not rel_config:
+            return None
+
+        return {
+            "target_type": rel_config.get("target_type"),
+            "target_class": rel_config.get("relationship_definition"),
+            "bidirectional": rel_config.get("bidirectional", False),
+            "config": rel_config,
+        }
+
+    def get_importance(self, entity_data: dict, entity_type: str, field_name: str, default: int = 0) -> int:
+        """Get the importance score for an item within a field.
+
+        Args:
+            entity_data: The entity's data dict
+            entity_type: Entity type name
+            field_name: Field name containing the item (e.g., "milestones", "relationships")
+            default: Default importance if not found
+
+        Returns:
+            Importance score as integer
+        """
+        entity_field = entity_data.get(field_name)
+        if not entity_field:
+            return default
+
+        if isinstance(entity_field, list):
+            if len(entity_field) > 0:
+                first_item = entity_field[0]
+                if isinstance(first_item, dict):
+                    importance = first_item.get("importance")
+                    if isinstance(importance, dict):
+                        return importance.get("score", default)
+                    elif isinstance(importance, int):
+                        return importance
+            return default
+
+        if isinstance(entity_field, dict):
+            importance = entity_field.get("importance")
+            if isinstance(importance, dict):
+                return importance.get("score", default)
+            elif isinstance(importance, int):
+                return importance
+
+        return default

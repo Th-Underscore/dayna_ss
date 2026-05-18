@@ -1,5 +1,7 @@
-# TODO: Make subject-relationships dynamic indexing (schema?)
+from __future__ import annotations
+from typing import TYPE_CHECKING, Any
 
+import copy
 import jsonc
 import logging
 import re
@@ -8,7 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 import traceback
 from os import PathLike
-from typing import TYPE_CHECKING
+
+from ...utils.schema_parser import SchemaWrapper
 
 from llama_index.core import (
     VectorStoreIndex,
@@ -27,6 +30,7 @@ if TYPE_CHECKING:
     import spacy
     from spacy.tokens import Doc
     from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+    from extensions.dayna_ss_graph.agents.summarizer import Summarizer
 else:
     nltk = None
     spacy = None
@@ -42,16 +46,37 @@ from ...utils.helpers import (
     _BOLD,
     _RESET,
     _DEBUG,
+    _WARNING,
 )
+
 
 from ...utils.background_importer import (
     start_background_import,
     get_imported_attribute,
 )
 
+from .entity_graph import EntityGraph
+
 start_background_import("nltk")
 start_background_import("spacy")
 start_background_import("llama_index.embeddings.huggingface", "HuggingFaceEmbedding")
+
+
+@dataclass
+class DecayConfig:
+    method: str = "path_min_gated"
+    decay_exponent: float = 0.4
+    broad_threshold: int = 42
+    final_threshold: int = 75
+
+    convergence_enabled: bool = True
+    pull_rate: float = 0.4
+
+    re_traverse_enabled: bool = True
+    re_traverse_threshold: int = 65
+    re_traverse_min_importance: int = 42
+
+    max_depth: int = 10
 
 
 @dataclass
@@ -66,11 +91,20 @@ class RetrievalContext:
     general_info: dict[str, dict] = field(default_factory=dict)
     messages: list[str] = field(default_factory=list)
     messages_metadata: list[dict] = field(default_factory=list)
+    character_status: dict[str, dict] = field(default_factory=dict)
+    character_milestones: dict[str, list[dict]] = field(default_factory=dict)
+    relevant_entities: dict[str, dict[str, float]] = field(default_factory=dict)
 
 
 class StoryContextRetriever:
-    def __init__(self, history_path: PathLike):
-        """Initialize the context retriever with a history path."""
+    def __init__(self, history_path: PathLike, schema_classes: dict | None = None, summarizer: 'Summarizer' | None = None):
+        """Initialize the context retriever with a history path.
+
+        Args:
+            history_path: Path to the history directory.
+            schema_classes: Optional dict of ParsedSchemaClass objects for schema-driven entity graph.
+            summarizer: Optional Summarizer instance for LLM-based speaker extraction.
+        """
         history_path = Path(history_path)
         if not history_path.exists():
             raise ValueError(f"History path does not exist: {history_path}")
@@ -100,20 +134,51 @@ class StoryContextRetriever:
         print(f"  current_scene keys: {list(self.current_scene.keys()) if self.current_scene else 'empty'}")
         print(f"  arcs count: {len(self.arcs) if self.arcs else 0}{_RESET}")
 
-        self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene)
+        # Initialize entity graph for relationship tracking
+        self.schema_classes = schema_classes or {}
+        self.schema_wrapper = SchemaWrapper(self.schema_classes) if self.schema_classes else None
+        try:
+            self.entity_graph = EntityGraph(history_path, persist=True, schema_classes=schema_classes)
+            print(f"{_DEBUG}EntityGraph initialized with {len(self.entity_graph.nodes)} nodes{_RESET}")
+        except Exception as e:
+            print(f"{_ERROR}Failed to initialize EntityGraph: {e}{_RESET}")
+            self.entity_graph = None
 
-        # Create character name patterns for recognition
+        # Store summarizer and pass to chunker for LLM-based speaker extraction
+        self.summarizer = summarizer
+        # TODO: Make this configurable via UI toggle
+        self.use_llm_for_speakers = True  # Toggle: True to always use LLM, False to use regex/spaCy
+        characters_map = self.characters.get("entries", self.characters)
+        groups_map = self.groups.get("entries", self.groups)
+        self.chunker = MessageChunker(history_path, characters_map, groups_map, self.events, self.current_scene, summarizer=summarizer, use_llm_for_speakers=self.use_llm_for_speakers)
+
+        # Create character name patterns for recognition (from both JSON and graph)
         self.character_patterns = self._create_character_patterns()
 
     def _create_character_patterns(self) -> dict[str, re.Pattern]:
         """Create regex patterns for character name recognition."""
         patterns = {}
-        for char_name in self.characters:
+
+        # Get characters from graph (primary source)
+        char_names = []
+        if hasattr(self, 'entity_graph') and self.entity_graph:
+            graph_char_nodes = self.entity_graph.get_nodes_by_type("character")
+            char_names = [node.name for node in graph_char_nodes]
+
+        # Fallback to JSON if no graph characters
+        if not char_names:
+            characters_data = self._get_entries(self.characters, "Character")
+            char_names = list(characters_data.keys())
+
+        for char_name in char_names:
             # Create pattern that matches full name and possible first/last name only
             names = char_name.split()
-            pattern = f"({char_name}"
+            safe_full = re.escape(char_name)
+            safe_first = re.escape(names[0])
+            safe_last = re.escape(names[-1])
+            pattern = f"({safe_full}"
             if len(names) > 1:
-                pattern += f"|{names[0]}|{names[-1]}"
+                pattern += f"|{safe_first}|{safe_last}"
             pattern += ")"
             patterns[char_name] = re.compile(pattern, flags=re.IGNORECASE)
         return patterns
@@ -130,21 +195,29 @@ class StoryContextRetriever:
     def _get_relevant_groups(self, characters: list[str], context: str) -> dict[str, dict]:
         """Get groups relevant to the current context and characters."""
         relevant_groups = {}
-        groups_data = self.groups.get("entries", self.groups)
+        groups_data = self._get_entries(self.groups, "Group")
+
+        if hasattr(self, 'entity_graph') and self.entity_graph:
+            graph_groups = self.entity_graph.get_relevant_groups(characters, context)
+            for group_name in graph_groups:
+                if group_name in groups_data:
+                    relevant_groups[group_name] = groups_data[group_name]
+        else:
+            for group_name, group_data in groups_data.items():
+                for char in characters:
+                    group_chars = self._get_field_value(group_data, "Group", "characters", {})
+                    if char in group_chars:
+                        relevant_groups[group_name] = group_data
+                        break
 
         for group_name, group_data in groups_data.items():
-            # Check if group is mentioned in context
+            if group_name in relevant_groups:
+                continue
+            group_aliases = self._get_field_value(group_data, "Group", "aliases", [])
             if re.search(group_name, context, flags=re.IGNORECASE) or any(
-                alias for alias in group_data.get("aliases", []) if re.search(alias, context, flags=re.IGNORECASE)
+                alias for alias in group_aliases if re.search(alias, context, flags=re.IGNORECASE)
             ):
                 relevant_groups[group_name] = group_data
-                continue
-
-            # Check if any character is in this group
-            for char in characters:
-                if char in group_data.get("characters", {}):
-                    relevant_groups[group_name] = group_data
-                    break
 
         return {"entries": relevant_groups}
 
@@ -152,16 +225,16 @@ class StoryContextRetriever:
         """Get events relevant to the current context and groups."""
         relevant_events = {}
 
-        if "scenes" in self.events:
-            for scene_name, scene in self.events["scenes"].items():
-                # Check if event is mentioned in context
+        scenes = self._get_field_value(self.events, "Event", "scenes", {})
+        if scenes:
+            for scene_name, scene in scenes.items():
                 if re.search(scene_name, context, flags=re.IGNORECASE):
                     relevant_events[scene_name] = scene
                     continue
 
-                # Check if event is associated with any relevant group
                 for group_data in groups.values():
-                    if scene_name in group_data.get("events", []):
+                    group_events = self._get_field_value(group_data, "Group", "events", [])
+                    if scene_name in group_events:
                         relevant_events[scene_name] = scene
                         break
 
@@ -186,7 +259,7 @@ class StoryContextRetriever:
 
     def query_messages(self, query: str, n_results: int = 5) -> tuple[list[str], list[dict]]:
         """Query messages using semantic search.
-        
+
         Returns:
             tuple of (messages, metadata)
         """
@@ -212,17 +285,18 @@ class StoryContextRetriever:
 
     def _get_character_important_relationships(self, char_name: str, importance_threshold: int = 75) -> dict[str, list[dict]]:
         """Get a character's important relationships."""
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
         if char_name not in characters_data:
             return {}
 
         char_data = characters_data[char_name]
         rels = {}
 
-        if "relationships" in char_data:
-            print(f"{_GRAY}relationships{_RESET}: {char_data['relationships']}")
-            for related_char, rel_list in char_data["relationships"].items():
-                important_rels = [rel for rel in rel_list if rel.get("importance", {}).get("score", 0) >= importance_threshold]
+        char_rels = self._get_field_value(char_data, "Character", "relationships")
+        if char_rels:
+            print(f"{_GRAY}relationships{_RESET}: {char_rels}")
+            for related_char, rel_list in char_rels.items():
+                important_rels = [rel for rel in rel_list if self._get_importance(rel, "Character", "relationships") >= importance_threshold]
                 if important_rels:
                     rels[related_char] = important_rels
 
@@ -232,16 +306,43 @@ class StoryContextRetriever:
         self, char1: str, char2: str, correlation_threshold: int = 0
     ) -> dict[str, list[dict]]:
         """Get relationships between two characters in the same scene, regardless of importance."""
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
+
+        # Try using graph first for bidirectional relationship lookup
+        if hasattr(self, 'entity_graph') and self.entity_graph:
+            bidir = self.entity_graph.get_bidirectional_relationship(char1, char2)
+
+            rels = {}
+            # Check forward relationship (char1 -> char2)
+            if bidir["forward"]:
+                rel_list = [{
+                    "relation": bidir["forward"].relation,
+                    "status": bidir["forward"].status,
+                    "aliases": bidir["forward"].aliases,
+                    "events": bidir["forward"].events,
+                    "importance": {
+                        "score": bidir["forward"].importance,
+                        "reason": bidir["forward"].importance_reason,
+                        "faction": bidir["forward"].faction
+                    }
+                }]
+                if bidir["forward"].importance >= correlation_threshold:
+                    rels[char2] = rel_list
+
+            if rels:
+                return rels
+
+        # Fallback to JSON-based lookup
         if char1 not in characters_data or char2 not in characters_data:
             return {}
 
         char_data = characters_data[char1]
         rels = {}
 
-        if "relationships" in char_data and char2 in char_data["relationships"]:
-            rel_list = char_data["relationships"][char2]
-            scene_rels = [rel for rel in rel_list if rel.get("importance", {}).get("score", 0) >= correlation_threshold]
+        char_rels = self._get_field_value(char_data, "Character", "relationships")
+        if char_rels and char2 in char_rels:
+            rel_list = char_rels[char2]
+            scene_rels = [rel for rel in rel_list if self._get_importance(rel, "Character", "relationships") >= correlation_threshold]
             if scene_rels:
                 rels[char2] = scene_rels
 
@@ -256,41 +357,555 @@ class StoryContextRetriever:
         """Get all relevant relationships for characters, including both important and scene-based relationships."""
         result = {}
         processed_chars = []
-        characters_data = self.characters.get("entries", self.characters)
+        characters_data = self._get_entries(self.characters, "Character")
 
         # First pass: Get important relationships for all characters
         for char_name in scene_characters:
             if char_name in characters_data:
-                char_data = characters_data[char_name].copy()  # Copy to avoid modifying original
+                char_data = copy.deepcopy(characters_data[char_name])  # Deep copy to avoid modifying original
 
                 # Get important relationships
-                important_rels = self._get_character_important_relationships(char_name, importance_threshold)
+                if hasattr(self, 'entity_graph') and self.entity_graph:
+                    graph_rels = self.entity_graph.get_important_relationships(char_name, importance_threshold)
+                    if graph_rels:
+                        important_rels = {}
+                        for rel in graph_rels:
+                            target = rel.target_id
+                            normalized_target = target.split(":", 1)[1] if ":" in target else target
+                            if normalized_target not in important_rels:
+                                important_rels[normalized_target] = []
+                            important_rels[normalized_target].append({
+                                "relation": rel.relation,
+                                "status": rel.status,
+                                "aliases": rel.aliases,
+                                "events": rel.events,
+                                "importance": {
+                                    "score": rel.importance,
+                                    "reason": rel.importance_reason,
+                                    "faction": rel.faction
+                                }
+                            })
+                    else:
+                        important_rels = self._get_character_important_relationships(char_name, importance_threshold)
+                else:
+                    important_rels = self._get_character_important_relationships(char_name, importance_threshold)
 
-                # Add character and their important relationships
-                if not char_data.get("relationships"):
-                    char_data["relationships"] = {}
-                char_data["relationships"].update(important_rels)
+                char_rels = self._get_field_value(char_data, "Character", "relationships")
+                if not char_rels:
+                    char_rels = {}
+                # Create new dict instead of updating in place
+                new_char_rels = dict(char_rels)
+                new_char_rels.update(important_rels)
+                char_data["relationships"] = new_char_rels
                 result[char_name] = char_data
 
-                # Add related characters to be processed
                 for related_char in important_rels:
                     if related_char in characters_data and related_char not in scene_characters:
                         scene_characters.append(related_char)
 
-        # Second pass: Get scene-based relationships between characters
         for char1 in scene_characters:
             for char2 in scene_characters:
                 if char1 != char2 and char1 in result:
-                    # Get relationships between scene characters
                     scene_rels = self._get_character_scene_relationships(char1, char2, correlation_threshold)
 
-                    # Add scene relationships if they exist and aren't already included
-                    if scene_rels and char2 not in result[char1].get("relationships", {}):
-                        if "relationships" not in result[char1]:
-                            result[char1]["relationships"] = {}
-                        result[char1]["relationships"].update(scene_rels)
+                    result_rels = self._get_field_value(result[char1], "Character", "relationships")
+                    if scene_rels and char2 not in (result_rels or {}):
+                        if not result_rels:
+                            result_rels = {}
+                        result_rels.update(scene_rels)
+                        result[char1]["relationships"] = result_rels
 
         return {"entries": result}
+
+    def _unified_entity_aggregation(
+        self,
+        initial_entities: dict[str, set[str]],
+        all_data: dict[str, dict],
+        importance_threshold: int = 75,
+        max_depth: int = 10,
+        decay_config: DecayConfig | None = None,
+    ) -> dict[str, dict[str, float]]:
+        if not getattr(self, 'entity_graph', None):
+            fallback: dict[str, dict[str, float]] = {"character": {}, "group": {}, "event": {}}
+            for etype, names in initial_entities.items():
+                key = etype.lower()
+                if key in fallback:
+                    for name in names:
+                        fallback[key][name] = float(importance_threshold)
+            return fallback
+
+        if decay_config is None:
+            decay_config = DecayConfig()
+
+        field_map = self.entity_graph.get_schema_relationship_map()
+        if not field_map:
+            field_map = {
+                "character": {"relationships": "character", "group_status": "group", "milestones": "event"},
+                "group": {"characters": "character", "relationships": "group", "events": "event"},
+                "event": {"participants": "character"},
+            }
+
+        graph_initial: dict[str, set[str]] = {}
+        for etype, names in initial_entities.items():
+            if etype.lower() in ("character", "group", "event"):
+                graph_initial[etype.lower()] = names
+
+        initial_scene_entities: set[str] = set()
+        for etype, names in graph_initial.items():
+            for name in names:
+                initial_scene_entities.add(f"{etype}:{name}")
+
+        # ---- Pass 1: Broad Discovery ----
+        init_rel: dict[str, float] = {}
+        for etype, names in graph_initial.items():
+            for name in names:
+                init_rel[f"{etype}:{name}"] = float(decay_config.final_threshold)
+        scoring, path_records = self.entity_graph.traverse_graph_detailed(
+            graph_initial,
+            initial_relevance=init_rel,
+            field_map=field_map,
+            decay_config=decay_config,
+        )
+
+        entity_relevance: dict[str, dict[str, float]] = {
+            etype: {} for etype in scoring
+        }
+
+        def _apply_convergence(source_map: dict[str, dict[str, float]]):
+            source_relevance: dict[str, float] = {}
+            for etype, entities in source_map.items():
+                for name, rel in entities.items():
+                    source_relevance[f"{etype}:{name}"] = rel
+
+            for etype, entities in source_map.items():
+                for name, base_rel in entities.items():
+                    record = path_records.get(f"{etype}:{name}")
+                    if record is None:
+                        entity_relevance[etype][name] = base_rel
+                        continue
+
+                    n_paths = len(record.source_ids)
+                    if n_paths <= 1:
+                        entity_relevance[etype][name] = base_rel
+                        continue
+
+                    total_vouch = 0.0
+                    weighted_sum = 0.0
+                    for source_id in record.source_ids:
+                        src_rel = source_relevance.get(source_id, 50.0)
+                        edge = self.entity_graph.get_edge(source_id, f"{etype}:{name}")
+                        if edge is None:
+                            continue
+                        vouch = (src_rel / 100.0) * (edge.importance / 100.0)
+                        total_vouch += vouch
+                        weighted_sum += src_rel * vouch
+
+                    if total_vouch == 0:
+                        entity_relevance[etype][name] = base_rel
+                        continue
+
+                    pull_target = weighted_sum / total_vouch
+                    pull_strength = min(1.0, total_vouch * decay_config.pull_rate)
+
+                    relevance = base_rel + (pull_target - base_rel) * pull_strength
+                    entity_relevance[etype][name] = relevance
+
+        # ---- Pass 2: Convergence Scoring ----
+        if decay_config.convergence_enabled:
+            _apply_convergence(scoring)
+        else:
+            for etype, entities in scoring.items():
+                for name, base_rel in entities.items():
+                    entity_relevance[etype][name] = base_rel
+
+        # ---- Pass 3: Re-traversal (optional) ----
+        if decay_config.re_traverse_enabled:
+            new_seeds: dict[str, float] = {}
+            for etype, entities in entity_relevance.items():
+                for name, rel in entities.items():
+                    named_id = f"{etype}:{name}"
+                    if rel >= decay_config.re_traverse_threshold and named_id not in initial_scene_entities:
+                        new_seeds[named_id] = rel
+
+            for seed_id, seed_rel in new_seeds.items():
+                seed_type = seed_id.split(":")[0]
+                seed_name = seed_id.split(":", 1)[1]
+                for target_type in field_map.get(seed_type, {}).values():
+                    nbrs = self.entity_graph.get_neighbors_decayed(
+                        seed_name, seed_type,
+                        source_relevance=seed_rel,
+                        target_type=target_type,
+                        decay_config=decay_config,
+                        direction="outgoing",
+                    )
+                    for nbr in nbrs:
+                        nbr_name = nbr["name"]
+                        edge_imp = nbr["importance"]
+                        if edge_imp < decay_config.re_traverse_min_importance:
+                            continue
+                        if nbr_name not in entity_relevance.get(target_type, {}):
+                            if target_type not in entity_relevance:
+                                entity_relevance[target_type] = {}
+                            path_min = min(seed_rel, float(edge_imp))
+                            entity_relevance[target_type][nbr_name] = path_min
+
+            # Note: _apply_convergence here uses the original path_records from Pass 1,
+            # which don't include paths discovered during re-traversal. This means
+            # convergence only reflects pre-re-traversal paths — intentional since
+            # re-traversal is a secondary discovery pass using single-edge P4 decay.
+            # If path_records were updated, re-run convergence would strengthen
+            # entities with newly discovered paths.
+            if decay_config.convergence_enabled:
+                _apply_convergence(entity_relevance)
+
+        # ---- Pass 4: Pruning ----
+        final_threshold = decay_config.final_threshold
+        pruned: dict[str, dict[str, float]] = {}
+        for etype, entities in entity_relevance.items():
+            scored = {
+                name: rel
+                for name, rel in entities.items()
+                if rel >= final_threshold
+            }
+            if scored:
+                pruned[etype] = scored
+
+        return pruned
+
+    def _get_character_group_status(
+        self,
+        char_name: str,
+        current_scene: dict,
+        importance_threshold: int = 75,
+    ) -> dict[str, dict]:
+        """Get a character's group statuses meeting Condition A (high importance) OR Condition B (in current scene).
+
+        Args:
+            char_name: Name of the character
+            current_scene: Current scene data for scene matching
+            importance_threshold: Minimum importance score for Condition A
+
+        Returns:
+            Dict of status_name -> status_data
+        """
+        characters_data = self._get_entries(self.characters, "Character")
+        if char_name not in characters_data:
+            return {}
+
+        char_data = characters_data[char_name]
+        group_status = self._get_field_value(char_data, "Character", "group_status")
+        if not group_status:
+            fallback_status = self._get_field_value(char_data, "Character", "status")
+            group_status = fallback_status if fallback_status else {}
+
+        if not group_status:
+            return {}
+
+        result = {}
+        current_scene_what = current_scene.get("what", "") if current_scene else ""
+        current_scene_characters = []
+        if current_scene and "who" in current_scene.get("now", {}):
+            current_scene_characters = [
+                c["name"] for c in current_scene["now"]["who"].get("characters", [])
+            ]
+
+        for status_name, status_data in group_status.items():
+            include_status = False
+
+            importance_score = self._get_importance(status_data, "Character", "group_status")
+
+            if importance_score >= importance_threshold:
+                include_status = True
+            elif status_name in current_scene_characters or re.search(status_name, current_scene_what, re.IGNORECASE):
+                include_status = True
+            else:
+                events = self._get_field_value(status_data, "Character", "events", [])
+                if events:
+                    for event_name in events:
+                        if re.search(event_name, current_scene_what, re.IGNORECASE):
+                            include_status = True
+                            break
+
+            if include_status:
+                result[status_name] = status_data
+
+        return result
+
+    def _get_character_milestones(
+        self,
+        char_name: str,
+        current_scene: dict,
+        importance_threshold: int = 75,
+    ) -> list[dict]:
+        """Get a character's milestones meeting Condition A (high importance) OR Condition B (in current scene).
+
+        Args:
+            char_name: Name of the character
+            current_scene: Current scene data for scene matching
+            importance_threshold: Minimum importance score for Condition A
+
+        Returns:
+            List of milestone dicts
+        """
+        characters_data = self._get_entries(self.characters, "Character")
+        if char_name not in characters_data:
+            return []
+
+        char_data = characters_data[char_name]
+        milestones = self._get_field_value(char_data, "Character", "milestones", [])
+
+        if not milestones:
+            return []
+
+        result = []
+        current_scene_number = current_scene.get("_scene_number") if current_scene else None
+        current_scene_what = current_scene.get("what", "") if current_scene else ""
+
+        for milestone in milestones:
+            include_milestone = False
+
+            importance_score = self._get_importance(milestone, "Character", "milestones")
+
+            if importance_score >= importance_threshold:
+                include_milestone = True
+            elif current_scene_number:
+                milestone_scenes = self._get_field_value(milestone, "Character", "scenes", [])
+                if current_scene_number in milestone_scenes:
+                    include_milestone = True
+
+            if not include_milestone:
+                milestone_title = self._get_field_value(milestone, "Character", "title", "")
+                if re.search(milestone_title, current_scene_what, re.IGNORECASE):
+                    include_milestone = True
+
+            if include_milestone:
+                result.append(milestone)
+
+        return result
+
+    def _get_character_milestones_from_graph(
+        self,
+        char_name: str,
+        importance_threshold: int = 75,
+        current_scene: int | None = None
+    ) -> list[dict]:
+        """Get character milestones from entity graph with schema-driven filtering.
+
+        This method uses the entity graph instead of hardcoded JSON access,
+        leveraging the schema's relationship_format for field resolution.
+
+        Args:
+            char_name: Name of the character
+            importance_threshold: Minimum importance score
+            current_scene: Optional scene number for filtering
+
+        Returns:
+            List of milestone dicts from graph
+        """
+        if not hasattr(self, 'entity_graph') or not self.entity_graph:
+            return []
+
+        return self.entity_graph.get_character_milestones(
+            char_name,
+            importance_threshold=importance_threshold,
+            current_scene=current_scene
+        )
+
+    def _get_character_group_status_from_graph(
+        self,
+        char_name: str,
+        importance_threshold: int = 75,
+        current_scene: int | None = None
+    ) -> dict:
+        """Get character group status from entity graph with schema-driven filtering.
+
+        Args:
+            char_name: Name of the character
+            importance_threshold: Minimum importance score
+            current_scene: Optional scene number for filtering
+
+        Returns:
+            Dict mapping group name to status data from graph
+        """
+        if not hasattr(self, 'entity_graph') or not self.entity_graph:
+            return {}
+
+        relationships = self.entity_graph.get_relationships_by_field(
+            char_name,
+            field_name="group_status",
+            min_importance=importance_threshold,
+            current_scene=current_scene
+        )
+
+        result = {}
+        for r in relationships:
+            group_name = r.target_id.split(":", 1)[1] if ":" in r.target_id else r.target_id
+            result[group_name] = {
+                "position": [r.relation],
+                "importance": {"score": r.importance, "reason": r.importance_reason, "faction": r.faction},
+            }
+
+        return result
+
+    def _get_entries(self, data: dict, subject_type: str) -> dict:
+        """Get entries from data dict using schema-driven key resolution.
+
+        Args:
+            data: The data dict (e.g., self.characters)
+            subject_type: Subject type (e.g., "Character", "Group")
+
+        Returns:
+            The entries dict or the data itself if no entries wrapper
+        """
+        if self.schema_wrapper:
+            entity_type = subject_type.capitalize()
+            all_fields = self.schema_wrapper.get_entity_fields(entity_type)
+            if "entries" in all_fields or "entries" in data:
+                return data.get("entries", data)
+        return data.get("entries", data)
+
+    def _get_field_value(self, entity_data: dict, entity_type: str, field_name: str, default=None):
+        """Get a field value from entity data using schema-driven resolution.
+
+        Args:
+            entity_data: The entity's data dict
+            entity_type: Entity type (e.g., "Character", "Group")
+            field_name: Field name
+            default: Default value
+
+        Returns:
+            Field value or default
+        """
+        if self.schema_wrapper:
+            return self.schema_wrapper.get_field_value(entity_data, entity_type, field_name, default)
+        return entity_data.get(field_name, default)
+
+    def _get_nested_field_value(self, entity_data: dict, entity_type: str, path: str, default=None):
+        """Get a nested field value using schema-driven dot notation resolution.
+
+        Args:
+            entity_data: The entity's data dict
+            entity_type: Entity type (e.g., "Character")
+            path: Dot-separated path (e.g., "group_status.Rebel Force.importance.score")
+            default: Default value
+
+        Returns:
+            Value at path or default
+        """
+        if self.schema_wrapper:
+            return self.schema_wrapper.get_nested_field_value(entity_data, entity_type, path, default)
+        from ...utils.helpers import split_keys_to_list
+        parts = split_keys_to_list(path)
+        current = entity_data
+        for part in parts:
+            if isinstance(current, dict):
+                current = current.get(part)
+            else:
+                return default
+        return current if current is not None else default
+
+    def _get_importance(self, item_data: dict, item_type: str, field_name: str) -> int:
+        """Get importance score for an item using schema-driven path resolution.
+
+        Args:
+            item_data: The item's data dict (e.g., milestone, status)
+            item_type: Parent entity type (e.g., "Character")
+            field_name: Field name (e.g., "milestones", "group_status")
+
+        Returns:
+            Importance score (0-100) or 0 if not found
+        """
+        if self.schema_wrapper:
+            score = self._get_nested_field_value(item_data, item_type, "importance.score", None)
+            if isinstance(score, int):
+                return score
+            if isinstance(score, dict):
+                return score.get("score", 0)
+            if score is None:
+                path = f"{field_name}.importance.score"
+                score = self._get_nested_field_value(item_data, item_type, path, None)
+                if isinstance(score, int):
+                    return score
+                if isinstance(score, dict):
+                    return score.get("score", 0)
+        importance = item_data.get("importance", {})
+        if isinstance(importance, dict):
+            return importance.get("score", 0)
+        return importance if isinstance(importance, int) else 0
+
+    def _get_all_relevant_status_and_milestones(
+        self,
+        initial_characters: list[str],
+        all_groups: dict[str, dict],
+        all_characters: dict[str, dict],
+        all_events: dict[str, dict],
+        current_scene: dict,
+        importance_threshold: int = 75,
+        max_depth: int = 10,
+    ) -> tuple[dict[str, dict], dict[str, list[dict]]]:
+        """Get all relevant statuses and milestones using unified entity aggregation.
+
+        Uses _unified_entity_aggregation to get the complete pool of relevant
+        characters and groups, then extracts statuses and milestones from that pool.
+
+        Args:
+            initial_characters: Initial list of characters in the scene
+            all_groups: Full groups data dict
+            all_characters: Full characters data dict
+            all_events: Full events data dict
+            current_scene: Current scene data
+            importance_threshold: Minimum importance score
+            max_depth: Maximum recursion depth
+
+        Returns:
+            Tuple of (character_status dict, character_milestones dict)
+        """
+        initial_entities = {"Character": set(initial_characters)}
+        all_data = {
+            "Character": all_characters,
+            "Group": all_groups,
+            "Event": all_events,
+        }
+
+        relevant = self._unified_entity_aggregation(
+            initial_entities, all_data,
+            importance_threshold=importance_threshold,
+            max_depth=max_depth,
+        )
+
+        char_key = "character"
+        relevant_chars = relevant.get(char_key, {}).keys()
+        characters_data = self._get_entries(all_characters, "Character")
+
+        result_status = {}
+        result_milestones = {}
+
+        for char_name in relevant_chars:
+            if char_name not in characters_data:
+                continue
+
+            current_scene_number = current_scene.get("_scene_number") if current_scene else None
+            group_status = self._get_character_group_status_from_graph(
+                char_name,
+                importance_threshold=importance_threshold,
+                current_scene=current_scene_number
+            )
+            if not group_status:
+                group_status = self._get_character_group_status(char_name, current_scene, importance_threshold)
+            if group_status:
+                result_status[char_name] = group_status
+
+            milestones = self._get_character_milestones_from_graph(
+                char_name,
+                importance_threshold=importance_threshold,
+                current_scene=current_scene_number
+            )
+            if not milestones:
+                milestones = self._get_character_milestones(char_name, current_scene, importance_threshold)
+            if milestones:
+                result_milestones[char_name] = milestones
+
+        return result_status, result_milestones
 
     def retrieve_context(self, current_context: str, last_x_messages: list[str]) -> RetrievalContext:
         """Main method to retrieve all relevant context based on current state."""
@@ -317,22 +932,56 @@ class StoryContextRetriever:
             print(f"{_DEBUG}retrieve_context try block starting. general_info type: {type(result.general_info)}, is empty: {not result.general_info}{_RESET}")
             print(f"{_DEBUG}scene_characters to look up: {scene_characters}{_RESET}")
             print(f"{_DEBUG}self.characters keys: {list(self.characters.keys()) if self.characters else 'empty'}{_RESET}")
-            # Get character relationships and related data
-            result.characters = self._get_all_relevant_character_relationships(scene_characters)
+
+            initial_entities = {"Character": set(scene_characters)}
+            all_data = {
+                "Character": self.characters,
+                "Group": self.groups,
+                "Event": self.events,
+            }
+            decay_config = DecayConfig()
+            unified_result = self._unified_entity_aggregation(
+                initial_entities, all_data,
+                importance_threshold=decay_config.final_threshold,
+                max_depth=decay_config.max_depth,
+                decay_config=decay_config,
+            )
+            result.relevant_entities = unified_result
+            char_key = "character"
+            group_key = "group"
+            event_key = "event"
+            unified_chars = list(unified_result.get(char_key, {}).keys())
+            unified_groups = list(unified_result.get(group_key, {}).keys())
+            unified_events = list(unified_result.get(event_key, {}).keys())
+            print(f"{_DEBUG}unified aggregation: {len(unified_chars)} chars, {len(unified_groups)} groups, {len(unified_events)} events{_RESET}")
+
+            result.characters = self._get_all_relevant_character_relationships(list(unified_chars))
             print(f"{_DEBUG}characters retrieved: {type(result.characters)}, count: {len(result.characters) if result.characters else 0}{_RESET}")
-            result.groups = self._get_relevant_groups(scene_characters, context_to_search)
+            groups_entries = self._get_entries(self.groups, "Group")
+            result.groups = {"entries": {g: groups_entries.get(g, {}) for g in unified_groups}}
             print(f"{_DEBUG}groups retrieved: {type(result.groups)}, count: {len(result.groups) if result.groups else 0}{_RESET}")
-            result.events = self._get_relevant_events(scene_characters, result.groups, context_to_search)
+
+            scenes = self._get_field_value(self.events, "Event", "scenes", {})
+            events = self._get_field_value(self.events, "Event", "events", {})
+            past = self._get_field_value(self.events, "Event", "past", {})
+            events_dict = {**scenes, **events, **past}
+            result.events = {"entries": {e: events_dict.get(e, {}) for e in unified_events}}
             print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
-            
+
             if self.arcs:
                 result.arcs = self.arcs
                 print(f"{_DEBUG}arcs retrieved: {type(result.arcs)}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
 
-            chapters_data = self.events.get("chapters", {})
+            chapters_data = self._get_field_value(self.events, "Event", "chapters", {})
             if chapters_data:
                 result.chapters = chapters_data
                 print(f"{_DEBUG}chapters retrieved: {type(result.chapters)}, count: {len(result.chapters) if result.chapters else 0}{_RESET}")
+
+            result.character_status, result.character_milestones = self._get_all_relevant_status_and_milestones(
+                scene_characters, self.groups, self.characters, self.events, current_scene
+            )
+            print(f"{_DEBUG}character_status retrieved: {type(result.character_status)}, count: {len(result.character_status) if result.character_status else 0}{_RESET}")
+            print(f"{_DEBUG}character_milestones retrieved: {type(result.character_milestones)}, count: {len(result.character_milestones) if result.character_milestones else 0}{_RESET}")
 
             # Get messages using both retrieval methods
             # scene_messages = self._get_message_chunks()  # Index-based retrieval
@@ -430,6 +1079,8 @@ class MessageChunker:
         groups_data: dict[str, Any],
         events_data: dict[str, Any],
         current_scene_data: dict[str, Any],
+        summarizer: 'Summarizer' | None = None,
+        use_llm_for_speakers: bool = True,
     ):
         print(f"{_BOLD}Initializing MessageChunker...{_RESET}")
 
@@ -437,6 +1088,9 @@ class MessageChunker:
 
         # Use class-level shared resources
         self.nlp = MessageChunker._nlp
+        self.summarizer = summarizer
+        # TODO: Make configurable via UI toggle
+        self.use_llm_for_speakers = use_llm_for_speakers
 
         self.history_path = Path(history_path)
         self.storage_dir = self.history_path / "message_index"
@@ -550,11 +1204,11 @@ class MessageChunker:
         return list(found_entities)
 
     def _determine_speakers(self, paragraph_text: str) -> list[str]:
-        """Determine speakers from text using regex for 'Name: Dialogue' and spaCy for quoted speech."""
+        """Determine speakers from text using LLM (primary) with regex "Name:" as quick pre-filter."""
         speakers = set()
         doc = self.nlp(paragraph_text)
 
-        # 1. Check for "Name: Dialogue" format line by line (existing refined logic)
+        # 1. Check for "Name: Dialogue" format line by line
         lines = paragraph_text.split("\n")
         char_patterns_for_speakers = {
             name: pattern for name, pattern in self.character_name_patterns.items() if isinstance(pattern, re.Pattern)
@@ -581,46 +1235,73 @@ class MessageChunker:
                         speakers.add(name)
                         break  # Found speaker for this line by "Name:" pattern
 
-        # 2. spaCy-based analysis for quoted speech and other dialogue indicators within sentences
-        for sent in doc.sents:
-            # Basic check for quotes. More sophisticated quote detection might be needed for complex cases.
-            has_quote = (
-                '"' in sent.text
-                or "'" in sent.text
-                or "“" in sent.text
-                or "”" in sent.text
-                or "‘" in sent.text
-                or "’" in sent.text
-            )
+        # Use LLM for speaker extraction if enabled (more accurate than regex/spaCy)
+        # TODO: Make configurable via UI toggle
+        if self.use_llm_for_speakers and self.summarizer:
+            try:
+                prompt = f'''Analyze the following text in context and identify the names of the character(s) who are speaking.
 
-            for token in sent:
-                # Check for dialogue verbs
-                if token.lemma_.lower() in self.DIALOGUE_VERBS and token.pos_ == "VERB":
-                    # Find subject of the verb (potential speaker)
-                    subject_token = None
-                    for child in token.children:
-                        if child.dep_ == "nsubj":
-                            subject_token = child
-                            break
+Respond with a JSON array of character names:
+["Character1", "Character2", ...]
 
-                    if subject_token:
-                        # Extract text of the subject (could be a single name or a phrase)
-                        # We can check the subject token itself or its subtree for more complex subjects.
-                        subject_text = subject_token.text
-                        potential_speakers_from_subject = self._extract_entities(subject_text, self.character_name_patterns)
-                        for speaker_name in potential_speakers_from_subject:
-                            if has_quote:
-                                speakers.add(speaker_name)
+Text:
+```
+{paragraph_text}
+```
 
-                    # Additionally, check for character names directly preceding/following quotes if not caught by subject-verb
-                    # This part can be expanded with more rules.
-                    # For example, if token is a quote, check previous/next tokens for names.
+Do not include generic terms like "you", "someone", "they". Only include characters that are explicitly or implicitly mentioned as speaking. Do not include characters who are only being addressed but not speaking.'''
+                response_text, _ = self.summarizer.generate_with_sse(prompt, self.summarizer.last.custom_state, "determine_speakers", "speakers_llm", None)
+                if response_text:
+                    try:
+                        llm_speakers = jsonc.loads(response_text.strip())
+                        if isinstance(llm_speakers, list):
+                            speakers.update(llm_speakers)
+                    except jsonc.JSONDecodeError:
+                        pass
+            except Exception:
+                pass
 
-            if has_quote and not speakers.intersection(self._extract_entities(sent.text, self.character_name_patterns)):
-                chars_in_sentence_with_quote = self._extract_entities(sent.text, self.character_name_patterns)
-                for char_name in chars_in_sentence_with_quote:
-                    # A more robust check would analyze proximity to quote marks.
-                    speakers.add(char_name)  # This might over-generate, needs refinement or context.
+        if not speakers:
+            # 2. Fall back to spaCy-based analysis for quoted speech and other dialogue indicators within sentences
+            for sent in doc.sents:
+                # Basic check for quotes. More sophisticated quote detection might be needed for complex cases.
+                has_quote = (
+                    '"' in sent.text
+                    or "'" in sent.text
+                    or "“" in sent.text
+                    or "”" in sent.text
+                    or "‘" in sent.text
+                    or "’" in sent.text
+                )
+
+                for token in sent:
+                    # Check for dialogue verbs
+                    if token.lemma_.lower() in self.DIALOGUE_VERBS and token.pos_ == "VERB":
+                        # Find subject of the verb (potential speaker)
+                        subject_token = None
+                        for child in token.children:
+                            if child.dep_ == "nsubj":
+                                subject_token = child
+                                break
+
+                        if subject_token:
+                            # Extract text of the subject (could be a single name or a phrase)
+                            # We can check the subject token itself or its subtree for more complex subjects.
+                            subject_text = subject_token.text
+                            potential_speakers_from_subject = self._extract_entities(subject_text, self.character_name_patterns)
+                            for speaker_name in potential_speakers_from_subject:
+                                if has_quote:
+                                    speakers.add(speaker_name)
+
+                        # Additionally, check for character names directly preceding/following quotes if not caught by subject-verb
+                        # This part can be expanded with more rules.
+                        # For example, if token is a quote, check previous/next tokens for names.
+
+                if has_quote and not speakers.intersection(self._extract_entities(sent.text, self.character_name_patterns)):
+                    chars_in_sentence_with_quote = self._extract_entities(sent.text, self.character_name_patterns)
+                    for char_name in chars_in_sentence_with_quote:
+                        # A more robust check would analyze proximity to quote marks.
+                        speakers.add(char_name)  # This might over-generate, needs refinement or context.
 
         return list(speakers)
 
@@ -728,21 +1409,22 @@ class MessageChunker:
 
         return tagged_text
 
-    def chunk_message(self, message: str, message_idx: int, current_timestamp: str) -> list:
+    def chunk_message(self, message: str, message_idx: int, current_timestamp: str, do_determine_speakers: bool = True) -> list:
         """Split message into chunks at different granularities, enrich with metadata."""
         chunks = []
 
         # Determine characters present in the current scene once
         scene_active_characters = []
-        if (
-            self.current_scene_data
-            and isinstance(self.current_scene_data.get("now"), dict)
-            and isinstance(self.current_scene_data["now"].get("who"), dict)
-            and isinstance(self.current_scene_data["now"]["who"].get("characters"), dict)
-        ):
-            for char_info in self.current_scene_data["now"]["who"]["characters"].values():
-                if isinstance(char_info, dict) and "name" in char_info:
-                    scene_active_characters.append(char_info["name"])
+        if self.current_scene_data and isinstance(self.current_scene_data.get("now"), dict) and isinstance(self.current_scene_data["now"].get("who"), dict):
+            characters = self.current_scene_data["now"]["who"].get("characters")
+            if isinstance(characters, dict):
+                for char_info in characters.values():
+                    if isinstance(char_info, dict) and "name" in char_info:
+                        scene_active_characters.append(char_info["name"])
+            elif isinstance(characters, list):
+                for char_info in characters:
+                    if isinstance(char_info, dict) and "name" in char_info:
+                        scene_active_characters.append(char_info["name"])
 
         # Split into paragraphs
         paragraphs = [p.strip() for p in message.split("\n\n") if p.strip()]
@@ -751,11 +1433,14 @@ class MessageChunker:
             # Split paragraph into sentences
             sentences = nltk.sent_tokenize(paragraph)
 
+            if do_determine_speakers:
+                paragraph_speakers = self._determine_speakers(paragraph)
+            else:
+                paragraph_speakers = []  # Unknown; caller should treat empty as unknown
+
             for sent_idx, sentence_text in enumerate(sentences, start=1):
                 chunk_id = f"{message_idx}_{para_idx}_{sent_idx}"
-
-                # Speaker detection (current logic, to be reviewed later)
-                speakers = self._determine_speakers(paragraph)
+                speakers = paragraph_speakers
 
                 # Extract entities directly mentioned in the current sentence
                 characters_mentioned_in_sentence = self._extract_entities(sentence_text, self.character_name_patterns)
@@ -854,15 +1539,94 @@ class MessageChunker:
         else:
             print(f"{_HILITE}No nodes found for message_idx {message_idx} to update metadata.{_RESET}")
 
-    def process_message(self, message: str, message_idx: int, current_timestamp: str):
+    def process_message(self, message: str, message_idx: int, current_timestamp: str, do_determine_speakers: bool = True) -> list:
         """Process and store a new message. Overwrites existing chunks if message_idx exists."""
         # Delete existing chunks for this message if any
         self.delete_message_chunks(message_idx)
 
         # Create and store new chunks
-        chunks = self.chunk_message(message, message_idx, current_timestamp)
+        chunks = self.chunk_message(message, message_idx, current_timestamp, do_determine_speakers=do_determine_speakers)
         self.store_chunks(chunks)
         return chunks
+
+    def update_message_speakers(self, message_idx: int) -> bool:
+        """Update speakers for existing chunks of a message using current state.
+
+        Uses the current stored message text to re-determine speakers via LLM,
+        then updates the metadata for all chunks with that message_idx.
+
+        Args:
+            message_idx: The message index to update speakers for.
+
+        Returns:
+            bool: True if update succeeded, False otherwise.
+        """
+        try:
+            all_nodes = self.index.docstore.docs
+            message_chunks = []
+            for node_id, node in all_nodes.items():
+                if node.metadata.get("message_idx") == message_idx:
+                    message_chunks.append(node)
+
+            if not message_chunks:
+                print(f"{_WARNING}No chunks found for message_idx {message_idx} to update speakers.{_RESET}")
+                return False
+
+            message_chunks_sorted = sorted(message_chunks, key=lambda n: (
+                n.metadata.get("paragraph_idx", 0),
+                n.metadata.get("sentence_idx", 0),
+            ))
+
+            # Group chunks by paragraph to determine speakers per paragraph
+            paragraph_groups = []
+            current_para_idx = None
+            current_para_chunks = []
+            for chunk in message_chunks_sorted:
+                para_idx = chunk.metadata.get("paragraph_idx", 0)
+                if para_idx != current_para_idx and current_para_chunks:
+                    paragraph_groups.append((current_para_idx, current_para_chunks))
+                    current_para_chunks = []
+                current_para_idx = para_idx
+                current_para_chunks.append(chunk)
+            if current_para_chunks:
+                paragraph_groups.append((current_para_idx, current_para_chunks))
+
+            if not paragraph_groups:
+                print(f"{_WARNING}No text found in chunks for message_idx {message_idx}.{_RESET}")
+                return False
+
+            # Determine speakers per paragraph and update each paragraph's chunks
+            for para_idx, para_chunks in paragraph_groups:
+                para_sentences = [chunk.text for chunk in para_chunks if chunk.text]
+                para_text = " ".join(para_sentences).strip()
+
+                if para_text:
+                    speakers = self._determine_speakers(para_text)
+
+                    # Update metadata for all chunks in this paragraph
+                    for chunk in para_chunks:
+                        chunk.metadata["speakers"] = speakers
+
+            # Persist metadata changes
+            nodes_to_update = []
+            for chunk in message_chunks_sorted:
+                updated_node = TextNode(
+                    text=chunk.text,
+                    id_=chunk.id_,
+                    metadata=chunk.metadata,
+                )
+                nodes_to_update.append(updated_node)
+
+            if nodes_to_update:
+                self.index.insert_nodes(nodes_to_update)
+                self.index.storage_context.persist(persist_dir=str(self.storage_dir))
+
+            return True
+
+        except Exception as e:
+            print(f"{_ERROR}Error updating speakers for message_idx {message_idx}: {str(e)}{_RESET}")
+            traceback.print_exc()
+            return False
 
     def store_chunks(self, chunks: list, persist_dir: PathLike | None = None):
         """Store chunks using LlamaIndex."""

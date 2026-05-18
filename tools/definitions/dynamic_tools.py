@@ -4,6 +4,8 @@ import json
 if TYPE_CHECKING:
     from ...agents.summarizer import Summarizer
 
+from ...utils.helpers import split_keys_to_list
+
 
 def create_dss_tool_definitions() -> list[dict]:
     """Create OpenAI-compatible tool definitions for DSS tools."""
@@ -15,7 +17,8 @@ def create_dss_tool_definitions() -> list[dict]:
                 "description": """Retrieve information from the story knowledge base using a dot-notation path.
             
 Use this when you need specific information about characters, groups, scenes, events, or general story info.
-The path follows the schema structure: category.subcategory.field
+The path follows the schema structure: category.subcategory.field.
+If a key name contains a dot, wrap it in square brackets: "[Mrs. Patterson]".
 
 Examples:
   - "characters.John Jones" - Get all info about John Jones
@@ -34,7 +37,7 @@ Available top-level categories: characters, groups, current_scene, events, gener
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Dot-notation path to the information (e.g., 'characters.John.relationships' or 'current_scene.now.where')"
+                            "description": "Dot-notation path to the information (e.g., 'characters.John.relationships' or 'current_scene.now.where'). Use [brackets] around key names that contain dots."
                         }
                     },
                     "required": ["path"]
@@ -76,6 +79,7 @@ Examples:
                 "description": """List available information paths in the knowledge base.
             
 Use this to discover what information is available when you don't know the exact structure.
+Use [brackets] around key names that contain dots.
 
 Examples:
   - "" or omit parameter - List top-level categories
@@ -86,7 +90,7 @@ Examples:
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Parent path to list children of (leave empty for top-level)",
+                            "description": "Parent path to list children of (leave empty for top-level). Use [brackets] around key names containing dots.",
                             "default": ""
                         }
                     }
@@ -100,6 +104,7 @@ Examples:
                 "description": """Update information in the story knowledge base using a dot-notation path.
             
 Use this to record changes to characters, scenes, events, or other story elements.
+Use [brackets] around key names that contain dots.
 
 Examples:
   - path="characters.John Jones.status.current_mood", value="angry" - Update John's mood
@@ -112,7 +117,7 @@ CAUTION: This modifies the knowledge base. Use dss_get_info first to understand 
                     "properties": {
                         "path": {
                             "type": "string",
-                            "description": "Dot-notation path to the field to update"
+                            "description": "Dot-notation path to the field to update. Use [brackets] around key names that contain dots."
                         },
                         "value": {
                             "description": "The new value (string, number, boolean, or object depending on field type)"
@@ -218,7 +223,7 @@ def _get_info(summarizer: "Summarizer", path: str) -> dict:
         return {"error": "No context available. Start a conversation first."}
 
     retrieval_context = summarizer.last.context[0]
-    parts = path.split(".")
+    parts = split_keys_to_list(path)
 
     try:
         result = _navigate_path(retrieval_context, parts)
@@ -373,7 +378,7 @@ def _list_paths(summarizer: "Summarizer", path: str) -> dict:
             "description": "Top-level categories in the knowledge base"
         }
 
-    parts = path.split(".")
+    parts = split_keys_to_list(path)
     try:
         data = _navigate_path(retrieval_context, parts)
     except Exception:
@@ -391,7 +396,7 @@ def _list_paths(summarizer: "Summarizer", path: str) -> dict:
             "path": path,
             "paths": keys,
             "count": len(keys),
-            "hint": f"Access with {path}.<name>"
+            "hint": f"Access with {path}.<name>. Use [brackets] around names containing dots."
         }
     elif isinstance(data, (list, tuple)):
         return {
@@ -412,7 +417,7 @@ def _set_info(summarizer: "Summarizer", path: str, value: Any) -> dict:
         return {"error": "No context available. Start a conversation first."}
 
     retrieval_context = summarizer.last.context[0]
-    parts = path.split(".")
+    parts = split_keys_to_list(path)
 
     if len(parts) < 2:
         return {
@@ -473,24 +478,25 @@ def _close_arc(summarizer: "Summarizer", arc_title: str, conclusion_summary: str
             with open(arcs_path, "r", encoding="utf-8") as f:
                 arcs_data = json.load(f)
         else:
-            arcs_data = []
+            arcs_data = {}
+        
+        if not isinstance(arcs_data, dict):
+            return {"error": f"Invalid arcs data format for '{arc_title}'"}
         
         # Find arc by fuzzy matching title
         arc_title_lower = arc_title.lower()
-        arc_index = None
         matched_title = None
         
-        for i, arc in enumerate(arcs_data):
-            arc_title_in_arc = arc.get("title", "").lower()
+        for arc_key in arcs_data:
+            arc_title_in_arc = arc_key.lower()
             if arc_title_lower in arc_title_in_arc or arc_title_in_arc in arc_title_lower:
-                arc_index = i
-                matched_title = arc.get("title")
+                matched_title = arc_key
                 break
         
-        if arc_index is None:
+        if matched_title is None:
             return {
                 "error": f"Arc '{arc_title}' not found",
-                "available_arcs": [arc.get("title") for arc in arcs_data if arc.get("status") == "active"],
+                "available_arcs": [a.get("title") for a in arcs_data.values() if a.get("status") == "active"],
                 "hint": "Use dss_list_arcs() to see available arcs"
             }
         
@@ -504,12 +510,12 @@ def _close_arc(summarizer: "Summarizer", arc_title: str, conclusion_summary: str
                 current_scene_idx = len(scenes) - 1 if scenes else 0
         
         # Close the arc
-        arcs_data[arc_index]["ending_scene"] = current_scene_idx
-        arcs_data[arc_index]["status"] = "concluded"
+        arcs_data[matched_title]["ending_scene"] = current_scene_idx
+        arcs_data[matched_title]["status"] = "concluded"
         
         if conclusion_summary:
-            arcs_data[arc_index]["summary"] = (
-                arcs_data[arc_index].get("summary", "") + 
+            arcs_data[matched_title]["summary"] = (
+                arcs_data[matched_title].get("summary", "") + 
                 f"\n\nConclusion: {conclusion_summary}"
             )
         
@@ -553,16 +559,21 @@ def _list_arcs(summarizer: "Summarizer") -> dict:
         with open(arcs_path, "r", encoding="utf-8") as f:
             arcs_data = json.load(f)
         
+        if not isinstance(arcs_data, dict):
+            return {"error": "Invalid arcs data format", "arcs": []}
+        
         # Format arcs for display
         formatted_arcs = []
-        for arc in arcs_data:
+        for arc_title, arc_data in arcs_data.items():
+            if not isinstance(arc_data, dict):
+                continue
             formatted_arcs.append({
-                "title": arc.get("title", "Untitled"),
-                "status": arc.get("status", "unknown"),
-                "starting_scene": arc.get("starting_scene"),
-                "ending_scene": arc.get("ending_scene"),
-                "scenes": arc.get("scenes", []),
-                "summary": _truncate_preview(arc.get("summary", ""), max_len=300)
+                "title": arc_data.get("title", arc_title),
+                "status": arc_data.get("status", "unknown"),
+                "starting_scene": arc_data.get("starting_scene"),
+                "ending_scene": arc_data.get("ending_scene"),
+                "scenes": arc_data.get("scenes", []),
+                "summary": _truncate_preview(arc_data.get("summary", ""), max_len=300)
             })
         
         # Group by status
