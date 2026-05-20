@@ -950,15 +950,13 @@ class Summarizer:
                 pm.end_session(publish=False)
                 return None
 
-            # self.last should be set by prepare_context
-            last = getattr(self, "last", None)
-            if not last or not last.history_path:
+            if not self.last or not self.last.history_path:
                 print(f"{_ERROR}Summarizer.last.history_path not available after prepare_context{_RESET}")
                 pm.done_phase("context", "Missing history path")
                 pm.end_turn()
                 pm.end_session(publish=False)
                 return None
-            last_history_path = last.history_path
+            last_history_path = self.last.history_path
             new_history_path = self.retrieve_history_path(state, history)
             if not new_history_path.exists():
                 new_history_path.mkdir(parents=True)
@@ -973,23 +971,8 @@ class Summarizer:
                 [f"What was the very last exchange?", f"{self.format_dialogue(state, [[user_input, output]])}"]
             )
 
-            all_subjects_data = {}
-            for subject_name in self.last.schema_parser.subjects:
-                subject_path = last_history_path / f"{subject_name}.json"
-                all_subjects_data[subject_name] = load_json(subject_path) or {}
-
-            # Delayed first-scene population: populate all subjects using the full scene text.
-            # Fires only when no scene has been archived yet (events.scenes is empty).
-            # Once a scene is archived, the condition stays False for this and future sessions.
             events_data = self.last.context[0].events if self.last and self.last.context else {}
             has_archived_scenes = bool(events_data.get("scenes", {}))
-            if not has_archived_scenes:
-                self._populate_from_first_scene(user_input, output, state, last_history_path)
-                # Write marker for future UI affordance (e.g., user-specified "Don't Populate")
-                try:
-                    (last_history_path / ".populated_from_first_scene").write_text("")
-                except Exception as e:
-                    print(f"{_WARNING}Could not write first-scene marker: {e}{_RESET}")
 
             all_subjects_data = {}
             missing_schemas = []
@@ -1004,10 +987,6 @@ class Summarizer:
                 subject_path = last_history_path / f"{subject_name}.json"
                 all_subjects_data[subject_name] = load_json(subject_path) or {}
             print(f"{_DEBUG}All subjects data: {all_subjects_data.keys()}{_RESET}")
-
-            data_summarizer = DataSummarizer(
-                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser, all_subjects_data, pm
-            )
 
             if missing_schemas:
                 print(
@@ -1063,7 +1042,41 @@ class Summarizer:
                         all_subjects_data["current_scene"]["_arc_number"] = 1
                         print(f"{_DEBUG}Setting initial '_arc_number' to 1.{_RESET}")
 
+            # --- First-scene initial population ---
+            if self.last and self.last.is_new_scene_turn and not has_archived_scenes:
+                # Preserve scene/chapter/arc numbers set by the scene turn handler above,
+                # since population will reload all_subjects_data from disk.
+                if "current_scene" in all_subjects_data:
+                    preserved_scene_meta = {
+                        k: all_subjects_data["current_scene"][k]
+                        for k in ("_scene_number", "_chapter_number", "_arc_number")
+                        if k in all_subjects_data["current_scene"]
+                    }
+                else:
+                    preserved_scene_meta = {}
+
+                self._populate_from_first_scene(user_input, output, state, last_history_path)
+                try:
+                    (last_history_path / ".populated_from_first_scene").write_text("")
+                except Exception as e:
+                    print(f"{_WARNING}Could not write first-scene marker: {e}{_RESET}")
+                all_subjects_data = {}
+                for subject_name in self.last.schema_parser.subjects:  # TODO: Use in-memory data from population instead of reloading from disk
+                    subject_path = last_history_path / f"{subject_name}.json"
+                    all_subjects_data[subject_name] = load_json(subject_path) or {}
+                if preserved_scene_meta and "current_scene" in all_subjects_data:
+                    all_subjects_data["current_scene"].update(preserved_scene_meta)
+
+            data_summarizer = DataSummarizer(
+                self, (user_input, output), custom_state, new_history_path, self.last.schema_parser, all_subjects_data, pm
+            )
+
             pm.done_phase("context")
+
+            current_timestamp_str = datetime.now().isoformat()
+            if not has_archived_scenes and not (self.last and self.last.is_new_scene_turn):
+                pm.end_session(publish=True)
+                return current_timestamp_str
 
             print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
