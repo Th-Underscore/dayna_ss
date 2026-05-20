@@ -149,6 +149,7 @@ Current TODO:
     - [ ] Locations
     - [ ] Items/resources
     - [ ] Creatures
+    - [ ] Goals?
 - [ ] Granular Events for more precise RAG? Basically summarized messages
 - [ ] Only perform initial population after first scene?
 
