@@ -1073,13 +1073,6 @@ class Summarizer:
 
             pm.done_phase("context")
 
-            current_timestamp_str = datetime.now().isoformat()
-            if not has_archived_scenes and not (self.last and self.last.is_new_scene_turn):
-                pm.end_session(publish=True)
-                return current_timestamp_str
-
-            print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
-
             # Copy static data to the new history path
             save_json(
                 load_json(last_history_path / "subjects_schema.json"),
@@ -1089,6 +1082,13 @@ class Summarizer:
                 load_json(last_history_path / "format_templates.json"),
                 new_history_path / "format_templates.json",
             )
+
+            current_timestamp_str = datetime.now().isoformat()
+            if not has_archived_scenes and not (self.last and self.last.is_new_scene_turn):
+                pm.end_session(publish=True)
+                return current_timestamp_str
+
+            print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
             def process_subject_update(subject_name: str, data: dict, schema_class: ParsedSchemaClass) -> dict:
                 if shared.stop_everything:
