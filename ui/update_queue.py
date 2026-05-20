@@ -51,7 +51,7 @@ class UpdateQueue:
         event["timestamp"] = event.get("timestamp", time.time())
 
         serialized = json.dumps(event, default=str)
-        print(f"[DSS Queue] Publishing: {event.get('type')} - {event.get('phase', {}).get('id', '?')}")
+        # print(f"[DSS Queue] Publishing: {event.get('type')} - {event.get('phase', {}).get('id', '?')}")
 
         with self._lock:
             self._buffer.append(event)
@@ -66,9 +66,10 @@ class UpdateQueue:
                 try:
                     q.put_nowait(serialized)
                 except queue.Full:
-                    print(f"[DSS Queue] Subscriber {sid} queue full, skipping")
+                    pass
+                    # print(f"[DSS Queue] Subscriber {sid} queue full, skipping")
 
-        print(f"[DSS Queue] Published. Buffer: {len(self._buffer)}, Subscribers: {len(self._subscribers)}")
+        # print(f"[DSS Queue] Published. Buffer: {len(self._buffer)}, Subscribers: {len(self._subscribers)}")
 
     def subscribe(self, subscriber_id: str = None) -> "SubscriberContext":
         """
@@ -133,9 +134,9 @@ class UpdateQueue:
         `pending_phases`, `progress` (to zeros), and `running` (to False). The reset is performed under the instance lock.
         """
         with self._lock:
-            print("[DSS Queue] Clearing queue...")
+            # print("[DSS Queue] Clearing queue...")
             self._buffer.clear()
-            print("[DSS Queue] Buffer cleared:", len(self._buffer))
+            # print("[DSS Queue] Buffer cleared:", len(self._buffer))
             self._state = {
                 "active_phases": [],
                 "completed_phases": [],

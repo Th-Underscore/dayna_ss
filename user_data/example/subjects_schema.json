@@ -728,7 +728,7 @@
         "setting_placeholder": "A description of the world, location, and environment where the story takes place (e.g., 'Post-apocalyptic Earth, 2087, ruined cities overrun by Subterraneans').",
         "rules_placeholder": "A list of world-building rules or laws that govern the story's world (e.g., 'Magic requires mana crystals to cast', 'Technology level: post-nanite apocalypse'). Some overarching plot points about the world can also be included here if they are fundamental to the story and unlikely to change (e.g., 'The nanite plague has devastated humanity, leading to the rise of Subterranean factions' or 'Comms systems are down globally'), but nothing character-specific.",
         "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
-        "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward.",
+        "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
       },
       "triggers": {
         "on_existing_scene": [

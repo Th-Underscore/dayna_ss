@@ -787,7 +787,7 @@ class Summarizer:
 
             if history_path:
                 try:
-                    user_input_prompt = f'This is the latest user input:\n\n"""\n{user_input}\n"""\n\n'
+                    user_input_prompt = f'This is the latest user input:\n\n"""\n{user_input}\n"""\n\n---'
                     name1 = state["name1"] or "User"
                     name2 = state["name2"] or "Assistant"
 
@@ -1111,6 +1111,8 @@ class Summarizer:
             )
 
             pm.done_phase("context")
+
+            print(f"{_BOLD}Dynamically summarizing data for all subjects using DataSummarizer...{_RESET}")
 
             # Copy static data to the new history path
             save_json(
