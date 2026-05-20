@@ -10,26 +10,9 @@
 - [ ] **BUG FIX: Buffer-length polling stops when ring buffer fills** (sse_server.py:171)
 - [ ] Improve error handling for child phases in _update_recursive
 
+## Schema editor UI (v0.2.0)
+
 ---
-
-## Legacy TODO
-
-chunk messages `#chunk_messages()`:
-
-- [x] chunk messages by paragraph by line
-- [x] include message summary in database
-- [ ] check if any gaps in history
-
-<br>
-
-ui:
-
-- [x] make copies of each original tgwui util/module method
-- [ ] integrate story datetime into metadata (~~integrate time into boogaPlus using shared.message\_data timestamps~~)
-
-<br>
-
-<br>
 
 **IMMEDIATE TODO**:
 
@@ -99,6 +82,8 @@ Current TODO:
     - [ ] Update realtime!!
     - [ ] Reset history\_path on save
 - [ ] Get the last time a character was in a scene
+    - [ ] For any subject?
+    - [ ] Mentions?
 - [ ] Persist custom\_state for specific branch defaults?
 - [ ] Add # of attempts during failure
 - [ ] Expand keys to full data when getting relevant info for context retrieval (e.g. “events” in relationships)
@@ -108,7 +93,7 @@ Current TODO:
     - [ ] Character mode (persona) - Provide as`"context"`  then place in spot
     - [ ] Also parsing/imitation for both modes
 - [ ] Short-term goal for this scene/event (`general_info`?)
-- [ ] Allow the user to put instructions via "\[\[NOTE HERE\]\]" within the message. Whether to persist this internally in history or remove it is unclear
+- [ ] Allow the user to put instructions via "\[\[NOTE HERE\]\]" within the message. Whether to preserve this internally in history or remove it is unclear
     - [ ] Also disable sum gen and/or give specific keywords to direct generation? (e.g. “suzie dead by pure accident”)
 - [ ] Update “importance” values throughout
 - [ ] Separate updates into “categories” i.e. “major”, “minor”, “side”
@@ -141,7 +126,31 @@ Current TODO:
 `10` = Struggle to remember
 `5` = Familiar, tip of the tongue
 `0` = Stranger
-    - [ ] “favour” level for negative/positive relationship
+    - [X] “favour” level for negative/positive relationship
+- [ ] Entity aggregation decay
+- [ ] Instead of expanding lists (modifying the actual data structure), just add comments for each element e.g.
+
+```jsonc
+[
+  "foo", // 0
+  "bar", // 1
+  "baz", // 2
+]
+```
+
+- [ ] "Memories" - notes for each character for each scene and event — summary of specific things that happened that are memorable for this specific character
+- [ ] Analyze "user intent" before generating instructions
+- [ ] Track changes in-scene then actually apply them at the end
+- [ ] Include simulated "character thoughts" when summarizing (or even message_index?)
+- [ ] Format_messages shouldn't include index `10. <message>` to avoid re-evaluating; instead, use normal format but at the end give summaries specifying which message is which
+- [ ] More detailed relationship info (temporary status etc.)
+- [ ] `"extra_info"` fields?
+- [ ] "Entities" subject types
+    - [ ] Locations
+    - [ ] Items/resources
+    - [ ] Creatures
+- [ ] Granular Events for more precise RAG? Basically summarized messages
+- [ ] Only perform initial population after first scene?
 
 <br>
 
@@ -177,7 +186,8 @@ Far TODO:
 19. For events: additional context from the future
 20. Trigger archive at end of scene (to archive values that aren’t needed in the main subjects files but may still be needed for extra details in the future)?
 21. “Notes” LLM can write for future reference (also based off of #5, user-defined story structure/objectives)
-
+22. Pre-convert (compile) schema to specific workflow instead of recursive DataSummarizer?
+23. Adapt (append/modify) current data to user changes to schema structure
 
 
 ## OLD TODO (Handle message `#handle_input_output()`)
@@ -242,3 +252,20 @@ retrieve context `#retrieve_context()`:
     - \[ \]
 - [ ] TODO: general summarization
 - [ ] TODO: All lines spoken to, from, or about specific subject depending on importance threshold (>10/100?)
+
+## Legacy TODO
+
+chunk messages `#chunk_messages()`:
+
+- [x] chunk messages by paragraph by line
+- [x] include message summary in database
+- [ ] check if any gaps in history
+
+<br>
+
+ui:
+
+- [x] make copies of each original tgwui util/module method
+- [ ] integrate story datetime into metadata (~~integrate time into boogaPlus using shared.message\_data timestamps~~)
+
+<br>

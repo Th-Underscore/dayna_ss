@@ -1017,6 +1017,19 @@ class Summarizer:
                 subject_path = last_history_path / f"{subject_name}.json"
                 all_subjects_data[subject_name] = load_json(subject_path) or {}
 
+            # Delayed first-scene population: populate all subjects using the full scene text.
+            # Fires only when no scene has been archived yet (events.scenes is empty).
+            # Once a scene is archived, the condition stays False for this and future sessions.
+            events_data = self.last.context[0].events if self.last and self.last.context else {}
+            has_archived_scenes = bool(events_data.get("scenes", {}))
+            if not has_archived_scenes:
+                self._populate_from_first_scene(user_input, output, state, last_history_path)
+                # Write marker for future UI affordance (e.g., user-specified "Don't Populate")
+                try:
+                    (last_history_path / ".populated_from_first_scene").write_text("")
+                except Exception as e:
+                    print(f"{_WARNING}Could not write first-scene marker: {e}{_RESET}")
+
             all_subjects_data = {}
             missing_schemas = []
 
@@ -1286,6 +1299,31 @@ class Summarizer:
         """
         pass
 
+    @staticmethod
+    def _format_general_info_static(gi_data: dict) -> str:
+        """Format general_info static fields into a concise prose block.
+
+        Renders all non-empty, non-dict fields from the general_info dict as
+        label: value lines. This replaces raw ``state[\"context\"]`` in the
+        prompt after the first scene completes.
+        """
+        parts = []
+        for key, value in gi_data.items():
+            if not value:
+                continue
+            if isinstance(value, dict):
+                continue
+            if isinstance(value, list):
+                items = [str(v) for v in value if v]
+                if not items:
+                    continue
+                value_str = ", ".join(items)
+            else:
+                value_str = str(value)
+            label = key.replace("_", " ").title()
+            parts.append(f"{label}: {value_str}")
+        return "\n".join(parts)
+
     def retrieve_and_format_context(self, state: dict, history: History, **kwargs) -> dict:
         """Retrieve and format context for instructing model based on history.
 
@@ -1309,7 +1347,16 @@ class Summarizer:
         custom_state.update(copy.deepcopy(base_state))
         custom_history: History = custom_state["history"]["internal"]
 
-        custom_state["context"] += f"\n\n{current_context}"
+        # Check whether any scene has been archived (on-disk truth of first-scene completion).
+        # Before the first scene completes, inject raw state["context"] as fallback;
+        # after that, inject the structured general_info static fields instead.
+        has_archived_scenes = bool(retrieval_context.events.get("scenes", {}))
+        if has_archived_scenes:
+            formatted_gi = self._format_general_info_static(retrieval_context.general_info)
+            if formatted_gi:
+                custom_state["context"] += f"\n\n{formatted_gi}"
+        else:
+            custom_state["context"] += f"\n\n{current_context}"
 
         formatted_last_x = self.format_number(last_x)
 
@@ -1503,9 +1550,25 @@ class Summarizer:
                     raise
 
                 is_new_scene = True
-                # Populate initial data using schema-driven approach
-                self._populate_from_schema(initial_world_data_path, initial_schema_parser, state)
-                print(f"{_SUCCESS}Initial world data populated in cache: {initial_world_data_path}{_RESET}")
+
+                # Write empty placeholder files for all subjects (data_summarizer's generate handles empty dicts)
+                for subject_name in GLOBAL_SCHEMA_PARSER.subjects:
+                    subject_file = f"{subject_name}.json"
+                    if subject_name == "general_info":
+                        continue  # general_info gets seeded via LLM below
+                    save_json({}, initial_world_data_path / subject_file)
+
+                # Seed general_info static fields from state["context"] via LLM
+                general_info_config = initial_schema_parser.get_subject_class("general_info").defaults.get("initial_population", {})
+                if general_info_config.get("mode") == "direct":
+                    self._populate_subject_direct(
+                        initial_world_data_path,
+                        initial_schema_parser,
+                        state,
+                        "general_info",
+                        general_info_config,
+                    )
+                print(f"{_SUCCESS}Initial world data (empty placeholders + seeded general_info) written to cache: {initial_world_data_path}{_RESET}")
 
             # Phase 1: Session history_path Generation & Creation
             history_path.mkdir(parents=True)
@@ -2157,7 +2220,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
         return detail_response_text if detail_response_text else None
 
-    def _populate_from_schema(
+    def _populate_from_schema(  # Dead code, but keeping for reference
         self,
         initial_world_data_path: Path,
         schema_parser: SchemaParser,
@@ -2234,6 +2297,91 @@ Consider: Would this be a good point to archive the current scene to scenes.json
         pm.end_session(publish=False)
 
         print(f"{_SUCCESS}Schema-driven initial population complete.{_RESET}")
+
+    def _populate_from_first_scene(
+        self,
+        user_input: str,
+        output: str,
+        state: dict,
+        history_path: Path,
+    ) -> None:
+        """
+        Populate all subjects using the full first-scene text (character card,
+        greeting, user input, and bot output) as the context, then delegates
+        to the same schema-driven dispatch logic as _populate_from_schema.
+
+        Uses PhaseManager for realtime UI progress tracking, matching the
+        pattern established by _populate_from_schema.
+        """
+        schema_parser = self.last.schema_parser
+        char_context = state.get("context", "")
+        greeting = state["history"]["internal"][0][1] if state.get("history", {}).get("internal") else ""
+        enriched_context = (
+            f"{char_context}\n\n"
+            f"Initial Greeting:\n{greeting}\n\n"
+            f"First User Input:\n{user_input}\n\n"
+            f"First Response:\n{output}"
+        )
+        enriched_state = copy.deepcopy(state)
+        enriched_state["context"] = enriched_context
+
+        pm = self._phase_manager
+        pm.start_turn("First Scene Population")
+
+        pm._phases.append({"id": "first_scene_population", "name": "First Scene Population", "weight": 1})
+        pm.start_phase("first_scene_population", "First Scene Population")
+
+        for subject_name, schema_def in schema_parser.get_subject_classes().items():
+            population_config = schema_def.defaults.get("initial_population")
+            if not population_config:
+                continue
+
+            mode = population_config.get("mode", "direct")
+            phase_id = f"first_scene_population.{subject_name.lower().replace(' ', '_')}"
+
+            pm.start_phase(phase_id, f"Populate {subject_name}")
+            pm.start_step(phase_id, "populate", f"Populating {subject_name}...")
+
+            try:
+                response = None
+                if mode == "direct":
+                    response = self._populate_subject_direct(
+                        history_path,
+                        schema_parser,
+                        enriched_state,
+                        subject_name,
+                        population_config,
+                        phase_id=phase_id,
+                        step_id="populate",
+                    )
+                elif mode == "identify":
+                    response = self._populate_subject_identify(
+                        history_path,
+                        schema_parser,
+                        enriched_state,
+                        subject_name,
+                        population_config,
+                        phase_id=phase_id,
+                        step_id="populate",
+                    )
+                else:
+                    print(f"{_WARNING}Unknown population mode '{mode}' for '{subject_name}'. Skipping.{_RESET}")
+                    pm.skip_phase(phase_id, f"Unknown mode: {mode}")
+
+                if response is not None:
+                    pm.done_step(phase_id, "populate", f"Populated {subject_name}: {response}")
+                else:
+                    pm.done_step(phase_id, "populate", f"Populated {subject_name}")
+                pm.done_phase(phase_id)
+            except Exception as e:
+                pm.error_phase(phase_id, str(e))
+                print(f"{_ERROR}Error in first-scene population for '{subject_name}': {e}{_RESET}")
+
+        pm.done_phase("first_scene_population")
+        pm.end_turn()
+        pm.end_session(publish=False)
+
+        print(f"{_SUCCESS}First-scene population complete.{_RESET}")
 
 
 class MessageSummarizer:
