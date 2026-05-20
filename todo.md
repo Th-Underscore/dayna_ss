@@ -12,6 +12,8 @@
 
 ## Schema editor UI (v0.2.0)
 
+---
+
 **IMMEDIATE TODO**:
 
 - [x] Handle start of chat
@@ -91,7 +93,7 @@ Current TODO:
     - [ ] Character mode (persona) - Provide as`"context"`  then place in spot
     - [ ] Also parsing/imitation for both modes
 - [ ] Short-term goal for this scene/event (`general_info`?)
-- [ ] Allow the user to put instructions via "\[\[NOTE HERE\]\]" within the message. Whether to persist this internally in history or remove it is unclear
+- [ ] Allow the user to put instructions via "\[\[NOTE HERE\]\]" within the message. Whether to preserve this internally in history or remove it is unclear
     - [ ] Also disable sum gen and/or give specific keywords to direct generation? (e.g. “suzie dead by pure accident”)
 - [ ] Update “importance” values throughout
 - [ ] Separate updates into “categories” i.e. “major”, “minor”, “side”
@@ -126,7 +128,7 @@ Current TODO:
 `0` = Stranger
     - [X] “favour” level for negative/positive relationship
 - [ ] Entity aggregation decay
-- [ ] Instead of expanding lists (modifying actual the data structure), just add comments for each element e.g.
+- [ ] Instead of expanding lists (modifying the actual data structure), just add comments for each element e.g.
 
 ```jsonc
 [
@@ -143,10 +145,12 @@ Current TODO:
 - [ ] Format_messages shouldn't include index `10. <message>` to avoid re-evaluating; instead, use normal format but at the end give summaries specifying which message is which
 - [ ] More detailed relationship info (temporary status etc.)
 - [ ] `"extra_info"` fields?
-- [ ] "Object" subject types
+- [ ] "Entities" subject types
     - [ ] Locations
     - [ ] Items/resources
+    - [ ] Creatures
 - [ ] Granular Events for more precise RAG? Basically summarized messages
+- [ ] Only perform initial population after first scene?
 
 <br>
 
