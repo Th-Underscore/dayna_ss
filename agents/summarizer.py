@@ -1360,6 +1360,7 @@ class Summarizer:
             "character_list": "characters",
             "characters": "characters",
             "groups": "groups",
+            "elements": "elements",
             "events": "events",
             "chapters": "chapters",
             "arcs": "arcs",
@@ -1934,6 +1935,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
         target_files = population_config.get("target_files", [])
         wrapper_key = population_config.get("target_key", "entries")  # Key to wrap entity data (e.g., "entries")
+        type_mapping = population_config.get("type_mapping", {})  # Maps LLM type -> target_key (e.g., {"element": "elements"})
         identification_prompt_template = population_config.get("identification_prompt", "")
         population_prompt_template = population_config.get("population_prompt", "")
 
@@ -2005,7 +2007,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             entity_descriptor: str = entity["descriptor"]
 
             # Determine which target file to use
-            target_key = entity_type + "s"  # "character" -> "characters", "group" -> "groups"
+            target_key = type_mapping.get(entity_type, entity_type + "s")  # "character" -> "characters", "entity" -> "entities"
             if target_key not in entity_data:
                 print(f"{_ERROR}Unknown entity type '{entity_type}' for '{entity_name}'. Skipping.{_RESET}")
                 continue

@@ -275,7 +275,7 @@ def _search_info(summarizer: "Summarizer", query: str) -> dict:
     query_lower = query.lower()
     results = []
 
-    for attr_name in ["characters", "groups", "events", "general_info", "current_scene", "arcs"]:
+    for attr_name in ["characters", "groups", "elements", "events", "general_info", "current_scene", "arcs"]:
         data = getattr(retrieval_context, attr_name, None)
         if data is not None:
             results.extend(_search_in_dict(data, attr_name, query_lower))
@@ -369,7 +369,7 @@ def _list_paths(summarizer: "Summarizer", path: str) -> dict:
     if not path:
         return {
             "path": "",
-            "paths": ["characters", "groups", "current_scene", "events", "general_info", "arcs"],
+            "paths": ["characters", "groups", "elements", "current_scene", "events", "general_info", "arcs"],
             "description": "Top-level categories in the knowledge base"
         }
 

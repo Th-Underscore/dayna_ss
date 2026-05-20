@@ -60,6 +60,7 @@ class RetrievalContext:
     current_scene: dict[str, dict] = field(default_factory=dict)
     characters: dict[str, dict] = field(default_factory=dict)
     groups: dict[str, dict] = field(default_factory=dict)
+    elements: dict[str, dict] = field(default_factory=dict)
     events: dict[str, dict] = field(default_factory=dict)
     chapters: dict[str, dict] = field(default_factory=dict)
     arcs: dict[str, dict] = field(default_factory=dict)
@@ -80,12 +81,14 @@ class StoryContextRetriever:
         self.characters_path = history_path / "characters.json"
         self.events_path = history_path / "events.json"
         self.groups_path = history_path / "groups.json"
+        self.elements_path = history_path / "elements.json"
         self.general_info_path = history_path / "general_info.json"
         self.current_scene_path = history_path / "current_scene.json"
         self.arcs_path = history_path / "arcs.json"
 
         self.characters = self._load_json(self.characters_path)
         self.groups = self._load_json(self.groups_path)
+        self.elements = self._load_json(self.elements_path)
         self.events = self._load_json(self.events_path)
         self.general_info = self._load_json(self.general_info_path)
         self.current_scene = self._load_json(self.current_scene_path)
@@ -95,15 +98,18 @@ class StoryContextRetriever:
         print(f"  history_path: {history_path}")
         print(f"  characters keys: {list(self.characters.keys()) if self.characters else 'empty'}")
         print(f"  groups keys: {list(self.groups.keys()) if self.groups else 'empty'}")
+        print(f"  elements keys: {list(self.elements.keys()) if self.elements else 'empty'}")
         print(f"  events keys: {list(self.events.keys()) if self.events else 'empty'}")
         print(f"  general_info keys: {list(self.general_info.keys()) if self.general_info else 'empty'}")
         print(f"  current_scene keys: {list(self.current_scene.keys()) if self.current_scene else 'empty'}")
         print(f"  arcs count: {len(self.arcs) if self.arcs else 0}{_RESET}")
 
-        self.chunker = MessageChunker(history_path, self.characters, self.groups, self.events, self.current_scene)
+        self.chunker = MessageChunker(history_path, self.characters, self.groups, self.elements, self.events, self.current_scene)
 
         # Create character name patterns for recognition
         self.character_patterns = self._create_character_patterns()
+        # Create element name patterns for recognition
+        self.element_patterns = self._create_element_patterns()
 
     def _create_character_patterns(self) -> dict[str, re.Pattern]:
         """Create regex patterns for character name recognition."""
@@ -147,6 +153,48 @@ class StoryContextRetriever:
                     break
 
         return {"entries": relevant_groups}
+
+    def _create_element_patterns(self) -> dict[str, re.Pattern]:
+        """Create regex patterns for element name recognition."""
+        patterns = {}
+        elements_data = self.elements.get("entries", self.elements)
+        for element_name in elements_data:
+            names = element_name.split()
+            pattern = f"({re.escape(element_name)}"
+            if len(names) > 1:
+                pattern += f"|{re.escape(names[0])}|{re.escape(names[-1])}"
+            pattern += ")"
+            patterns[element_name] = re.compile(pattern, flags=re.IGNORECASE)
+        return patterns
+
+    def _extract_element_names(self, text: str) -> list[str]:
+        """Extract element names from text using regex patterns."""
+        found_names = []
+        for element_name, pattern in self.element_patterns.items():
+            if pattern.search(text):
+                if element_name not in found_names:
+                    found_names.append(element_name)
+        return found_names
+
+    def _get_relevant_elements(self, characters: list[str], context: str) -> dict[str, dict]:
+        """Get elements relevant to the current context and characters."""
+        relevant_elements = {}
+        elements_data = self.elements.get("entries", {})
+
+        for element_name, element_data in elements_data.items():
+            # Check if element is mentioned in context
+            if re.search(element_name, context, flags=re.IGNORECASE):
+                relevant_elements[element_name] = element_data
+                continue
+
+            # Check if element is referenced via relationship to any character
+            for char in characters:
+                if "relationships" in element_data and isinstance(element_data["relationships"], dict):
+                    if char in element_data["relationships"]:
+                        relevant_elements[element_name] = element_data
+                        break
+
+        return {"entries": relevant_elements}
 
     def _get_relevant_events(self, characters: list[str], groups: dict[str, dict], context: str) -> dict[str, dict]:
         """Get events relevant to the current context and groups."""
@@ -313,15 +361,31 @@ class StoryContextRetriever:
             if char not in scene_characters:
                 scene_characters.append(char)
 
+        # Get elements from current scene
+        scene_elements = []
+        if current_scene and "who" in current_scene.get("now", {}):
+            for element in current_scene["now"]["who"].get("elements", []):
+                if isinstance(element, dict) and element.get("name") and element["name"] not in scene_elements:
+                    scene_elements.append(element["name"])
+
+        # Add elements mentioned in context and last messages
+        mentioned_elements = self._extract_element_names(context_to_search)
+        for element in mentioned_elements:
+            if element not in scene_elements:
+                scene_elements.append(element)
+
         try:
             print(f"{_DEBUG}retrieve_context try block starting. general_info type: {type(result.general_info)}, is empty: {not result.general_info}{_RESET}")
             print(f"{_DEBUG}scene_characters to look up: {scene_characters}{_RESET}")
+            print(f"{_DEBUG}scene_elements to look up: {scene_elements}{_RESET}")
             print(f"{_DEBUG}self.characters keys: {list(self.characters.keys()) if self.characters else 'empty'}{_RESET}")
             # Get character relationships and related data
             result.characters = self._get_all_relevant_character_relationships(scene_characters)
             print(f"{_DEBUG}characters retrieved: {type(result.characters)}, count: {len(result.characters) if result.characters else 0}{_RESET}")
             result.groups = self._get_relevant_groups(scene_characters, context_to_search)
             print(f"{_DEBUG}groups retrieved: {type(result.groups)}, count: {len(result.groups) if result.groups else 0}{_RESET}")
+            result.elements = self._get_relevant_elements(scene_characters, context_to_search)
+            print(f"{_DEBUG}elements retrieved: {type(result.elements)}, count: {len(result.elements) if result.elements else 0}{_RESET}")
             result.events = self._get_relevant_events(scene_characters, result.groups, context_to_search)
             print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
             
@@ -428,6 +492,7 @@ class MessageChunker:
         history_path: PathLike,
         characters_data: dict[str, Any],
         groups_data: dict[str, Any],
+        elements_data: dict[str, Any],
         events_data: dict[str, Any],
         current_scene_data: dict[str, Any],
     ):
@@ -445,6 +510,7 @@ class MessageChunker:
         # Store provided data
         self.characters_data = characters_data
         self.groups_data = groups_data
+        self.elements_data = elements_data
         self.events_data = events_data
         self.current_scene_data = current_scene_data
 
@@ -466,6 +532,7 @@ class MessageChunker:
         # Create simpler name/alias patterns for direct entity matching
         self.character_name_patterns = self._create_name_alias_patterns(self.characters_data, main_name_key_is_dict_key=True)
         self.group_name_patterns = self._create_name_alias_patterns(self.groups_data, main_name_key_is_dict_key=True)
+        self.element_name_patterns = self._create_name_alias_patterns(self.elements_data, main_name_key_is_dict_key=True)
         self.event_name_patterns = self._create_event_name_patterns(self.events_data)
 
     DIALOGUE_VERBS = {
@@ -760,11 +827,13 @@ class MessageChunker:
                 # Extract entities directly mentioned in the current sentence
                 characters_mentioned_in_sentence = self._extract_entities(sentence_text, self.character_name_patterns)
                 groups_referenced_in_sentence = self._extract_entities(sentence_text, self.group_name_patterns)
+                elements_referenced_in_sentence = self._extract_entities(sentence_text, self.element_name_patterns)
                 events_referenced_in_sentence = self._extract_entities(sentence_text, self.event_name_patterns)
 
                 subjects_referenced = {
                     "characters": characters_mentioned_in_sentence,
                     "groups": groups_referenced_in_sentence,
+                    "elements": elements_referenced_in_sentence,
                     "events": events_referenced_in_sentence,
                 }
 
