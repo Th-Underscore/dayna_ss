@@ -1435,13 +1435,14 @@ class Summarizer:
                     num_last_messages, formatted_last_messages_str).
         """
         # TODO: Make this path configurable or discoverable
+        GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "subjects_schema.json"
+        GLOBAL_FORMAT_TEMPLATES_PATH = EXTENSION_DIR / "user_data" / "example" / "format_templates.json"
 
         history_path = self.retrieve_history_path(state, history)
         initial_schema_parser = None
         is_new_scene = False
 
         if len(history) < 2 and not history_path.exists():  # New chat
-            GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "subjects_schema.json"
             GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH)
 
             print(f"{_BOLD}Fresh chat detected. Initializing...{_RESET}")
@@ -1537,10 +1538,22 @@ class Summarizer:
                     save_json({}, history_path / file_name)
                     print(f"{_SUCCESS}Created initial {file_name} in {history_path}{_RESET}")
 
+            # Also copy format_templates.json to session history_path
+            if GLOBAL_FORMAT_TEMPLATES_PATH.exists():
+                shutil.copy(GLOBAL_FORMAT_TEMPLATES_PATH, history_path / "format_templates.json")
+
             print(f"{_SUCCESS}Copied initial data from cache to session path {history_path}{_RESET}")
 
         if not history_path.exists():
             history_path.mkdir(parents=True)
+
+        # Ensure essential schema/template files exist in the history path
+        if not (history_path / "subjects_schema.json").exists():
+            shutil.copy(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH, history_path / "subjects_schema.json")
+            print(f"{_SUCCESS}Copied fallback schema to {history_path / 'subjects_schema.json'}{_RESET}")
+        if not (history_path / "format_templates.json").exists() and GLOBAL_FORMAT_TEMPLATES_PATH.exists():
+            shutil.copy(GLOBAL_FORMAT_TEMPLATES_PATH, history_path / "format_templates.json")
+            print(f"{_SUCCESS}Copied fallback format templates to {history_path / 'format_templates.json'}{_RESET}")
 
         last = getattr(self, "last", None)
         if not last or (history_path and history_path != last.history_path):
