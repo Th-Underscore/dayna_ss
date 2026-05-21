@@ -2,102 +2,215 @@
   "past": {},
   "scenes": {
     "Surviving The First Incursion": {
-      "start": {
-        "message_node": "1_1_1",
-        "date": "2027-09-05",
-        "time": "Noon",
-        "specific_time": "12:07"
-      },
-      "end": {
-        "message_node": "7_4_1",
-        "date": "2027-09-08",
-        "time": "Afternoon",
-        "specific_time": "14:32"
-      },
-      "summary": "",
-      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+      "name": "Surviving The First Incursion",
+      "formal_name": "The First Incursion Survival",
+      "aliases": ["Survival", "The First Attack"],
+      "importance": {"score": 90, "reason": "Formation of the Rebel Force", "faction": "positive"},
+      "start": {"_message_node": "1_1_1", "date": "2027-09-05", "time": "Noon", "specific_time": "12:07"},
+      "end": {"_message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon", "specific_time": "14:32"},
+      "summary": "Group survived first attack.",
+      "catalyst": "First major Subterranean attack.",
+      "outcome": "Rebel Force formed.",
+      "participants": {
+        "John Jones": {"importance": {"score": 100, "reason": "Leader", "faction": "positive"}},
+        "Amy Harrison": {"importance": {"score": 80, "reason": "Key survivor", "faction": "positive"}}
+      }
     },
     "Escaping The First Incursion": {
-      "start": {
-        "message_node": "7_4_1",
-        "date": "2027-09-08",
-        "time": "Afternoon",
-        "specific_time": "14:32"
-      },
-      "end": {
-        "message_node": "10_2_5",
-        "date": "2027-09-08",
-        "time": "Evening",
-        "specific_time": "20:05"
-      },
-      "summary": " ... Harry was killed ... ",
-      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+      "name": "Escaping The First Incursion",
+      "formal_name": "Escape from the First Incursion",
+      "aliases": ["The Escape", "Harry's Death"],
+      "importance": {"score": 85, "reason": "Key character death and escape from danger", "faction": "positive"},
+      "start": {"_message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon"},
+      "end": {"_message_node": "10_2_5", "date": "2027-09-08", "time": "Evening"},
+      "summary": "Escaped but Harry was killed.",
+      "catalyst": "Subterranean pursuit.",
+      "outcome": "Harry Kristi killed.",
+      "participants": {
+        "John Jones": {"importance": {"score": 90, "reason": "Protagonist", "faction": "positive"}},
+        "Paul Jones": {"importance": {"score": 80, "reason": "Family", "faction": "positive"}},
+        "Angelina Kristi": {"importance": {"score": 50, "reason": "Witness", "faction": "neutral"}}
+      }
     },
-    "Start of The Second Incursion": {
-      "start": {
-        "message_node": "55_2_3",
-        "date": "2028-08-18",
-        "time": "Morning",
-        "specific_time": "10:26"
-      },
-      "end": {
-        "message_node": "59_3_2",
-        "date": "2028-08-18",
-        "time": "Afternoon",
-        "specific_time": "14:32"
-      },
-      "summary": "",
-      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+    "Quick Scout Sighting": {
+      "name": "Quick Scout Sighting",
+      "formal_name": "N/A",
+      "aliases": ["Scout Glimpse", "First Contact"],
+      "importance": {"score": 30, "reason": "Introduced Subterranean scouts", "faction": "negative"},
+      "start": {"date": "2027-10-15", "time": "Dawn"},
+      "end": {"date": "2027-10-15", "time": "Dawn"},
+      "summary": "Brief glimpse of a Subterranean scout.",
+      "outcome": "Intelligence noted.",
+      "participants": {
+        "Elena Vasquez": {"importance": {"score": 30, "reason": "Witness", "faction": "positive"}},
+        "Subterranean Scout Alpha": {"importance": {"score": 15, "reason": "Spotted", "faction": "negative"}}
+      }
+    },
+    "Paul's Injury": {
+      "name": "Paul's Injury",
+      "formal_name": "N/A",
+      "aliases": ["The Leg Injury", "Paul wounded"],
+      "importance": {"score": 65, "reason": "Paul's injury affected military capability", "faction": "positive"},
+      "start": {"date": "2028-05-18", "time": "Evening"},
+      "end": {"date": "2028-05-18", "time": "Late Evening"},
+      "summary": "Paul injured during assault.",
+      "outcome": "Leg injury.",
+      "participants": {
+        "Paul Jones": {"importance": {"score": 90, "reason": "Injured", "faction": "positive"}},
+        "Sarah Mitchell": {"importance": {"score": 60, "reason": "Medic", "faction": "positive"}}
+      }
+    },
+    "Rachel's First Day": {
+      "name": "Rachel's First Day",
+      "formal_name": "N/A",
+      "aliases": ["Recruit Orientation", "Rachel joins"],
+      "importance": {"score": 25, "reason": "Minor recruitment event", "faction": "positive"},
+      "start": {"date": "2028-06-01", "time": "Morning"},
+      "end": {"date": "2028-06-01", "time": "Morning"},
+      "summary": "Rachel joined the Rebel Force.",
+      "outcome": "New recruit.",
+      "participants": {
+        "Rachel Torres": {"importance": {"score": 100, "reason": "New recruit", "faction": "positive"}},
+        "Captain Rodriguez": {"importance": {"score": 80, "reason": "Trainer", "faction": "positive"}}
+      }
+    },
+    "Trading Deal": {
+      "name": "Trading Deal",
+      "formal_name": "N/A",
+      "aliases": ["Jenkins' Deal", "Supply Run"],
+      "importance": {"score": 20, "reason": "Minor supply acquisition", "faction": "neutral"},
+      "start": {"date": "2028-06-10", "time": "Night"},
+      "end": {"date": "2028-06-10", "time": "Night"},
+      "summary": "Trader Jenkins made a deal.",
+      "outcome": "Supplies acquired.",
+      "participants": {
+        "Trader Jenkins": {"importance": {"score": 95, "reason": "Trader", "faction": "neutral"}},
+        "John Jones": {"importance": {"score": 60, "reason": "Buyer", "faction": "positive"}}
+      }
     }
   },
   "events": {
     "The First Incursion": {
-      "start": {
-        "message_node": "1_1_1",
-        "date": "2027-09-05",
-        "time": "Noon",
-        "specific_time": "12:54"
-      },
-      "end": {
-        "message_node": "11_1_3",
-        "date": "2027-09-08",
-        "time": "Late evening",
-        "specific_time": "21:09"
-      },
-      "summary": "",
-      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+      "name": "The First Incursion",
+      "formal_name": "The First Incursion",
+      "aliases": ["First Attack", "The Emergence"],
+      "importance": {"score": 100, "reason": "Started the war", "faction": "negative"},
+      "start": {"_message_node": "1_1_1", "date": "2027-09-05", "time": "Noon"},
+      "end": {"_message_node": "11_1_3", "date": "2027-09-08", "time": "Late evening"},
+      "summary": "First major attack that started the war.",
+      "catalyst": "Subterraneans emerged.",
+      "outcome": "Massive casualties, Rebel Force formed.",
+      "participants": {
+        "John Jones": {"importance": {"score": 95, "reason": "Leader", "faction": "positive"}},
+        "Subterranean Leader": {"importance": {"score": 90, "reason": "Commander", "faction": "negative"}},
+        "Captain Rodriguez": {"importance": {"score": 40, "reason": "Veteran", "faction": "positive"}}
+      }
     },
     "Killing of Harry Kristi": {
-      "start": {
-        "message_node": "9_2_1",
-        "date": "2027-09-08",
-        "time": "Evening",
-        "specific_time": "19:45"
-      },
-      "end": {
-        "message_node": "10_1_5",
-        "date": "2027-09-08",
-        "time": "Evening",
-        "specific_time": "20:00"
-      },
-      "summary": "In self-defense, John Jones incapacitated Harry. Harry, immediately after waking up, attacked ... ",
-      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+      "name": "Killing of Harry Kristi",
+      "formal_name": "Death of Harry Kristi",
+      "aliases": ["Harry's Death", "The Killing"],
+      "importance": {"score": 70, "reason": "Key character death with lasting consequences", "faction": "negative"},
+      "start": {"date": "2027-09-08", "time": "Evening"},
+      "end": {"date": "2027-09-08", "time": "Evening"},
+      "summary": "Harry killed by John in self-defense.",
+      "catalyst": "Harry attacked John.",
+      "outcome": "Harry killed.",
+      "participants": {
+        "John Jones": {"importance": {"score": 100, "reason": "Killer", "faction": "neutral"}},
+        "Harry Kristi": {"importance": {"score": 80, "reason": "Victim", "faction": "neutral"}},
+        "Angelina Kristi": {"importance": {"score": 70, "reason": "Witness", "faction": "negative"}}
+      }
+    },
+    "The Jones Offensive": {
+      "name": "The Jones Offensive",
+      "formal_name": "The Jones Offensive Campaign",
+      "aliases": ["The Offensive", "Jones Campaign"],
+      "importance": {"score": 95, "reason": "Major victory", "faction": "positive"},
+      "start": {"date": "2028-05-15", "time": "Morning"},
+      "end": {"date": "2028-05-20", "time": "Evening"},
+      "summary": "Major Rebel offensive.",
+      "catalyst": "John decided to attack.",
+      "outcome": "Strategic victory, Paul injured.",
+      "participants": {
+        "John Jones": {"importance": {"score": 100, "reason": "Lead", "faction": "positive"}},
+        "Paul Jones": {"importance": {"score": 90, "reason": "Deputy", "faction": "positive"}},
+        "Marcus Chen": {"importance": {"score": 85, "reason": "Strategist", "faction": "positive"}},
+        "Amy Harrison": {"importance": {"score": 80, "reason": "Tech", "faction": "positive"}},
+        "Elena Vasquez": {"importance": {"score": 70, "reason": "Operative", "faction": "positive"}},
+        "Subterranean Commander Vex": {"importance": {"score": 75, "reason": "Enemy commander", "faction": "negative"}}
+      }
     },
     "The Second Incursion": {
-      "start": {
-        "message_node": "55_2_3",
-        "date": "2028-08-18",
-        "time": "Morning",
-        "specific_time": "10:26"
-      },
-      "end": {
-        "message_node": "70_4_3",
-        "date": "2028-09-11",
-        "time": "Dawn",
-        "specific_time": "5:25"
-      },
-      "summary": "",
-      "prompt_template": "Is {item_name}'s {field_name} summary inaccurate or incomplete?\nIf yes, respond with the updated summary.\nIf no, respond \"unchanged\".\nIf unsure, respond \"unchanged\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{value}\"\"\""
+      "name": "The Second Incursion",
+      "formal_name": "The Second Incursion",
+      "aliases": ["Second Attack", "The Counter-Invasion"],
+      "importance": {"score": 90, "reason": "Escalated the war", "faction": "negative"},
+      "start": {"date": "2028-08-18", "time": "Morning"},
+      "end": {"date": "2028-09-11", "time": "Dawn"},
+      "summary": "Extended conflict.",
+      "catalyst": "Subterraneans gathered forces.",
+      "outcome": "Extended war.",
+      "participants": {
+        "Subterranean Leader": {"importance": {"score": 85, "reason": "Commander", "faction": "negative"}},
+        "Subterranean Commander Vex": {"importance": {"score": 80, "reason": "Ground commander", "faction": "negative"}},
+        "John Jones": {"importance": {"score": 95, "reason": "Commander", "faction": "positive"}}
+      }
+    },
+    "Council Meeting": {
+      "name": "Council Meeting",
+      "formal_name": "N/A",
+      "aliases": ["Elder Council", "War Council"],
+      "importance": {"score": 50, "reason": "Strategic planning among Subterranean leadership", "faction": "negative"},
+      "start": {"date": "2027-10-01", "time": "Night"},
+      "end": {"date": "2027-10-01", "time": "Night"},
+      "summary": "Elders discussed strategy.",
+      "outcome": "Plan approved.",
+      "participants": {
+        "The Council": {"importance": {"score": 100, "reason": "Governing body", "faction": "positive"}},
+        "Subterranean Leader": {"importance": {"score": 80, "reason": "Leader", "faction": "positive"}}
+      }
+    },
+    "Training Exercise": {
+      "name": "Training Exercise",
+      "formal_name": "N/A",
+      "aliases": ["New Recruit Training", "Boot Camp"],
+      "importance": {"score": 20, "reason": "Routine training for new recruits", "faction": "positive"},
+      "start": {"date": "2028-06-05", "time": "Morning"},
+      "end": {"date": "2028-06-05", "time": "Noon"},
+      "summary": "New recruits trained.",
+      "outcome": "Basic training.",
+      "participants": {
+        "Captain Rodriguez": {"importance": {"score": 75, "reason": "Instructor", "faction": "positive"}},
+        "Rachel Torres": {"importance": {"score": 95, "reason": "Recruit", "faction": "positive"}}
+      }
+    },
+    "Medical Emergency": {
+      "name": "Medical Emergency",
+      "formal_name": "N/A",
+      "aliases": ["Paul's Treatment", "Battlefield Medicine"],
+      "importance": {"score": 45, "reason": "Medical treatment following major battle", "faction": "positive"},
+      "start": {"date": "2028-05-19", "time": "Morning"},
+      "end": {"date": "2028-05-19", "time": "Morning"},
+      "summary": "Emergency medical treatment.",
+      "outcome": "Paul stabilized.",
+      "participants": {
+        "Sarah Mitchell": {"importance": {"score": 70, "reason": "Doctor", "faction": "positive"}},
+        "Paul Jones": {"importance": {"score": 95, "reason": "Patient", "faction": "positive"}}
+      }
+    },
+    "Supply Run": {
+      "name": "Supply Run",
+      "formal_name": "N/A",
+      "aliases": ["Jenkins' Supply", "Night Delivery"],
+      "importance": {"score": 15, "reason": "Routine supply acquisition", "faction": "neutral"},
+      "start": {"date": "2028-06-12", "time": "Night"},
+      "end": {"date": "2028-06-12", "time": "Night"},
+      "summary": "Trader delivered supplies.",
+      "outcome": "Supplies got.",
+      "participants": {
+        "Trader Jenkins": {"importance": {"score": 95, "reason": "Trader", "faction": "neutral"}}
+      }
     }
   },
   "chapters": {}

@@ -712,7 +712,7 @@ Respond with ONLY the JSON object for this chapter."""
 
         # Load arcs data
         arcs_path = self.history_path / "arcs.json"
-        arcs_data = load_json(arcs_path) or []
+        arcs_data = load_json(arcs_path) or {}
 
         # Count chapters in current arc
         chapters_dict = events_data.get("chapters", {})
@@ -867,8 +867,9 @@ Respond with ONLY the JSON object for this arc."""
                 if "summary" not in arc_data:
                     arc_data["summary"] = recent_chapter_summary
 
-                # Add arc to list
-                arcs_data.append(arc_data)
+                # Add arc to dict keyed by title
+                arc_key = arc_data.get("title", arc_title)
+                arcs_data[arc_key] = arc_data
                 save_json(arcs_data, arcs_path)
 
                 new_arc_number = current_arc_number + 1
@@ -1000,10 +1001,20 @@ Respond with ONLY the JSON object for this arc."""
         unexpanded_formatted_data: FormattedData,
         target_schema_class: ParsedSchemaClass,
         keys: list = [],
+        trigger_update: bool = False,
     ) -> dict:
         """
         Entry point for processing a specific Schema Class node against a data object.
         Handles Triggers (Add New, Gate Check, Branch Query) before drilling down.
+
+        Args:
+            item_name_prefix: Path prefix for the item.
+            data: Data to update.
+            formatted_data: Formatted data for prompts.
+            unexpanded_formatted_data: Unexpanded formatted data.
+            target_schema_class: Schema class to process.
+            keys: Path keys to the data location.
+            trigger_update: If True, allow LLM calls for leaf fields. Defaults to False (opt-in).
         """
         if shared.stop_everything:
             return data
@@ -1066,7 +1077,8 @@ Respond with ONLY the JSON object for this arc."""
             formatted_data,
             unexpanded_formatted_data,
             target_schema_class,
-            keys
+            keys,
+            trigger_update=trigger_update
         )
 
         return data
@@ -1078,7 +1090,8 @@ Respond with ONLY the JSON object for this arc."""
         formatted_data: FormattedData,
         unexpanded_formatted_data: FormattedData,
         schema_class: ParsedSchemaClass,
-        keys: list
+        keys: list,
+        trigger_update: bool = False,
     ):
         """
         Traverse and update `data` according to `schema_class`, recursing into nested schema classes, lists, and dicts.
@@ -1087,11 +1100,12 @@ Respond with ONLY the JSON object for this arc."""
         
         Parameters:
             item_name_prefix (str): Human-readable path prefix used for prompts and phase ids (e.g., "chapter.scenes" or "characters[0]").
-            data (dict | list): The current branch of data to traverse and potentially update.
+            data (dict): The current branch of data to traverse and potentially update.
             formatted_data (FormattedData): Formatted view of the data used to render prompts and to update contextual markers; this will be kept in sync with changes.
             unexpanded_formatted_data (FormattedData): Unexpanded formatted view used when creating prompts that require original/unexpanded values.
             schema_class (ParsedSchemaClass): Schema description that determines traversal behavior (dataclass, alias/field, wrapped list/dict, or nested schema).
             keys (list): List of keys/indices representing the path within `formatted_data.data` corresponding to `data`.
+            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False (opt-in).
         """
 
         # --- Case A: Dataclass (object with defined fields) ---
@@ -1104,7 +1118,8 @@ Respond with ONLY the JSON object for this arc."""
                     formatted_data=formatted_data,
                     unexpanded_formatted_data=unexpanded_formatted_data,
                     parent_schema_class=schema_class,
-                    parent_keys=keys
+                    parent_keys=keys,
+                    trigger_update=trigger_update
                 )
 
         # --- Case B: Alias (wrapper around a type) ---
@@ -1126,56 +1141,10 @@ Respond with ONLY the JSON object for this arc."""
                     formatted_data,
                     unexpanded_formatted_data,
                     effective_child_schema,
-                    keys
+                    keys,
+                    trigger_update=trigger_update
                 )
                 return
-
-            # 2. List container
-            if hasattr(wrapped_type, "__origin__") and wrapped_type.__origin__ is list:
-                item_type = wrapped_type.__args__[0]
-
-                if isinstance(data, list):
-                    # 2a. List of Schema Classes (Recurse)
-                    if isinstance(item_type, ParsedSchemaClass):
-                        pm = self._phase_manager
-                        for i, item_data in enumerate(data):
-                            effective_item_schema = self._inherit_defaults_from_parent(
-                                item_type,
-                                schema_class,
-                                defaults_to_inherit
-                            )
-                            # Sync formatted data to keep context fresh
-                            new_keys = [*keys, i]
-                            sub_phase_id = f"{item_name_prefix}[{i}]".lower().replace(" ", "_")
-                            pm.start_phase(sub_phase_id, f"{item_name_prefix}[{i}]")
-                            self._update_recursive(
-                                f"{item_name_prefix}[{i}]",
-                                item_data,
-                                formatted_data,
-                                unexpanded_formatted_data,
-                                effective_item_schema,
-                                new_keys
-                            )
-                            recursive_set(formatted_data.data, new_keys, item_data)
-                            pm.done_phase(sub_phase_id)
-
-                    # 2b. List of Primitives (Leaf update)
-                    else:
-                        # Create a dummy field definition to represent the list item
-                        dummy_field = copy.copy(schema_class._field)
-                        dummy_field.type = item_type
-
-                        for i, item_val in enumerate(data):
-                            self._update_field(
-                                parent_item_name_prefix=item_name_prefix,  # Path up to list
-                                parent_data_object=data,                   # The list itself
-                                field_name=i,
-                                field_value=item_val,
-                                formatted_data=formatted_data,
-                                parent_schema_class=schema_class,          # Alias as parent for prompts
-                                field=dummy_field,
-                                keys=keys
-                            )
 
             # 3. Dict container
             elif hasattr(wrapped_type, "__origin__") and wrapped_type.__origin__ is dict:
@@ -1203,7 +1172,8 @@ Respond with ONLY the JSON object for this arc."""
                                 formatted_data,
                                 unexpanded_formatted_data,
                                 effective_val_schema,
-                                new_keys
+                                new_keys,
+                                trigger_update=trigger_update
                             )
                             recursive_set(formatted_data.data, new_keys, val_data)
                             pm.done_phase(sub_phase_id)
@@ -1223,7 +1193,8 @@ Respond with ONLY the JSON object for this arc."""
                                 formatted_data=formatted_data,
                                 parent_schema_class=schema_class,          # Alias as parent for prompts
                                 field=dummy_field,
-                                keys=keys
+                                keys=keys,
+                                trigger_update=trigger_update
                             )
 
     def _process_field(
@@ -1234,7 +1205,8 @@ Respond with ONLY the JSON object for this arc."""
         formatted_data: FormattedData,
         unexpanded_formatted_data: FormattedData,
         parent_schema_class: ParsedSchemaClass,
-        parent_keys: list
+        parent_keys: list,
+        trigger_update: bool = False,
     ):
         """
         Process and update a single field within a parent data object according to its schema definition.
@@ -1254,6 +1226,7 @@ Respond with ONLY the JSON object for this arc."""
             unexpanded_formatted_data (FormattedData): Unexpanded formatted data used when generating prompts that require raw content.
             parent_schema_class (ParsedSchemaClass): Schema class of the parent, used for inheriting defaults for nested schemas.
             parent_keys (list): List of keys representing the path to the parent within the formatted data structure.
+            trigger_update (bool): If True, allow LLM calls for leaf fields. Defaults to False (opt-in).
         """
         field_name = field_def.name
         full_path = f"{parent_path}.{field_name}" if parent_path else field_name
@@ -1274,6 +1247,10 @@ Respond with ONLY the JSON object for this arc."""
         current_value = parent_data[field_name]
         field_type = field_def.type
 
+        # Determine if this field should trigger updates (from parent schema defaults)
+        field_update_key = f"{field_name}_update"
+        field_trigger_update = parent_schema_class.defaults.get(field_update_key, trigger_update)
+
         # 4. Handle Recursion for nested Schema Classes
         if isinstance(field_type, ParsedSchemaClass):
             # Create effective schema for the child (inheriting prompt templates from parent)
@@ -1292,7 +1269,8 @@ Respond with ONLY the JSON object for this arc."""
                 formatted_data,
                 unexpanded_formatted_data,
                 effective_child_schema,
-                current_keys
+                current_keys,
+                trigger_update=field_trigger_update
             )
             recursive_set(formatted_data.data, current_keys, current_value)
             pm.done_phase(sub_phase_id)
@@ -1318,7 +1296,8 @@ Respond with ONLY the JSON object for this arc."""
                         formatted_data,
                         unexpanded_formatted_data,
                         effective_schema,
-                        [*current_keys, i]
+                        [*current_keys, i],
+                        trigger_update=field_trigger_update
                     )
                     recursive_set(formatted_data.data, [*current_keys, i], item)
                     pm.done_phase(sub_phase_id)
@@ -1339,7 +1318,8 @@ Respond with ONLY the JSON object for this arc."""
                         formatted_data,
                         unexpanded_formatted_data,
                         effective_schema,
-                        [*current_keys, k]
+                        [*current_keys, k],
+                        trigger_update=field_trigger_update
                     )
                     recursive_set(formatted_data.data, [*current_keys, k], v)
                     pm.done_phase(sub_phase_id)
@@ -1354,7 +1334,8 @@ Respond with ONLY the JSON object for this arc."""
             formatted_data,
             parent_schema_class,
             field_def,
-            parent_keys
+            parent_keys,
+            trigger_update=field_trigger_update
         )
 
     def _initialize_field(self, data: dict, field_name: str, field_def: ParsedSchemaField):
@@ -1963,6 +1944,7 @@ Respond with ONLY the JSON object for this arc."""
         parent_schema_class: ParsedSchemaClass,
         field: ParsedSchemaField,
         keys: list = [],
+        trigger_update: bool = False,
     ) -> Any:
         """Update a single field using the _generate_field_update method.
         Checks for overrides in parent_data_object for prompt templates.
@@ -1977,7 +1959,11 @@ Respond with ONLY the JSON object for this arc."""
             parent_schema_class (ParsedSchemaClass): Schema of the parent object.
             field (ParsedSchemaField): The field in question.
             keys (list, optional): Path keys to the parent object. Defaults to [].
+            trigger_update (bool, optional): If True, allow LLM call. Defaults to False (opt-in).
         """
+        if not trigger_update:
+            print(f"{_GRAY}Skipping update for {parent_item_name_prefix}.{field_name} (trigger_update=False){_RESET}")
+            return field_value
         prompt_template: str | None = self._get_effective_setting(
             parent_data_object, parent_schema_class, "update_prompt_template", field_name_context=field_name
         )
@@ -2012,7 +1998,9 @@ Respond with ONLY the JSON object for this arc."""
         )
 
         print(f"{_INPUT}Updated {parent_item_name_prefix}.{field_name} from '''\n{_RESET}{field_value}{_INPUT}\n''' to '''\n{_BOLD}{updated_value}{_INPUT}\n'''{_RESET}")
-        parent_data_object.update({ field_name: updated_value })
+        parent_data_object[field_name] = updated_value
+        return updated_value
+
 
     def _resolve_cross_branch_reference(self, reference: str) -> str:
         """Resolve a {subjects.X.Y.Z} style reference to a formatted string.
@@ -2039,7 +2027,7 @@ Respond with ONLY the JSON object for this arc."""
             ref_content = ref_content[:-5]
 
         # Parse path parts
-        parts = ref_content.split(".")
+        parts = split_keys_to_list(ref_content)
 
         if not parts or parts[0] != "subjects":
             return f"[Invalid reference: {reference}]"
@@ -2292,10 +2280,10 @@ Respond with ONLY the JSON object for this arc."""
 
         # For chapters in current arc: count chapters since last arc transition
         chapters_in_arc = chapters_count
-        arcs_data = self.all_subjects_data.get("arcs", [])
-        if isinstance(arcs_data, list) and arcs_data:
-            last_arc = arcs_data[-1] if arcs_data else {}
-            last_arc_ending_chapter = last_arc.get("ending_chapter", 0)
+        arcs_data = self.all_subjects_data.get("arcs", {})
+        if isinstance(arcs_data, dict) and arcs_data:
+            last_arc = max(arcs_data.values(), key=lambda a: a.get("ending_chapter", 0) if isinstance(a, dict) else 0)
+            last_arc_ending_chapter = last_arc.get("ending_chapter", 0) if isinstance(last_arc, dict) else 0
             chapters_in_arc = max(1, chapters_count - last_arc_ending_chapter)
 
         chapter_in_arc = chapters_in_arc  # Current chapter position within arc

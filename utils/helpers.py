@@ -171,6 +171,10 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
 def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
     """Split a string of keys into a list, handling both dot separators and square brackets.
 
+    Square bracket notation (e.g., "[Mrs. Patterson]") treats the bracketed content
+    as a single key regardless of dots inside. This is useful for key names that
+    contain literal dots.
+
     Does not accept default values with keys.
 
     Args:
@@ -179,15 +183,37 @@ def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
         out (list[str]): The list of keys.
     """
     if isinstance(keys, str):
-        keys = re.sub(r"\[([^\]]+)\]", r".\1", keys).replace('"', "").split(".")
+        keys = keys.replace('"', "").replace("'", "")
+        result = []
+        i = 0
+        while i < len(keys):
+            if keys[i] == '[':
+                end = keys.find(']', i)
+                if end != -1:
+                    part = keys[i+1:end].strip()
+                    if part:
+                        result.append(part)
+                    i = end + 1
+                    if i < len(keys) and keys[i] == '.':
+                        i += 1
+                else:
+                    result.append(keys[i])
+                    i += 1
+            elif keys[i] == '.':
+                i += 1
+            else:
+                j = i
+                while j < len(keys) and keys[j] != '.' and keys[j] != '[':
+                    j += 1
+                part = keys[i:j].strip()
+                if part:
+                    result.append(part)
+                i = j
+        return result
     return [key.strip() for key in keys if key.strip()]
 
 
-from typing import Any
-from ..utils.schema_parser import ParsedSchemaClass, SchemaParser, TYPE_MAP
-
-
-def expand_lists_in_data_for_llm(data: dict | list, schema_type: ParsedSchemaClass | None, parser: SchemaParser) -> Any:
+def expand_lists_in_data_for_llm(data: dict | list, schema_type, parser) -> Any:
     """Recursively traverse data and expand lists into dictionaries
     with stringified integer keys if the corresponding schema indicates to do so.
 
@@ -202,6 +228,8 @@ def expand_lists_in_data_for_llm(data: dict | list, schema_type: ParsedSchemaCla
     Returns:
         out (Any): A new data structure with specified lists expanded.
     """
+    from .schema_parser import ParsedSchemaClass, TYPE_MAP
+
     if schema_type in TYPE_MAP.values() or data is None:
         return data
 
@@ -273,7 +301,7 @@ def _is_dict_expandable_to_list(data: dict) -> bool:
     return all(int_keys[i] == i for i in range(len(int_keys)))
 
 
-def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | None, parser: SchemaParser) -> Any:
+def unexpand_lists_in_data_from_llm(data: Any, schema_type, parser) -> Any:
     """
     Recursively traverse data and convert dictionaries with stringified integer keys
     back into lists if the corresponding schema indicates to do so, or if no schema is provided
@@ -290,6 +318,8 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type: ParsedSchemaClass | 
     Returns:
         out (Any): A new data structure with specified dictionaries converted to lists.
     """
+    from .schema_parser import ParsedSchemaClass, TYPE_MAP
+
     if schema_type in TYPE_MAP.values() or data is None:
         return data
 
@@ -403,18 +433,86 @@ def format_str(string: str, **kwargs) -> str:
 _jinja_env = None
 
 
-def _last_item(d):
+def _last_item(d: dict):
     """Return the last value from a dict by insertion order (Python 3.7+).
-    
+
     Args:
         d: A dictionary
-        
+
     Returns:
         The last value in the dict, or None if empty
     """
     if not d:
         return None
     return list(d.values())[-1]
+
+
+def _scene_messages(metadata: list, scene_number: int | None = None):
+    """Filter messages metadata to get only messages from a specific scene.
+
+    Args:
+        metadata: List of message metadata dicts
+        scene_number: Optional scene number to filter by. If None, returns all.
+
+    Returns:
+        List of metadata dicts for the specified scene (or all if no scene_number)
+    """
+    if not metadata:
+        return []
+    if scene_number is None:
+        return metadata
+    return [m for m in metadata if m.get("scene_number") == scene_number]
+
+
+def _get_param(metadata, param, include_system=False):
+    """Extract a specific parameter from messages metadata.
+
+    Args:
+        metadata: List of message metadata dicts
+        param: Parameter name to extract. Common options:
+            - "speakers": List of unique speakers
+            - "characters_present": Characters present in each message
+            - "summary" / "text": Summary text from is_summary=True messages
+            - "subjects_referenced": Dict with characters/groups/events
+            - "scene_number": Scene numbers
+        include_system: For "speakers" param only - whether to include "System"
+
+    Returns:
+        For most params: List of unique values
+        For "summary"/"text": List of summary texts from is_summary=True messages
+        For "subjects_referenced": Dict with aggregated characters/groups/events
+    """
+    if not metadata:
+        return [] if param != "subjects_referenced" else {}
+
+    if param in ("summary", "text"):
+        return [m.get("text", "") for m in metadata if m.get("is_summary", False)]
+
+    if param == "subjects_referenced":
+        chars = set()
+        groups = set()
+        events = set()
+        for m in metadata:
+            refs = m.get("subjects_referenced", {})
+            chars.update(refs.get("characters", []))
+            groups.update(refs.get("groups", []))
+            events.update(refs.get("events", []))
+        return {"characters": sorted(chars), "groups": sorted(groups), "events": sorted(events)}
+
+    unique_vals = set()
+    for m in metadata:
+        vals = m.get(param, [])
+        if isinstance(vals, list):
+            if param == "speakers" and not include_system:
+                unique_vals.update(v for v in vals if v != "System")
+            else:
+                unique_vals.update(vals)
+        elif vals:
+            unique_vals.add(vals)
+
+    if param == "speakers":
+        return sorted(unique_vals)
+    return sorted(unique_vals, key=lambda x: str(x))
 
 
 def _get_jinja_env():
@@ -427,6 +525,8 @@ def _get_jinja_env():
             undefined=jinja2.Undefined,
         )
         _jinja_env.filters['last_item'] = _last_item
+        _jinja_env.filters['scene_messages'] = _scene_messages
+        _jinja_env.filters['get_param'] = _get_param
     return _jinja_env
 
 
