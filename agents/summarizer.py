@@ -1402,6 +1402,7 @@ class Summarizer:
             "character_list": "characters",
             "characters": "characters",
             "groups": "groups",
+            "elements": "elements",
             "events": "events",
             "chapters": "chapters",
             "arcs": "arcs",
@@ -1487,6 +1488,8 @@ class Summarizer:
                     num_last_messages, formatted_last_messages_str).
         """
         # TODO: Make this path configurable or discoverable
+        GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH = EXTENSION_DIR / "user_data" / "example" / "subjects_schema.json"
+        GLOBAL_FORMAT_TEMPLATES_PATH = EXTENSION_DIR / "user_data" / "example" / "format_templates.json"
 
         history_path = self.retrieve_history_path(state, history)
         initial_schema_parser = None
@@ -1598,10 +1601,22 @@ class Summarizer:
                     save_json({}, history_path / file_name)
                     print(f"{_SUCCESS}Created initial {file_name} in {history_path}{_RESET}")
 
+            # Also copy format_templates.json to session history_path
+            if GLOBAL_FORMAT_TEMPLATES_PATH.exists():
+                shutil.copy(GLOBAL_FORMAT_TEMPLATES_PATH, history_path / "format_templates.json")
+
             print(f"{_SUCCESS}Copied initial data from cache to session path {history_path}{_RESET}")
 
         if not history_path.exists():
             history_path.mkdir(parents=True)
+
+        # Ensure essential schema/template files exist in the history path
+        if not (history_path / "subjects_schema.json").exists():
+            shutil.copy(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH, history_path / "subjects_schema.json")
+            print(f"{_SUCCESS}Copied fallback schema to {history_path / 'subjects_schema.json'}{_RESET}")
+        if not (history_path / "format_templates.json").exists() and GLOBAL_FORMAT_TEMPLATES_PATH.exists():
+            shutil.copy(GLOBAL_FORMAT_TEMPLATES_PATH, history_path / "format_templates.json")
+            print(f"{_SUCCESS}Copied fallback format templates to {history_path / 'format_templates.json'}{_RESET}")
 
         last = getattr(self, "last", None)
         if not last or (history_path and history_path != last.history_path):
@@ -2016,6 +2031,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
         target_files = population_config.get("target_files", [])
         wrapper_key = population_config.get("target_key", "entries")  # Key to wrap entity data (e.g., "entries")
+        type_mapping = population_config.get("type_mapping", {})  # Maps LLM type -> target_key (e.g., {"element": "elements"})
         identification_prompt_template = population_config.get("identification_prompt", "")
         population_prompt_template = population_config.get("population_prompt", "")
 
@@ -2092,7 +2108,7 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             entity_descriptor: str = entity["descriptor"]
 
             # Determine which target file to use
-            target_key = entity_type + "s"  # "character" -> "characters", "group" -> "groups"
+            target_key = type_mapping.get(entity_type, entity_type + "s")  # "character" -> "characters", "entity" -> "entities"
             if target_key not in entity_data:
                 print(f"{_ERROR}Unknown entity type '{entity_type}' for '{entity_name}'. Skipping.{_RESET}")
                 continue

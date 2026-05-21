@@ -17,6 +17,7 @@ DEFAULT_PHASES = [
     {"id": "general_info", "name": "GeneralInfo", "weight": 1},
     {"id": "characters", "name": "Characters", "weight": 2},
     {"id": "groups", "name": "Groups", "weight": 1},
+    {"id": "elements", "name": "Elements", "weight": 1},
     {"id": "events", "name": "Events", "weight": 2},
     {"id": "arcs", "name": "Arcs", "weight": 2},
     {"id": "chapter_check", "name": "Chapter Boundary Check", "weight": 1},

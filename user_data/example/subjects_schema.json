@@ -344,15 +344,33 @@
         ]
       }
     },
+    "SceneElement": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "location": "str"
+      },
+      "defaults": {
+        "name_placeholder": "The name of the element present in the scene.",
+        "location_placeholder": "The last known location of the element within the scene."
+      },
+      "triggers": {
+        "always": [
+          "perform_update"
+        ]
+      }
+    },
     "SceneWho": {
       "type": "dataclass",
       "fields": {
         "characters": "list[SceneCharacter]",
-        "groups": "list[SceneGroup]"
+        "groups": "list[SceneGroup]",
+        "elements": "list[SceneElement]"
       },
       "defaults": {
         "characters_placeholder": "Example_Scene_Character_Name",
-        "groups_placeholder": "Example_Scene_Group_Name"
+        "groups_placeholder": "Example_Scene_Group_Name",
+        "elements_placeholder": "Example_Scene_Entity_Name"
       }
     },
     "Message": {
@@ -739,11 +757,80 @@
           "perform_update"
         ]
       }
+    },
+    "Element": {
+      "type": "dataclass",
+      "fields": {
+        "kind": "str",
+        "description": "Text",
+        "traits": "list[str]",
+        "attributes": "list[str]",
+        "properties": "dict[str, str]",
+        "relationships": "dict[str, ElementRelationships]",
+        "events": "list[str]"
+      },
+      "defaults": {
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the element '{{ branch_name }}', are there any significant changes, additions, or deletions required for this element's entire entry (kind, description, traits, attributes, properties, relationships, events)? Respond with only 'NO' or 'UNCHANGED' if this element's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.",
+        "kind_placeholder": "The type of element: 'creature', 'location', 'item', or 'resource'.",
+        "description_placeholder": "A detailed textual description of the element, potentially spanning multiple lines.",
+        "traits_placeholder": "A list of defining characteristics or notable features of the element.",
+        "attributes_placeholder": "A list of the element's capabilities, properties, or quantifiable characteristics (e.g., 'Height: 8 feet', 'Durability: High').",
+        "properties_placeholder": "A key-value bag for type-specific details (e.g., for a location: {'capacity': '50 people', 'lighting': 'dim'}; for an item: {'ammo': '12', 'range': '300m'}).",
+        "relationships_placeholder": "Example_Character_Or_Element_Name"
+      },
+      "triggers": {
+        "always": [
+          "query_branch_for_changes"
+        ]
+      }
+    },
+    "ElementRelationships": {
+      "type": "dataclass",
+      "fields": {
+        "relation": "str",
+        "status": "str",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "relation_placeholder": "A single term describing the relationship between this element and another element or character (e.g., 'contains', 'located_in', 'wields', 'guarded_by').",
+        "status_placeholder": "The current state of this relationship (e.g., 'active', 'broken', 'temporary')."
+      }
+    },
+    "ElementMap": {
+      "type": "alias",
+      "field": "dict[str, Element]",
+      "defaults": {
+        "gate_check_prompt_template": "Based on the latest exchange, does the entire '{{ branch_name }}' section/category require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.",
+        "new_entry_query_prompt_template": "Throughout the last scene, have there been any new elements mentioned or implied that should be added to the '{{ branch_name }}' list?\n\nHere is the full list:\n{{ branch_list }}\n\nElements include creatures (monsters, animals, beings), locations (buildings, rooms, zones), items (weapons, tools, phones, keys), and resources (water, food, ammo, fuel). Any new element should be added to the list. If unnamed, give a descriptive title belonging to this scene (e.g., 'Bioluminescent Cave Fungus', 'Abandoned Service Tunnel'). If named, include the full name (e.g., 'The Old Bunker', 'Subterranean Queen').\n\nIf new elements are identified, provide their names as a JSON list of strings.\n\nExample:\n```json\n[\"The Old Bunker\", \"Subterranean Patrol\", \"Emergency Radio\"]\n```\n\nIf NO new elements are identified, respond with the exact str: NO_NEW_ENTRIES_REQUIRED",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the new element named '{{ entry_name }}'.\n\nDetermine the 'kind' based on what this element is:\n- 'creature': A living being that is not a named character (monsters, animals, aliens)\n- 'location': A place, building, room, zone, or area\n- 'item': An object, tool, weapon, or piece of equipment\n- 'resource': A consumable or material (water, food, ammo, fuel)\n\nRelevant Schema for a new Element:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for a new Element:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for this new element."
+      },
+      "triggers": {
+        "always": [
+          "perform_gate_check",
+          "add_new"
+        ]
+      }
+    },
+    "Elements": {
+      "type": "dataclass",
+      "fields": {
+        "entries": "ElementMap"
+      },
+      "defaults": {
+        "initial_population": {
+          "mode": "identify",
+          "target_files": ["elements.json"],
+          "target_key": "entries",
+          "identification_prompt": "From the provided character context, greeting, and first exchange, identify and list all distinct narrative elements mentioned. These include creatures (monsters, animals, non-character beings), locations (buildings, rooms, zones, areas), items (weapons, tools, phones, keys, equipment), and resources (water, food, ammo, fuel, materials). For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('element'), 'name' (string), and 'descriptor' (string).\n\nStory Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nExample Output:\n```json\n[\n  {\"type\": \"element\", \"name\": \"The Old Bunker\", \"descriptor\": \"An abandoned military bunker serving as the rebel hideout.\"},\n  {\"type\": \"element\", \"name\": \"Emergency Radio\", \"descriptor\": \"A portable shortwave radio used for long-range communication.\"}\n]\n```\n\nIdentify and list all distinct narrative elements. For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('element'), 'name' (string), and 'descriptor' (string).\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON list.",
+          "population_prompt": "Based on the provided story context, greeting, the first exchange, and the identified element, generate the full data for the element named '{{ element_name }}'.\n\nDescriptor: {{ descriptor }}\n\nDetermine the appropriate 'kind' for this element:\n- 'creature': A living non-character being\n- 'location': A place or area\n- 'item': An object or tool\n- 'resource': Consumable or material\n\nRelevant Schema for an Element:\n```json\n{{ schema_definition_json }}\n```\n\nExample JSON structure for an Element:\n```json\n{{ example_json }}\n```\n\nStory Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nPlease provide your response as a complete JSON object for this element."
+        }
+      }
     }
   },
   "subjects": {
     "characters": "Characters",
     "groups": "Groups",
+    "elements": "Elements",
     "current_scene": "CurrentScene",
     "events": "Events",
     "general_info": "GeneralInfo",
