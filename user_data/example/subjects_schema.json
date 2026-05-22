@@ -776,7 +776,18 @@
         "traits_placeholder": "A list of defining characteristics or notable features of the element.",
         "attributes_placeholder": "A list of the element's capabilities, properties, or quantifiable characteristics (e.g., 'Height: 8 feet', 'Durability: High').",
         "properties_placeholder": "A key-value bag for type-specific details (e.g., for a location: {'capacity': '50 people', 'lighting': 'dim'}; for an item: {'ammo': '12', 'range': '300m'}).",
-        "relationships_placeholder": "Example_Character_Or_Element_Name"
+        "relationships_placeholder": "Example_Character_Or_Element_Name",
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "ElementRelationships"
+          },
+          "events": {
+            "target_type": "event",
+            "bidirectional": false
+          }
+        }
       },
       "triggers": {
         "always": [
@@ -817,6 +828,17 @@
         "entries": "ElementMap"
       },
       "defaults": {
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "ElementRelationships"
+          },
+          "events": {
+            "target_type": "event",
+            "bidirectional": false
+          }
+        },
         "initial_population": {
           "mode": "identify",
           "target_files": ["elements.json"],

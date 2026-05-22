@@ -2056,6 +2056,26 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             char_greeting_str=char_greeting_str,
         )
 
+        # Phase 1: Exclude already-populated subject names from identification
+        existing_names = {}
+        for json_path in sorted(initial_world_data_path.glob("*.json")):
+            if json_path.name in target_files:
+                continue
+            exclude_data = load_json(json_path)
+            exclude_entries = exclude_data.get("entries", exclude_data)
+            if isinstance(exclude_entries, dict):
+                existing_names[json_path.stem] = list(exclude_entries.keys())
+
+        if any(existing_names.values()):
+            exclusion_lines = []
+            for category, names in existing_names.items():
+                exclusion_lines.append(f"- {category}: {', '.join(names)}")
+            identification_prompt += (
+                "\n\nThe following names are already tracked under other categories.\n"
+                "Do NOT include them as elements:\n"
+                + "\n".join(exclusion_lines)
+            )
+
         print(f"{_DEBUG}Prompting LLM for entity identification...{_RESET}")
         identification_response_text, _ = self.generate_with_sse(
             prompt=identification_prompt,
@@ -2091,6 +2111,18 @@ Consider: Would this be a good point to archive the current scene to scenes.json
             print(f"{_ERROR}An unexpected error occurred during entity identification parsing: {e}{_RESET}")
             traceback.print_exc()
 
+        # Post-LLM filter: remove entities matching already-populated subjects
+        all_excluded = set()
+        for names in existing_names.values():
+            all_excluded.update(n.lower() for n in names)
+        filtered = [
+            e for e in identified_entities
+            if e.get("name", "").lower() not in all_excluded
+        ]
+        if len(filtered) < len(identified_entities):
+            print(f"{_DEBUG}Filtered out {len(identified_entities) - len(filtered)} entities matching already-populated subjects.{_RESET}")
+        identified_entities = filtered
+
         if not identified_entities:
             print(f"{_INPUT}No entities identified by LLM or parsing failed. Saving empty files.{_RESET}")
             for tf in target_files:
@@ -2101,6 +2133,32 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
         # Step 2: Populate each entity
         entity_data = {tf.replace(".json", ""): {} for tf in target_files}
+
+        # Phase 2: Load cross-reference data from schema's relationship_format
+        individual_schema_name = subject_name.rstrip("s") if subject_name.endswith("s") else subject_name
+        individual_schema = schema_parser.definitions.get(individual_schema_name)
+        cross_refs = {}
+        if individual_schema and isinstance(individual_schema, ParsedSchemaClass):
+            ref_format = individual_schema.defaults.get("relationship_format", {})
+            for field_name, ref_cfg in ref_format.items():
+                target_type = ref_cfg.get("target_type")
+                if not target_type:
+                    continue
+                target_subject = target_type + "s"
+                ref_path = initial_world_data_path / f"{target_subject}.json"
+                ref_data = {}
+                if ref_path.exists():
+                    loaded = load_json(ref_path)
+                    entries = loaded.get("entries", loaded)
+                    if isinstance(entries, dict):
+                        ref_data = entries
+                field_type = individual_schema.fields.get(field_name, "str")
+                is_dict = field_type.startswith("dict[")
+                cross_refs[field_name] = {
+                    "target_subject": target_subject,
+                    "entries": ref_data,
+                    "is_dict": is_dict,
+                }
 
         for entity in identified_entities:
             entity_name: str = entity["name"]
@@ -2136,6 +2194,22 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                         char_context_str=char_context_str,
                         char_greeting_str=char_greeting_str,
                     )
+
+                    # Inject cross-reference targets into population prompt
+                    ref_lines = []
+                    for field_name, ref_info in cross_refs.items():
+                        if ref_info["entries"]:
+                            names = ", ".join(ref_info["entries"].keys())
+                            if ref_info["is_dict"]:
+                                ref_lines.append(
+                                    f"Existing {ref_info['target_subject']} you may reference as keys in '{field_name}': {names}"
+                                )
+                            else:
+                                ref_lines.append(
+                                    f"Existing {ref_info['target_subject']} you may reference in the '{field_name}' field: {names}"
+                                )
+                    if ref_lines:
+                        population_prompt += "\n\n" + "\n".join(ref_lines)
 
                     custom_state_detail = copy.deepcopy(custom_state)
                     max_retries = 2
@@ -2177,6 +2251,27 @@ Consider: Would this be a good point to archive the current scene to scenes.json
 
                             validation_errors = schema_parser.validate_data(current_entity_data, schema_name)
 
+                            # Cross-reference validation from relationship_format
+                            if isinstance(current_entity_data, dict):
+                                for field_name, ref_info in cross_refs.items():
+                                    field_value = current_entity_data.get(field_name)
+                                    if field_value is None:
+                                        continue
+                                    target_label = ref_info["target_subject"]
+                                    ref_entries = ref_info["entries"]
+                                    if ref_info["is_dict"] and isinstance(field_value, dict):
+                                        for key in field_value:
+                                            if key and key not in ref_entries:
+                                                validation_errors.append(
+                                                    f"'{field_name}' key '{key}' references non-existent {target_label}"
+                                                )
+                                    elif isinstance(field_value, list):
+                                        for item in field_value:
+                                            if item and item not in ref_entries:
+                                                validation_errors.append(
+                                                    f"'{field_name}' references '{item}' which does not exist in {target_label}"
+                                                )
+
                             if not validation_errors:
                                 self._set_internal_fields(current_entity_data, message_node="1_1_1")
                                 entity_data_validated = current_entity_data
@@ -2203,6 +2298,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                         char_context_str=char_context_str,
                                         char_greeting_str=char_greeting_str,
                                     ) + "\n" + error_feedback
+                                    if ref_lines:
+                                        population_prompt += "\n\n" + "\n".join(ref_lines)
                         except json.JSONDecodeError as e:
                             print(f"{_ERROR}Failed to parse LLM response for '{entity_name}' as JSON: {e}{_RESET}")
                             print(f"{_ERROR}LLM Raw Response was: {_GRAY}{cleaned_detail_response}{_RESET}")
@@ -2219,6 +2316,8 @@ Consider: Would this be a good point to archive the current scene to scenes.json
                                     char_context_str=char_context_str,
                                     char_greeting_str=char_greeting_str,
                                 ) + "\nThe previous JSON was invalid. Ensure valid JSON output.\n"
+                                if ref_lines:
+                                    population_prompt += "\n\n" + "\n".join(ref_lines)
                         except Exception as e:
                             print(f"{_ERROR}Unexpected error processing '{entity_name}' on attempt {attempt + 1}: {e}{_RESET}")
                             traceback.print_exc()
