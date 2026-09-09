@@ -624,7 +624,8 @@ class ContextEngineMixin:
             }
             schema_classes = {k: v for k, v in schema_classes.items() if v}
 
-            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes, summarizer=self)
+            _rag_anchor_count = int(self.config.get("rag_anchor_count", 5) or 5)
+            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes, summarizer=self, rag_anchor_count=_rag_anchor_count)
 
             # Retrieve last x messages (scene-bounded: the recent-dialogue window
             # is capped to the current scene so it cannot reach across a scene

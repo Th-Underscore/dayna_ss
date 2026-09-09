@@ -97,10 +97,11 @@ class RetrievalContext:
 # stops the retriever re-serving STALE beats (measured: the pact-hall beat was
 # [1] at consecutive checkpoints) underneath the physically-recent beats.
 _RAG_RECENCY_MESSAGES = 15
+_RAG_ANCHOR_COUNT_DEFAULT = 5
 
 
 class StoryContextRetriever:
-    def __init__(self, history_path: PathLike, schema_classes: dict | None = None, summarizer: 'Summarizer' | None = None):
+    def __init__(self, history_path: PathLike, schema_classes: dict | None = None, summarizer: 'Summarizer' | None = None, rag_anchor_count: int | None = None):
         """Initialize the context retriever with a history path.
 
         Args:
@@ -162,6 +163,8 @@ class StoryContextRetriever:
         self.character_patterns = self._create_character_patterns()
         # Create element name patterns for recognition
         self.element_patterns = self._create_element_patterns()
+
+        self.rag_anchor_count = int(rag_anchor_count) if rag_anchor_count else _RAG_ANCHOR_COUNT_DEFAULT
 
     def _create_character_patterns(self) -> dict[str, re.Pattern]:
         """Create regex patterns for character name recognition."""
@@ -479,6 +482,217 @@ class StoryContextRetriever:
                     messages.extend(results["documents"])
 
         return messages
+
+    # ------------------------------------------------------------------ #
+    # RAG fan-out (rag_redesign_p1.md, Decisions 1 + 2)
+    # ------------------------------------------------------------------ #
+    # The old path fed the ENTIRE rendered context (~14.7k tokens) as ONE embedding
+    # query. The 384-token-cap embedder kept only the first 384 tokens = 100% static
+    # system-prompt boilerplate; every story marker sat past the cut, so per-turn query
+    # vectors were ~identical (measured cosine 1.00000) and the ranking was noise.
+    # The fix is query CONSTRUCTION, not the model: fan out over N short POINTED anchor
+    # queries, each built deterministically from already-computed signals (cast,
+    # mentioned entities, event anchors, stale roster) and each inside the 384-token
+    # window, so each is a genuinely discriminative vector. No new model, ~0.3s, 0 VRAM.
+    _ANCHOR_CHAR_BUDGET = 240  # chars per anchor (well inside the 384-token window)
+
+    def _event_importance(self, data: dict) -> int:
+        """importance.score of an event dict (0 when absent/non-int)."""
+        imp = data.get("importance")
+        if isinstance(imp, dict):
+            s = imp.get("score")
+            if isinstance(s, (int, float)):
+                return int(s)
+        return 0
+
+    def _event_participants(self, data: dict) -> list[str]:
+        """Event participant names, highest per-participant importance first."""
+        parts = data.get("participants")
+        if not isinstance(parts, dict):
+            return []
+        def _pimp(v: Any) -> int:
+            if isinstance(v, dict):
+                s = v.get("importance")
+                if isinstance(s, dict):
+                    sc = s.get("score")
+                    if isinstance(sc, (int, float)):
+                        return int(sc)
+            return 0
+        return sorted((n for n in parts if isinstance(n, str)), key=lambda n: _pimp(parts.get(n)), reverse=True)
+
+    def _build_retrieval_anchors(
+        self,
+        context: str,
+        last_x_messages: list[str],
+        current_scene: dict | None,
+        n: int,
+    ) -> list[str]:
+        """Build up to ``n`` short, POINTED, delta-framed retrieval anchor strings.
+
+        Every input is already computed deterministically each turn, so this needs no
+        model. Each anchor is a high-relevance subset (an event + its scoped cast, a
+        mentioned entity + its recent state, the current-scene cast, or the stale
+        roster) framed as "what is new/changing within <scope>" — the DELTA, never a
+        re-surfacing of state already carried by general_info, the chapter/arc digests,
+        and the entity graph. A bare entity name is too broad; an entity plus its event
+        bounds is the narrowest honest unit. Each string is capped at
+        _ANCHOR_CHAR_BUDGET so it stays inside the embedder's 384-token window.
+        """
+        anchors: list[str] = []
+        seen: set[str] = set()
+
+        def _push(text: str) -> None:
+            t = " ".join(str(text).split())
+            if not t:
+                return
+            key = t.casefold()
+            if key in seen:
+                return
+            seen.add(key)
+            anchors.append(t[: self._ANCHOR_CHAR_BUDGET])
+
+        # 1) Event anchors: high-importance events first (the user's event-bounded
+        #    instinct, in embedding form). Each = event title + its scoped cast +
+        #    "what is new/developing within it".
+        ev_flat: list[tuple[str, dict]] = []
+        for bucket in ("past", "scenes", "events", "chapters"):
+            bd = self._get_field_value(self.events, "Event", bucket, {}) or {}
+            if isinstance(bd, dict):
+                ev_flat.extend((nm, d) for nm, d in bd.items() if isinstance(d, dict))
+        ev_flat.sort(key=lambda t: self._event_importance(t[1]), reverse=True)
+        for _nm, data in ev_flat:
+            if len(anchors) >= n:
+                break
+            title = data.get("name") or _nm
+            cast = self._event_participants(data)[:5]
+            if cast:
+                _push(f"{title} — {', '.join(cast)}: what is new or developing within this event")
+            else:
+                _push(f"{title}: what is new or developing within this event")
+
+        # 2) Mentioned-entity anchors: entities actually mentioned in the recent
+        #    dialogue, each paired with its freshest recent state (the delta).
+        recent_text = "\n".join(last_x_messages or [])
+        mentioned = self._extract_character_names(recent_text)
+        if not mentioned:
+            mentioned = self._extract_character_names(context)
+        recent_state = self._recent_state_map(mentioned)
+        for name in mentioned:
+            if len(anchors) >= n:
+                break
+            rs = recent_state.get(name)
+            if rs:
+                _push(f"{name}: what has changed or is developing relative to — {rs}")
+            else:
+                _push(f"{name}: what is new or changing")
+
+        # 3) Current-scene cast anchor: who is present now + what is shifting between
+        #    them (the live scene, the highest-salience delta).
+        if isinstance(current_scene, dict):
+            who = (current_scene.get("now") or {}).get("who") or {}
+            _raw_names: list[str] = []
+            chars = who.get("characters")
+            if isinstance(chars, dict):
+                _raw_names = [c.get("name") for c in chars.values() if isinstance(c, dict) and c.get("name")]
+            elif isinstance(chars, list):
+                _raw_names = [c.get("name") for c in chars if isinstance(c, dict) and c.get("name")]
+            # Collapse alias-duplicate display names (multiple distinct graph nodes can
+            # share a display name) so the anchor isn't padded with repeats. Order is
+            # preserved and nothing in the store is mutated — only the anchor string.
+            cast_names: list[str] = []
+            _seen_names: set[str] = set()
+            for c in _raw_names:
+                if c and c not in _seen_names:
+                    _seen_names.add(c)
+                    cast_names.append(c)
+            if cast_names:
+                _push(f"current scene: {', '.join(cast_names[:6])} — what is shifting or developing among them")
+
+        # 4) Stale-roster anchor: entities that have gone quiet — what has changed for
+        #    them since they left the active cast (catches off-screen developments).
+        stale = (getattr(self, "_last_stale_entities", None) or set())
+        for name in sorted(stale):
+            if len(anchors) >= n:
+                break
+            _push(f"{name}: what has changed since they were last active")
+
+        # 5) Recency fallback: if we still have room, the freshest real exchange
+        #    verbatim (never boilerplate) — a guaranteed non-collapsed anchor.
+        if len(anchors) < n:
+            for msg in reversed(last_x_messages or []):
+                if len(anchors) >= n:
+                    break
+                _push(str(msg))
+
+        return anchors
+
+    def _fanout_query_messages(
+        self,
+        anchors: list[str],
+        n_results: int = 5,
+        current_context: str = "",
+        last_x_messages: list[str] | None = None,
+    ) -> tuple[list[str], list[dict]]:
+        """Fan out over N short anchor queries, pool, dedup, and recency re-rank.
+
+        Replaces the single collapsed-blob embed. Each anchor is queried independently
+        (each a discriminative vector within the 384-token window); the pooled
+        candidates are deduped by message_idx (summary node preferred) and re-ranked
+        by the SAME recency banding as ``query_messages`` (recent band first, summary
+        preferred, similarity as tiebreak). If no anchors are available, falls back to
+        the legacy single-blob path so we never do worse than before.
+        """
+        anchors = [a for a in (anchors or []) if a and a.strip()]
+        if not anchors:
+            # No deterministic anchors available — legacy single-blob fallback.
+            if current_context is not None:
+                return self.query_messages(current_context, n_results=n_results)
+            return [], []
+
+        # Pool candidates across all anchors (per-anchor recency re-rank, then pool).
+        per_anchor: list[tuple[str, dict]] = []
+        for anchor in anchors:
+            try:
+                docs, metas = self.query_messages(anchor, n_results=n_results)
+            except Exception:
+                continue
+            per_anchor.extend(zip(docs, metas))
+
+        if not per_anchor:
+            return [], []
+
+        # Global dedup by message_idx (summary node preferred) + recency re-rank.
+        def _idx(meta: dict) -> int:
+            v = (meta or {}).get("message_idx")
+            return v if isinstance(v, int) and v >= 0 else -1
+
+        max_idx = max((_idx(m) for _d, m in per_anchor), default=-1)
+        # Preserve first-seen (similarity) order as the final tiebreak.
+        final: list[tuple[int, int, int, int, str, dict]] = []
+        for pos, (doc, meta) in enumerate(per_anchor):
+            idx = _idx(meta)
+            if idx < 0:
+                final.append((2, 0, 0, pos, str(doc), meta or {}))
+            elif max_idx - idx <= _RAG_RECENCY_MESSAGES:
+                final.append((0, -idx, -1 if (meta or {}).get("is_summary") else 0, pos, str(doc), meta or {}))
+            else:
+                final.append((1, -idx, -1 if (meta or {}).get("is_summary") else 0, pos, str(doc), meta or {}))
+        final.sort(key=lambda t: (t[0], t[1], t[2], t[3]))
+
+        chosen_messages: list[str] = []
+        chosen_metadata: list[dict] = []
+        seen_idx: set[int] = set()
+        for _b, _neg, _sp, _p, doc, meta in final:
+            idx = _idx(meta)
+            if idx >= 0 and idx in seen_idx:
+                continue
+            if idx >= 0:
+                seen_idx.add(idx)
+            chosen_messages.append(doc)
+            chosen_metadata.append(meta)
+            if len(chosen_messages) >= n_results:
+                break
+        return chosen_messages, chosen_metadata
 
     def query_messages(self, query: str, n_results: int = 5) -> tuple[list[str], list[dict]]:
         """Query message chunks with semantic search, re-ranked for RECENCY.
@@ -1380,7 +1594,12 @@ class StoryContextRetriever:
 
             # Get messages using both retrieval methods
             # scene_messages = self._get_message_chunks()  # Index-based retrieval
-            semantic_messages, semantic_metadata = self.query_messages(context_to_search, n_results=5)  # Semantic search
+            _anchors = self._build_retrieval_anchors(
+                context_to_search, last_x_messages, current_scene, self.rag_anchor_count
+            )
+            semantic_messages, semantic_metadata = self._fanout_query_messages(
+                _anchors, n_results=5, current_context=current_context, last_x_messages=last_x_messages
+            )  # Semantic search (fan-out)
 
             # Combine and deduplicate messages
             all_messages = []
