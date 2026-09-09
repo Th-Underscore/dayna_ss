@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ...utils.helpers import load_json, save_json, _DEBUG, _SUCCESS, _ERROR, _RESET, _BOLD
+from .decay_config import DecayConfig
 
 
 @dataclass
@@ -63,6 +64,22 @@ class PathRecord:
     paths: list[EntityPath]
     best_effective: float
     source_ids: set[str]
+
+
+PATH_CAP_PER_RECORD = 64
+TOTAL_PATH_CAP = 20000
+
+
+def _trim_path_record(record: "PathRecord", cap: int = PATH_CAP_PER_RECORD) -> None:
+    """Keep only the top-`cap` paths by effective importance.
+
+    Scoring only reads ``record.best_effective`` and ``record.source_ids``
+    (both updated on every candidate regardless of trimming), so dropping
+    dominated paths does not change final relevance scores.
+    """
+    if len(record.paths) > cap:
+        record.paths.sort(key=lambda p: p.effective_imp, reverse=True)
+        del record.paths[cap:]
 
 
 class EntityGraph:
@@ -1291,12 +1308,11 @@ class EntityGraph:
         target_type: str | None = None,
         field_name: str | None = None,
         min_importance: int = 0,
-        decay_config: 'DecayConfig | None' = None,
+        decay_config: DecayConfig | None = None,
         direction: str = "outgoing",
     ) -> list[dict]:
         entity_id = f"{entity_type}:{entity_name}"
         if decay_config is None:
-            from .context_retriever import DecayConfig
             decay_config = DecayConfig()
         result = []
 
@@ -1554,7 +1570,7 @@ class EntityGraph:
         decay_config: 'DecayConfig | None' = None,
     ) -> tuple[dict[str, dict[str, float]], dict[str, PathRecord]]:
         if decay_config is None:
-            from .context_retriever import DecayConfig
+            from .decay_config import DecayConfig
             decay_config = DecayConfig()
         if field_map is None:
             field_map = self.get_schema_relationship_map()
@@ -1569,6 +1585,7 @@ class EntityGraph:
 
         visited: dict[str, set[str]] = {etype: set() for etype in all_entity_types}
         path_records: dict[str, PathRecord] = {}
+        total_paths = 0
 
         for depth in range(max_depth):
             new_entities = False
@@ -1613,6 +1630,12 @@ class EntityGraph:
                             source_record = path_records.get(f"{source_type}:{source_name}")
                             if source_record is not None:
                                 previous_paths = source_record.paths
+                            if len(previous_paths) > PATH_CAP_PER_RECORD:
+                                previous_paths = sorted(
+                                    previous_paths,
+                                    key=lambda p: p.effective_imp,
+                                    reverse=True,
+                                )[:PATH_CAP_PER_RECORD]
 
                             if previous_paths:
                                 for prev_path in previous_paths:
@@ -1639,10 +1662,14 @@ class EntityGraph:
                                         )
 
                                     record = path_records[nbr_id]
-                                    record.paths.append(path_obj)
-                                    record.source_ids.add(source_id)
                                     if combined_effective > record.best_effective:
                                         record.best_effective = combined_effective
+                                    if total_paths >= TOTAL_PATH_CAP:
+                                        continue
+                                    record.paths.append(path_obj)
+                                    record.source_ids.add(source_id)
+                                    total_paths += 1
+                                    _trim_path_record(record)
                             else:
                                 path_obj = EntityPath(
                                     edges=nbr["edges"],
@@ -1662,10 +1689,14 @@ class EntityGraph:
                                     )
 
                                 record = path_records[nbr_id]
-                                record.paths.append(path_obj)
-                                record.source_ids.add(source_id)
                                 if effective > record.best_effective:
                                     record.best_effective = effective
+                                if total_paths >= TOTAL_PATH_CAP:
+                                    continue
+                                record.paths.append(path_obj)
+                                record.source_ids.add(source_id)
+                                total_paths += 1
+                                _trim_path_record(record)
 
                             if nbr_name not in relevant[target_type]:
                                 relevant[target_type].add(nbr_name)

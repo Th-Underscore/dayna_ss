@@ -1,0 +1,414 @@
+{
+  "id": "sci_fi_heist",
+  "genre": "Sci-fi heist",
+  "premise": "A washed-up grifter assembles a crew to steal the Ascension Core from a sky-city vault before the corporation that made it erases the city's memory banks.",
+  "setting": "The sky-city of Nereza, a corporate arcology above a drowned Earth: glittering concourses, memory markets, the Vault at the top.",
+  "greeting": "I'm wedged in the duct above the vault when the console pings — Sable's cut-in, right on schedule, and her voice says what it always says when a job's gone sideways: 'Dex, we've got a problem.'",
+  "characters": {
+    "name1": {
+      "name": "Sable",
+      "role": "crew leader (guide narrates these turns in the third person as a detached story master)",
+      "description": "A grifter who's pulled one too many jobs; sharp, paranoid, allergic to sentiment."
+    },
+    "name2": {
+      "name": "Dex",
+      "role": "systems engineer (DSS writes these turns)",
+      "description": "A systems engineer with a forged identity, calm under pressure, keeps secrets about the city's memory grid."
+    }
+  },
+  "writing_style": {
+    "directive": "Clipped techno-thriller heist. Close tense, jargon that never over-explains. One scene beat per turn. The guide is a detached third-person story master; the bot speaks in Dex's first person.",
+    "guide_directive": "Third-person present tense as a detached story master directing the scene. Narrate what Sable and the crew do, see, and risk as if from a security-feed camera: 'Sable palms the card; Dex watches the timer.' Clipped, tactical, professional slang. The narrator never speaks of itself and never uses 'I'; it stays outside every head, reporting only what a camera would see.",
+    "dss_directive": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. One tight scene beat. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No fantasy elements",
+      "No soft-science hand-waving"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "s1",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The Ascension Core is a dead man's neuromap — the memory of the city's founder, used as the key.",
+      "needle": "Ascension Core",
+      "needle_syns": [
+        "Ascension Core",
+        "the Core",
+        "the neuromap"
+      ],
+      "plant": {
+        "turn": 7
+      }
+    },
+    {
+      "id": "s2",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Dex's forged identity is a real dead engineer named Calloway; that ghost surfaces late as a rival's leverage.",
+      "needle": "Calloway",
+      "needle_syns": [
+        "Calloway",
+        "the dead engineer",
+        "the forgery"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 70,
+        "hint": "Calloway resurfaces as leverage"
+      }
+    },
+    {
+      "id": "s3",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "Sable's old partner Vess, presumed dead, is the corporation's head of security — the twist around turn 45.",
+      "needle": "Vess",
+      "needle_syns": [
+        "Vess",
+        "head of security",
+        "the old partner"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 45,
+        "hint": "Vess is revealed alive"
+      }
+    },
+    {
+      "id": "s4",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The memory market's auction floor is where the crew must acquire the one thing they didn't plan for.",
+      "needle": "memory market",
+      "needle_syns": [
+        "memory market",
+        "the market",
+        "auction"
+      ],
+      "plant": {
+        "turn": 16
+      },
+      "recall": {
+        "due": 35,
+        "hint": "a pivot at the memory market"
+      }
+    },
+    {
+      "id": "s5",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The crew's original exit plan (a stolen skimmer) is destroyed at turn 55; the plan must change.",
+      "needle": "skimmer",
+      "needle_syns": [
+        "skimmer",
+        "the exit",
+        "the ship"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 55,
+        "hint": "the exit plan is destroyed"
+      }
+    },
+    {
+      "id": "s6",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A 'memory bleed' side effect of the city's grid should be hinted early, then become the escape mechanism.",
+      "needle": "memory bleed",
+      "needle_syns": [
+        "memory bleed",
+        "bleed",
+        "the glitch"
+      ],
+      "plant": {
+        "turn": 22
+      },
+      "recall": {
+        "due": 72,
+        "hint": "the memory bleed pays off"
+      }
+    },
+    {
+      "id": "s7",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The crew's getaway pilot, a woman called Ijo, is secretly Sable's estranged sister.",
+      "needle": "Ijo",
+      "needle_syns": [
+        "Ijo",
+        "the pilot",
+        "the getaway pilot"
+      ],
+      "plant": {
+        "turn": 10
+      }
+    },
+    {
+      "id": "s8",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sable's 'one last job' promise — planted early — should be referenced again in the finale as earned irony.",
+      "needle": "one last job",
+      "needle_syns": [
+        "one last job",
+        "last job",
+        "one more job"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "recall": {
+        "due": 82,
+        "hint": "the 'one last job' promise is echoed"
+      }
+    },
+    {
+      "id": "s9",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Dex's wrist-reader has a scuffed corner where the serial number is nearly worn off.",
+      "needle": "wrist-reader",
+      "needle_syns": [
+        "wrist-reader",
+        "wrist reader",
+        "the reader"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "s10",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The crew's safehouse kitchen has a flickering coolant lamp that nobody fixes.",
+      "needle": "coolant lamp",
+      "needle_syns": [
+        "coolant lamp",
+        "the flickering lamp"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "s11",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Ijo keeps a single paper photo in her flight jacket — a woman who is Sable, years younger.",
+      "needle": "paper photo",
+      "needle_syns": [
+        "paper photo",
+        "the photo",
+        "the photograph"
+      ],
+      "plant": {
+        "turn": 9
+      }
+    },
+    {
+      "id": "s12",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The memory market's auctioneer always opens with the same fake countdown, and everyone knows it.",
+      "needle": "auctioneer",
+      "needle_syns": [
+        "auctioneer",
+        "the auctioneer"
+      ],
+      "plant": {
+        "turn": 12
+      }
+    },
+    {
+      "id": "s13",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The broken caff machine in the safehouse, planted early, should be fixed by Dex as a sign he is staying.",
+      "needle": "caff machine",
+      "needle_syns": [
+        "caff machine",
+        "the caff",
+        "coffee machine"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "recall": {
+        "due": 70,
+        "hint": "Dex fixes the caff machine as a sign of staying"
+      }
+    },
+    {
+      "id": "s14",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sable's lucky coin, a slotted token from her first job, should be the thing she leaves on Vess's desk.",
+      "needle": "lucky coin",
+      "needle_syns": [
+        "lucky coin",
+        "slotted token",
+        "the token"
+      ],
+      "plant": {
+        "turn": 11
+      },
+      "recall": {
+        "due": 76,
+        "hint": "Sable leaves the lucky coin on Vess's desk"
+      }
+    },
+    {
+      "id": "s15",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A stray log entry on the grid's public terminal should foreshadow the memory bleed.",
+      "needle": "log entry",
+      "needle_syns": [
+        "log entry",
+        "the stray log",
+        "public terminal"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the stray log entry predicts the memory bleed"
+      }
+    },
+    {
+      "id": "s16",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The Vault's service shaft, unused by anyone, becomes the crew's only way out.",
+      "needle": "service shaft",
+      "needle_syns": [
+        "service shaft",
+        "the shaft",
+        "vent shaft"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 40,
+        "hint": "the service shaft is the escape route"
+      }
+    },
+    {
+      "id": "s17",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The lean, breathless tone must hold even in the extraction — no sentimental collapse.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 82,
+        "hint": "breathless tone in the extraction"
+      }
+    },
+    {
+      "id": "s18",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Dex hums the same old advertising jingle whenever the grid goes quiet.",
+      "needle": "jingle",
+      "needle_syns": [
+        "jingle",
+        "the ad jingle"
+      ],
+      "plant": {
+        "turn": 17
+      }
+    },
+    {
+      "id": "s19",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The crew's original rendezvous, the Tannery on level 4, is sealed at turn 64 — after that the plan must abandon it.",
+      "needle": "Tannery",
+      "needle_syns": [
+        "Tannery",
+        "the Tannery",
+        "level 4 rendezvous"
+      ],
+      "plant": {
+        "turn": 13
+      },
+      "recall": {
+        "due": 64,
+        "hint": "the Tannery becomes unusable"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "sb1",
+      "turn": 4,
+      "subject": "characters",
+      "content": "DSS should save Ijo, the getaway pilot, with her paper photo of Sable.",
+      "expect": {
+        "name": "Ijo",
+        "role": "getaway pilot",
+        "detail": "keeps a photo of a younger Sable"
+      }
+    },
+    {
+      "id": "sb2",
+      "turn": 7,
+      "subject": "elements",
+      "content": "DSS should save Dex's wrist-reader with its scuffed serial.",
+      "expect": {
+        "name": "wrist-reader",
+        "owner": "Dex",
+        "detail": "serial nearly worn off"
+      }
+    },
+    {
+      "id": "sb3",
+      "turn": 13,
+      "subject": "elements",
+      "content": "DSS should save Sable's lucky slotted token.",
+      "expect": {
+        "name": "lucky coin",
+        "owner": "Sable",
+        "detail": "slotted token from her first job"
+      }
+    },
+    {
+      "id": "sb4",
+      "turn": 19,
+      "subject": "groups",
+      "content": "DSS should save the crew as a group.",
+      "expect": {
+        "name": "the crew",
+        "members": [
+          "Sable",
+          "Dex",
+          "Ijo"
+        ]
+      }
+    },
+    {
+      "id": "sb5",
+      "turn": 26,
+      "subject": "elements",
+      "content": "DSS should save the Vault's unused service shaft.",
+      "expect": {
+        "name": "service shaft",
+        "location": "the Vault",
+        "detail": "unused escape route"
+      }
+    }
+  ]
+}

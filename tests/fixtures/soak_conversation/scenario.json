@@ -1,0 +1,442 @@
+{
+  "name": "soak_conversation",
+  "schema": "user_data/example/subjects_schema.json",
+  "format_templates": "user_data/example/format_templates.json",
+  "subjects": [
+    "characters"
+  ],
+  "custom_state": {
+    "history": {
+      "internal": []
+    }
+  },
+  "initial_state": {
+    "characters": {
+      "entries": {
+        "John Jones": {
+          "description": [
+            "John Jones is the commander and founder of the Rebel Force.",
+            "A 28-year-old man with black hair, blue eyes, and an intimidating presence."
+          ],
+          "biography": [
+            "John raised his brother Paul after their parents died when he was 16.",
+            "He became a master of combat and survival through years of training.",
+            "When The First Incursion happened, he naturally took leadership and founded the Rebel Force.",
+            "Known as 'Hellion' among Subterraneans - he's killed 139 of them singlehandedly."
+          ],
+          "traits": [
+            "Cunning, manipulative, and fearless.",
+            "Calm and calculated under pressure.",
+            "Emotionally distant but fiercely protective of family.",
+            "Natural leader with strategic mindset."
+          ],
+          "attributes": [
+            "Raw strength: Greatly above average.",
+            "Stamina: Can fight dozens without exhausting.",
+            "Combat: Best melee fighter in Rebel Force.",
+            "Intelligence: Strategic and tactical second to none."
+          ],
+          "voice": "Speaks in short, direct sentences. Uses tactical terminology.",
+          "quirks": [
+            "Constantly scans for threats.",
+            "Rarely sleeps more than 4 hours.",
+            "Always positions with back to a wall.",
+            "Calculates odds unconsciously."
+          ],
+          "fears": [
+            "Losing his brother Paul.",
+            "Failure leading to humanity's extinction.",
+            "Being betrayed by someone close."
+          ],
+          "preferences": {
+            "likes": [
+              "Tactical planning",
+              "Quiet solitude",
+              "Well-maintained weapons"
+            ],
+            "dislikes": [
+              "Incompetence",
+              "Emotional displays",
+              "Political maneuvering"
+            ]
+          },
+          "group_status": {
+            "Rebel Force": {
+              "position": [
+                "Commander",
+                "Leader"
+              ],
+              "aliases": [
+                "Commander",
+                "Hellion"
+              ],
+              "events": [
+                "The First Incursion",
+                "The Jones Offensive"
+              ],
+              "importance": {
+                "score": 100,
+                "reason": "Founder and supreme commander",
+                "faction": "positive"
+              }
+            },
+            "Subterraneans": {
+              "position": [
+                "Enemy"
+              ],
+              "aliases": [
+                "Hellion"
+              ],
+              "events": [
+                "The First Incursion",
+                "The Second Incursion"
+              ],
+              "importance": {
+                "score": 100,
+                "reason": "Primary enemy of the Subterraneans",
+                "faction": "negative"
+              }
+            }
+          },
+          "relationships": {
+            "Paul Jones": [
+              {
+                "relation": "brother",
+                "status": "Family",
+                "aliases": [
+                  "Bro"
+                ],
+                "events": [
+                  "The Jones Offensive"
+                ],
+                "importance": {
+                  "score": 95,
+                  "reason": "His brother and closest confidant",
+                  "faction": "positive"
+                }
+              },
+              {
+                "relation": "comrade",
+                "status": "Rebel Force",
+                "aliases": [],
+                "events": [],
+                "importance": {
+                  "score": 70,
+                  "reason": "Fellow officer",
+                  "faction": "positive"
+                }
+              }
+            ],
+            "Amy Harrison": [
+              {
+                "relation": "friend",
+                "status": "Confidant",
+                "aliases": [],
+                "events": [
+                  "The Jones Offensive"
+                ],
+                "importance": {
+                  "score": 90,
+                  "reason": "Closest friend and trusted ally",
+                  "faction": "positive"
+                }
+              },
+              {
+                "relation": "comrade",
+                "status": "Rebel Force",
+                "aliases": [],
+                "events": [],
+                "importance": {
+                  "score": 70,
+                  "reason": "Fellow officer",
+                  "faction": "positive"
+                }
+              }
+            ],
+            "Angelina Kristi": [
+              {
+                "relation": "comrade",
+                "status": "Rebel Force",
+                "aliases": [],
+                "events": [],
+                "importance": {
+                  "score": 50,
+                  "reason": "Fellow soldier",
+                  "faction": "positive"
+                }
+              },
+              {
+                "relation": "victim's sister",
+                "status": "",
+                "aliases": [],
+                "events": [
+                  "Killing of Harry Kristi"
+                ],
+                "importance": {
+                  "score": 10,
+                  "reason": "Brother killer's sister - complicated history",
+                  "faction": "negative"
+                }
+              }
+            ],
+            "Marcus Chen": [
+              {
+                "relation": "comrade",
+                "status": "Rebel Force",
+                "aliases": [],
+                "events": [
+                  "The Jones Offensive"
+                ],
+                "importance": {
+                  "score": 60,
+                  "reason": "Key strategist",
+                  "faction": "positive"
+                }
+              }
+            ],
+            "Elena Vasquez": [
+              {
+                "relation": "comrade",
+                "status": "Rebel Force",
+                "aliases": [],
+                "events": [],
+                "importance": {
+                  "score": 55,
+                  "reason": "Skilled operative",
+                  "faction": "positive"
+                }
+              }
+            ]
+          },
+          "milestones": [
+            {
+              "title": "Founding the Rebel Force",
+              "scenes": [
+                1
+              ],
+              "importance": {
+                "score": 100,
+                "reason": "Created the main resistance",
+                "faction": "positive"
+              }
+            },
+            {
+              "title": "Killing 139 Subterraneans",
+              "scenes": [
+                15
+              ],
+              "importance": {
+                "score": 85,
+                "reason": "Earned fearsome reputation",
+                "faction": "positive"
+              }
+            },
+            {
+              "title": "Leading The Jones Offensive",
+              "scenes": [
+                18
+              ],
+              "importance": {
+                "score": 95,
+                "reason": "Major military victory",
+                "faction": "positive"
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "exchanges": [
+    {
+      "user_input": "The commander studies the map of the shattered city.",
+      "output": "John Jones traces a supply route through the rubble."
+    },
+    {
+      "user_input": "What happened at the Kessler raid?",
+      "output": "He goes still, then recounts the night the district burned."
+    },
+    {
+      "user_input": "Tell me about your brother.",
+      "output": "His jaw tightens; Paul is not a subject he opens easily."
+    },
+    {
+      "user_input": "Are the Subterraneans advancing?",
+      "output": "He nods grimly and taps the map."
+    },
+    {
+      "user_input": "I found a journal in the archive.",
+      "output": "He takes it, turning it over in scarred hands."
+    },
+    {
+      "user_input": "The wound is healing, I think.",
+      "output": "He flexes his shoulder and grunts."
+    },
+    {
+      "user_input": "Should we trust the new scout?",
+      "output": "He watches the horizon for a long moment."
+    },
+    {
+      "user_input": "The city gate is open tonight.",
+      "output": "He narrows his eyes at the report."
+    },
+    {
+      "user_input": "Why do you wear that scarf?",
+      "output": "He touches the crimson cloth, a private look crossing his face."
+    },
+    {
+      "user_input": "The radio is crackling with a distress call.",
+      "output": "He leans in, listening to the static."
+    },
+    {
+      "user_input": "We need more ammunition.",
+      "output": "He marks the depot on the map with a short nod."
+    },
+    {
+      "user_input": "The rain is turning to ice.",
+      "output": "He pulls his coat tighter and keeps walking."
+    },
+    {
+      "user_input": "There is a traitor in the camp.",
+      "output": "His expression hardens to stone."
+    },
+    {
+      "user_input": "How many survived the raid?",
+      "output": "He counts silently, then looks away."
+    },
+    {
+      "user_input": "The generators are failing.",
+      "output": "He moves to the hatch without a word."
+    },
+    {
+      "user_input": "I saw lights beyond the ridge.",
+      "output": "He studies the ridge line through the scope."
+    },
+    {
+      "user_input": "Your orders, commander?",
+      "output": "He considers, then gives a single curt command."
+    },
+    {
+      "user_input": "The children found a tunnel.",
+      "output": "He orders it sealed and watched."
+    },
+    {
+      "user_input": "Are you alright?",
+      "output": "He does not answer, but his hands shake slightly."
+    },
+    {
+      "user_input": "The rebellion holds another week.",
+      "output": "He allows himself a thin smile."
+    }
+  ],
+  "script": [
+    {
+      "turn": 0,
+      "when_prompt_contains": [
+        "does the entire"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 0,
+      "when_prompt_contains": [
+        "are there any significant changes"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 0,
+      "when_prompt_contains": [
+        "provide a list of these changes"
+      ],
+      "respond": "[{\"path\":\"description.0\",\"value\":\"John Jones wears a crimson scarf, a keepsake from the Kessler raid.\"}]"
+    },
+    {
+      "turn": 1,
+      "when_prompt_contains": [
+        "does the entire"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 1,
+      "when_prompt_contains": [
+        "are there any significant changes"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 1,
+      "when_prompt_contains": [
+        "provide a list of these changes"
+      ],
+      "respond": "[{\"path\":\"biography.0\",\"value\":\"He led the Kessler raid and keeps its crimson scarf as a keepsake.\"}]"
+    },
+    {
+      "turn": 3,
+      "when_prompt_contains": [
+        "does the entire"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 3,
+      "when_prompt_contains": [
+        "are there any significant changes"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 3,
+      "when_prompt_contains": [
+        "provide a list of these changes"
+      ],
+      "respond": "[{\"path\":\"voice\",\"value\":\"Speaks in a low, gravelly voice, clipped and tactical.\"}]"
+    },
+    {
+      "turn": 8,
+      "when_prompt_contains": [
+        "does the entire"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 8,
+      "when_prompt_contains": [
+        "are there any significant changes"
+      ],
+      "respond": "YES"
+    },
+    {
+      "turn": 8,
+      "when_prompt_contains": [
+        "provide a list of these changes"
+      ],
+      "respond": "[{\"path\":\"description.0\",\"value\":\"John Jones, commander of the Rebel Force.\"}]"
+    }
+  ],
+  "facts": [
+    {
+      "id": "f1_scarf",
+      "needle": "crimson scarf",
+      "probe": "entries.John Jones.description",
+      "planted_at": 0,
+      "expected_to_survive": false
+    },
+    {
+      "id": "f2_raid",
+      "needle": "Kessler raid",
+      "probe": "entries.John Jones.biography",
+      "planted_at": 1,
+      "expected_to_survive": true
+    },
+    {
+      "id": "f3_voice",
+      "needle": "gravelly voice",
+      "probe": "entries.John Jones.voice",
+      "planted_at": 3,
+      "expected_to_survive": true
+    }
+  ],
+  "kind": "soak"
+}

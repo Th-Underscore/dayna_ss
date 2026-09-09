@@ -1,0 +1,397 @@
+{
+  "id": "postapocalyptic_survival",
+  "genre": "Post-apocalyptic survival",
+  "premise": "After the gray rain poisoned the valleys, two voices keep each other alive across a dead radio net — one in the hills, one in a flooded city — trading supplies, coordinates, and hope that the 'clear band' on the airwaves is real.",
+  "setting": "A drowned Pacific coast: the hill-top shack of an old botanist, a flooded city of rooftops, rusting antenna farms, silent fields of gray wheat.",
+  "greeting": "Rook breaks the seal on the rooftop hatch and the dry wind hits him all at once — the skyline's gone where it used to be, and down below, something is ringing the salvager's bell.",
+  "characters": {
+    "name1": {
+      "name": "Sal",
+      "role": "old botanist in the hills (guide writes these turns)",
+      "description": "A weathered botanist who kept the old seed library; speaks in the shorthand of years of solitude."
+    },
+    "name2": {
+      "name": "Rook",
+      "role": "rooftop runner in the flooded city (DSS writes these turns)",
+      "description": "A young survivor who moves between rooftops; carries a hand-crank radio and a dead man's shotgun."
+    }
+  },
+  "writing_style": {
+    "directive": "Lean survival realism, present tense. Sparsely detailed, weather and scarcity as texture. Classic split: Sal narrates in the first person; Rook is written in the third person.",
+    "guide_directive": "First-person present tense as Sal, the old botanist in the hills. I write what I see from the ridge, what the radio coughs back, what the gray wheat does in the wind. Terse, weathered, exact; the shorthand of a long, careful solitude.",
+    "dss_directive": "Third-person present tense following Rook, the rooftop runner in the flooded city. Render her from outside — what she climbs, scavenges, and weighs before trusting. Lean, precise, dry; weather and water as texture. One clean scene beat. Hard rules: narrate Rook strictly in the third person — never first person ('I', 'my', 'me'); never quote or repeat Sal's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No magic",
+      "No heroic framing"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "n1",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal's seed library is a wall of labeled jars in the root cellar; the 'GOLDEN DAWN' jar is empty.",
+      "needle": "seed library",
+      "needle_syns": [
+        "seed library",
+        "the jars",
+        "GOLDEN DAWN"
+      ],
+      "plant": {
+        "turn": 2
+      }
+    },
+    {
+      "id": "n2",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook's shotgun is a dead man's — she never loads the second shell.",
+      "needle": "shotgun",
+      "needle_syns": [
+        "shotgun",
+        "the gun",
+        "second shell"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "n3",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook keeps a photograph of a family on a kitchen table, taped inside her jacket — none of them are her family.",
+      "needle": "photograph",
+      "needle_syns": [
+        "photograph",
+        "the photo",
+        "the family"
+      ],
+      "plant": {
+        "turn": 4
+      }
+    },
+    {
+      "id": "n4",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The hand-crank radio takes forty turns of the crank to charge ten minutes of listen-time; the habit should show when the batteries matter.",
+      "needle": "hand-crank",
+      "needle_syns": [
+        "hand-crank",
+        "the radio",
+        "crank"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "recall": {
+        "due": 46,
+        "hint": "the crank turns when it matters"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The flooded city's rooftops are connected by rope bridges the runner built herself.",
+      "needle": "rope bridges",
+      "needle_syns": [
+        "rope bridges",
+        "the bridges",
+        "rooftops"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "n6",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A single green shoot among the gray wheat — impossible — should recur before the reveal.",
+      "needle": "green shoot",
+      "needle_syns": [
+        "green shoot",
+        "the shoot",
+        "green"
+      ],
+      "plant": {
+        "turn": 7
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the impossible green shoot"
+      }
+    },
+    {
+      "id": "n7",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal's wife, 'Mara', is buried on the ridge with a tin marker; her name should surface when Sal weighs staying vs leaving.",
+      "needle": "Mara",
+      "needle_syns": [
+        "Mara",
+        "the tin marker",
+        "the ridge grave"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 56,
+        "hint": "Mara's tin marker"
+      }
+    },
+    {
+      "id": "n8",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The gray wheat field between the hills and the city has a strip where nothing grows — a buried culvert runs beneath it.",
+      "needle": "gray wheat",
+      "needle_syns": [
+        "gray wheat",
+        "the field",
+        "the culvert"
+      ],
+      "plant": {
+        "turn": 9
+      },
+      "recall": {
+        "due": 54,
+        "hint": "the culvert under the dead strip"
+      }
+    },
+    {
+      "id": "n9",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A three-note whistle on the radio — the old fire-watch signal — should precede the arrival of anyone real.",
+      "needle": "three-note whistle",
+      "needle_syns": [
+        "three-note whistle",
+        "the whistle",
+        "the signal"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 62,
+        "hint": "the three-note whistle announces someone real"
+      }
+    },
+    {
+      "id": "n10",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The botanist's greenhouse still stands, its glass half-shattered; the tomatoes inside grew wild and bitter.",
+      "needle": "greenhouse",
+      "needle_syns": [
+        "greenhouse",
+        "the glass",
+        "bitter tomatoes"
+      ],
+      "plant": {
+        "turn": 11
+      }
+    },
+    {
+      "id": "n11",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The seed-library door rusts shut at turn 52; after that the cellar must be entered by the coal chute.",
+      "needle": "seed library",
+      "needle_syns": [
+        "seed library",
+        "the cellar",
+        "coal chute"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 52,
+        "hint": "the cellar door rusts shut"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook's city has a drowned clock tower whose hands froze at 11:47; she uses it as a compass point.",
+      "needle": "clock tower",
+      "needle_syns": [
+        "clock tower",
+        "the tower",
+        "11:47"
+      ],
+      "plant": {
+        "turn": 13
+      }
+    },
+    {
+      "id": "n13",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The second shell in the shotgun is fired at turn 60 — after that Rook carries an empty gun and must not pretend otherwise.",
+      "needle": "second shell",
+      "needle_syns": [
+        "second shell",
+        "the shell",
+        "empty gun"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the second shell is spent"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The seed library's 'GOLDEN DAWN' jar — empty for years — was emptied by Rook's father, who ate the seed and died; Rook should not learn this until the end.",
+      "needle": "GOLDEN DAWN",
+      "needle_syns": [
+        "GOLDEN DAWN",
+        "the jar",
+        "the empty jar"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 66,
+        "hint": "what emptied the GOLDEN DAWN jar"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The 'clear band' on the airwaves is a lure — a repeater left by the people who poisoned the valleys, still calling.",
+      "needle": "clear band",
+      "needle_syns": [
+        "clear band",
+        "the band",
+        "the repeater"
+      ],
+      "plant": {
+        "turn": 26
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the clear band is a lure"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The repeater's coordinates point to the botanist's own ridge — Sal has been the lure all along, unknowingly.",
+      "needle": "coordinates",
+      "needle_syns": [
+        "coordinates",
+        "the ridge",
+        "the repeater"
+      ],
+      "plant": {
+        "turn": 28
+      },
+      "recall": {
+        "due": 64,
+        "hint": "the coordinates lead home"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Keep the dry, exact register even at the worst moment.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 70,
+        "hint": "dry register under stress"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "No sentimentality; grief shows only through objects and weather.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 74,
+        "hint": "grief through objects"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "pb1",
+      "turn": 2,
+      "subject": "elements",
+      "content": "DSS should save the seed-library wall of jars.",
+      "expect": {
+        "name": "seed library",
+        "location": "root cellar",
+        "detail": "GOLDEN DAWN jar empty"
+      }
+    },
+    {
+      "id": "pb2",
+      "turn": 5,
+      "subject": "elements",
+      "content": "DSS should save the hand-crank radio.",
+      "expect": {
+        "name": "hand-crank radio",
+        "location": "Rook's pack",
+        "detail": "forty turns for ten minutes"
+      }
+    },
+    {
+      "id": "pb3",
+      "turn": 6,
+      "subject": "elements",
+      "content": "DSS should save the dead man's shotgun.",
+      "expect": {
+        "name": "shotgun",
+        "location": "Rook's hands",
+        "detail": "second shell never loaded"
+      }
+    },
+    {
+      "id": "pb4",
+      "turn": 10,
+      "subject": "elements",
+      "content": "DSS should save the gray wheat field with its dead strip.",
+      "expect": {
+        "name": "gray wheat field",
+        "location": "between hills and city",
+        "detail": "dead strip / culvert"
+      }
+    },
+    {
+      "id": "pb5",
+      "turn": 22,
+      "subject": "characters",
+      "content": "DSS should save the botanist's wife Mara as a character.",
+      "expect": {
+        "name": "Mara",
+        "detail": "buried on the ridge"
+      }
+    }
+  ]
+}

@@ -37,6 +37,7 @@ class Action(IntEnum):
     QUERY_BRANCH_FOR_CHANGES = 3
     PERFORM_UPDATE = 4
     QUERY_FOR_ARCHIVE = 5
+    SELECT_ENTRIES_TO_UPDATE = 6
 
 
 class Trigger(IntEnum):
@@ -480,6 +481,7 @@ class SchemaParser:
         self.schema = self._load_schema()
         self.definitions: dict[str, ParsedSchemaClass] = {}
         self.subjects: dict[str, ParsedSchemaClass | type] = {}
+        self.subject_routing: dict[str, str] = {}
         self.relative_relevant_json_schemas: dict[Any, dict[str, dict]] = {}
         self.example_jsons: dict[Any, Any] = {}
         self._parse_definitions()
@@ -850,6 +852,7 @@ class SchemaParser:
             parsed_type = self._parse_type_string(type_str)
             resolved_type = self._resolve_type_placeholders(parsed_type)
             self.subjects[name] = resolved_type
+        self.subject_routing = dict(self.schema.get("subject_routing", {}) or {})
 
     def generate_example_json(self, type_hint: Any, depth: int = 0, max_depth: int = 8) -> Any:
         """
@@ -1013,8 +1016,8 @@ if __name__ == "__main__":
     try:
         schema_file_path = Path(__file__).parent / "subjects_schema.json"
         if not schema_file_path.exists():
-            from ..shared import EXTENSION_DIR
-            schema_file_path = Path(f"{EXTENSION_DIR}/user_data/example/subjects_schema.json")
+            from ..runtime import runtime
+            schema_file_path = runtime.extension_dir / "user_data" / "example" / "subjects_schema.json"
 
         parser = SchemaParser(schema_file_path)
         print("Schema loaded and parsed successfully.")

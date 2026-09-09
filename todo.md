@@ -14,7 +14,7 @@
 
 ---
 
-**IMMEDIATE TODO**:
+## IMMEDIATE TODO
 
 - [x] Handle start of chat
     - [x] Create subjects off of schema
@@ -29,7 +29,7 @@
 - [x] Properly update subjects and add new ones when mentioned
     - [x] Update current scene “now”, keeping “start” in its original state
     - [x] Give full schema and example like “Handle start of chat”
-        - [ ] Common gen prompt for all fields (general, unspecific) until last line to save context + time + consistency?
+        - [x] Common gen prompt for all fields (general, unspecific) until last line to save context + time + consistency (static-first/dynamic-last template ordering shipped)
     - [x] Only update when new scene? If last\_x > scene messages (i.e. when relevant messages being truncated), add to data before truncation
 - [x] Add general info
     - [x] writing style (~~editable user+assistant tendencies (e.g. third-person)~~)
@@ -52,11 +52,11 @@
 
     - [ ] Optionally keep context info (`history_path`) the same until new scene (for prompt eval)
 
-- [ ] no\_update “trigger”
+- [x] no\_update “trigger” (SceneStart uses it; enforced in data_summarizer)
 
 <br>
 
-Current TODO:
+## Current TODO
 
 - [ ] Add general info
     - [x] Always have original state\['context'\] in custom\_state\['context'\]
@@ -70,7 +70,7 @@ Current TODO:
         - [ ] Summarize in same history line (keep the previous response in context during summarization)
     - [x] Generate new current\_scene
         - [x] Refactor update\_when + perform\_update format to single perform\_update\_when property
-    - [ ] Auto-detect scene end
+    - [X] Auto-detect scene end
         - [ ] Decide whether to count user\_input as new scene, or start from output
     - [ ] Detect important events at end of scene?
 - [ ] last\_x is all messages in current scene
@@ -95,7 +95,8 @@ Current TODO:
 - [ ] Short-term goal for this scene/event (`general_info`?)
 - [ ] Allow the user to put instructions via "\[\[NOTE HERE\]\]" within the message. Whether to preserve this internally in history or remove it is unclear
     - [ ] Also disable sum gen and/or give specific keywords to direct generation? (e.g. “suzie dead by pure accident”)
-- [ ] Update “importance” values throughout
+- [x] Update “importance” values throughout (universal salience×weight rubric, format_templates.json importance_scale)
+- [ ] Temporary importance offset (`temp_offset` sibling beside `Importance.score`, default 0): captures moment-to-moment urgency (e.g. +40 “saving their life is my utmost priority right now”, -10 after an argument) WITHOUT inflating the durable long-term `score`. Applies ONLY to the effective value used for context ordering / top-of-mind, never to the stored `score` or the roster threshold (below 50 → one-line). Optional/unset = ignored. Deferred until the universal Importance Scale (format_templates.json) settles.
 - [ ] Separate updates into “categories” i.e. “major”, “minor”, “side”
 - [x] Current scene should include current directive and should persist through to the next scene, maybe character motivations would be in characters.json and plot goals would be in current\_scenes+scenes, or perhaps that’s what general\_summarization will be for (general\_context?)
 - [ ] event\_ids + scene\_ids instead of event\_id + scene\_id
@@ -141,6 +142,16 @@ Current TODO:
 - [ ] "Memories" - notes for each character for each scene and event — summary of specific things that happened that are memorable for this specific character
 - [ ] Analyze "user intent" before generating instructions
 - [ ] Track changes in-scene then actually apply them at the end
+- [ ] Persist DataSummarizer change-diffs into message_index (MessageChunker)
+    - `_apply_branch_updates` (data_summarizer.py:2423) already builds `{"path", "value", "old_value"}` per applied update and pushes it through pm.done_step — collect these per turn into ONE turn-level diff instead of leaving them transient in the phase log
+    - Attach to stored chunks via `update_node_metadata_by_message_idx` (context_retriever.py:1913) as `data_diff` metadata (one diff per message\_idx, shared across that turn's para/sentence nodes)
+    - Two channels: scene turns ALWAYS carry what data changed in message\_index (structured diff); the text message summary keeps carrying general (important) updates in prose
+    - Feeds: message-edit reversion (apply inverse diff), per-character "Memories", frozen-loop debugging
+    - Design (2026-08-20): store the FULL audit unfiltered, keyed by resolved entity path + message\_idx; filtering is a READ-side projection only
+    - "General history" projection (per-entity, computed at prompt-build): path-scope under the entity incl. sub-parts (relationships/importance children; relationship updates union both entities) -> drop schema-classified volatile fields (\_recent\_state, now.\*) -> collapse per-path runs to last K transitions -> rank by recency x inverse path-frequency (churn sinks, quiet-but-moved rises) -> render compact "turn N: path: old -> new" lines, token-capped
+    - Injection: tail of the per-entry context block branch\_update already renders (dynamic-last, prefix-cache safe); audit data traced automatically when an entity is being updated
+    - Metadata alone is NOT embedded — RAG-retrievable mirror comes from the distilled tier below, not raw metadata
+    - Optional quality tier: at scene-archive, distill each entity's turn-diffs into 2–3 prose changelog lines stored engine-managed on the entry (`_change_log`, same reserved-field precedent as \_recent\_state) — old scenes stay queryable without replaying raw audits
 - [ ] Include simulated "character thoughts" when summarizing (or even message_index?)
 - [ ] Format_messages shouldn't include index `10. <message>` to avoid re-evaluating; instead, use normal format but at the end give summaries specifying which message is which
 - [ ] More detailed relationship info (temporary status etc.)
@@ -150,123 +161,74 @@ Current TODO:
     - [ ] Items/resources
     - [ ] Creatures
     - [ ] Goals?
+- [ ] 5x5 grid to place characters in a scene (LOW PRIORITY, parked 2026-08-20; schema-driven, no hardcoded engine dispatch)
+    - New current\_scene field (e.g. `positions`: cell -> entity, or entity -> \[row, col\]) riding the normal update machinery with its own prompt template
+    - Open: update cadence — every-turn branch\_update (costly; current\_scene.now is already a full-branch update every turn) vs new-scene rewrite + movement-gated query
+    - Open: render as an ASCII grid into the reply context so the writer model reasons about adjacency/earshot/line-of-sight (who can slip away unnoticed)
+    - Open: absolute room map vs relative-to-speaker positions; multi-room scenes
+    - Small-model risk: positional churn / teleporting — may need a stability nudge ("only move cells the text implies")
+    - Related: Entities > Locations
 - [ ] Granular Events for more precise RAG? Basically summarized messages
 - [ ] Only perform initial population after first scene?
+- [x] Execute DataSummarizer in parallel - stopping if interrupted - only truncating/updating RetrievalContext after a _full_ run (max_subject_workers, schema-order reassembly)
+- [ ] Let DSS run constantly (Historian), giving long windows to summarize
 
 <br>
 
-Far TODO:
+## Scale & aggregation units
 
-1. Schema UI (flow or tree?)
-    - Gray out children when update\_prompt or branch\_query\_prompt is checked
-    - Have immutable “Default” in case a custom schema breaks
-    - Upload JSON as schema
-    - Download schema JSON
-    - Convert JSON-schema format to subjects\_schema.json
-2. Save full UI settings (like tgwui “Session”)
-3. Sync tgwui generation parameters to dss
-4. Add ability to change specific names/keywords in message\_index/subject data
-5. User-defined story structure/objectives (specify future scenes/events)
-    - Include “lasts until” or time range during current\_scene (mainly for general DAYNA)
-6. Optionally sync state seed (state → custom state)
-7. Add locations schema?
-8. Send to Notebook
-9. Logs UI (show field updates and creations)
-    - Also track updates to show LLM?
-10. Force/emulate “YES” gate check for CurrentScene?
-11. Update character IDs when necessary
-    - Maybe also detect when a “past alias” is used when updating data and automatically change it to the new one
-12. Generate subject data with input (manually ask DAYNA to generate something based off of current context + user\_instr)
-13. Show summarization progress
-    - Include ETA estimation / progress %
-14. Different prompts depending on always, next scene, first message, etc.
-15. Generate initial subject data based off of general character context
-16. Note edits to bot replies and include in general\_info instructions
-17. Delete current history\_str (self.last) - for manual edits to data
-18. Update history-context in realtime with DataSummarizer? Will potentially hurt eval time
-19. For events: additional context from the future
-20. Trigger archive at end of scene (to archive values that aren’t needed in the main subjects files but may still be needed for extra details in the future)?
-21. “Notes” LLM can write for future reference (also based off of #5, user-defined story structure/objectives)
-22. Pre-convert (compile) schema to specific workflow instead of recursive DataSummarizer?
-23. Adapt (append/modify) current data to user changes to schema structure
+- [ ] Cadence profiles — config-driven chapter/arc bounds; `compressed` (current 4-8 scenes/10 hard, 3-6 chapters/12 hard) vs `campaign` (~15-40 scenes/chapter, ~8-24 chapters/arc); schema defaults stay compressed
+- [ ] Canon synopsis subject — ~300-token narrative digest written at chapter archival
+- [ ] Renderer demotion rule — closed-arc entities render as roster lines; full detail reserved for open arcs
+- [ ] Resolved-state export / sequel import — chain sessions like D&D sessions (each soak run = one session); notes span sessions
+- [ ] Campaign-scale spreadsheets + chained-session pilot (Tier 3 test ladder)
+- [ ] Arc `_active`/`_resolved` flags with render-first ordering for open threads
 
+## Memory quality
 
-## OLD TODO (Handle message `#handle_input_output()`)
+- [ ] Uncertainty-preservation directives in character templates — record claims as claims; never resolve identities/aliases the story holds open
+- [ ] Discovery similarity guard — mpnet cosine on add_new candidates (>~0.85 → merge instead of create)
+- [ ] Background merge/consolidation pass for duplicate entities (buyer/vendor class)
+- [ ] Continuity contradiction probe — proposed-vs-current branch diff between parse and commit (schema-flag gated)
+- [ ] Rolling-overview findings → instruction-generation feedback loop
+- [ ] Entry-selection overlap rule — entities mentioned in the latest exchange always whitelisted for revision
 
-on pre-gen `#custom_generate_chat_prompt()`:
+## Epistemics
 
-- [x] get history\_path (current context)
-    - [x] history\_path = character\_path / has⁠h(og\_internal\_history)
-        - [ ] TODO: retrieve history\_path using hashes in map stored on character\_path (order history\_path by index i.e. “10\_1”, “10\_2”, etc.)
-    - [ ] TODO: if not history\_path.exists():;;
-        - [ ] backtrack history until existing path is found
-        - [ ] generate summaries from last existing path (`#handle_input_output()`)
+- [ ] Secrets subject — normalized rows {summary, stance: knows|suspects|believes_falsely|unaware|hiding, owner, target?, about?, status, importance}
+- [ ] Deception maintenance — reveals flip status/stance on a single small branch under mark_field
+- [ ] POV injection — group rows by stance over owner ∈ current_scene.now.who
 
-- [x] `#retrieve_context()` 
-- [x] retrieve instr\_prompt
-    - [x] if persisted instr\_prompt does not exist:
-        - [ ] generate instr\_prompt
-            - [ ] ADD NEW INSTR FORMATTING, MAYBE PURE INSTR OVER CHAT-INSTR
-        - [x] persist instr\_prompt using user\_input
-    - [x] else:
-        - [x] retrieve persisted instr\_prompt
+## Steering & planning
 
-on output `#handle_output()`:
+- [ ] `[[...]]` inline steering directives — strip from prose; inject into instruction generation + summarization; guide-side usage for beat-steering
+- [ ] Engine-native planning/"spreadsheet" system — PARKED until good 100-turn results
 
-- [x] get history\_path (current context)
-    - [x] history\_path = character\_path / hash(og\_internal\_history)
-    - [ ] TODO: if not history\_path.exists():
-        - [ ] backtrack history until existing path is found
-        - [ ] generate summaries from last existing path (`#handle_input_output()`)
+## Production reliability
 
-- [x] `#retrieve_context()`
-- [x] get history\_path (new context)
-    - [x] history\_path = character\_path / hash(new\_internal\_history)
-- [ ] generate and store summaries
-    - [ ] (group together unknown character data? i.e. “traits & status --- unknown”)
-    - [ ] recursive generation formatting
-        - [ ] start from lowest level possible (`recurse → gen`  instead of `gen → recurse` )
-        - [ ] indicate final gen + specify prompt template
-            - [ ] tuple?
-            - [ ] `_attr` ?
-            - [ ] eval vs str.format
-        - [ ] push to`keys` and set current `data` 
-    - [x] ~~characters, groups, events/scenes, current scene~~
-    - [x] ~~messages~~
-        - [ ] ~~if id f"{message\_idxs\[i\]}\_summary" not exist~~ 
-        - [x] ~~summary generation draft~~
-    - [x] user-defined info (describe which subjects to add to?)
-        - [x] retrieve info
-        - [x] summary generation draft
+- [ ] Handle `_continue` — debug how TGWUI passes `_continue`, `user_input`, and `state["history"]` during "Continue"
+- [ ] Handle message edits — detect changes, re-summarize only affected fields (pairs with the change-diff persistence item above)
+- [ ] Stop/cancel mid-generation — restore original seed, clean partial summaries
+- [ ] Backtrack history when no history_path exists
+- [ ] Graceful child-phase failure in _update_recursive
+- [ ] Schema editor UI — tree view + JSON import/export + immutable default fallback
+- [ ] Fix banned_prefixes str/list parse edge case (script.py)
+- [ ] Cache current_scene "now" — skip summarization when unchanged
 
-retrieve context `#retrieve_context()`:
+## Model slate
 
-- [x] user-defined info
-    - [x] characters
-    - [x] groups
-    - [x] events/scenes
-    - [x] current scene
-- [x] messages
-    - [x] RAG draft
-    - [ ] Advanced RAG
-    - [ ] Add scene summarization and surrounding messages
-    - \[ \]
-- [ ] TODO: general summarization
-- [ ] TODO: All lines spoken to, from, or about specific subject depending on importance threshold (>10/100?)
+- [ ] Magnum-v4-12B live test (Mistral alias patch applied)
+- [ ] Gemma4 via llama.cpp or C++ port (docs/plans/lmdeploy_gemma4_pr_plan.md)
+- [ ] Small-model JSON compliance sweep → decide tagged-text fallback profile
 
-## Legacy TODO
+## Tooling & UI extras
 
-chunk messages `#chunk_messages()`:
-
-- [x] chunk messages by paragraph by line
-- [x] include message summary in database
-- [ ] check if any gaps in history
-
-<br>
-
-ui:
-
-- [x] make copies of each original tgwui util/module method
-- [ ] integrate story datetime into metadata (~~integrate time into boogaPlus using shared.message\_data timestamps~~)
-
-<br>
+- [ ] Dry-run turns — compute updates, stream over SSE, approve/discard before commit
+- [ ] Context telemetry — per-block token counts over the SSE channel
+- [ ] Entity timeline view from recorded old_values (supersession history)
+- [ ] Entity graph canvas visualization (served off the SSE host)
+- [ ] Away recap modal ("previously on…") from rolling summaries
+- [ ] Generation-lifecycle hooks — swipe-abort, delete/edit re-summarization
+- [ ] Dyad canonicalization pass — one canonical edge per relationship pair at graph build time
+- [ ] Adaptive budget allocation — fewer memory tokens on action-heavy beats, more on dialogue
+- [ ] MCP server wrapper over the import-clean core

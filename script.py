@@ -96,17 +96,17 @@ def chat_input_modifier(text: str, visible_text: str, state: dict):
         text = text[len(next_scene_prefix) :].lstrip()
         visible_text = visible_text[len(next_scene_prefix) :].lstrip()
 
-    if text.startswith(force_chapter_prefix) and summarizer and summarizer.last:
+    if text.startswith(force_chapter_prefix):
         print(f"{_DEBUG}Found '{force_chapter_prefix}' in user input.{_RESET}")
-        summarizer.last.is_new_scene_turn = True
-        summarizer.last.force_next_chapter = True
+        # Stage, don't set summarizer.last.*: get_retrieval_context rebuilds the
+        # cache for this exchange and would drop the flag before boundary checks.
+        dss_shared.persistent_ui_state["force_next_chapter"] = True
         text = text[len(force_chapter_prefix) :].lstrip()
         visible_text = visible_text[len(force_chapter_prefix) :].lstrip()
 
-    if text.startswith(force_arc_prefix) and summarizer and summarizer.last:
+    if text.startswith(force_arc_prefix):
         print(f"{_DEBUG}Found '{force_arc_prefix}' in user input.{_RESET}")
-        summarizer.last.is_new_scene_turn = True
-        summarizer.last.force_next_arc = True
+        dss_shared.persistent_ui_state["force_next_arc"] = True
         text = text[len(force_arc_prefix) :].lstrip()
         visible_text = visible_text[len(force_arc_prefix) :].lstrip()
 
@@ -288,6 +288,9 @@ def setup():
     """
     global summarizer, story_rag, _sse_port
     print("Loaded DAYNA Story Summarizer!")
+
+    from .runtime_tgwui import configure_runtime
+    configure_runtime()
 
     summarizer = Summarizer(_CONFIG_PATH)
     story_rag = True
