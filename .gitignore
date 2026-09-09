@@ -2,9 +2,25 @@ __pycache__
 .git
 test.py
 user_data/history
+tests/runs
+tests/user_data
+_runs
+
+.ref
 
 *.code-workspace
 
 *.bat
 *.ps1
 *.zip
+
+# release archives
+*.7z
+
+# stray / runtime cruft
+.ignore
+error.log
+tests/textgen-dump.txt
+user_data/nltk_data/
+user_data/example/schemas/*.txt
+user_data/example/schemas/*.bak

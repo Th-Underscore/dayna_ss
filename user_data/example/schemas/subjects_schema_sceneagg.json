@@ -1,0 +1,923 @@
+{
+  "definitions": {
+    "Text": {
+      "type": "alias",
+      "field": "list[str]",
+      "defaults": {
+        "do_expand_into_dict": false
+      }
+    },
+    "CharacterGroupStatus": {
+      "type": "dataclass",
+      "fields": {
+        "position": "list[str]",
+        "aliases": "list[str]",
+        "events": "list[str]",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "relationship_format": {
+          "_self": {
+            "target_type": "group",
+            "bidirectional": false,
+            "relationship_definition": "CharacterGroupStatus"
+          }
+        },
+        "position_placeholder": "The character's roles or ranks within this specific status context (e.g., 'Commander', 'Enemy').",
+        "aliases_placeholder": "Alternative names or titles for the character within this specific status context (e.g., 'Leader', 'Hellion').",
+        "events_placeholder": "A list of significant events related to the character under this specific status.",
+        "importance_placeholder": "The importance of this status context RELATIVE TO THAT GROUP -- scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT; long-term). Faction: RELATIVE to the group perspective -- 'positive' if they are an ally/friend TO THAT GROUP, 'negative' if enemy/rival, 'neutral' otherwise. Example: a group's enemy has faction='negative' from the group's standpoint, but might be 'positive' from another group's standpoint."
+      }
+    },
+    "Importance": {
+      "type": "dataclass",
+      "fields": {
+        "score": "int",
+        "reason": "str",
+        "faction": "str"
+      },
+      "defaults": {
+        "score_placeholder": "A numerical value 0-100, scored per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing, not a single scene's moment-to-moment urgency). A score means the same across all entity types. In the real JSON this is an integer, not a string.",
+        "reason_placeholder": "A brief explanation of why this importance level is appropriate -- what makes it salient and/or weighty relative to the specific context.",
+        "faction_placeholder": "RELATIVE TO THE SUBJECT'S PERSPECTIVE. Options: 'positive' (ally, friend, family - benefits them), 'negative' (enemy, rival, hostile - threatens them), 'neutral' (barely known, acquaintance). Example: John's status in 'Subterraneans' as 'enemy' would have faction='negative' (from John's perspective), but from the Subterraneans' perspective of John, faction would also be 'negative' (John is THEIR enemy). The Council's faction in Subterraneans should be 'positive' because they are allies TO the Subterraneans."
+      },
+      "triggers": {}
+    },
+    "CharacterRelationship": {
+      "type": "dataclass",
+      "fields": {
+        "relation": "str",
+        "status": "str",
+        "aliases": "list[str]",
+        "events": "list[str]",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "relation_placeholder": "A single term to describe the relationship between these two characters for this specific status (e.g., 'brother', 'boss', 'subordinate')",
+        "status_placeholder": "The connection these two characters have for this relationship (e.g., 'Family', 'School', 'Army')",
+        "aliases_placeholder": "A list of nicknames or alternative terms for the related character in the context of this specific relationship (e.g., 'Bro').",
+        "events_placeholder": "A list of events relevant to this specific relationship between the characters.",
+        "importance_placeholder": "The importance of this RELATIONSHIP, RELATIVE TO THIS CHARACTER -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; long-term standing, not a single scene's urgency). It measures how central, irreplaceable, and defining the tie is to this character's life. Faction: RELATIVE TO THIS CHARACTER -- 'positive' if this character views the other as ally/friend, 'negative' if enemy/rival, 'neutral' otherwise. Example: if John killed Harry, John's relationship to Harry is faction='negative' (Harry views him negatively), yet the score can still be high if Harry's life now organizes around that revenge."
+      }
+    },
+    "CharacterPreferences": {
+      "type": "dataclass",
+      "fields": {
+        "likes": "list[str]",
+        "dislikes": "list[str]"
+      },
+      "defaults": {
+        "likes_placeholder": "A list of things, activities, topics, or items the character enjoys or prefers.",
+        "dislikes_placeholder": "A list of things, activities, topics, or items the character dislikes or avoids."
+      }
+    },
+    "CharacterRelationships": {
+      "type": "alias",
+      "field": "list[CharacterRelationship]"
+    },
+    "CharacterMilestone": {
+      "type": "dataclass",
+      "fields": {
+        "title": "str",
+        "scenes": "list[int]",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "relationship_format": {
+          "_self": {
+            "target_type": "event",
+            "bidirectional": false,
+            "relationship_definition": "CharacterMilestone"
+          }
+        },
+        "description_placeholder": "A list of strings describing a significant achievement or consequential event in the character's life, either positive or negative.",
+        "scenes_placeholder": "A list of scene numbers where this milestone is relevant or occurred."
+      }
+    },
+    "Character": {
+      "type": "dataclass",
+      "fields": {
+        "description": "Text",
+        "biography": "Text",
+        "traits": "list[str]",
+        "attributes": "list[str]",
+        "voice": "str",
+        "quirks": "list[str]",
+        "fears": "list[str]",
+        "preferences": "CharacterPreferences",
+        "importance": "Importance",
+        "group_status": "dict[str, CharacterGroupStatus]",
+        "relationships": "dict[str, CharacterRelationships]",
+        "milestones": "list[CharacterMilestone]"
+      },
+      "defaults": {
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any significant changes, additions, or deletions required for this character's entire entry (description, biography, traits, attributes, voice, quirks, fears, preferences, group_status, relationships, milestones)? Respond with only 'NO' or 'UNCHANGED' if this character's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nIDENTITY BINDING — {{ name2 }} is the AI character being roleplayed: the story's protagonist and focal character. {{ name1 }} is the other principal character (the user's character). Never assign {{ name1 }}'s identity, occupation, biography, or voice to {{ name2 }}, and never merge the two characters into a single entry. If this entry IS {{ name2 }}, derive all details from the story context and premise — never from {{ name1 }}'s dialogue or biography.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute'). If a key name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"description.0\", \"value\": \"Updated first line of description\"},\n  {\"path\": \"status.current_location\", \"value\": \"New Location\"},\n  {\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.\n\nEntry to review: '{{ branch_name }}'\n\nIDENTITY BINDING — {{ name2 }} is the AI character being roleplayed: the story's protagonist and focal character. {{ name1 }} is the other principal character (the user's character). Never assign {{ name1 }}'s identity, occupation, biography, or voice to {{ name2 }}, and never merge the two characters into a single entry. If this entry IS {{ name2 }}, derive all details from the story context and premise — never from {{ name1 }}'s dialogue or biography.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.",
+        "description_placeholder": "A detailed textual description of the character's current state, appearance, and how they present themselves.",
+        "biography_placeholder": "The character's backstory, past experiences, and history. This can include their origins, past relationships, previous life events, and how they became who they are today.",
+        "traits_placeholder": "A list of defining characteristics, personality aspects, or physical features of the character.",
+        "attributes_placeholder": "A list of character's abilities, skills, or quantifiable characteristics, often with a brief explanation (e.g., 'Raw strength: Greatly above average').",
+        "voice_placeholder": "A description of the character's speaking style, tone, and manner of expression (e.g., 'Speaks in a low, gravelly voice, uses short sentences').",
+        "quirks_placeholder": "A list of distinctive habits, quirks, or idiosyncratic behaviors that make the character unique.",
+        "fears_placeholder": "A list of things that frighten or concern the character.",
+        "preferences_placeholder": "The character's likes and dislikes.",
+        "importance_placeholder": "The character's overall importance to the story -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing). Faction: 'positive', 'negative', or 'neutral' from the story's perspective. Characters scoring below the importance detail threshold are rendered as one-line roster entries instead of full profiles.",
+        "group_status_placeholder": "Example_Group_Status_Name",
+        "relationships_placeholder": "Example_Character_Name",
+        "milestones_placeholder": "A list of significant achievements, events, or turning points in the character's life.",
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": true,
+            "relationship_definition": "CharacterRelationship"
+          },
+          "group_status": {
+            "target_type": "group",
+            "bidirectional": false,
+            "relationship_definition": "CharacterGroupStatus"
+          },
+          "milestones": {
+            "target_type": "event",
+            "bidirectional": false,
+            "relationship_definition": "CharacterMilestone"
+          }
+        }
+      },
+      "triggers": {
+        "on_new_scene": [
+          {
+            "action": "query_branch_for_changes",
+            "skip_query": true
+          }
+        ]
+      }
+    },
+    "CharacterMap": {
+      "type": "alias",
+      "field": "dict[str, Character]",
+      "defaults": {
+        "gate_check_prompt_template": "Based on the latest exchange, does the entire section/category require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with: YES or NO\n\nSection to review: '{{ branch_name }}'\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "new_entry_query_prompt_template": "This is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY the requested task.\n\nIn the latest exchange(s) (the most recent user and assistant messages, whether or not a scene boundary has been crossed), have there been any new entries mentioned or implied that should be added to the list?\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nIf new entries are identified, provide their names as a JSON list of strings.\n\nSubject being populated: characters.\n\nAny new characters should be added to the list. If a character is named: Always add them. If a character is unnamed: Add them as long as they have a direct interaction with another named character, are important to a named character or are relevant to the story in general.\n\nExample:\n```json\n[\"David Smith\", \"Mysterious Stranger\", \"The Captain\"]\n```\n\nREMEMBER: _Any_ relevant character should be added to the list, groups and crowds excluded. Named animals or pets that interact with characters count as characters and belong here, not in elements.\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nList to update: '{{ branch_name }}'\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the requested new entry described here.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the requested entry.\n\nSubject being populated: characters.\n\nIMPORTANCE: Assign this character an importance score (0-100) per the universal Importance Scale in your system context (SALIENCE x WEIGHT; a high score needs both; long-term standing, not a single scene's urgency). If the score is below the roster threshold (50), keep the description and other detail fields BRIEF (one or two lines) — minor entries render as one-line roster entries, so full detail is unnecessary.\n\nThe entry to populate: '{{ entry_name }}'\n\nIDENTITY BINDING — {{ name2 }} is the AI character being roleplayed: the story's protagonist and focal character. {{ name1 }} is the other principal character (the user's character). Never assign {{ name1 }}'s identity, occupation, biography, or voice to {{ name2 }}, and never merge the two characters into a single entry. If this entry IS {{ name2 }}, derive all details from the story context and premise — never from {{ name1 }}'s dialogue or biography.",
+        "importance_query_prompt_template": "Has there been a significant change in importance for any character's relationships since the last update? Respond with only 'YES' or 'NO'.",
+        "importance_update_prompt_template": "Review the importance scores for all characters' relationships, scored 0-100 per the universal Importance Scale in your system context (SALIENCE x WEIGHT; long-term standing).\n\nProvide the updated importance scores with paths and values for any changes. If a key name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\nExample output:\n[\n  {\"path\": \"John.relationships.Bob.0.importance\", \"value\": {\"score\": 80, \"reason\": \"Revised reason\", \"faction\": \"positive\"}}\n]\n\nIf NO updates are required, respond with NO_UPDATES_REQUIRED.\n\nCurrent characters and their relationships:\n{% if value is mapping %}{% for char_name, char_data in value.items() %}\n{{ char_name }}:\n{% if char_data.relationships is mapping %}{% for rel_name, rel_list in char_data.relationships.items() %}{% if rel_list is sequence and rel_list is not string %}{% for rel in rel_list %}  - {{ rel_name }} ({{ rel.relation }}): Score {{ rel.importance.score if rel.importance is mapping else rel.importance }}, Faction {{ rel.importance.faction if rel.importance is mapping else 'neutral' }} - {{ rel.importance.reason if rel.importance is mapping else 'No reason given' }}\n{% endfor %}{% endif %}{% endfor %}{% endif %}{% endfor %}{% endif %}",
+        "list_template": "character_list",
+        "importance_detail_threshold": 50,
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which existing entries in this section/category plausibly need any update (new or changed relationships, traits, descriptions, events, importance, or status)?\n\nName every entry that MIGHT have changed or been involved in the latest exchange(s). Err on the side of naming: naming an entry that turns out to be unchanged is harmless (its own update call will report no changes); omitting an entry leaves it stale. If a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of entry names, e.g.:\n[\"Evelyn\", \"Prudence\", \"[Mrs. Arbuthnot]\"]\n\nAn empty array means none of these entries need updating.\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry names, or exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "select_entries_min_size": 4
+      },
+      "triggers": {
+        "on_new_scene": [
+          "add_new",
+          "perform_gate_check",
+          {
+            "action": "query_branch_for_changes",
+            "prompt_template": "importance_update_prompt_template",
+            "when": "gate_check_fail"
+          },
+          "select_entries_to_update"
+        ]
+      }
+    },
+    "Characters": {
+      "type": "dataclass",
+      "fields": {
+        "entries": "CharacterMap"
+      },
+      "defaults": {
+        "initial_population": {
+          "mode": "identify",
+          "target_files": [
+            "characters.json",
+            "groups.json"
+          ],
+          "target_key": "entries",
+          "identification_prompt": "IDENTITY BINDING — {{ name2 }} is the AI character being roleplayed: the story's protagonist and focal character. {{ name1 }} is the other principal character (the user's character). Never assign {{ name1 }}'s identity, occupation, biography, or voice to {{ name2 }}, and never merge the two characters into a single entry. If this entry IS {{ name2 }}, derive all details from the story context and premise — never from {{ name1 }}'s dialogue or biography.\n\nFrom the provided character context and greeting, identify and list ONLY those character names and group names that are EXPLICITLY MENTIONED in the text. Do NOT infer, assume, or create entities that are not directly named or referred to in the provided context and greeting.\n\nOnly include characters/groups that:\n- Are directly named (e.g., 'John', 'The Royal Guard')\n- Are explicitly referred to by a specific title/name (e.g., 'the Captain', 'your brother')\n\nDo NOT include:\n- Characters implied by relationships but not named (e.g., 'your mother' when mother isn't named)\n- Generic roles without specific names (e.g., 'a guard', 'some soldiers' unless given a specific group name)\n- Speculative or backstory characters not mentioned in the provided text\n\nCharacter Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nExample Output:\n```json\n[\n  {\"type\": \"character\", \"name\": \"Elara\", \"descriptor\": \"A young sorceress searching for ancient artifacts.\"},\n  {\"type\": \"group\", \"name\": \"The Silver Hand\", \"descriptor\": \"A secretive guild of mages.\"}\n]\n```\n\nIdentify and list ONLY the explicitly mentioned character names and group names. For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('character' or 'group'), 'name' (string), and 'descriptor' (string).\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON list. Only include entities that are EXPLICITLY named in the provided text.\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').",
+          "population_prompt": "IDENTITY BINDING — {{ name2 }} is the AI character being roleplayed: the story's protagonist and focal character. {{ name1 }} is the other principal character (the user's character). Never assign {{ name1 }}'s identity, occupation, biography, or voice to {{ name2 }}, and never merge the two characters into a single entry. If this entry IS {{ name2 }}, derive all details from the story context and premise — never from {{ name1 }}'s dialogue or biography.\n\nBased ONLY on the explicitly mentioned information in the provided character context and greeting, generate the full data for the {{ entity_type }} described here.\n\nIMPORTANT: Only use information that is EXPLICITLY STATED in the provided text. Do NOT infer, assume, or add details that are not directly mentioned.\n- Use 'N/A' or an empty value for any field where information is not explicitly provided\n- Do NOT fabricate names, traits, relationships, or details that aren't in the text\n- Only populate fields with what is directly stated or can be directly inferred from explicit text\n\nRelevant Schema for a {{ entity_type }}:\n```json\n{{ schema_definition_json }}\n```\n\nExample JSON structure for a {{ entity_type }}:\n```json\n{{ example_json }}\n```\n\nCharacter Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nPlease provide your response as a complete JSON object for this {{ entity_type }}, using ONLY explicitly mentioned information.\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nEntry to populate: '{{ entity_name }}'\n\nDescriptor: {{ descriptor }}"
+        },
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": true,
+            "relationship_definition": "CharacterRelationship"
+          },
+          "group_status": {
+            "target_type": "group",
+            "bidirectional": false,
+            "relationship_definition": "CharacterGroupStatus"
+          },
+          "milestones": {
+            "target_type": "event",
+            "bidirectional": false,
+            "relationship_definition": "CharacterMilestone"
+          }
+        }
+      }
+    },
+    "GroupCharacterInfo": {
+      "type": "dataclass",
+      "fields": {
+        "position": "list[str]",
+        "events": "list[str]",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "position_placeholder": "The character's role or rank within this specific group.",
+        "events_placeholder": "A list of events relevant to this character's involvement with the group.",
+        "importance_placeholder": "The importance of this character's membership to the group -- scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT; long-term). Faction: 'positive', 'negative', or 'neutral' relative to the group."
+      }
+    },
+    "GroupRelationship": {
+      "type": "dataclass",
+      "fields": {
+        "position": "str",
+        "relation": "str",
+        "status": "str",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "position_placeholder": "A one-word summary of this specific relationship the group has with the target group (e.g., 'Ally', 'Enemy', 'Neutral').",
+        "relation_placeholder": "The type of relationship (e.g., 'ally', 'enemy', 'neutral').",
+        "status_placeholder": "The current status of the relationship (e.g., 'active', 'dormant', 'hostile').",
+        "importance_placeholder": "The significance of this relationship -- scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT; long-term). Faction: 'positive' for ally, 'negative' for enemy, 'neutral' otherwise, relative to the subject."
+      }
+    },
+    "GroupRelationships": {
+      "type": "alias",
+      "field": "list[GroupRelationship]"
+    },
+    "Group": {
+      "type": "dataclass",
+      "fields": {
+        "aliases": "list[str]",
+        "description": "Text",
+        "purpose": "str",
+        "culture": "str",
+        "resources": "list[str]",
+        "events": "list[str]",
+        "importance": "Importance",
+        "relationships": "dict[str, GroupRelationships]",
+        "characters": "dict[str, GroupCharacterInfo]"
+      },
+      "defaults": {
+        "branch_query_prompt_template": "Considering the overall story context and the current details for the entry, does this entry's entire information (aliases, description, purpose, culture, resources, events, relationships, characters involved) need a review for potential updates? Respond with only 'NO' or 'UNCHANGED' if no updates are needed. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute'). If a key name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"aliases.0\", \"value\": \"New Alias for Group\"},\n  {\"path\": \"description.1\", \"value\": \"Additional detail for group description\"},\n  {\"path\": \"characters.Alice.position.0\", \"value\": \"Leader\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.\n\nEntry to review: '{{ branch_name }}'\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.",
+        "aliases_placeholder": "Alternative names or shorthand for the group.",
+        "description_placeholder": "A detailed textual description of the group, its purpose, and characteristics.",
+        "purpose_placeholder": "What the group seeks to achieve or accomplish. Their goals and motivations.",
+        "culture_placeholder": "The group's norms, values, traditions, and social customs.",
+        "resources_placeholder": "What the group possesses or controls (e.g., weapons, territory, technology, connections).",
+        "events_placeholder": "A list of significant events the group has been involved in.",
+        "importance_placeholder": "The group's overall importance to the story -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing). Faction: 'positive', 'negative', or 'neutral'. Groups scoring below the importance detail threshold are rendered as one-line roster entries instead of full profiles.",
+        "relationships_placeholder": "Example_Other_Group_Name",
+        "characters_placeholder": "Example_Character_In_Group",
+        "relationship_format": {
+          "relationships": {
+            "target_type": "group",
+            "bidirectional": true,
+            "relationship_definition": "GroupRelationship"
+          },
+          "characters": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "GroupCharacterInfo"
+          }
+        }
+      },
+      "triggers": {
+        "on_new_scene": [
+          {
+            "action": "query_branch_for_changes",
+            "skip_query": true
+          }
+        ]
+      }
+    },
+    "GroupMap": {
+      "type": "alias",
+      "field": "dict[str, Group]",
+      "defaults": {
+        "gate_check_prompt_template": "Based on the latest exchange, does the entire section/category require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with: YES or NO\n\nSection to review: '{{ branch_name }}'\n\nSection scope: (all groups)\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "new_entry_query_prompt_template": "This is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY the requested task.\n\nIn the latest exchange(s) (the most recent user and assistant messages, whether or not a scene boundary has been crossed), have there been any new entries mentioned or implied that should be added to the list?\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nIf new entries are identified, provide their names as a JSON list of strings.\n\nSubject being populated: groups.\n\nAny and all new groups, small groups, crowds, etc. should be added to the list, whether named or unnamed. If unnamed and/or specific to this one scene, give a specific title belonging to this scene (e.g., 'Medics at Dawn of the Apocalypse'). If named, include the full name of the group (e.g., 'The Guardians').\nIf new groups are identified, provide their names as a JSON list of strings.\n\nExample:\n```json\n[\"The Survivors\", \"Marauder Gang X\"]\n```\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nList to update: '{{ branch_name }}'\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the requested new entry described here.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the requested entry.\n\nSubject being populated: groups.\n\nIMPORTANCE: Assign this group an importance score (0-100) per the universal Importance Scale in your system context (SALIENCE x WEIGHT; a high score needs both; long-term standing, not a single scene's urgency). If the score is below the roster threshold (50), keep the description and other detail fields BRIEF (one or two lines) — minor entries render as one-line roster entries, so full detail is unnecessary.\n\nThe entry to populate: '{{ entry_name }}",
+        "list_template": "group_list",
+        "importance_detail_threshold": 50,
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which existing entries in this section/category plausibly need any update (new or changed relationships, traits, descriptions, events, importance, or status)?\n\nName every entry that MIGHT have changed or been involved in the latest exchange(s). Err on the side of naming: naming an entry that turns out to be unchanged is harmless (its own update call will report no changes); omitting an entry leaves it stale. If a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of entry names, e.g.:\n[\"Evelyn\", \"Prudence\", \"[Mrs. Arbuthnot]\"]\n\nAn empty array means none of these entries need updating.\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry names, or exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "select_entries_min_size": 4
+      },
+      "triggers": {
+        "on_new_scene": [
+          "add_new",
+          "perform_gate_check",
+          "select_entries_to_update"
+        ]
+      }
+    },
+    "Groups": {
+      "type": "dataclass",
+      "fields": {
+        "entries": "GroupMap"
+      },
+      "defaults": {
+        "relationship_format": {
+          "relationships": {
+            "target_type": "group",
+            "bidirectional": true,
+            "relationship_definition": "GroupRelationships"
+          },
+          "characters": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "GroupCharacterInfo"
+          }
+        }
+      }
+    },
+    "SceneCharacter": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "location": "str"
+      },
+      "defaults": {
+        "name_placeholder": "The name of the character present in the scene.",
+        "location_placeholder": "The last known location of the character within the scene."
+      },
+      "triggers": {
+        "always": [
+          "perform_update"
+        ]
+      }
+    },
+    "SceneGroup": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "location": "str"
+      },
+      "defaults": {
+        "name_placeholder": "The name of the group present or relevant to the scene.",
+        "location_placeholder": "The general location or area of operation for the group in the context of the scene."
+      },
+      "triggers": {
+        "always": [
+          "perform_update"
+        ]
+      }
+    },
+    "SceneElement": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "location": "str"
+      },
+      "defaults": {
+        "name_placeholder": "The name of the element present in the scene.",
+        "location_placeholder": "The last known location of the element within the scene."
+      },
+      "triggers": {
+        "always": [
+          "perform_update"
+        ]
+      }
+    },
+    "SceneWho": {
+      "type": "dataclass",
+      "fields": {
+        "characters": "list[SceneCharacter]",
+        "groups": "list[SceneGroup]",
+        "elements": "list[SceneElement]"
+      },
+      "defaults": {
+        "characters_placeholder": "Example_Scene_Character_Name",
+        "groups_placeholder": "Example_Scene_Group_Name",
+        "elements_placeholder": "Example_Scene_Entity_Name"
+      }
+    },
+    "Message": {
+      "type": "alias",
+      "field": "str",
+      "defaults": {
+        "field_placeholder": "<INTERNAL_FIELD_DO_NOT_UPDATE>"
+      }
+    },
+    "SceneWhen": {
+      "type": "dataclass",
+      "fields": {
+        "_message_node": "Message",
+        "date": "str",
+        "time": "str",
+        "specific_time": "str"
+      },
+      "defaults": {
+        "date_placeholder": "The calendar date of the scene (e.g., 'October 15, 2028'), or a day relative to a previous checkpoint (e.g., 'The day after the battle').",
+        "time_placeholder": "A general description of the time of day for the scene (e.g., 'Pre-dawn hours', 'Afternoon').",
+        "specific_time_placeholder": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
+      },
+      "triggers": {
+        "always": [
+          "perform_update"
+        ]
+      }
+    },
+    "SceneWhy": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "details": "str"
+      },
+      "defaults": {
+        "name_placeholder": "A short title or category for the reason/purpose (e.g., 'Mission Preparation').",
+        "details_placeholder": "A more detailed explanation of the reason, objective, or motivation behind the scene or elements within it.",
+        "update_prompt_template": "Based on the latest exchange, is the reason below inaccurate or incomplete?\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\nIf yes, respond with the updated reason.\nIf no, respond \"UNCHANGED\".\nIf unsure, respond \"UNCHANGED\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged reason.\n\nCurrent reason:\n\"\"\"{{ value }}\n\"\"\"\n\nReason to review: '{{ item_name }}' (field '{{ field_name }}')"
+      },
+      "triggers": {
+        "always": [
+          "add_new",
+          "perform_update"
+        ]
+      }
+    },
+    "SceneState": {
+      "type": "dataclass",
+      "fields": {
+        "who": "SceneWho",
+        "when": "SceneWhen",
+        "where": "str",
+        "why": "list[SceneWhy]"
+      },
+      "defaults": {
+        "who_placeholder": "Describes the characters and groups involved in this state of the scene.",
+        "when_placeholder": "Describes the timing (date, general time, specific time) of this state of the scene.",
+        "where_placeholder": "The primary location or setting for this state of the scene.",
+        "why_placeholder": "Example_Reason",
+        "update_prompt_template": "Based on the latest exchange, is the value below inaccurate or incomplete?\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nIf yes, respond with the updated value.\nIf no, respond \"UNCHANGED\".\nIf unsure, respond \"UNCHANGED\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged value.\n\nCurrent value: \"\"\"\n{{ value }}\n\"\"\"\n\nValue to review: '{{ item_name }}'",
+        "branch_query_prompt_template": "Based on the latest exchange, is the current state of the scene still accurate and up-to-date (who is present, where they are, what time it is, and why they are there)? Respond with only 'NO' or 'UNCHANGED' if the current scene state is probably still accurate and no fields within it need to be checked individually. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nIf any specific fields within the entry require updates (additions, modifications, or deletions) to reflect the latest exchange, please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'who.characters.0.location').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"who.characters.0.location\", \"value\": \"Village hall\"},\n  {\"path\": \"when.time\", \"value\": \"Late morning\"},\n  {\"path\": \"where\", \"value\": \"The fete committee room\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the entry object as a whole.\n\nEntry to review: '{{ branch_name }}'"
+      },
+      "triggers": {}
+    },
+    "SceneStart": {
+      "type": "alias",
+      "field": "SceneState",
+      "defaults": {
+        "no_update": true
+      }
+    },
+    "SceneNow": {
+      "type": "alias",
+      "field": "SceneState"
+    },
+    "CurrentScene": {
+      "type": "dataclass",
+      "fields": {
+        "what": "str",
+        "start": "SceneStart",
+        "now": "SceneNow",
+        "_scene_number": "int",
+        "_scene_start_message": "int"
+      },
+      "defaults": {
+        "what_placeholder": "A brief summary or title describing the overall current scene or situation. This field is reset when a new scene is detected (via manual 'NEXT SCENE:' prefix or auto-detection), archived to scenes.json, and the current scene is cleared for tracking the new scene.",
+        "start_placeholder": "The initial state or setup of the current scene.",
+        "now_placeholder": "The current, up-to-date state of the scene as it is unfolding.",
+        "initial_population": {
+          "target_file": "current_scene.json",
+          "prompt_template": "You are an expert data extractor. Based ONLY on the provided character context and initial greeting, populate the fields for an initial CurrentScene object. You MUST strictly adhere to the provided JSON schemas. The primary object to generate is 'CurrentScene'. All necessary schema definitions are provided under the 'definitions' key.\n\nIMPORTANT: Only use information that is EXPLICITLY STATED in the provided text. Do NOT infer, assume, or add details that are not directly mentioned in the character context or greeting.\n- Use 'N/A' or an empty value for any field where information is not explicitly provided\n- Do NOT fabricate locations, times, characters, or events that aren't in the provided text\n- Only populate fields with what is directly stated or can be directly inferred from explicit text\n\nFocus on the 'start' state. The 'greeting' often sets the immediate scene. If information for a specific field is not present, use sensible defaults (empty string, empty list, null) or omit the field if optional, ensuring the output strictly adheres to the schema.\n\n{{ char_context_str }}\n{{ char_greeting_str }}\nComplete JSON Schema Definitions (including CurrentScene and all its dependencies):\n```json\n{{ all_relevant_definitions_json_str }}\n```\n\nExample of the expected JSON structure for CurrentScene:\n```json\n{{ example_json }}\n```\n\n{{ retry_feedback_placeholder }}\nYour output must be a single valid JSON object for 'CurrentScene' matching the schema and mirroring the structure of the example.\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON object. Only use EXPLICITLY mentioned information."
+        },
+        "now_query_prompt_template": "Based on the latest exchange, is the current state of the scene (the `now` block of current_scene: who is present, where they are, what time it is, and why they are there) still accurate and up-to-date? Respond with only 'NO' or 'UNCHANGED' if the current scene state is probably still accurate and no fields within it need to be checked individually. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}' If the latest exchange advances the in-story time (even by a few minutes), moves anyone or anything, or adds or removes a present character or element, the scene is NOT unchanged — answer YES so the  fields are refreshed.",
+        "now_update_prompt_template": "Based on the latest exchange, review the current state of the scene (the `now` block of current_scene) and its one-line summary (`what`).\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nIf any specific fields within this branch require updates (additions, modifications, or deletions) to reflect the latest exchange, provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'now.who.characters.0.location').\nThe 'what' field is the short scene summary: when the scene changes location or situation, rewrite it to match the current moment. Never leave 'what' describing an earlier location or situation. The `now.when` block tracks the in-story clock and MUST advance on every exchange once the scene is underway: ALWAYS provide an updated `now.when.specific_time` (e.g. '11:15', 'quarter to three') even when the exchange implies only a few minutes have passed — never leave it at 'N/A' and NEVER leave it identical to the previous turn — and move `now.when.time` ('Morning'/'Late morning'/'Afternoon') in step with it. The advancing clock is what grounds the memory in the passage of the story.\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"what\", \"value\": \"Evelyn and Prudence search Mr. Hennessy's kitchen for the quince paste jar\"},\n  {\"path\": \"now.where\", \"value\": \"Mr. Hennessy's kitchen\"},\n  {\"path\": \"now.when.time\", \"value\": \"Late morning\"},\n  {\"path\": \"now.when.specific_time\", \"value\": \"11:15\"},\n  {\"path\": \"now.who.characters.0.location\", \"value\": \"Mr. Hennessy's kitchen\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the entry object as a whole.\n\nEntry to review: '{{ branch_name }}'",
+        "scene_start_query_prompt_template": "A scene transition has just been detected. The latest exchange opens a new scene.\nRespond with exactly: YES",
+        "scene_start_update_prompt_template": "A scene transition has just been detected -- the LATEST exchange opens the NEW scene. The `start` block of current_scene still describes the PREVIOUS scene's opening and must be COMPLETELY REWRITTEN to describe the new scene's opening. The `now` block must be RESET to that same opening moment. The `what` field must be rewritten to describe the new scene.\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nIf updates are needed, provide a list of changes. Each change must specify the 'path' to the field and the 'value' for the update. The path is a dot-separated str relative to current_scene, using numeric indices or square brackets for list items (e.g. 'start.who.characters.0.location').\n\nYou MUST provide updates covering ALL of the following, rewritten from the new scene's opening exchange:\n- {\"path\": \"what\", \"value\": \"<one-line summary of the new scene's opening>\"}\n- {\"path\": \"start.where\", \"value\": \"<new scene location>\"}\n- {\"path\": \"start.when.date\", \"value\": \"<date or 'N/A'>\"}\n- {\"path\": \"start.when.time\", \"value\": \"<general time of day>\"}\n- {\"path\": \"start.when.specific_time\", \"value\": \"<precise time or 'N/A'>\"}\n- {\"path\": \"start.when._message_node\", \"value\": \"{{ current_message_node }}\"}\n- {\"path\": \"start.who.characters\", \"value\": [{\"name\": \"<name>\", \"location\": \"<location>\"}]}, plus groups and elements lists similarly if anyone is present\n- {\"path\": \"start.why\", \"value\": [{\"name\": \"<reason title>\", \"details\": \"<why they are here>\"}]}\n- The SAME opening values under the parallel `now.*` paths: now.who / now.when / now.where / now.why -- so Scene Start and Scene Now render identically at the boundary. The `now.when.specific_time` must be concrete and grounded in the opening exchange.\n\nIf the latest exchange does NOT open a new scene after all, respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the entry object as a whole. Do NOT set any engine-meta key (`_scene_number`, `_scene_start_message`, `_chapter_number`, `_arc_number`) except `start.when._message_node`.\n\nEntry to review: '{{ branch_name }}'"
+      },
+      "triggers": {
+        "always": [
+          {
+            "action": "query_branch_for_changes",
+            "prompt_template": "now_update_prompt_template"
+          }
+        ],
+        "on_new_scene": [
+          {
+            "action": "query_branch_for_changes",
+            "prompt_template": "scene_start_update_prompt_template",
+            "skip_query": true
+          }
+        ]
+      }
+    },
+    "TimePoint": {
+      "type": "dataclass",
+      "fields": {
+        "_message_node": "Message",
+        "date": "str",
+        "time": "str",
+        "specific_time": "str"
+      },
+      "defaults": {
+        "date_placeholder": "The calendar date of the time point (e.g., 'October 15, 2028').",
+        "time_placeholder": "A general description of the time of day for the time point (e.g., 'Pre-dawn hours', 'Afternoon').",
+        "specific_time_placeholder": "A precise time for the time point, if applicable (e.g., '05:30', '14:32')."
+      }
+    },
+    "EventParticipant": {
+      "type": "dataclass",
+      "fields": {
+        "importance": "Importance"
+      }
+    },
+    "StoryEvent": {
+      "type": "dataclass",
+      "fields": {
+        "name": "str",
+        "formal_name": "str",
+        "aliases": "list[str]",
+        "start": "TimePoint",
+        "end": "TimePoint",
+        "summary": "str",
+        "catalyst": "str",
+        "outcome": "str",
+        "participants": "dict[str, EventParticipant]",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "relationship_format": {
+          "participants": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "EventParticipant"
+          }
+        },
+        "name_placeholder": "The unique name or title of the story event.",
+        "formal_name_placeholder": "The formal or official name of the story event, if different from the 'name' field. Write 'N/A' if no formal name exists, i.e. referred to only colloquially or informally.",
+        "aliases_placeholder": "A list of alternate names or aliases for the story event.",
+        "start_placeholder": "The time point marking the beginning of the event.",
+        "end_placeholder": "The time point marking the end of the event.",
+        "summary_placeholder": "A textual summary describing the key occurrences and outcomes of the event.",
+        "catalyst_placeholder": "What triggered or caused this event to happen.",
+        "outcome_placeholder": "The result or consequence of this event.",
+        "participants_placeholder": "A mapping of character/group names to their participation importance IN THIS EVENT, scored per the universal Importance Scale but CONTEXTUAL to this event only (central 80-100, key 60-80, supporting 40-60, witness 10-30)."
+      }
+    },
+    "StoryEvents": {
+      "type": "alias",
+      "field": "dict[str, StoryEvent]",
+      "defaults": {
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any significant changes, additions, or deletions required for this entire branch (any event's name, formal_name, aliases, start, end, summary, catalyst, outcome, participants)? Respond with only 'NO' or 'UNCHANGED' if this event's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure (e.g., 'Example Event.summary', 'Example Event.start.date'). If a key name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"Example Event.summary\", \"value\": \"Updated event summary\"},\n  {\"path\": \"Example Event.end.specific_time\", \"value\": \"18:00\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.\n\nEntry to review: '{{ branch_name }}'",
+        "update_prompt_template": "Based on the latest exchange, is the summary below inaccurate or incomplete?\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\nIf yes, respond with the updated summary.\nIf no, respond \"UNCHANGED\".\nIf unsure, respond \"UNCHANGED\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{{ value }}\"\"\"\n\nSummary to review: '{{ item_name }}' (field '{{ field_name }}')",
+        "importance_query_prompt_template": "Has there been a significant change in importance for any event? Respond with only 'YES' or 'NO'.",
+        "importance_update_prompt_template": "Review the importance scores for the events below, scored 0-100 per the universal Importance Scale in your system context (SALIENCE x WEIGHT; lasting significance).\n\nCurrent events and their importance:\n{% if value is mapping %}{% for event_name, event_data in value.items() %}\n- {{ event_name }}: Score {{ event_data.importance.score if event_data.importance is mapping else event_data.importance }}, Faction {{ event_data.importance.faction if event_data.importance is mapping else 'neutral' }} - {{ event_data.importance.reason if event_data.importance is mapping else 'No reason given' }}\n{% endfor %}{% endif %}\nProvide the updated importance scores with paths and values for any changes. If a key name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\nExample output:\n[\n  {\"path\": \"Example Event.importance\", \"value\": {\"score\": 80, \"reason\": \"Revised reason\", \"faction\": \"positive\"}}\n]\n\nIf NO updates are required, respond with NO_UPDATES_REQUIRED.\n\nEvents to review: '{{ branch_name }}'",
+        "new_entry_query_prompt_template": "This is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY the requested task.\n\nIn the latest exchange(s) (the most recent user and assistant messages, whether or not a scene boundary has been crossed), have there been any new entries mentioned or implied that should be added to the list?\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nIf new entries are identified, provide their names as a JSON list of strings.\n\nSubject being populated: significant story events.\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nList to update: '{{ branch_name }}'\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the requested new entry described here.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the requested entry.\n\nSubject being populated: story events.\n\nIMPORTANCE: Assign this event an importance score (0-100) per the universal Importance Scale in your system context (SALIENCE x WEIGHT; lasting significance, not momentary stakes). If the score is below the roster threshold (50), keep the summary and other detail fields BRIEF — minor events render as one-line roster entries.\n\nThe entry to populate: '{{ entry_name }}\n\nCurrent message node: {{ current_message_node }}",
+        "importance_detail_threshold": 50
+      },
+      "triggers": {
+        "on_new_scene": [
+          "add_new",
+          {
+            "action": "query_branch_for_changes",
+            "skip_query": true
+          },
+          {
+            "action": "query_branch_for_changes",
+            "prompt_template": "importance_update_prompt_template",
+            "when": "gate_check_fail"
+          }
+        ]
+      }
+    },
+    "PastEvents": {
+      "type": "alias",
+      "field": "StoryEvents",
+      "defaults": {
+        "new_entry_query_prompt_template": "This is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY the requested task.\n\nIn the latest exchange(s) (the most recent user and assistant messages, whether or not a scene boundary has been crossed), have there been any new entries mentioned or implied that should be added to the list?\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nIf new entries are identified, provide their names as a JSON list of strings.\n\nSubject being populated: backstory events.\n\nSignificant past events should be added to the list, but only if they're relevant *and* take place outside of the protagonist's perspective and/or before the start of the story. If unnamed in the story, give a generic title (e.g., 'The Founding of the New Order').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"Melissa's Anguish\", \"The Founding of the New Order\"]\n```\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nList to update: '{{ branch_name }}'\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the requested new entry described here.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the requested entry.\n\nSubject being populated: backstory events.\n\nIMPORTANCE: Assign this event an importance score (0-100) per the universal Importance Scale in your system context (SALIENCE x WEIGHT; lasting significance, not momentary stakes). If the score is below the roster threshold (50), keep the summary and other detail fields BRIEF — minor events render as one-line roster entries.\n\nThe entry to populate: '{{ entry_name }}\n\nCurrent message node: {{ current_message_node }}",
+        "field_placeholder": "Past_Event_Before_Story_Start"
+      }
+    },
+    "Scenes": {
+      "type": "alias",
+      "field": "StoryEvents",
+      "defaults": {
+        "new_entry_query_prompt_template": "The current scene (the one tracked in CurrentScene) has just ended. This happens on scene transitions (either triggered manually with 'NEXT SCENE:' or auto-detected after generation). The completed scene should be archived to scenes.json. List the title of the one (1) new scene that should be added to the '{{ branch_name }}' list.\n\nOne new scene must be added to this list. Provide its name/title as a JSON array containing a single string.\n\nExample:\n```json\n[\"The First Incursion Erupts\"]\n```\n\nREMEMBER: One (1) scene *must* be added; no more, no less. This scene should have been tracked in CurrentScene before being archived here.\n\nHere is the current list of existing entries:\n{{ branch_list }}",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the requested new entry described here.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the requested entry.\n\nSubject being populated: complete scenes.\n\nIMPORTANT: This scene was just completed and is being archived from CurrentScene to preserve narrative history.\n\nThe entry to populate: '{{ entry_name }}\n\nCurrent message node: {{ current_message_node }}",
+        "field_placeholder": "Scene_Using_Data_From_Current_Scene"
+      }
+    },
+    "CrucialEvents": {
+      "type": "alias",
+      "field": "StoryEvents",
+      "defaults": {
+        "new_entry_query_prompt_template": "This is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY the requested task.\n\nIn the latest exchange(s) (the most recent user and assistant messages, whether or not a scene boundary has been crossed), have there been any new entries mentioned or implied that should be added to the list?\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nIf new entries are identified, provide their names as a JSON list of strings.\n\nSubject being populated: major story events.\n\nAny significant events should be added to the list. If unnamed in the story, give a generic title (e.g., 'The Discovery of the Old Bunker').\nIf new events are identified, provide their names/titles as a JSON list of strings.\n\nExample:\n```json\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n```\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nList to update: '{{ branch_name }}'\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the requested new entry described here.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the requested entry.\n\nSubject being populated: story events.\n\nIMPORTANCE: Assign this event an importance score (0-100) per the universal Importance Scale in your system context (SALIENCE x WEIGHT; lasting significance, not momentary stakes). If the score is below the roster threshold (50), keep the summary and other detail fields BRIEF — minor events render as one-line roster entries.\n\nThe entry to populate: '{{ entry_name }}\n\nCurrent message node: {{ current_message_node }}",
+        "field_placeholder": "Very_Important_Event"
+      }
+    },
+    "Arc": {
+      "type": "dataclass",
+      "fields": {
+        "title": "str",
+        "starting_chapter": "int",
+        "ending_chapter": "int",
+        "chapters": "list[int]",
+        "summary": "str",
+        "character_arcs": "str",
+        "relationship_shifts": "str",
+        "plot_threads": "list[str]",
+        "status": "str"
+      },
+      "defaults": {
+        "title_placeholder": "A short, evocative title for this narrative arc (e.g., 'The Betrayal', 'The Hunt Begins').",
+        "starting_chapter_placeholder": "The chapter index where this arc began.",
+        "ending_chapter_placeholder": "The chapter index where this arc concluded, or null if still active.",
+        "chapters_placeholder": "List of chapter indices where this arc was active or referenced.",
+        "summary_placeholder": "A 1-2 paragraph summary of what this arc is about - the core conflict, stakes, and progression.",
+        "character_arcs_placeholder": "How have the main characters involved in this arc changed or been revealed?",
+        "relationship_shifts_placeholder": "How have relationships between characters shifted during this arc?",
+        "plot_threads_placeholder": "What plot threads or mysteries are associated with this arc?",
+        "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
+        "update_prompt_template": "Based on the latest chapter, update the arc below.\n\nHas this arc concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON.\n\nArc to update: '{{ branch_name }}'\n\nArc Data:\n{{ value }}"
+      },
+      "triggers": {
+        "always": [
+          "query_branch_for_changes"
+        ],
+        "on_new_scene": [
+          "perform_update"
+        ]
+      }
+    },
+    "Arcs": {
+      "type": "alias",
+      "field": "dict[str, Arc]",
+      "defaults": {
+        "suggested_min_chapters": 2,
+        "suggested_max_chapters": 5,
+        "max_chapters_before_required": 8,
+        "field_placeholder": "Arc_Title",
+        "gate_check_prompt_template": "A chapter has just been archived. This is an ARC-BOUNDARY decision: determine whether the chapters of the current arc now form a complete season-scale unit.\n\nUnit definitions for this story:\n- A CHAPTER is an episode-scale unit (several scenes forming one dramatic movement).\n- An ARC is like a full season of a TV show, or a few volumes of a graphic novel: MULTIPLE chapters carrying one long-range conflict from its premise to its resolution, with the cast and stakes meaningfully changed by the end.\n\nCurrent state: {{ chapters_in_arc }} chapter(s) sit inside the current arc (of {{ chapters_count }} total). Suggested range: {{ suggested_min }}-{{ suggested_max }} chapters per arc; archiving becomes mandatory at {{ max_chapters_before_required }}.\n\nChapters in the current arc so far:\n{{ chapters_digest }}\n\nAnswer YES only if the arc's core conflict has genuinely resolved or transformed into a new long-range situation. Mid-season escalation, cliffhangers, and unresolved central questions all mean NO.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with: YES or NO",
+        "new_entry_query_prompt_template": "Should we create a new narrative arc?\n\nIf a new arc is needed, respond with its title as a JSON array containing a single string, e.g. [\"The Unsealing of the North Door\"]. Otherwise respond with exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nActive Arcs:\n{{ formatted_data }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
+        "new_entry_prompt_template": "Generate arc data for the new arc.\n\nArc should capture:\n- What narrative thread is this?\n- Who are the key characters?\n- What's the current status?\n\nSchema:\n{{ schema_snippet }}\n\nExample:\n{{ example_json }}\n\nCharacters involved:\n{{ subjects.characters.entries }}"
+      },
+      "triggers": {}
+    },
+    "KeyChange": {
+      "type": "dataclass",
+      "fields": {
+        "description": "str",
+        "scene": "str"
+      },
+      "defaults": {
+        "description_placeholder": "A description of a significant change that occurred during this chapter (e.g., 'John learned the truth about his father', 'The alliance was formed').",
+        "scene_placeholder": "The scene name where this change occurred (e.g., 'The Revelation at Dawn')."
+      }
+    },
+    "Chapter": {
+      "type": "dataclass",
+      "fields": {
+        "title": "str",
+        "starting_scene": "int",
+        "ending_scene": "int",
+        "scenes": "list[int]",
+        "summary": "str",
+        "key_changes": "list[KeyChange]",
+        "status": "str"
+      },
+      "defaults": {
+        "title_placeholder": "A short title for this chapter (e.g., 'The Betrayal Unfolds', 'The Journey Begins').",
+        "starting_scene_placeholder": "The absolute scene index where this chapter began (e.g., scene 1 of the story).",
+        "ending_scene_placeholder": "The absolute scene index where this chapter concluded, or null if still active.",
+        "scenes_placeholder": "List of absolute scene indices in this chapter (e.g., [1, 2, 3, 4, 5]).",
+        "summary_placeholder": "A concise summary of what happened in this chapter - the core narrative beats and progression.",
+        "key_changes_placeholder": "A list of significant changes, each with a description and the scene where it occurred.",
+        "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
+        "update_prompt_template": "Based on the latest scene, update the chapter below.\n\nHas this chapter concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON.\n\nChapter to update: '{{ branch_name }}'\n\nChapter Data:\n{{ value }}"
+      },
+      "triggers": {
+        "always": [
+          "query_branch_for_changes"
+        ],
+        "on_new_scene": [
+          "perform_update"
+        ]
+      }
+    },
+    "Chapters": {
+      "type": "alias",
+      "field": "list[Chapter]",
+      "defaults": {
+        "suggested_min_scenes": 4,
+        "suggested_max_scenes": 8,
+        "max_scenes_before_required": 10,
+        "field_placeholder": "Chapter_Title",
+        "gate_check_prompt_template": "A scene has just been archived. This is a CHAPTER-BOUNDARY decision: determine whether the current stretch of scenes now forms a complete chapter.\n\nUnit definitions for this story:\n- A SCENE is one continuous stretch of story; shifts in action, tone, character presence, or physical setting begin a new one.\n- A CHAPTER works like a full episode of a TV show, or a few chapters of a graphic novel: several scenes that together carry ONE dramatic movement from setup through complication to a resolution or a deliberate resting point.\n\nCurrent state: {{ scenes_in_chapter }} scene(s) have been archived since the last chapter boundary (of {{ scenes_count }} total). Suggested range: {{ suggested_min }}-{{ suggested_max }} scenes per chapter; archiving becomes mandatory at {{ max_scenes_before_required }}.\n\nScenes in the current chapter so far:\n{{ span_digest }}\n\nAnswer YES only if these scenes ALREADY form a satisfying episode-shaped unit - setup played out, complication resolved or deliberately paused, and the next chapter can open on a fresh movement. If the dramatic movement is still mid-flight or its payoff has not landed, answer NO even if the scene count is high.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with: YES or NO",
+        "new_entry_query_prompt_template": "Should we create a new chapter?\n\nIf a new chapter is needed, respond with its title as a JSON array containing a single string, e.g. [\"Chapter Nine: The Door Unseals\"]. Otherwise respond with exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nActive Chapters:\n{{ formatted_data }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
+        "new_entry_prompt_template": "Generate chapter data for the new chapter.\n\nChapter should capture:\n- What narrative thread is this?\n- Who are the key characters?\n- What significant changes occurred?\n\nSchema:\n{{ schema_snippet }}\n\nExample:\n{{ example_json }}\n\nCharacters involved:\n{{ subjects.characters.entries }}"
+      },
+      "triggers": {}
+    },
+    "Events": {
+      "type": "dataclass",
+      "fields": {
+        "past": "PastEvents",
+        "scenes": "Scenes",
+        "events": "CrucialEvents",
+        "chapters": "Chapters"
+      },
+      "defaults": {
+        "gate_check_prompt_template": "Considering recent events and messages, does the overall section (including past events, current scenes, major story events, and chapters) require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.\n\nSection to review: '{{ branch_name }}'",
+        "past_placeholder": "Example_Past_Event_Before_Story_Start",
+        "scenes_placeholder": "Example_Story_Scene",
+        "events_placeholder": "Example_Major_Story_Event",
+        "chapters_placeholder": "Example_Chapter"
+      },
+      "triggers": {}
+    },
+    "Objective": {
+      "type": "dataclass",
+      "fields": {
+        "description": "str",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "description_placeholder": "A secondary objective the protagonist(s) are trying to achieve. This is not the main objective. Multiple secondary objectives should generally be set before the initial main objective - the main objective will be decided from one of the existing secondary objectives once the story has a clear long-term goal.",
+        "importance_query_prompt_template": "Has there been a significant change in importance for any secondary objectives since the last update? Respond with only 'YES' or 'NO'.",
+        "importance_update_prompt_template": "Review the importance score for this objective.\n\nCurrent importance: {{ value.importance.score if value.importance is mapping else value.importance }}, Faction {{ value.importance.faction if value.importance is mapping else 'neutral' }} - {{ value.importance.reason if value.importance is mapping else 'No reason given' }}\n\nScore 0-100 per the universal Importance Scale in your system context (SALIENCE x WEIGHT; long-term standing, not a single scene's urgency).\n\nBased on the latest exchange, has the significance of this objective changed?\n\nIf YES, provide the updated importance score (0-100), reason, and faction.\nExample of expected output if updates are needed for '{{ branch_name }}':\n[\n  {\"path\": \"importance\", \"value\": {\"score\": 80, \"reason\": \"Revised reason\", \"faction\": \"positive\"}}\n]\n\nIf NO, respond with NO_UPDATES_REQUIRED."
+      },
+      "triggers": {
+        "always": [
+          "perform_gate_check",
+          "query_branch_for_changes",
+          {
+            "action": "query_branch_for_changes",
+            "prompt_template": "importance_update_prompt_template",
+            "when": "gate_check_fail"
+          }
+        ]
+      }
+    },
+    "GeneralInfo": {
+      "type": "dataclass",
+      "fields": {
+        "writing_style": "str",
+        "tone": "str",
+        "themes": "list[str]",
+        "setting": "str",
+        "rules": "list[str]",
+        "objectives": "list[Objective]",
+        "main_objective": "str",
+        "synopsis": "str"
+      },
+      "defaults": {
+        "initial_population": {
+          "mode": "direct",
+          "target_file": "general_info.json",
+          "prompt_template": "Based on the provided character context and initial greeting, populate the fields for an initial GeneralInfo object. Extract only the static story-guiding fields (writing_style, tone, themes). Set dynamic fields (objectives, main_objective, synopsis) to empty defaults since no story has occurred yet.\n\nCharacter Context:\n\"\"\"\n{{ char_context_str }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting_str }}\n\"\"\"\n\nComplete JSON Schema Definitions (including GeneralInfo and all its dependencies):\n```json\n{{ all_relevant_definitions_json_str }}\n```\n\nExample of the expected JSON structure for GeneralInfo:\n```json\n{{ example_json }}\n```\n\n{{ retry_feedback_placeholder }}\n\nIMPORTANT:\n- Set 'writing_style' to a description of the narrative format.\n- Set 'tone' to the primary emotional tone or mood.\n- Set 'themes' to a list of central themes.\n- Set 'objectives' to an empty list [].\n- Set 'main_objective' to an empty string \"\".\n- Set 'synopsis' to an empty string \"\".\n\nYour output must be a single valid JSON object for 'GeneralInfo' matching the schema and mirroring the structure of the example.\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON object."
+        },
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the story and chat as a whole, are there any significant changes, additions, or deletions required for this general information section (writing style, tone, themes, main objective, summary)? Respond with only 'NO' or 'UNCHANGED' if all the general information is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"description.0\", \"value\": \"Updated first line of description\"},\n  {\"path\": \"status.current_location\", \"value\": \"New Location\"},\n  {\"path\": \"relationships.Bob.0.status\", \"value\": \"ally\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nREMEMBER: Provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str, not the entry object as a whole.\n\nEntry to review: '{{ branch_name }}'\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.",
+        "gate_check_prompt_template": "A new scene has just concluded. Does the summary of this new scene contain information significant enough to warrant updating the overall story's General Info? Respond with only 'YES' or 'NO'.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with: YES or NO\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "update_prompt_template": "Given the previous General Info and a summary of the most recently completed scene, generate an updated JSON object for the story's General Info.\n\nPrevious General Info:\n```json\n{{ value }}\n```\n\nSummary of New Scene:\n'''\n{{ (subjects.events.scenes | last_item).summary }}\n'''\n\nRelevant Schema for GeneralInfo:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure for GeneralInfo:\n```json\n{{ example_json }}\n```\n\nRespond with ONLY the updated JSON object matching the schema.",
+        "writing_style_placeholder": "A description of the narrative format to ensure stylistic consistency (e.g., '{{char}}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{{char}}: 1st-person dialogue as \"{{char}}\" with actions in asterisks', '{{char}}: 1st-person prose as \"{{user}}\", approximately double the paragraphs as {{user}}', '{{char}}: 2nd-person prose (speaking to \"{{user}}\"), the same number of paragraphs as {{user}}').\n\nThis is of utmost importance. Check what the user has written so far, as well as what you (as {{char}}) have written so far (particularly the very first message, the greeting, if available). Be specific; this will be followed strictly. If this already exists, keep it as is. Do not change it unless clarifying even further.",
+        "tone_placeholder": "The primary emotional tone or mood of the story. This guides the feeling of the narrative (e.g., 'Tense and suspenseful', 'Hopeful but grim', 'Witty and adventurous').",
+        "themes_placeholder": "A comma-separated list of the central themes or underlying ideas being explored in the story (e.g., 'The cost of survival', 'Betrayal and redemption', 'Man vs. Nature').",
+        "setting_placeholder": "A description of the world, location, and environment where the story takes place (e.g., 'Post-apocalyptic Earth, 2087, ruined cities overrun by Subterraneans').",
+        "rules_placeholder": "A list of world-building rules or laws that govern the story's world (e.g., 'Magic requires mana crystals to cast', 'Technology level: post-nanite apocalypse'). Some overarching plot points about the world can also be included here if they are fundamental to the story and unlikely to change (e.g., 'The nanite plague has devastated humanity, leading to the rise of Subterranean factions' or 'Comms systems are down globally'), but nothing character-specific.",
+        "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
+        "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
+      },
+      "triggers": {
+        "always": [
+          {
+            "action": "query_branch_for_changes",
+            "skip_query": true
+          }
+        ]
+      }
+    },
+    "Element": {
+      "type": "dataclass",
+      "fields": {
+        "kind": "str",
+        "description": "Text",
+        "traits": "list[str]",
+        "attributes": "list[str]",
+        "properties": "dict[str, str]",
+        "relationships": "dict[str, ElementRelationships]",
+        "events": "list[str]",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any significant changes, additions, or deletions required for this element's entire entry (kind, description, traits, attributes, properties, relationships, events)? Respond with only 'NO' or 'UNCHANGED' if this element's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices or square brackets for list items (e.g., 'list_field.0.attribute'). If a key name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"description.0\", \"value\": \"Updated first line of description\"},\n  {\"path\": \"traits.0\", \"value\": \"Updated trait\"},\n  {\"path\": \"properties.location\", \"value\": \"New location\"},\n  {\"path\": \"relationships.Evelyn.0.status\", \"value\": \"used_by\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nPlease provide your response in the specified JSON format or the 'NO_UPDATES_REQUIRED' str.\n\nEntry to review: '{{ branch_name }}'\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.",
+        "kind_placeholder": "The type of element: 'creature', 'location', 'item', or 'resource'.",
+        "description_placeholder": "A detailed textual description of the element, potentially spanning multiple lines.",
+        "traits_placeholder": "A list of defining characteristics or notable features of the element.",
+        "attributes_placeholder": "A list of the element's capabilities, properties, or quantifiable characteristics (e.g., 'Height: 8 feet', 'Durability: High').",
+        "properties_placeholder": "A key-value bag for type-specific details (e.g., for a location: {'capacity': '50 people', 'lighting': 'dim'}; for an item: {'ammo': '12', 'range': '300m'}).",
+        "relationships_placeholder": "Example_Character_Or_Element_Name",
+        "importance_placeholder": "The element's overall importance to the story -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing). An element can be constantly PRESENT yet disposable (this scene's setpiece) -- salience alone caps near 50; reserve 80+ for elements the story structurally depends on and uses across scenes. Elements scoring below the importance detail threshold are rendered as one-line roster entries instead of full profiles.",
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "ElementRelationships"
+          },
+          "events": {
+            "target_type": "event",
+            "bidirectional": false
+          }
+        }
+      },
+      "triggers": {
+        "on_new_scene": [
+          {
+            "action": "query_branch_for_changes",
+            "skip_query": true
+          }
+        ]
+      }
+    },
+    "ElementRelationships": {
+      "type": "dataclass",
+      "fields": {
+        "relation": "str",
+        "status": "str",
+        "importance": "Importance"
+      },
+      "defaults": {
+        "relation_placeholder": "A single term describing the relationship between this element and another element or character (e.g., 'contains', 'located_in', 'wields', 'guarded_by').",
+        "status_placeholder": "The current state of this relationship (e.g., 'active', 'broken', 'temporary')."
+      }
+    },
+    "ElementMap": {
+      "type": "alias",
+      "field": "dict[str, Element]",
+      "defaults": {
+        "gate_check_prompt_template": "Based on the latest exchange, does the entire section/category require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed for it. Otherwise, respond with 'YES'.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with: YES or NO\n\nSection to review: '{{ branch_name }}'\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "new_entry_query_prompt_template": "This is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY the requested task.\n\nIn the latest exchange(s) (the most recent user and assistant messages, whether or not a scene boundary has been crossed), have there been any new entries mentioned or implied that should be added to the list?\n\nPlease provide your response in the specified JSON array format. An empty array is acceptable but not ideal.\n\nIf new entries are identified, provide their names as a JSON list of strings.\n\nSubject being populated: elements.\n\nElements include creatures (monsters, animals, beings), locations (buildings, rooms, zones), items (weapons, tools, phones, keys), and resources (water, food, ammo, fuel). Any new element should be added to the list. If unnamed, give a descriptive title belonging to this scene (e.g., 'Bioluminescent Cave Fungus', 'Abandoned Service Tunnel'). If named, include the full name (e.g., 'The Old Bunker', 'Subterranean Queen').\n\nWHAT NOT TO INCLUDE in elements:\n- Never a named person or a speaking/recurring being (a villager, a suspect, a named pet) — those belong in the characters subject.\n- Never an organization, committee, crowd, or group of people — those belong in the groups subject.\n- Never a narrative event that happened — that belongs in the events subject.\nOnly add creatures here when they are props/scenery or background fauna, not when they are named, speak, or recur as story participants.\n\nExample:\n```json\n[\"The Old Bunker\", \"Subterranean Patrol\", \"Emergency Radio\"]\n```\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nList to update: '{{ branch_name }}'\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "new_entry_prompt_template": "Based on all of the information in the last scene, generate the full data for the requested new entry described here.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the requested entry.\n\nSubject being populated: elements.\n\nDetermine the 'kind' based on what this element is:\n- 'creature': A living being that is not a named character and does not speak or recur as a story participant (background monsters, animals, aliens)\n- 'location': A place, building, room, zone, or area\n- 'item': An object, tool, weapon, or piece of equipment\n- 'resource': A consumable or material (water, food, ammo, fuel)\n\nIMPORTANCE: Assign this element an importance score (0-100) per the universal Importance Scale in your system context (SALIENCE x WEIGHT; a high score needs both; long-term standing). Warning: an element can be constantly PRESENT yet disposable — salience alone (e.g. this scene's setpiece) caps near 50, not the top. Reserve 80+ for elements the story structurally depends on and uses across scenes. If the score is below the roster threshold (50), keep the description and other detail fields BRIEF (one or two lines) — minor entries render as one-line roster entries, so full detail is unnecessary.\n\nThe entry to populate: '{{ entry_name }}",
+        "list_template": "element_list",
+        "importance_detail_threshold": 50,
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which existing entries in this section/category plausibly need any update (new or changed relationships, traits, descriptions, events, importance, or status)?\n\nName every entry that MIGHT have changed or been involved in the latest exchange(s). Err on the side of naming: naming an entry that turns out to be unchanged is harmless (its own update call will report no changes); omitting an entry leaves it stale. If a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of entry names, e.g.:\n[\"Evelyn\", \"Prudence\", \"[Mrs. Arbuthnot]\"]\n\nAn empty array means none of these entries need updating.\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry names, or exactly NO.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "select_entries_min_size": 4
+      },
+      "triggers": {
+        "always": [
+          "add_new",
+          "perform_gate_check"
+        ],
+        "on_new_scene": [
+          "select_entries_to_update"
+        ]
+      }
+    },
+    "Elements": {
+      "type": "dataclass",
+      "fields": {
+        "entries": "ElementMap"
+      },
+      "defaults": {
+        "relationship_format": {
+          "relationships": {
+            "target_type": "character",
+            "bidirectional": false,
+            "relationship_definition": "ElementRelationships"
+          },
+          "events": {
+            "target_type": "event",
+            "bidirectional": false
+          }
+        },
+        "initial_population": {
+          "mode": "identify",
+          "target_files": [
+            "elements.json"
+          ],
+          "target_key": "entries",
+          "identification_prompt": "From the provided character context, greeting, and first exchange, identify and list all distinct narrative elements mentioned. These include creatures (monsters, animals, non-character beings), locations (buildings, rooms, zones, areas), items (weapons, tools, phones, keys, equipment), and resources (water, food, ammo, fuel, materials). For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('element'), 'name' (string), and 'descriptor' (string).\n\nStory Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nExample Output:\n```json\n[\n  {\"type\": \"element\", \"name\": \"The Old Bunker\", \"descriptor\": \"An abandoned military bunker serving as the rebel hideout.\"},\n  {\"type\": \"element\", \"name\": \"Emergency Radio\", \"descriptor\": \"A portable shortwave radio used for long-range communication.\"}\n]\n```\n\nIdentify and list all distinct narrative elements. For each, provide a brief one-sentence descriptor if available in the text. Output as a JSON list of objects, each with 'type' ('element'), 'name' (string), and 'descriptor' (string).\n\nREMEMBER: Do not add anything else to the response. Only respond with the JSON list.\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').",
+          "population_prompt": "Based on the provided story context, greeting, the first exchange, and the identified element, generate the full data for the element described here.\n\nDetermine the appropriate 'kind' for this element:\n- 'creature': A living non-character being\n- 'location': A place or area\n- 'item': An object or tool\n- 'resource': Consumable or material\n\nRelevant Schema for an Element:\n```json\n{{ schema_definition_json }}\n```\n\nExample JSON structure for an Element:\n```json\n{{ example_json }}\n```\n\nStory Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nPlease provide your response as a complete JSON object for this element.\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nEntry to populate: '{{ entity_name }}'\n\nDescriptor: {{ descriptor }}"
+        }
+      }
+    }
+  },
+  "subjects": {
+    "characters": "Characters",
+    "groups": "Groups",
+    "elements": "Elements",
+    "current_scene": "CurrentScene",
+    "events": "Events",
+    "general_info": "GeneralInfo",
+    "arcs": "Arcs"
+  },
+  "subject_routing": {
+    "characters": "Named people or beings who speak, act, or recur — protagonists, antagonists, witnesses, named animals or pets, and anyone with a role or relationship. Unnamed crowds belong in groups instead.",
+    "groups": "Named or unnamed groups, organizations, factions, committees, crowds, or teams of people acting together.",
+    "elements": "Objects, locations, resources, and non-speaking creatures that serve as props, obstacles, or scenery. NEVER put a named person or a speaking/recurring being here — those belong in characters. Organizations belong in groups, past narrative events in events.",
+    "current_scene": "Live scene metadata (where the story currently is) — not a store of new entities.",
+    "events": "Significant past or off-screen narrative events that shaped the story — not ongoing scene beats.",
+    "general_info": "World-level writing style and background — not entities.",
+    "arcs": "High-level narrative arcs — not entities."
+  }
+}

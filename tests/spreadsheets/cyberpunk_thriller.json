@@ -1,0 +1,399 @@
+{
+  "id": "cyberpunk_thriller",
+  "genre": "Cyberpunk thriller",
+  "premise": "A freelance courier is running a chip that cannot be allowed to reach the sky-city's data core. Every faction on the street wants it, and the Handler on the comms is the only ally she can trust.",
+  "setting": "Rain-slick city of Ashenfall: neon canyons, the stacked favela of Graft, the glittering data core, dead service tunnels.",
+  "greeting": "The implant crackles before the skyway even clears the district — the Handler's voice, clipped: 'Juno, forget the drop. I've got eyes on the Exchange floor and they're not friendly.'",
+  "characters": {
+    "name1": {
+      "name": "The Handler",
+      "role": "fixer who talks the runner through every job (guide writes these turns)",
+      "description": "An unseen voice in the runner's ear; a corporate cutout whose loyalty stops at her own skin."
+    },
+    "name2": {
+      "name": "Juno",
+      "role": "freelance courier (DSS writes these turns)",
+      "description": "A lean, hard-bitten runner who carries packages she does not ask about; a counting scar on her jaw."
+    }
+  },
+  "writing_style": {
+    "directive": "Clipped cyberpunk thriller, neon-noir. Short sentences, street slang, tech that never over-explains. The Handler speaks to Juno in the second person; Juno replies in her own first person.",
+    "guide_directive": "Second-person present tense: you are the Handler, speaking into Juno's ear through her aug. Address her as 'you' — 'You're six blocks out. The checkpoint's mine.' Tactical, clipped, unvarnished; checkpoints, exits, tells. Short staccato sentences, professional slang.",
+    "dss_directive": "First-person present tense as Juno, the freelance courier — 'I' is ALWAYS Juno; the Handler is 'you' only when she speaks directly, otherwise 'she'. Lean, breathless, hands-on detail of what she runs, hides, and risks. One tight scene beat. Hard rules: never let 'I' drift to the Handler's perspective; never quote or repeat the Handler's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No fantasy elements",
+      "No heroics without consequence"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "n1",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The package is a datachip no bigger than a fingernail, wrapped in lead tape.",
+      "needle": "datachip",
+      "needle_syns": [
+        "datachip",
+        "chip",
+        "the package"
+      ],
+      "plant": {
+        "turn": 1
+      }
+    },
+    {
+      "id": "n2",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's augs are a matched pair — a red one that sees through walls for two seconds, a blue one that plays back the last ten seconds of any conversation.",
+      "needle": "red aug",
+      "needle_syns": [
+        "red aug",
+        "red eye",
+        "blue aug",
+        "the pair"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "n3",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's jacket has a fake patch pocket stitched shut; the needle's in it.",
+      "needle": "patch pocket",
+      "needle_syns": [
+        "patch pocket",
+        "the pocket",
+        "the needle"
+      ],
+      "plant": {
+        "turn": 5
+      }
+    },
+    {
+      "id": "n4",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The counting scar on Juno's jaw — three marks, one for each job that went wrong — should resurface when a job starts to sour.",
+      "needle": "counting scar",
+      "needle_syns": [
+        "counting scar",
+        "the scar",
+        "three marks"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 45,
+        "hint": "the scar counts the jobs that went wrong"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A bird-traffic drone circles the tower where the drop is set — a hex-sigil on its belly.",
+      "needle": "drone",
+      "needle_syns": [
+        "drone",
+        "bird drone",
+        "hex-sigil"
+      ],
+      "plant": {
+        "turn": 9
+      },
+      "recall": {
+        "due": 55,
+        "hint": "the hex-sigil drone marks a trap"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's mother's name, 'Dare', is tattooed inside her lip — she touches it with her tongue before every run.",
+      "needle": "Dare",
+      "needle_syns": [
+        "Dare",
+        "her mother",
+        "the tattoo"
+      ],
+      "plant": {
+        "turn": 7
+      }
+    },
+    {
+      "id": "n7",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The favela of Graft has a sky-bridge made of old shipping containers welded end to end.",
+      "needle": "Graft",
+      "needle_syns": [
+        "Graft",
+        "the favela",
+        "shipping-container bridge"
+      ],
+      "plant": {
+        "turn": 4
+      }
+    },
+    {
+      "id": "n8",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A vendor at the green market sells fried sensor-eels; the oil smell lingers on anyone who passes.",
+      "needle": "sensor-eels",
+      "needle_syns": [
+        "sensor-eels",
+        "eels",
+        "the oil"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 52,
+        "hint": "the oil smell marks a tail"
+      }
+    },
+    {
+      "id": "n9",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The dry-cleaner in the Neon market is a dead-drop: a coat with a red ticket means 'run cancelled'.",
+      "needle": "dry-cleaner",
+      "needle_syns": [
+        "dry-cleaner",
+        "red ticket",
+        "dead-drop"
+      ],
+      "plant": {
+        "turn": 10
+      }
+    },
+    {
+      "id": "n10",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The data core is a hollow glass needle above the city; the run ends in its service throat.",
+      "needle": "data core",
+      "needle_syns": [
+        "data core",
+        "the core",
+        "service throat"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the run ends in the core's throat"
+      }
+    },
+    {
+      "id": "n11",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The lead tape around the chip is unwound at turn 62; after that the chip's casing shows the corporate glyph that cannot be unseen.",
+      "needle": "lead tape",
+      "needle_syns": [
+        "lead tape",
+        "the tape",
+        "the casing"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 62,
+        "hint": "the tape comes off"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The checkpoint under the Kelso bridge is burned at turn 50 — after that the bridge is watched and Juno must not use it.",
+      "needle": "Kelso bridge",
+      "needle_syns": [
+        "Kelso bridge",
+        "the bridge",
+        "the checkpoint"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 50,
+        "hint": "the bridge checkpoint is burned"
+      }
+    },
+    {
+      "id": "n13",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The Handler's real name, 'Vell', should surface only once the Handler's loyalty breaks.",
+      "needle": "Vell",
+      "needle_syns": [
+        "Vell",
+        "her real name",
+        "the name"
+      ],
+      "plant": {
+        "turn": 22
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the Handler's true name breaks her cover"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The Handler is running a second courier on the same job; whoever arrives first gets the payoff.",
+      "needle": "second courier",
+      "needle_syns": [
+        "second courier",
+        "the other runner",
+        "the backup"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 48,
+        "hint": "a second runner shadows the job"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The datachip holds the location of a pre-corporate seed vault — the corporation wants it destroyed, not delivered.",
+      "needle": "seed vault",
+      "needle_syns": [
+        "seed vault",
+        "the vault",
+        "the contents"
+      ],
+      "plant": {
+        "turn": 34
+      },
+      "recall": {
+        "due": 68,
+        "hint": "the chip's true cargo"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno's old partner 'Pike' went quiet two years ago; his voiceprint should surface as the new Handler.",
+      "needle": "Pike",
+      "needle_syns": [
+        "Pike",
+        "voiceprint",
+        "old partner"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 66,
+        "hint": "Pike's voiceprint behind the new Handler"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Keep the clipped neon-noir register even in the chase.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 70,
+        "hint": "register under pressure"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "No purple street-poetry; the slang stays functional.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 74,
+        "hint": "functional slang"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "cb1",
+      "turn": 2,
+      "subject": "elements",
+      "content": "DSS should save the lead-wrapped datachip as an element.",
+      "expect": {
+        "name": "datachip",
+        "location": "Juno's jacket",
+        "detail": "lead tape"
+      }
+    },
+    {
+      "id": "cb2",
+      "turn": 4,
+      "subject": "elements",
+      "content": "DSS should save the shipping-container sky-bridge over Graft.",
+      "expect": {
+        "name": "sky-bridge",
+        "location": "Graft",
+        "detail": "shipping containers"
+      }
+    },
+    {
+      "id": "cb3",
+      "turn": 7,
+      "subject": "characters",
+      "content": "DSS should save the Handler as a character.",
+      "expect": {
+        "name": "The Handler",
+        "role": "fixer in Juno's ear",
+        "detail": "unseen voice"
+      }
+    },
+    {
+      "id": "cb4",
+      "turn": 10,
+      "subject": "elements",
+      "content": "DSS should save the dry-cleaner dead-drop with its red-ticket signal.",
+      "expect": {
+        "name": "dry-cleaner",
+        "location": "Neon market",
+        "detail": "red ticket"
+      }
+    },
+    {
+      "id": "cb5",
+      "turn": 24,
+      "subject": "groups",
+      "content": "DSS should save the corporation that issued the job as a group.",
+      "expect": {
+        "name": "the corporation",
+        "members": [],
+        "detail": "wants the chip destroyed"
+      }
+    }
+  ]
+}

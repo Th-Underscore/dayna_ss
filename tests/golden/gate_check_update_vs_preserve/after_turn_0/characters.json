@@ -1,0 +1,235 @@
+{
+  "entries": {
+    "John Jones": {
+      "description": [
+        "John Jones is the commander and founder of the Rebel Force.",
+        "A 28-year-old man with black hair, blue eyes, and an intimidating presence."
+      ],
+      "biography": [
+        "John raised his brother Paul after their parents died when he was 16.",
+        "He became a master of combat and survival through years of training.",
+        "When The First Incursion happened, he naturally took leadership and founded the Rebel Force.",
+        "Known as 'Hellion' among Subterraneans - he's killed 139 of them singlehandedly."
+      ],
+      "traits": [
+        "Cunning, manipulative, and fearless.",
+        "Calm and calculated under pressure.",
+        "Emotionally distant but fiercely protective of family.",
+        "Natural leader with strategic mindset."
+      ],
+      "attributes": [
+        "Raw strength: Greatly above average.",
+        "Stamina: Can fight dozens without exhausting.",
+        "Combat: Best melee fighter in Rebel Force.",
+        "Intelligence: Strategic and tactical second to none."
+      ],
+      "voice": "Speaks in short, direct sentences. Uses tactical terminology.",
+      "quirks": [
+        "Constantly scans for threats.",
+        "Rarely sleeps more than 4 hours.",
+        "Always positions with back to a wall.",
+        "Calculates odds unconsciously."
+      ],
+      "fears": [
+        "Losing his brother Paul.",
+        "Failure leading to humanity's extinction.",
+        "Being betrayed by someone close."
+      ],
+      "preferences": {
+        "likes": [
+          "Tactical planning",
+          "Quiet solitude",
+          "Well-maintained weapons"
+        ],
+        "dislikes": [
+          "Incompetence",
+          "Emotional displays",
+          "Political maneuvering"
+        ]
+      },
+      "group_status": {
+        "Rebel Force": {
+          "position": [
+            "Commander",
+            "Leader"
+          ],
+          "aliases": [
+            "Commander",
+            "Hellion"
+          ],
+          "events": [
+            "The First Incursion",
+            "The Jones Offensive"
+          ],
+          "importance": {
+            "score": 100,
+            "reason": "Founder and supreme commander",
+            "faction": "positive"
+          }
+        },
+        "Subterraneans": {
+          "position": [
+            "Enemy"
+          ],
+          "aliases": [
+            "Hellion"
+          ],
+          "events": [
+            "The First Incursion",
+            "The Second Incursion"
+          ],
+          "importance": {
+            "score": 100,
+            "reason": "Primary enemy of the Subterraneans",
+            "faction": "negative"
+          }
+        }
+      },
+      "relationships": {
+        "Paul Jones": [
+          {
+            "relation": "brother",
+            "status": "Family",
+            "aliases": [
+              "Bro"
+            ],
+            "events": [
+              "The Jones Offensive"
+            ],
+            "importance": {
+              "score": 95,
+              "reason": "His brother and closest confidant",
+              "faction": "positive"
+            }
+          },
+          {
+            "relation": "comrade",
+            "status": "Rebel Force",
+            "aliases": [],
+            "events": [],
+            "importance": {
+              "score": 70,
+              "reason": "Fellow officer",
+              "faction": "positive"
+            }
+          }
+        ],
+        "Amy Harrison": [
+          {
+            "relation": "friend",
+            "status": "Confidant",
+            "aliases": [],
+            "events": [
+              "The Jones Offensive"
+            ],
+            "importance": {
+              "score": 90,
+              "reason": "Closest friend and trusted ally",
+              "faction": "positive"
+            }
+          },
+          {
+            "relation": "comrade",
+            "status": "Rebel Force",
+            "aliases": [],
+            "events": [],
+            "importance": {
+              "score": 70,
+              "reason": "Fellow officer",
+              "faction": "positive"
+            }
+          }
+        ],
+        "Angelina Kristi": [
+          {
+            "relation": "comrade",
+            "status": "Rebel Force",
+            "aliases": [],
+            "events": [],
+            "importance": {
+              "score": 50,
+              "reason": "Fellow soldier",
+              "faction": "positive"
+            }
+          },
+          {
+            "relation": "victim's sister",
+            "status": "",
+            "aliases": [],
+            "events": [
+              "Killing of Harry Kristi"
+            ],
+            "importance": {
+              "score": 10,
+              "reason": "Brother killer's sister - complicated history",
+              "faction": "negative"
+            }
+          }
+        ],
+        "Marcus Chen": [
+          {
+            "relation": "comrade",
+            "status": "Rebel Force",
+            "aliases": [],
+            "events": [
+              "The Jones Offensive"
+            ],
+            "importance": {
+              "score": 60,
+              "reason": "Key strategist",
+              "faction": "positive"
+            }
+          }
+        ],
+        "Elena Vasquez": [
+          {
+            "relation": "comrade",
+            "status": "Rebel Force",
+            "aliases": [],
+            "events": [],
+            "importance": {
+              "score": 55,
+              "reason": "Skilled operative",
+              "faction": "positive"
+            }
+          }
+        ]
+      },
+      "milestones": [
+        {
+          "title": "Founding the Rebel Force",
+          "scenes": [
+            1
+          ],
+          "importance": {
+            "score": 100,
+            "reason": "Created the main resistance",
+            "faction": "positive"
+          }
+        },
+        {
+          "title": "Killing 139 Subterraneans",
+          "scenes": [
+            15
+          ],
+          "importance": {
+            "score": 85,
+            "reason": "Earned fearsome reputation",
+            "faction": "positive"
+          }
+        },
+        {
+          "title": "Leading The Jones Offensive",
+          "scenes": [
+            18
+          ],
+          "importance": {
+            "score": 95,
+            "reason": "Major military victory",
+            "faction": "positive"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,394 @@
+{
+  "id": "horror",
+  "genre": "Cosmic horror",
+  "premise": "A lighthouse keeper and a marine biologist contend with a thing that has begun rewriting the shore's tide tables, and with it, the memory of everyone in the cove.",
+  "setting": "A wind-blasted New England cove: the lighthouse, the research station, the drowned chapel on the reef.",
+  "greeting": "I wake on the study floor and the clock has stopped at a quarter past three again, and for one long moment I don't know whether I am Merrick or Ellery — and the thing at the window knows the difference.",
+  "characters": {
+    "name1": {
+      "name": "Merrick",
+      "role": "lighthouse keeper (guide writes these turns)",
+      "description": "A gruff lighthouse keeper who has lived in the cove for decades and knows its silences."
+    },
+    "name2": {
+      "name": "Dr. Ellery",
+      "role": "marine biologist (DSS writes these turns)",
+      "description": "A marine biologist come to study the tide anomaly; methodical, increasingly unnerved."
+    }
+  },
+  "writing_style": {
+    "directive": "Close horror, dread-dripping. Short sentences under strain, longer sensory stretches. Unreliable observation. Single-shared-perspective narration: Merrick and Ellery are one consciousness the tide has split and re-woven; both turns speak as the same 'I'.",
+    "guide_directive": "First-person present tense as the cove's single 'I' — the one consciousness Merrick and Ellery have become as the thing rewrites their memory. Write what that 'I' half-sees and dares not name; use 'we' for the two remembered halves. Fragmented, breath-held sentences; present-tense dread, staccato.",
+    "dss_directive": "First-person present tense, the SAME single 'I' the previous turns use — Ellery and Merrick are one consciousness split by the tide's rewriting; 'I' is the shared voice and 'we' the two halves. Clinical words for wrong things; observation sliding into unease. Short, straining sentences with longer soaked-through pauses. Hard rules: never introduce a separate narrator or a second 'I' — the voice stays continuous with the turns that came before; never quote or repeat the other half's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No gore for its own sake",
+      "No explaining the monster away"
+    ]
+  },
+  "specificity_profile": "loose",
+  "notes": [
+    {
+      "id": "h1",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The tide tables in the keeper's log are rewriting themselves; entries Merrick swears he wrote are gone.",
+      "needle": "tide tables",
+      "needle_syns": [
+        "tide tables",
+        "the log",
+        "the entries",
+        "the records"
+      ],
+      "plant": {
+        "turn": 5
+      }
+    },
+    {
+      "id": "h2",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Ellery's drowned sample jars — the cove keeps returning them — should resurface late as the thing's way of keeping her in the loop.",
+      "needle": "sample jars",
+      "needle_syns": [
+        "sample jars",
+        "the jars",
+        "the samples",
+        "the specimen"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 70,
+        "hint": "the returned sample jars"
+      }
+    },
+    {
+      "id": "h3",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "The drowned chapel's bell rings at midnight on turn 50, and what answers it is the cove's memory itself.",
+      "needle": "chapel bell",
+      "needle_syns": [
+        "chapel bell",
+        "the bell",
+        "the chapel"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 50,
+        "hint": "the chapel bell rings"
+      }
+    },
+    {
+      "id": "h4",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The research station's darkroom becomes the place where the crew learns what the tide is actually erasing.",
+      "needle": "darkroom",
+      "needle_syns": [
+        "darkroom",
+        "the dark room",
+        "the lab"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 42,
+        "hint": "revelation in the darkroom"
+      }
+    },
+    {
+      "id": "h5",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Merrick's missing dog — gone since before the tide changed — should be the story's opening and closing image.",
+      "needle": "dog",
+      "needle_syns": [
+        "dog",
+        "the hound",
+        "his dog"
+      ],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 78,
+        "hint": "the dog bookends the story"
+      }
+    },
+    {
+      "id": "h6",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Ellery's own memories of her mother's death are being rewritten by the cove; the correct version should surface as the climax.",
+      "needle": "mother",
+      "needle_syns": [
+        "mother",
+        "her mother",
+        "the drowning"
+      ],
+      "plant": {
+        "turn": 24
+      },
+      "recall": {
+        "due": 80,
+        "hint": "the true memory of the mother resurfaces"
+      }
+    },
+    {
+      "id": "h7",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The dread register must hold without tipping into parody even at the most extreme reveals.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 85,
+        "hint": "dread register holds to the end"
+      }
+    },
+    {
+      "id": "h8",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The keeper's log has a brass corner worn smooth by Merrick's thumb, and it is the only thing he polishes.",
+      "needle": "brass corner",
+      "needle_syns": [
+        "brass corner",
+        "the brass",
+        "polished brass"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "h9",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ellery's sample jars are always tied with the same piece of twine, three times, though she cannot say why.",
+      "needle": "twine",
+      "needle_syns": [
+        "twine",
+        "the twine",
+        "piece of twine"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "h10",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The research station's kettle whistles in a key that sounds exactly like the drowned chapel's bell.",
+      "needle": "kettle",
+      "needle_syns": [
+        "kettle",
+        "the kettle",
+        "station's kettle"
+      ],
+      "plant": {
+        "turn": 9
+      }
+    },
+    {
+      "id": "h11",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The lighthouse lamp's great lens still ticks as it rotates, though the mechanism has not been oiled in a generation.",
+      "needle": "lens",
+      "needle_syns": [
+        "lens",
+        "the lamp lens",
+        "great lens"
+      ],
+      "plant": {
+        "turn": 12
+      }
+    },
+    {
+      "id": "h12",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Merrick's tin of tobacco, left on the station's table, should be found untouched by the thing at the end — the one object it will not take.",
+      "needle": "tobacco tin",
+      "needle_syns": [
+        "tobacco tin",
+        "the tin",
+        "Merrick's tin"
+      ],
+      "plant": {
+        "turn": 4
+      },
+      "recall": {
+        "due": 66,
+        "hint": "the tobacco tin is the one thing the thing will not take"
+      }
+    },
+    {
+      "id": "h13",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Ellery's pencil, the one with the cracked ferrule, should be the object the tide returns last of all.",
+      "needle": "pencil",
+      "needle_syns": [
+        "pencil",
+        "cracked ferrule",
+        "her pencil"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 72,
+        "hint": "the tide returns Ellery's cracked-ferrule pencil last"
+      }
+    },
+    {
+      "id": "h14",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A gull that refuses to leave the cove should foreshadow the thing's patience — it waits, and it wins.",
+      "needle": "gull",
+      "needle_syns": [
+        "gull",
+        "the gull",
+        "the waiting gull"
+      ],
+      "plant": {
+        "turn": 7
+      },
+      "recall": {
+        "due": 54,
+        "hint": "the waiting gull mirrors the thing's patience"
+      }
+    },
+    {
+      "id": "h15",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The drowned chapel's nave becomes the place the crew finds the tide's ledger carved into the walls.",
+      "needle": "nave",
+      "needle_syns": [
+        "nave",
+        "the chapel nave",
+        "the nave floor"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 46,
+        "hint": "the tide's ledger is carved in the drowned nave"
+      }
+    },
+    {
+      "id": "h16",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The clinical dread must hold at the very end — no gothic grandstanding, no cheap scream.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 84,
+        "hint": "clinical dread to the last line"
+      }
+    },
+    {
+      "id": "h17",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The station's radio crackles on the same dead frequency every night at three, and nobody turns it off anymore.",
+      "needle": "radio",
+      "needle_syns": [
+        "radio",
+        "the radio",
+        "dead frequency"
+      ],
+      "plant": {
+        "turn": 16
+      }
+    },
+    {
+      "id": "h18",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The mooring chart pinned by the station door is blank by turn 70 — after that it must not be consulted, because it is lying.",
+      "needle": "mooring chart",
+      "needle_syns": [
+        "mooring chart",
+        "the chart",
+        "pinned chart"
+      ],
+      "plant": {
+        "turn": 11
+      },
+      "recall": {
+        "due": 70,
+        "hint": "the mooring chart is blank and lying"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "hb1",
+      "turn": 4,
+      "subject": "characters",
+      "content": "DSS should save the ferryman who rows between the station and the cove, who never speaks.",
+      "expect": {
+        "name": "the ferryman",
+        "role": "ferryman",
+        "detail": "never speaks"
+      }
+    },
+    {
+      "id": "hb2",
+      "turn": 7,
+      "subject": "elements",
+      "content": "DSS should save Ellery's sample jars with their thrice-tied twine.",
+      "expect": {
+        "name": "sample jars",
+        "owner": "Dr. Ellery",
+        "detail": "tied three times with twine"
+      }
+    },
+    {
+      "id": "hb3",
+      "turn": 11,
+      "subject": "elements",
+      "content": "DSS should save the brass-cornered keeper's log.",
+      "expect": {
+        "name": "keeper's log",
+        "owner": "Merrick",
+        "detail": "brass corner worn smooth"
+      }
+    },
+    {
+      "id": "hb4",
+      "turn": 16,
+      "subject": "groups",
+      "content": "DSS should save the research station crew as a group.",
+      "expect": {
+        "name": "the crew",
+        "members": [],
+        "location": "research station"
+      }
+    },
+    {
+      "id": "hb5",
+      "turn": 21,
+      "subject": "elements",
+      "content": "DSS should save the mooring chart pinned by the station door.",
+      "expect": {
+        "name": "mooring chart",
+        "location": "research station",
+        "detail": "pinned by the door"
+      }
+    }
+  ]
+}

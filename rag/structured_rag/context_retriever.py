@@ -13,29 +13,29 @@ from os import PathLike
 
 from ...utils.schema_parser import SchemaWrapper
 
-from llama_index.core import (
-    VectorStoreIndex,
-    StorageContext,
-)
-from llama_index.core.node_parser import SimpleNodeParser
-from llama_index.core.indices.loading import load_index_from_storage
-
-# HuggingFaceEmbedding will be background imported
-from llama_index.core.settings import Settings
-from llama_index.core.schema import TextNode
-
 
 if TYPE_CHECKING:
     import nltk
     import spacy
     from spacy.tokens import Doc
+    from llama_index.core import VectorStoreIndex, StorageContext
+    from llama_index.core.node_parser import SimpleNodeParser
+    from llama_index.core.indices.loading import load_index_from_storage
+    from llama_index.core.settings import Settings
+    from llama_index.core.schema import TextNode
     from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-    from extensions.dayna_ss_graph.agents.summarizer import Summarizer
+    from ...agents.summarizer import Summarizer
 else:
     nltk = None
     spacy = None
     Doc = None
     HuggingFaceEmbedding = None
+    VectorStoreIndex = None
+    StorageContext = None
+    SimpleNodeParser = None
+    load_index_from_storage = None
+    Settings = None
+    TextNode = None
 
 from ...utils.helpers import (
     _ERROR,
@@ -59,24 +59,15 @@ from .entity_graph import EntityGraph
 
 start_background_import("nltk")
 start_background_import("spacy")
+start_background_import("llama_index.core")
+start_background_import("llama_index.core.node_parser", "SimpleNodeParser")
+start_background_import("llama_index.core.indices.loading", "load_index_from_storage")
+start_background_import("llama_index.core.settings", "Settings")
+start_background_import("llama_index.core.schema", "TextNode")
 start_background_import("llama_index.embeddings.huggingface", "HuggingFaceEmbedding")
 
 
-@dataclass
-class DecayConfig:
-    method: str = "path_min_gated"
-    decay_exponent: float = 0.4
-    broad_threshold: int = 42
-    final_threshold: int = 75
-
-    convergence_enabled: bool = True
-    pull_rate: float = 0.4
-
-    re_traverse_enabled: bool = True
-    re_traverse_threshold: int = 65
-    re_traverse_min_importance: int = 42
-
-    max_depth: int = 10
+from .decay_config import DecayConfig
 
 
 @dataclass
@@ -95,6 +86,17 @@ class RetrievalContext:
     character_status: dict[str, dict] = field(default_factory=dict)
     character_milestones: dict[str, list[dict]] = field(default_factory=dict)
     relevant_entities: dict[str, dict[str, float]] = field(default_factory=dict)
+    # Full stored events (unfiltered) as a separate view from the capped
+    # ``events`` render block, so scene-boundary/scene-key consumers never lose
+    # far-away archived scenes to the selection cap.
+    events_full: dict[str, dict] = field(default_factory=dict)
+
+
+# Recency window (in message-index units) promoted ahead of pure-similarity RAG
+# ranking: messages within this of the newest message outrank older ones, which
+# stops the retriever re-serving STALE beats (measured: the pact-hall beat was
+# [1] at consecutive checkpoints) underneath the physically-recent beats.
+_RAG_RECENCY_MESSAGES = 15
 
 
 class StoryContextRetriever:
@@ -288,6 +290,179 @@ class StoryContextRetriever:
 
         return relevant_events
 
+    def _select_relevant_events(
+        self,
+        context: str,
+        characters: list[str],
+        groups: dict[str, dict],
+        current_scene: dict | None,
+        max_events: int = 8,
+    ) -> dict[str, dict | list]:
+        """Data-driven events selection for the retrieval context.
+
+        This is the READ-side counterpart to the write-side events storage. The
+        old path could only surface events that happened to exist as entity-graph
+        milestone edges AND returned them in an ``{"entries": ...}`` shape the
+        format template never reads — so the events block rendered ZERO sections
+        even when events.json was full. Selection is: (1) name/alias match
+        against the query context, (2) events of the CURRENT scene (start at/after
+        the scene's opening message node), (3) recency fill (freshest remaining)
+        up to max_events. Returns the FULL category shape the events format
+        template renders (``{past, scenes, events, chapters, entries}``).
+        """
+        by_cat: dict[str, dict] = {}
+        for bucket in ("past", "scenes", "events", "chapters"):
+            bd = self._get_field_value(self.events, "Event", bucket, {}) or {}
+            by_cat[bucket] = {k: v for k, v in bd.items() if isinstance(v, dict)} if isinstance(bd, dict) else {}
+
+        def _node_idx(data: dict) -> int:
+            try:
+                node = (data.get("start") or {}).get("_message_node", "")
+                return int(str(node).split("_")[0]) if node else -1
+            except Exception:
+                return -1
+
+        # flattened name -> (category, data)
+        flat: list[tuple[str, str, dict]] = []
+        for cat, bucket in by_cat.items():
+            flat.extend((n, cat, d) for n, d in bucket.items())
+
+        ctx_n = context.casefold()
+        picked: list[tuple[str, str, dict]] = []
+        picked_keys: set[str] = set()
+        # 1) name/alias match against the query context
+        for name, cat, data in flat:
+            if name in picked_keys:
+                continue
+            aliases = data.get("aliases")
+            if not isinstance(aliases, (list, tuple)):
+                aliases = []
+            hay = " ".join(
+                str(x).casefold()
+                for x in [name, data.get("formal_name"), *aliases]
+                if x
+            )
+            if hay and (hay in ctx_n or name.casefold() in ctx_n):
+                picked.append((name, cat, data))
+                picked_keys.add(name)
+        # 2) current scene's own events (started at/after its opening)
+        cs_start = -1
+        if isinstance(current_scene, dict):
+            node = (current_scene.get("start") or {}).get("_message_node", "") or current_scene.get("_message_node", "")
+            if node:
+                try:
+                    cs_start = int(str(node).split("_")[0])
+                except Exception:
+                    cs_start = -1
+        if cs_start >= 0:
+            for name, cat, data in flat:
+                if name not in picked_keys and _node_idx(data) >= cs_start:
+                    picked.append((name, cat, data))
+                    picked_keys.add(name)
+        # 3) recency fill (freshest first)
+        if len(picked) < max_events:
+            rest = [(n, c, d) for n, c, d in flat if n not in picked_keys]
+            rest.sort(key=lambda t: _node_idx(t[2]), reverse=True)
+            for name, cat, data in rest:
+                if len(picked) >= max_events:
+                    break
+                picked.append((name, cat, data))
+                picked_keys.add(name)
+
+        result: dict[str, dict | list] = {}
+        for bucket, bd in by_cat.items():
+            result[bucket] = {n: d for n, c, d in picked if c == bucket}
+            if bucket == "chapters":
+                # chapters is a LIST[Chapter] in the schema; keep the original
+                # list shape (the template iterates it as a sequence).
+                result[bucket] = [d for n, c, d in picked if c == bucket]
+        result["entries"] = {n: d for n, c, d in picked}
+        return result
+
+    def _load_message_summaries(self) -> list[tuple[int, str]]:
+        """[(message_idx, text)] from the chunker's summary nodes, ascending,
+        deduped by message_idx (newest write wins). None-safe.
+        """
+        try:
+            chunker = getattr(self, "chunker", None)
+            index = getattr(chunker, "index", None)
+            docs = getattr(index, "docstore", None)
+            if docs is None:
+                return []
+            by_idx: dict[int, str] = {}
+            for node in getattr(docs, "docs", {}).values():
+                meta = getattr(node, "metadata", None) or {}
+                if not meta.get("is_summary"):
+                    continue
+                idx = meta.get("message_idx")
+                if not isinstance(idx, int) or idx < 0:
+                    continue
+                text = getattr(node, "text", None) or ""
+                if isinstance(text, str) and text.strip():
+                    by_idx[idx] = text.strip()
+            return sorted(by_idx.items())
+        except Exception:
+            return []
+
+    def _recent_state_map(self, names: list[str]) -> dict[str, str]:
+        """Freshest story fragment mentioning each name -> {name: text}.
+
+        This is the per-entity 'latest state' surface: cards whose stored
+        description went stale (the blade stayed 'oilcloth-wrapped' 10 turns
+        after baring) still show what the STORY actually did with them most
+        recently, from the message summaries (dense, recent) with a stored
+        events fallback. Text is truncated to a compact line.
+        """
+        result: dict[str, str] = {}
+        summaries = self._load_message_summaries()
+        tokenized: list[tuple[int, set[str], str]] = []
+        for idx, text in summaries:
+            words = set(re.sub(r"[^a-z0-9 ]", " ", text.casefold()).split())
+            tokenized.append((idx, words, text))
+        for name in names:
+            if not name:
+                continue
+            nf = name.casefold()
+            hit = None
+            for idx, words, text in reversed(tokenized):  # newest first
+                if " " in name:
+                    m = nf in text.casefold()
+                else:
+                    m = nf in words
+                if m:
+                    hit = (idx, text.strip())
+                    break
+            if hit:
+                result[name] = "[msg %d] %s" % (hit[0], hit[1][:220])
+                continue
+            # events fallback: freshest event/scene whose text mentions the entity
+            combined: dict[str, dict] = {}
+            for bucket in ("past", "scenes", "events"):
+                bd = self._get_field_value(self.events, "Event", bucket, {}) or {}
+                if isinstance(bd, dict):
+                    combined.update({k: v for k, v in bd.items() if isinstance(v, dict)})
+
+            def _node(v: dict) -> int:
+                try:
+                    node = (v.get("start") or {}).get("_message_node", "")
+                    return int(str(node).split("_")[0]) if node else -1
+                except Exception:
+                    return -1
+
+            best = None
+            best_idx = -1
+            for k, v in combined.items():
+                blob = " ".join(str(x) for x in [k, v.get("summary"), v.get("catalyst"), v.get("outcome")] if x)
+                if nf in blob.casefold():
+                    idx = _node(v)
+                    if idx > best_idx:
+                        best_idx = idx
+                        best = (k, v)
+            if best:
+                k, v = best
+                result[name] = "[%s] %s" % (k, str(v.get("summary") or v.get("catalyst") or "")[:220])
+        return result
+
     def _get_message_chunks(self, scene_name: str = None) -> list[str]:
         """Retrieve relevant message chunks based on scene or context."""
         messages = []
@@ -306,15 +481,68 @@ class StoryContextRetriever:
         return messages
 
     def query_messages(self, query: str, n_results: int = 5) -> tuple[list[str], list[dict]]:
-        """Query messages using semantic search.
+        """Query message chunks with semantic search, re-ranked for RECENCY.
+
+        Raw similarity over a long history re-serves STALE beats (measured: the
+        pact-hall beat stayed a top hit at consecutive checkpoints because the
+        query re-describes the same subject matter). This fetches more candidates
+        and re-ranks by how fresh each message is: messages within
+        _RAG_RECENCY_MESSAGES of the newest outrank anything older; within a
+        recency band, the raw similarity order is kept; summary nodes are
+        preferred per message (they carry the compressed 'what happened').
 
         Returns:
             tuple of (messages, metadata)
         """
-        results = self.chunker.query_similar(query, n_results=n_results)
-        messages = results.get("documents", []) if results else []
-        metadata = results.get("metadatas", []) if results else []
-        return messages, metadata
+        try:
+            candidate_n = max(n_results * 6, 30)
+            results = self.chunker.query_similar(query, n_results=candidate_n)
+            docs = results.get("documents", []) or []
+            metas = results.get("metadatas", []) or []
+            if not docs:
+                return [], []
+
+            def _idx(meta: dict) -> int:
+                v = meta.get("message_idx")
+                return v if isinstance(v, int) and v >= 0 else -1
+
+            max_idx = max((_idx(m) for m in metas), default=-1)
+            # Similarity order preserved as a tiebreak (position-based, so no
+            # score-polarity assumption across retriever backends).
+            # Sort key: band (0 recent / 1 older / 2 unknown) -> newest idx
+            # first -> summary-node preference -> original similarity position.
+            final: list[tuple[int, int, int, int, str, dict]] = []
+            for pos, (doc, meta) in enumerate(zip(docs, metas)):
+                idx = _idx(meta)
+                if idx < 0:
+                    final.append((2, 0, 0, pos, str(doc), meta or {}))
+                elif max_idx - idx <= _RAG_RECENCY_MESSAGES:
+                    final.append((0, -idx, -1 if meta.get("is_summary") else 0, pos, str(doc), meta or {}))
+                else:
+                    final.append((1, -idx, -1 if meta.get("is_summary") else 0, pos, str(doc), meta or {}))
+            final.sort(key=lambda t: (t[0], t[1], t[2], t[3]))
+            # Dedupe by message_idx, preferring the summary node for each index.
+            chosen_messages: list[str] = []
+            chosen_metadata: list[dict] = []
+            seen_idx: set[int] = set()
+            for _b, _neg, _sp, _p, doc, meta in final:
+                idx = _idx(meta)
+                if idx >= 0 and idx in seen_idx:
+                    continue
+                if idx >= 0:
+                    seen_idx.add(idx)
+                chosen_messages.append(doc)
+                chosen_metadata.append(meta)
+                if len(chosen_messages) >= n_results:
+                    break
+            return chosen_messages, chosen_metadata
+        except Exception as e:
+            print(f"{_WARNING}query_messages re-rank failed ({e}); falling back to raw similarity{_RESET}")
+            try:
+                results = self.chunker.query_similar(query, n_results=n_results)
+                return (results.get("documents", []) or []), (results.get("metadatas", []) or [])
+            except Exception:
+                return [], []
 
     def _load_json(self, path: Path) -> dict:
         """Load and parse a JSON file."""
@@ -344,7 +572,19 @@ class StoryContextRetriever:
         if char_rels:
             print(f"{_GRAY}relationships{_RESET}: {char_rels}")
             for related_char, rel_list in char_rels.items():
-                important_rels = [rel for rel in rel_list if self._get_importance(rel, "Character", "relationships") >= importance_threshold]
+                # The dotted-name split bug (no [brackets] around "Mrs.
+                # Arbuthnot") left rel_list as a dict keyed by the second part
+                # ({"Arbuthnot": [...]}) or a bare string. Normalize those so one
+                # malformed entry can never abort the whole subject scan.
+                if isinstance(rel_list, dict):
+                    rel_list = [r for v in rel_list.values() for r in (v if isinstance(v, list) else [v])]
+                elif not isinstance(rel_list, list):
+                    continue
+                important_rels = [
+                    rel for rel in rel_list
+                    if isinstance(rel, dict)
+                    and self._get_importance(rel, "Character", "relationships") >= importance_threshold
+                ]
                 if important_rels:
                     rels[related_char] = important_rels
 
@@ -415,6 +655,11 @@ class StoryContextRetriever:
                 # Get important relationships
                 if hasattr(self, 'entity_graph') and self.entity_graph:
                     graph_rels = self.entity_graph.get_important_relationships(char_name, importance_threshold)
+                    # Milestone rows (field_name='milestones') are EVENT links,
+                    # not person-to-person relationships; rendering them under a
+                    # "Relationships ---" label mislabels scene titles as bonds.
+                    graph_rels = [r for r in (graph_rels or [])
+                                  if getattr(r, 'field_name', 'relationships') == 'relationships']
                     if graph_rels:
                         important_rels = {}
                         for rel in graph_rels:
@@ -445,6 +690,20 @@ class StoryContextRetriever:
                 new_char_rels = dict(char_rels)
                 new_char_rels.update(important_rels)
                 char_data["relationships"] = new_char_rels
+
+                # Attach the milestone/event links that were just filtered out
+                # of relationships as their OWN field so character_list can
+                # render them under a truthful label.
+                if not char_data.get("relevant_milestones"):
+                    ms: list[dict] = []
+                    if hasattr(self, 'entity_graph') and self.entity_graph:
+                        try:
+                            ms = self.entity_graph.get_character_milestones(
+                                char_name, min_importance=importance_threshold
+                            ) or []
+                        except Exception:
+                            ms = []
+                    char_data["relevant_milestones"] = ms[:6]
                 result[char_name] = char_data
 
                 for related_char in important_rels:
@@ -863,6 +1122,8 @@ class StoryContextRetriever:
         Returns:
             Importance score (0-100) or 0 if not found
         """
+        if not isinstance(item_data, dict):
+            return 0
         if self.schema_wrapper:
             score = self._get_nested_field_value(item_data, item_type, "importance.score", None)
             if isinstance(score, int):
@@ -1017,29 +1278,99 @@ class StoryContextRetriever:
             unified_events = list(unified_result.get(event_key, {}).keys())
             print(f"{_DEBUG}unified aggregation: {len(unified_chars)} chars, {len(unified_groups)} groups, {len(unified_events)} events{_RESET}")
 
-            result.characters = self._get_all_relevant_character_relationships(list(unified_chars))
-            print(f"{_DEBUG}characters retrieved: {type(result.characters)}, count: {len(result.characters) if result.characters else 0}{_RESET}")
-            groups_entries = self._get_entries(self.groups, "Group")
-            result.groups = {"entries": {g: groups_entries.get(g, {}) for g in unified_groups}}
-            print(f"{_DEBUG}groups retrieved: {type(result.groups)}, count: {len(result.groups) if result.groups else 0}{_RESET}")
-            result.elements = self._get_relevant_elements(scene_characters, context_to_search)
-            print(f"{_DEBUG}elements retrieved: {type(result.elements)}, count: {len(result.elements) if result.elements else 0}{_RESET}")
+            def _safe_subject(label: str, fn):
+                try:
+                    return fn()
+                except Exception as e:
+                    print(f"{_ERROR}retrieve_context: {label} extraction failed ({type(e).__name__}: {e}); continuing with partial subject.{_RESET}")
+                    traceback.print_exc()
+                    return None
 
-            scenes = self._get_field_value(self.events, "Event", "scenes", {})
-            events = self._get_field_value(self.events, "Event", "events", {})
-            past = self._get_field_value(self.events, "Event", "past", {})
+            result.characters = _safe_subject(
+                "characters",
+                lambda: self._get_all_relevant_character_relationships(list(unified_chars)),
+            ) or {}
+            print(f"{_DEBUG}characters retrieved: type={type(result.characters).__name__}, count: {len(result.characters) if result.characters else 0}{_RESET}")
+            groups_entries = self._get_entries(self.groups, "Group")
+            result.groups = _safe_subject(
+                "groups",
+                lambda: {"entries": {g: groups_entries.get(g, {}) for g in unified_groups}},
+            ) or {}
+            print(f"{_DEBUG}groups retrieved: type={type(result.groups).__name__}, count: {len(result.groups) if result.groups else 0}{_RESET}")
+            result.elements = _safe_subject(
+                "elements",
+                lambda: self._get_relevant_elements(scene_characters, context_to_search),
+            ) or {}
+            print(f"{_DEBUG}elements retrieved: type={type(result.elements).__name__}, count: {len(result.elements) if result.elements else 0}{_RESET}")
+
+            scenes = self._get_field_value(self.events, "Event", "scenes", {}) or {}
+            events = self._get_field_value(self.events, "Event", "events", {}) or {}
+            past = self._get_field_value(self.events, "Event", "past", {}) or {}
             events_dict = {**scenes, **events, **past}
-            result.events = {"entries": {e: events_dict.get(e, {}) for e in unified_events}}
-            print(f"{_DEBUG}events retrieved: {type(result.events)}, count: {len(result.events) if result.events else 0}{_RESET}")
+            events_selected = _safe_subject(
+                "events",
+                lambda: self._select_relevant_events(
+                    context_to_search, scene_characters,
+                    result.groups, current_scene,
+                ),
+            ) or {}
+            # Union with the graph-aggregation picks so edges never drop a
+            # relevant stored event, but the data-driven selection is primary.
+            if isinstance(events_selected, dict):
+                cat_of: dict[str, str] = {}
+                for _cat, _src in (("scenes", scenes), ("events", events), ("past", past)):
+                    if isinstance(_src, dict):
+                        for k in _src:
+                            cat_of[k] = _cat
+                for e in unified_events:
+                    if e in events_selected.get("entries", {}) or e not in events_dict or not isinstance(events_dict[e], dict):
+                        continue
+                    _cat = cat_of.get(e)
+                    if not _cat:
+                        continue
+                    events_selected.setdefault(_cat, {})[e] = events_dict[e]
+                    events_selected["entries"][e] = events_dict[e]
+            result.events = events_selected
+            # Uncapped bucketed view for boundary/scene-key consumers (the capped
+            # ``events`` block must not lose far-away archived scenes to them).
+            full_chapters = self._get_field_value(self.events, "Event", "chapters", {}) or {}
+            result.events_full = {
+                "past": past, "scenes": scenes, "events": events,
+                "chapters": full_chapters if isinstance(full_chapters, list) else (list(full_chapters.values()) if isinstance(full_chapters, dict) else []),
+            }
+            print(f"{_DEBUG}events retrieved: selected={len(events_selected.get('entries', {}))}/{len(events_dict)} ({list(events_selected.get('entries', {}))[:3]}...){_RESET}")
 
             if self.arcs:
-                result.arcs = self.arcs
-                print(f"{_DEBUG}arcs retrieved: {type(result.arcs)}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
+                result.arcs = _safe_subject("arcs", lambda: self.arcs) or {}
+                print(f"{_DEBUG}arcs retrieved: type={type(result.arcs).__name__}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
 
             chapters_data = self._get_field_value(self.events, "Event", "chapters", {})
             if chapters_data:
-                result.chapters = chapters_data
-                print(f"{_DEBUG}chapters retrieved: {type(result.chapters)}, count: {len(result.chapters) if result.chapters else 0}{_RESET}")
+                result.chapters = _safe_subject("chapters", lambda: chapters_data) or {}
+                print(f"{_DEBUG}chapters retrieved: type={type(result.chapters).__name__}, count: {len(result.chapters) if result.chapters else 0}{_RESET}")
+
+            # 3c: per-entity 'current state' annotation. Entries are copied so the
+            # stored JSON is never polluted; each entry gains a `_recent_state`
+            # line (rendered by the format templates) = the freshest story
+            # fragment mentioning the entity.
+            try:
+                recent_names = [str(n) for n in scene_characters + scene_elements]
+                recent_map = self._recent_state_map(recent_names)
+                if recent_map:
+                    for subject_key in ("characters", "elements", "groups"):
+                        subj = getattr(result, subject_key, None) or {}
+                        entries = subj.get("entries") if isinstance(subj, dict) else None
+                        if not isinstance(entries, dict):
+                            continue
+                        for ename, edata in list(entries.items()):
+                            rs = recent_map.get(str(ename))
+                            if rs and isinstance(edata, dict) and "_recent_state" not in edata:
+                                edata = dict(edata)
+                                edata["_recent_state"] = rs
+                                entries[ename] = edata
+            except Exception as _e:
+                print(f"{_ERROR}recent-state annotation failed: {_e}{_RESET}")
+                traceback.print_exc()
 
             result.character_status, result.character_milestones = self._get_all_relevant_status_and_milestones(
                 scene_characters, self.groups, self.characters, self.events, current_scene
@@ -1077,659 +1408,4 @@ class StoryContextRetriever:
         return result
 
 
-from typing import Any
-
-
-class MessageChunker:
-    # Class-level singletons to avoid reloading heavy resources
-    _embed_model = None
-    _nlp = None
-    _nltk_downloaded = False
-    _spacy_model_downloaded = False
-    _initialized = False
-    _warning_suppressed = False
-
-    @classmethod
-    def _init_shared_resources(cls):
-        """Initialize shared resources (embed model, spaCy, NLTK) only once."""
-        if cls._initialized:
-            return
-
-        # Suppress MPNet warning
-        if not cls._warning_suppressed:
-            warnings.filterwarnings("ignore", message=".*position_ids.*")
-            logging.getLogger("sentence_transformers").setLevel(logging.ERROR)
-            logging.getLogger("transformers.modeling_utils").setLevel(logging.ERROR)
-            cls._warning_suppressed = True
-
-        # Get background imported modules
-        if not TYPE_CHECKING:
-            global nltk, spacy, HuggingFaceEmbedding
-            if any((nltk is None, spacy is None, HuggingFaceEmbedding is None)):
-                nltk = get_imported_attribute("nltk")
-                spacy = get_imported_attribute("spacy")
-                HuggingFaceEmbedding = get_imported_attribute("llama_index.embeddings.huggingface", "HuggingFaceEmbedding")
-
-        # Download NLTK data and load model once
-        if not cls._nltk_downloaded:
-            nltk_data_path = Path("user_data/nltk_data")
-            nltk.data.path.append(nltk_data_path.resolve())
-            nltk.download("punkt", download_dir=nltk_data_path, quiet=True)
-            nltk.download("punkt_tab", download_dir=nltk_data_path, quiet=True)
-            cls._nltk_downloaded = True
-
-        if cls._embed_model is None:
-            cls._embed_model = HuggingFaceEmbedding(
-                model_name="sentence-transformers/all-mpnet-base-v2"
-                # model_name="sentence-transformers/all-MiniLM-L6-v2"
-            )
-            Settings.embed_model = cls._embed_model
-
-        if cls._nlp is None:
-            try:
-                cls._nlp = spacy.load("en_core_web_sm")
-            except OSError:
-                print(f"{_BOLD}Downloading spaCy model...{_RESET}")
-                import subprocess
-                subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"], check=True)
-                cls._nlp = spacy.load("en_core_web_sm")
-
-        cls._initialized = True
-
-    def __init__(
-        self,
-        history_path: PathLike,
-        characters_data: dict[str, Any],
-        groups_data: dict[str, Any],
-        elements_data: dict[str, Any],
-        events_data: dict[str, Any],
-        current_scene_data: dict[str, Any],
-        summarizer: 'Summarizer' | None = None,
-        use_llm_for_speakers: bool = True,
-    ):
-        print(f"{_BOLD}Initializing MessageChunker...{_RESET}")
-
-        MessageChunker._init_shared_resources()
-
-        # Use class-level shared resources
-        self.nlp = MessageChunker._nlp
-        self.summarizer = summarizer
-        # TODO: Make configurable via UI toggle
-        self.use_llm_for_speakers = use_llm_for_speakers
-
-        self.history_path = Path(history_path)
-        self.storage_dir = self.history_path / "message_index"
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
-
-        # Store provided data
-        self.characters_data = characters_data
-        self.groups_data = groups_data
-        self.elements_data = elements_data
-        self.events_data = events_data
-        self.current_scene_data = current_scene_data
-
-        # Initialize or load existing index
-        try:
-            self.storage_context = StorageContext.from_defaults(persist_dir=str(self.storage_dir))
-            self.index = load_index_from_storage(
-                storage_context=self.storage_context,
-            )
-        except Exception:
-            self.index = VectorStoreIndex([])
-            self.index.storage_context.persist(persist_dir=str(self.storage_dir))
-
-        self.parser = SimpleNodeParser.from_defaults()
-
-        # Load character patterns for pronoun resolution
-        self.pronoun_character_patterns = self._load_pronoun_character_patterns()
-
-        # Create simpler name/alias patterns for direct entity matching
-        self.character_name_patterns = self._create_name_alias_patterns(self.characters_data, main_name_key_is_dict_key=True)
-        self.group_name_patterns = self._create_name_alias_patterns(self.groups_data, main_name_key_is_dict_key=True)
-        self.element_name_patterns = self._create_name_alias_patterns(self.elements_data, main_name_key_is_dict_key=True)
-        self.event_name_patterns = self._create_event_name_patterns(self.events_data)
-
-    DIALOGUE_VERBS = {
-        "say",
-        "tell",
-        "ask",
-        "reply",
-        "shout",
-        "whisper",
-        "exclaim",
-        "mutter",
-        "state",
-        "declare",
-        "respond",
-        "add",
-        "continue",
-        "begin",
-        "murmur",
-        "interject",
-        "question",
-        "answer",
-        "stammer",
-        "insist",
-        "suggest",
-        "warn",
-    }
-
-    def _create_name_alias_patterns(
-        self,
-        entity_data: dict[str, dict[str, Any]],
-        main_name_key_is_dict_key: bool = True,
-    ) -> dict[str, re.Pattern]:
-        """Creates regex patterns for entity names and their aliases."""
-        patterns = {}
-        if not entity_data:
-            return patterns
-        for main_name, data in entity_data.items():
-            names_to_match = [main_name]
-            if isinstance(data, dict) and "aliases" in data:
-                aliases = data.get("aliases", [])
-                if isinstance(aliases, list):
-                    names_to_match.extend(aliases)
-
-            # Filter out empty strings and ensure uniqueness
-            unique_names = sorted(list(set(filter(None, names_to_match))), key=len, reverse=True)
-            if unique_names:
-                # Pattern to match whole words, case-insensitive
-                pattern_str = r"\b(" + "|".join(re.escape(name) for name in unique_names) + r")\b"
-                patterns[main_name] = re.compile(pattern_str, flags=re.IGNORECASE)
-        return patterns
-
-    def _create_event_name_patterns(self, events_data: dict[str, list[dict[str, Any]]]) -> dict[str, re.Pattern]:
-        """Creates regex patterns for event names."""
-        patterns = {}
-        if not events_data:
-            return patterns
-
-        event_names = []
-        for event_list_key in [
-            "past",
-            "scenes",
-            "events",
-        ]:  # Iterate through different event categories
-            for event_item in events_data.get(event_list_key, []):
-                if isinstance(event_item, dict) and "name" in event_item:
-                    event_names.append(event_item["name"])
-
-        unique_event_names = sorted(list(set(filter(None, event_names))), key=len, reverse=True)
-        if unique_event_names:
-            for name in unique_event_names:  # Create a pattern for each unique event name
-                # Pattern to match whole words, case-insensitive
-                pattern_str = r"\b(" + re.escape(name) + r")\b"
-                patterns[name] = re.compile(pattern_str, flags=re.IGNORECASE)
-        return patterns
-
-    def _extract_entities(self, text: str, entity_patterns: dict[str, re.Pattern]) -> list[str]:
-        """Extract unique entity names from text using provided patterns."""
-        found_entities = set()
-        for entity_name, pattern in entity_patterns.items():
-            if pattern.search(text):
-                found_entities.add(entity_name)
-        return list(found_entities)
-
-    def _determine_speakers(self, paragraph_text: str) -> list[str]:
-        """Determine speakers from text using LLM (primary) with regex "Name:" as quick pre-filter."""
-        speakers = set()
-        doc = self.nlp(paragraph_text)
-
-        # 1. Check for "Name: Dialogue" format line by line
-        lines = paragraph_text.split("\n")
-        char_patterns_for_speakers = {
-            name: pattern for name, pattern in self.character_name_patterns.items() if isinstance(pattern, re.Pattern)
-        }
-        group_patterns_for_speakers = {
-            name: pattern for name, pattern in self.group_name_patterns.items() if isinstance(pattern, re.Pattern)
-        }
-        # Primarily, characters are speakers. Groups might be if they have a collective voice represented.
-        speaker_name_patterns = {
-            **char_patterns_for_speakers,
-            **group_patterns_for_speakers,
-        }
-
-        for line in lines:
-            stripped_line = line.strip()
-            if not stripped_line:
-                continue
-
-            for name, pattern_obj in speaker_name_patterns.items():
-                match = pattern_obj.match(stripped_line)
-                if match and match.start() == 0:  # Pattern matches at the beginning of the line
-                    # Check if the character(s) immediately following the match is a colon
-                    if stripped_line[match.end() :].strip().startswith(":"):
-                        speakers.add(name)
-                        break  # Found speaker for this line by "Name:" pattern
-
-        # Use LLM for speaker extraction if enabled (more accurate than regex/spaCy)
-        # TODO: Make configurable via UI toggle
-        if self.use_llm_for_speakers and self.summarizer:
-            try:
-                prompt = f'''Analyze the following text in context and identify the names of the character(s) who are speaking.
-
-Respond with a JSON array of character names:
-["Character1", "Character2", ...]
-
-Text:
-```
-{paragraph_text}
-```
-
-Do not include generic terms like "you", "someone", "they". Only include characters that are explicitly or implicitly mentioned as speaking. Do not include characters who are only being addressed but not speaking.'''
-                response_text, _ = self.summarizer.generate_with_sse(prompt, self.summarizer.last.custom_state, "determine_speakers", "speakers_llm", None)
-                if response_text:
-                    try:
-                        llm_speakers = jsonc.loads(response_text.strip())
-                        if isinstance(llm_speakers, list):
-                            speakers.update(llm_speakers)
-                    except jsonc.JSONDecodeError:
-                        pass
-            except Exception:
-                pass
-
-        if not speakers:
-            # 2. Fall back to spaCy-based analysis for quoted speech and other dialogue indicators within sentences
-            for sent in doc.sents:
-                # Basic check for quotes. More sophisticated quote detection might be needed for complex cases.
-                has_quote = (
-                    '"' in sent.text
-                    or "'" in sent.text
-                    or "“" in sent.text
-                    or "”" in sent.text
-                    or "‘" in sent.text
-                    or "’" in sent.text
-                )
-
-                for token in sent:
-                    # Check for dialogue verbs
-                    if token.lemma_.lower() in self.DIALOGUE_VERBS and token.pos_ == "VERB":
-                        # Find subject of the verb (potential speaker)
-                        subject_token = None
-                        for child in token.children:
-                            if child.dep_ == "nsubj":
-                                subject_token = child
-                                break
-
-                        if subject_token:
-                            # Extract text of the subject (could be a single name or a phrase)
-                            # We can check the subject token itself or its subtree for more complex subjects.
-                            subject_text = subject_token.text
-                            potential_speakers_from_subject = self._extract_entities(subject_text, self.character_name_patterns)
-                            for speaker_name in potential_speakers_from_subject:
-                                if has_quote:
-                                    speakers.add(speaker_name)
-
-                        # Additionally, check for character names directly preceding/following quotes if not caught by subject-verb
-                        # This part can be expanded with more rules.
-                        # For example, if token is a quote, check previous/next tokens for names.
-
-                if has_quote and not speakers.intersection(self._extract_entities(sent.text, self.character_name_patterns)):
-                    chars_in_sentence_with_quote = self._extract_entities(sent.text, self.character_name_patterns)
-                    for char_name in chars_in_sentence_with_quote:
-                        # A more robust check would analyze proximity to quote marks.
-                        speakers.add(char_name)  # This might over-generate, needs refinement or context.
-
-        return list(speakers)
-
-    def _load_pronoun_character_patterns(self) -> dict[str, dict]:
-        """Load character patterns for pronoun resolution from self.characters_data."""
-        if not self.characters_data:
-            return {}
-
-        patterns = {}
-        for char_name, char_data in self.characters_data.items():
-            names = [char_name]
-            if isinstance(char_data, dict) and "aliases" in char_data:
-                aliases = char_data.get("aliases", [])
-                if isinstance(aliases, list):
-                    names.extend(aliases)
-
-            sex = char_data.get("sex") if isinstance(char_data, dict) else None
-            pronouns = []
-            if sex == "male":
-                pronouns = ["he", "him", "his", "himself"]
-            elif sex == "female":
-                pronouns = ["she", "her", "hers", "herself"]
-            else:
-                pronouns = ["they", "them", "their", "theirs", "themself", "themselves"]
-            patterns[char_name] = {
-                "names": list(set(filter(None, names))),  # Ensure unique and non-empty
-                "pronouns": pronouns,
-            }
-        return patterns
-
-    def _detect_character_references(self, text: str, doc: "Doc" = None) -> list[tuple[str, list[str]]]:
-        """Detect character references in text, including pronouns."""
-        if doc is None:
-            doc = self.nlp(text)
-
-        references = []
-
-        # Track the last mentioned character for pronoun resolution
-        last_character = None
-        possible_characters = set()
-
-        for token in doc:
-            # Direct name matches
-            matched_char = None
-            for char_name, char_data in self.pronoun_character_patterns.items():
-                if any(name.lower() in token.text.lower() for name in char_data["names"]):
-                    matched_char = char_name
-                    last_character = char_name
-                    possible_characters = {char_name}
-                    break
-
-            # Pronoun handling
-            if token.pos_ == "PRON" or (token.pos_ == "DET" and token.dep_ == "poss"):  # Include possessive determiners
-                pron = token.text.lower()
-                matching_chars = []
-
-                # If we have a recent character mention and the pronoun matches
-                if last_character:
-                    char_data = self.pronoun_character_patterns.get(last_character, {})
-                    if pron in char_data.get("pronouns", []):
-                        matching_chars = [last_character]
-
-                # If no match with recent character, find all possible matches
-                if not matching_chars:
-                    for char_name, char_data in self.pronoun_character_patterns.items():
-                        if pron in char_data["pronouns"]:
-                            matching_chars.append(char_name)
-
-                if matching_chars:
-                    # For reflexive pronouns (himself/herself/themselves), strongly prefer the last character
-                    if pron.endswith("self") and last_character in matching_chars:
-                        matching_chars = [last_character]
-
-                    # Update possible characters for this reference
-                    if len(matching_chars) == 1:
-                        possible_characters = {matching_chars[0]}
-                        last_character = matching_chars[0]
-                    else:
-                        possible_characters.update(matching_chars)
-
-                    references.append((token.text, list(possible_characters)))
-
-            elif matched_char:
-                references.append((token.text, [matched_char]))
-
-        return references
-
-    def _tag_character_references(self, text: str) -> str:
-        """Tag character references in text with possible character names."""
-        doc = self.nlp(text)
-        references = self._detect_character_references(text, doc)
-
-        # Sort references by position (longest matches first to avoid nested replacements)
-        references.sort(key=lambda x: len(x[0]), reverse=True)
-
-        # Replace references with tagged versions
-        tagged_text = text
-        for ref_text, possible_chars in references:
-            if len(possible_chars) == 1:
-                replacement = f"{ref_text} [{possible_chars[0]}]"
-            elif len(possible_chars) > 1:
-                chars_str = "/".join(possible_chars)
-                replacement = f"{ref_text} [{chars_str}]"
-            tagged_text = tagged_text.replace(ref_text, replacement)
-
-        return tagged_text
-
-    def chunk_message(self, message: str, message_idx: int, current_timestamp: str, do_determine_speakers: bool = True) -> list:
-        """Split message into chunks at different granularities, enrich with metadata."""
-        chunks = []
-
-        # Determine characters present in the current scene once
-        scene_active_characters = []
-        if self.current_scene_data and isinstance(self.current_scene_data.get("now"), dict) and isinstance(self.current_scene_data["now"].get("who"), dict):
-            characters = self.current_scene_data["now"]["who"].get("characters")
-            if isinstance(characters, dict):
-                for char_info in characters.values():
-                    if isinstance(char_info, dict) and "name" in char_info:
-                        scene_active_characters.append(char_info["name"])
-            elif isinstance(characters, list):
-                for char_info in characters:
-                    if isinstance(char_info, dict) and "name" in char_info:
-                        scene_active_characters.append(char_info["name"])
-
-        # Split into paragraphs
-        paragraphs = [p.strip() for p in message.split("\n\n") if p.strip()]
-
-        for para_idx, paragraph in enumerate(paragraphs, start=1):
-            # Split paragraph into sentences
-            sentences = nltk.sent_tokenize(paragraph)
-
-            if do_determine_speakers:
-                paragraph_speakers = self._determine_speakers(paragraph)
-            else:
-                paragraph_speakers = []  # Unknown; caller should treat empty as unknown
-
-            for sent_idx, sentence_text in enumerate(sentences, start=1):
-                chunk_id = f"{message_idx}_{para_idx}_{sent_idx}"
-                speakers = paragraph_speakers
-
-                # Extract entities directly mentioned in the current sentence
-                characters_mentioned_in_sentence = self._extract_entities(sentence_text, self.character_name_patterns)
-                groups_referenced_in_sentence = self._extract_entities(sentence_text, self.group_name_patterns)
-                elements_referenced_in_sentence = self._extract_entities(sentence_text, self.element_name_patterns)
-                events_referenced_in_sentence = self._extract_entities(sentence_text, self.event_name_patterns)
-
-                subjects_referenced = {
-                    "characters": characters_mentioned_in_sentence,
-                    "groups": groups_referenced_in_sentence,
-                    "elements": elements_referenced_in_sentence,
-                    "events": events_referenced_in_sentence,
-                }
-
-                chunks.append(
-                    {
-                        "id": chunk_id,
-                        "text": sentence_text,
-                        "indices": [message_idx, para_idx, sent_idx],
-                        "timestamp": current_timestamp,
-                        "speakers": speakers,
-                        "characters_present": scene_active_characters,
-                        "subjects_referenced": subjects_referenced,
-                        "scene_id": None,  # To be filled later
-                        "scene_number": self.current_scene_data.get("_scene_number"),
-                        "chapter_number": self.current_scene_data.get("_chapter_number"),
-                        "event_id": None,  # To be filled later
-                    }
-                )
-
-        return chunks
-
-    def query_similar(self, query: str, n_results: int = 5):
-        """Query similar chunks using LlamaIndex."""
-        retriever = self.index.as_retriever(similarity_top_k=n_results)
-        nodes = retriever.retrieve(query)
-
-        ids, documents, metadatas, distances = [], [], [], []
-        for node in nodes:
-            ids.append(node.node.id_)
-            documents.append(node.node.text)
-            metadatas.append(node.node.metadata)
-            distances.append(node.score)
-        results = {
-            "ids": ids,
-            "documents": documents,
-            "metadatas": metadatas,
-            "distances": distances,
-        }
-        return results
-
-    def delete_message_chunks(self, message_idx: int):
-        """Delete all chunks for a given message index."""
-        # Get all nodes
-        all_nodes = self.index.docstore.docs
-
-        # Find nodes to delete
-        nodes_to_delete = []
-        for node_id, node in all_nodes.items():
-            if node.metadata["message_idx"] == message_idx:
-                nodes_to_delete.append(node_id)
-
-        # Delete nodes
-        for node_id in nodes_to_delete:
-            del self.index.docstore.docs[node_id]
-
-        # Persist changes
-        self.index.storage_context.persist(persist_dir=str(self.storage_dir))
-
-    def update_node_metadata_by_message_idx(
-        self, message_idx: int, metadata_updates: dict[str, Any], persist_dir: PathLike | None = None
-    ):
-        """Update metadata for all nodes associated with a message_idx."""
-        nodes_to_update = []
-        # node_ids_to_delete_for_update = [] # Not strictly needed if insert_nodes handles updates by ID
-
-        for node_id, node in self.index.docstore.docs.items():
-            if node.metadata.get("message_idx") == message_idx:
-                new_metadata = node.metadata.copy()
-                new_metadata.update(metadata_updates)
-
-                updated_node = TextNode(
-                    text=node.text,
-                    id_=node.id_,
-                    metadata=new_metadata,
-                    # relationships=node.relationships # Preserve relationships if any
-                )
-                nodes_to_update.append(updated_node)
-                # node_ids_to_delete_for_update.append(node_id)
-
-        if nodes_to_update:
-            self.index.insert_nodes(nodes_to_update)
-            self.index.storage_context.persist(persist_dir=str(persist_dir or self.storage_dir))
-            try:
-                print(f"{_SUCCESS}Updated metadata for {len(nodes_to_update)} nodes for message_idx {message_idx}{_RESET}")
-            except Exception as e:
-                print(f"{_ERROR}Error during post-update operations for message_idx {message_idx}: {e}{_RESET}")
-        else:
-            print(f"{_HILITE}No nodes found for message_idx {message_idx} to update metadata.{_RESET}")
-
-    def process_message(self, message: str, message_idx: int, current_timestamp: str, do_determine_speakers: bool = True) -> list:
-        """Process and store a new message. Overwrites existing chunks if message_idx exists."""
-        # Delete existing chunks for this message if any
-        self.delete_message_chunks(message_idx)
-
-        # Create and store new chunks
-        chunks = self.chunk_message(message, message_idx, current_timestamp, do_determine_speakers=do_determine_speakers)
-        self.store_chunks(chunks)
-        return chunks
-
-    def update_message_speakers(self, message_idx: int) -> bool:
-        """Update speakers for existing chunks of a message using current state.
-
-        Uses the current stored message text to re-determine speakers via LLM,
-        then updates the metadata for all chunks with that message_idx.
-
-        Args:
-            message_idx: The message index to update speakers for.
-
-        Returns:
-            bool: True if update succeeded, False otherwise.
-        """
-        try:
-            all_nodes = self.index.docstore.docs
-            message_chunks = []
-            for node_id, node in all_nodes.items():
-                if node.metadata.get("message_idx") == message_idx:
-                    message_chunks.append(node)
-
-            if not message_chunks:
-                print(f"{_WARNING}No chunks found for message_idx {message_idx} to update speakers.{_RESET}")
-                return False
-
-            message_chunks_sorted = sorted(message_chunks, key=lambda n: (
-                n.metadata.get("paragraph_idx", 0),
-                n.metadata.get("sentence_idx", 0),
-            ))
-
-            # Group chunks by paragraph to determine speakers per paragraph
-            paragraph_groups = []
-            current_para_idx = None
-            current_para_chunks = []
-            for chunk in message_chunks_sorted:
-                para_idx = chunk.metadata.get("paragraph_idx", 0)
-                if para_idx != current_para_idx and current_para_chunks:
-                    paragraph_groups.append((current_para_idx, current_para_chunks))
-                    current_para_chunks = []
-                current_para_idx = para_idx
-                current_para_chunks.append(chunk)
-            if current_para_chunks:
-                paragraph_groups.append((current_para_idx, current_para_chunks))
-
-            if not paragraph_groups:
-                print(f"{_WARNING}No text found in chunks for message_idx {message_idx}.{_RESET}")
-                return False
-
-            # Determine speakers per paragraph and update each paragraph's chunks
-            for para_idx, para_chunks in paragraph_groups:
-                para_sentences = [chunk.text for chunk in para_chunks if chunk.text]
-                para_text = " ".join(para_sentences).strip()
-
-                if para_text:
-                    speakers = self._determine_speakers(para_text)
-
-                    # Update metadata for all chunks in this paragraph
-                    for chunk in para_chunks:
-                        chunk.metadata["speakers"] = speakers
-
-            # Persist metadata changes
-            nodes_to_update = []
-            for chunk in message_chunks_sorted:
-                updated_node = TextNode(
-                    text=chunk.text,
-                    id_=chunk.id_,
-                    metadata=chunk.metadata,
-                )
-                nodes_to_update.append(updated_node)
-
-            if nodes_to_update:
-                self.index.insert_nodes(nodes_to_update)
-                self.index.storage_context.persist(persist_dir=str(self.storage_dir))
-
-            return True
-
-        except Exception as e:
-            print(f"{_ERROR}Error updating speakers for message_idx {message_idx}: {str(e)}{_RESET}")
-            traceback.print_exc()
-            return False
-
-    def store_chunks(self, chunks: list, persist_dir: PathLike | None = None):
-        """Store chunks using LlamaIndex."""
-
-        nodes = []
-        for chunk in chunks:
-            metadata = {
-                "message_idx": chunk["indices"][0],
-                "paragraph_idx": chunk["indices"][1],
-                "sentence_idx": chunk["indices"][2],
-                "timestamp": chunk.get("timestamp"),
-                "speakers": chunk.get("speakers", []),
-                "characters_present": chunk.get("characters_present", []),
-                "subjects_referenced": chunk.get("subjects_referenced", {}),
-                "scene_id": chunk.get("scene_id"),  # Will be None initially
-                "scene_number": chunk.get("scene_number"),  # Will be None initially
-                "chapter_number": chunk.get("chapter_number"),  # Will be None initially
-                "event_id": chunk.get("event_id"),  # Will be None initially
-                "is_summary": chunk.get("is_summary", False),
-            }
-
-            node = TextNode(text=chunk["text"], id_=chunk["id"], metadata=metadata)
-            nodes.append(node)
-
-        if nodes:  # Only insert if there are nodes to avoid errors with empty list
-            self.index.insert_nodes(nodes)
-            self.index.storage_context.persist(persist_dir=str(persist_dir or self.storage_dir))
-            # try:
-            #     import shutil
-
-            #     shutil.copytree(
-            #         self.storage_dir,
-            #         self.history_path / "message_index",
-            #         dirs_exist_ok=True,
-            #     )
-            # except Exception as e:
-            #     print(f"{_ERROR}Error copying message_index after storing chunks: {e}{_RESET}")
+from .message_chunker import MessageChunker  # re-export (summarizer imports it from here)

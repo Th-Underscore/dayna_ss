@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Technical architecture of DAYNA Story Summarizer (dayna_ss) - a schema-driven structured story-state memory engine for text-generation-webui. Covers the six-action subject engine, scene lifecycle, entity-graph retrieval, importance-weighted rendering, and prompt injection." />
+<meta name="keywords" content="text-generation-webui, extension, AI memory, architecture, schema-driven summarization, entity graph, context injection, RAG, structured story state" />
+<meta name="author" content="Mark Anderson" />
+<meta name="robots" content="index, follow" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="DAYNA Story Summarizer — System Architecture" />
+<meta property="og:description" content="Technical architecture of DSS: schema-driven subject engine, scene lifecycle, entity-graph retrieval, importance-weighted rendering, and prompt injection for text-generation-webui." />
+<title>DAYNA Story Summarizer — System Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0a0d12;
+    --bg-2:      #0f131a;
+    --panel:     #141923;
+    --panel-2:   #1a2030;
+    --line:      #232a3a;
+    --line-2:    #2e364a;
+    --ink:       #e6ecf5;
+    --ink-2:     #aeb6c7;
+    --ink-3:     #6b7385;
+    --mono:      "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+    --sans:      "Inter", system-ui, sans-serif;
+
+    /* HDR-safe palette — chroma trimmed to stay inside sRGB gamut
+       so HDR/wide-gamut browsers cannot over-brighten clamped colors. */
+    --c-events:  oklch(0.74 0.11 75);   /* amber */
+    --c-orch:    oklch(0.74 0.11 200);  /* cyan */
+    --c-director:oklch(0.74 0.11 290);  /* violet */
+    --c-reply:   oklch(0.74 0.11 310);  /* magenta-violet */
+    --c-scenes:  oklch(0.74 0.11 100);  /* lime */
+    --c-engine:  oklch(0.74 0.11 150);  /* green */
+    --c-trig:    oklch(0.74 0.11 130);  /* spring green */
+    --c-par:     oklch(0.74 0.11 180);  /* aqua */
+    --c-robust:  oklch(0.74 0.11 10);   /* coral */
+    --c-schema:  oklch(0.74 0.11 215);  /* periwinkle */
+    --c-imp:     oklch(0.76 0.11 90);   /* yellow */
+    --c-rag:     oklch(0.74 0.11 175);  /* teal */
+    --c-graph:   oklch(0.74 0.11 160);  /* mint-teal */
+    --c-index:   oklch(0.74 0.11 190);  /* sky-teal */
+    --c-inject:  oklch(0.74 0.11 240);  /* blue */
+    --c-store:   oklch(0.74 0.11 40);   /* orange */
+    --c-tools:   oklch(0.74 0.11 350);  /* pink */
+    --c-obs:     oklch(0.74 0.11 270);  /* indigo */
+    --c-final:   oklch(0.86 0.10 95);   /* bright */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-feature-settings: "ss01","cv11";
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(1200px 800px at 10% -10%, oklch(0.25 0.06 260 / 0.35), transparent 60%),
+      radial-gradient(1100px 700px at 110% 30%, oklch(0.25 0.06 320 / 0.25), transparent 60%),
+      radial-gradient(1000px 700px at 50% 120%, oklch(0.25 0.06 180 / 0.25), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  /* faint dotted grid */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .canvas {
+    position: relative;
+    z-index: 1;
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 56px 48px 96px;
+  }
+
+  /* SVG connector layer sits behind cards but in front of the body grid */
+  #connectors {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+  }
+  .masthead, .legend, .arch-grid, footer { position: relative; z-index: 2; }
+  .section, .final-node, .row-2, .row-2-eq { position: relative; z-index: 2; }
+
+  /* ── Masthead ───────────────────────────────────────────── */
+  .masthead {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: end;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 40px;
+  }
+  .masthead .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin-bottom: 14px;
+  }
+  .masthead h1 {
+    font-size: 56px;
+    line-height: 0.95;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(in oklch 120deg,
+      oklch(0.82 0.03 250) 0%,
+      oklch(0.72 0.09 268) 50%,
+      oklch(0.62 0.09 320) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .masthead .sub {
+    color: var(--ink-2);
+    font-size: 16px;
+    max-width: 760px;
+    margin-top: 14px;
+    line-height: 1.5;
+  }
+  .masthead .meta {
+    text-align: right;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .meta .row { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+  .meta .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-final); box-shadow: 0 0 12px var(--c-final); }
+  .meta .k { color: var(--ink-3); }
+  .meta .v { color: var(--ink); }
+
+  /* ── Legend ─────────────────────────────────────────────── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding: 14px 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    margin-bottom: 36px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+  .legend .item { display: inline-flex; align-items: center; gap: 8px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* ── Sections ──────────────────────────────────────────── */
+  .section {
+    --accent: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background:
+      linear-gradient(180deg, color-mix(in oklch, var(--accent) 4%, var(--panel)) 0%, var(--panel-2) 60%);
+    padding: 22px 22px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .section::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    box-shadow: 0 0 18px color-mix(in oklch, var(--accent) 70%, transparent);
+  }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--line-2);
+  }
+  .section-head .title-wrap { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .section-head .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border: 1px solid color-mix(in oklch, var(--accent) 50%, transparent);
+    border-radius: 999px;
+    background: color-mix(in oklch, var(--accent) 8%, transparent);
+  }
+  .section-head h2 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: -0.01em;
+    font-weight: 700;
+  }
+  .section-head .blurb {
+    color: var(--ink-3);
+    font-size: 12px;
+    font-family: var(--mono);
+    max-width: 540px;
+    text-align: right;
+    line-height: 1.55;
+  }
+
+  /* node grid */
+  .nodes { display: grid; gap: 12px; }
+  .nodes.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .nodes.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .nodes.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+  /* node card */
+  .node {
+    border: 1px solid var(--line-2);
+    border-radius: 10px;
+    background: var(--bg-2);
+    padding: 14px 14px 14px 16px;
+    position: relative;
+    transition: transform .15s ease, border-color .15s ease;
+  }
+  .node:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .node .ntitle {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .node .ntitle .tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--accent);
+    border: 1px solid color-mix(in oklch, var(--accent) 40%, transparent);
+    background: color-mix(in oklch, var(--accent) 6%, transparent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.06em;
+  }
+  .node .ntitle .file {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    margin-left: auto;
+  }
+  .node ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+    line-height: 1.6;
+  }
+  .node ul li {
+    padding-left: 14px;
+    position: relative;
+  }
+  .node ul li::before {
+    content: "";
+    position: absolute;
+    left: 2px; top: 8px;
+    width: 5px; height: 1px;
+    background: var(--ink-3);
+  }
+  .node ul li.k { color: color-mix(in oklch, var(--accent) 70%, var(--ink)); }
+  .node ul li.mute { color: var(--ink-3); }
+
+  /* big-zone wrapping for tiers / storage */
+  .zone {
+    border: 1px dashed var(--line-2);
+    border-radius: 10px;
+    padding: 14px;
+    background: linear-gradient(180deg, transparent, color-mix(in oklch, var(--accent) 3%, transparent));
+  }
+  .zone-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .zone-head .zh-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .zone-head .zh-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+  }
+
+  /* layout grid for the whole architecture */
+  .arch-grid {
+    display: grid;
+    gap: 22px;
+  }
+  .row-2 { display: grid; gap: 22px; grid-template-columns: 1.4fr 1fr; }
+  .row-2-eq { display: grid; gap: 22px; grid-template-columns: 1fr 1fr; }
+
+  /* Section-specific accents */
+  .s-events   { --accent: var(--c-events); }
+  .s-orch     { --accent: var(--c-orch); }
+  .s-director { --accent: var(--c-director); }
+  .s-reply    { --accent: var(--c-reply); }
+  .s-scenes   { --accent: var(--c-scenes); }
+  .s-engine   { --accent: var(--c-engine); }
+  .s-trig     { --accent: var(--c-trig); }
+  .s-par      { --accent: var(--c-par); }
+  .s-robust   { --accent: var(--c-robust); }
+  .s-schema   { --accent: var(--c-schema); }
+  .s-imp      { --accent: var(--c-imp); }
+  .s-rag      { --accent: var(--c-rag); }
+  .s-graph    { --accent: var(--c-graph); }
+  .s-index    { --accent: var(--c-index); }
+  .s-inject   { --accent: var(--c-inject); }
+  .s-store    { --accent: var(--c-store); }
+  .s-tools    { --accent: var(--c-tools); }
+  .s-obs      { --accent: var(--c-obs); }
+  .s-final    { --accent: var(--c-final); }
+
+  /* flow arrow rail — now hidden; replaced by SVG connectors */
+  .rail { display: none; }
+  .rail.legacy {
+    display: grid;
+    grid-template-columns: 24px 1fr;
+    gap: 14px;
+    align-items: center;
+    margin: -4px 0 -4px 12px;
+    color: var(--ink-3);
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+  }
+  .rail .glyph {
+    color: color-mix(in oklch, var(--rail-color, var(--ink-3)) 90%, white);
+    text-align: center;
+    font-size: 16px;
+    line-height: 1;
+  }
+  .rail span em {
+    font-style: normal;
+    color: var(--ink-2);
+  }
+
+  /* final node */
+  .final-node {
+    border: 1px solid color-mix(in oklch, var(--c-final) 60%, transparent);
+    border-radius: 14px;
+    padding: 28px 28px;
+    background:
+      radial-gradient(400px 200px at 50% 0%, color-mix(in oklch, var(--c-final) 15%, transparent), transparent 70%),
+      linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .final-node::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--c-final) 30%, transparent) 50%, transparent 100%);
+    height: 1px;
+    top: 0;
+  }
+  .final-node .label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--c-final);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .final-node .name {
+    font-weight: 800;
+    font-size: 30px;
+    letter-spacing: -0.01em;
+  }
+  .final-node .note {
+    margin-top: 10px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-2);
+  }
+
+  /* footnote / data-flow connectors row */
+  .flow-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    margin: 8px 0 -4px;
+  }
+  .flow-chip {
+    border: 1px solid var(--line-2);
+    border-left: 2px solid var(--accent, var(--ink-3));
+    border-radius: 6px;
+    background: var(--bg-2);
+    padding: 8px 10px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .flow-chip b {
+    color: var(--accent, var(--ink));
+    font-weight: 600;
+    display: block;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+
+  /* footer */
+  footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.06em;
+  }
+  footer .stamp { color: var(--ink-2); }
+  footer a { color: var(--ink-3); text-decoration: none; }
+  footer a:hover { color: var(--ink-2); }
+
+  /* small breakpoint adjustments */
+  @media (max-width: 1100px) {
+    .row-2, .row-2-eq { grid-template-columns: 1fr; }
+    .nodes.cols-3, .nodes.cols-4 { grid-template-columns: repeat(2, 1fr); }
+    .masthead { grid-template-columns: 1fr; }
+    .masthead .meta { text-align: left; }
+    .meta .row { justify-content: flex-start; }
+    .masthead h1 { font-size: 40px; }
+  }
+  @media (max-width: 640px) {
+    .nodes.cols-2, .nodes.cols-3, .nodes.cols-4 { grid-template-columns: 1fr; }
+    .canvas { padding: 32px 18px 64px; }
+  }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  <svg id="connectors" aria-hidden="true"></svg>
+
+  <!-- ── Masthead ───────────────────────────────────────── -->
+  <header class="masthead">
+    <div>
+      <div class="eyebrow">text-generation-webui Extension · System Architecture · v0.2</div>
+      <h1>DAYNA Story Summarizer</h1>
+      <p class="sub">A schema-driven structured story-state engine for long-form roleplay. After every exchange a
+      per-subject agent updates a persistent world model — characters, groups, elements, events, arcs — then retrieval,
+      rendering, and director instructions feed it back into the next prompt. The entire update logic lives in an editable
+      JSON schema, not in code.</p>
+    </div>
+    <div class="meta">
+      <div class="row"><span class="dot"></span><span class="k">status</span><span class="v">production</span></div>
+      <div class="row"><span class="k">engine</span><span class="v">6 schema actions · 3 trigger scopes</span></div>
+      <div class="row"><span class="k">subjects</span><span class="v">7 · defined by subjects_schema.json</span></div>
+      <div class="row"><span class="k">storage</span><span class="v">user_data/history/&lt;char&gt;/&lt;uid&gt;/&lt;hash24&gt;</span></div>
+      <div class="row"><span class="k">retrieval</span><span class="v">entity graph + vector index + live render</span></div>
+      <div class="row"><span class="k">concurrency</span><span class="v">serial or ThreadPool subject workers</span></div>
+    </div>
+  </header>
+
+  <!-- Legend -->
+  <div class="legend">
+    <span class="item"><span class="sw" style="background:var(--c-events)"></span>TGWUI Hooks</span>
+    <span class="item"><span class="sw" style="background:var(--c-orch)"></span>Orchestration</span>
+    <span class="item"><span class="sw" style="background:var(--c-director)"></span>Director · Instructions</span>
+    <span class="item"><span class="sw" style="background:var(--c-reply)"></span>Reply Pipeline</span>
+    <span class="item"><span class="sw" style="background:var(--c-scenes)"></span>Scene Lifecycle</span>
+    <span class="item"><span class="sw" style="background:var(--c-engine)"></span>Subject Engine</span>
+    <span class="item"><span class="sw" style="background:var(--c-trig)"></span>Trigger Machinery</span>
+    <span class="item"><span class="sw" style="background:var(--c-par)"></span>Parallelism</span>
+    <span class="item"><span class="sw" style="background:var(--c-robust)"></span>Robustness</span>
+    <span class="item"><span class="sw" style="background:var(--c-schema)"></span>Schema Interpreter</span>
+    <span class="item"><span class="sw" style="background:var(--c-imp)"></span>Importance</span>
+    <span class="item"><span class="sw" style="background:var(--c-rag)"></span>Retrieval</span>
+    <span class="item"><span class="sw" style="background:var(--c-store)"></span>Storage</span>
+    <span class="item"><span class="sw" style="background:var(--c-inject)"></span>Context Injection</span>
+    <span class="item"><span class="sw" style="background:var(--c-tools)"></span>Tools</span>
+    <span class="item"><span class="sw" style="background:var(--c-obs)"></span>Observability UI</span>
+    <span class="item"><span class="sw" style="background:var(--c-final)"></span>Final Prompt</span>
+  </div>
+
+  <div class="arch-grid">
+
+    <!-- ── 01 INPUT HOOKS ─────────────────────────────────── -->
+    <section class="section s-events" data-arch="input">
+      <div class="section-head">
+        <div class="title-wrap">
+          <span class="num">01 · Input</span>
+          <h2>⚡ TGWUI Event Hooks</h2>
+        </div>
+        <div class="blurb">Entry points monkey-patched into text-generation-webui — one turn, three interception points.</div>
+      </div>
+      <div class="nodes cols-4">
+        <div class="node">
+          <div class="ntitle">Input modifier <span class="tag">IH1</span><span class="file">script.py:81</span></div>
+          <ul>
+            <li>"NEXT SCENE:" → is_new_scene_turn</li>
+            <li>"NEXT CHAPTER:" / "NEXT ARC:" forces</li>
+            <li>primes first-turn retrieval if idle</li>
+            <li class="mute">prefixes stripped before the model sees them</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Prompt builder <span class="tag">IH2</span><span class="file">script.py:116</span></div>
+          <ul>
+            <li>custom_generate_chat_prompt replaces native builder</li>
+            <li>starts PhaseManager session · update_config</li>
+            <li>generate_instr_prompt → final prompt</li>
+            <li class="mute">user-input chunks saved immediately</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Reply wrapper <span class="tag">IH3</span><span class="file">script.py:450</span></div>
+          <ul>
+            <li>chat.generate_chat_reply monkey-patched</li>
+            <li>strip_thinking + meaningful-paragraph filter</li>
+            <li>banned_prefixes stripped ("{{char}}:"…)</li>
+            <li class="mute">visible = escaped internal reply</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Setup <span class="tag">IH4</span><span class="file">script.py:271</span></div>
+          <ul>
+            <li>configure_runtime() binds TGWUI internals</li>
+            <li>Summarizer(dss_config.json)</li>
+            <li>DSS tools registered + enabled-check gate</li>
+            <li class="k">SSE status server on :7870</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 02 ORCHESTRATION ───────────────────────────────── -->
+    <section class="section s-orch" data-arch="orch">
+      <div class="section-head">
+        <div class="title-wrap">
+          <span class="num">02 · Control</span>
+          <h2>🎛️ Orchestration — <code style="font-family:var(--mono);font-size:18px;color:var(--ink-2)">Summarizer</code></h2>
+        </div>
+        <div class="blurb">agents/summarizer.py — session identity, lazy bootstrap, caches, and guards shared by every turn.</div>
+      </div>
+      <div class="nodes cols-4">
+        <div class="node">
+          <div class="ntitle">Runtime seam <span class="tag">OR1</span><span class="file">runtime.py</span></div>
+          <ul>
+            <li>framework-agnostic singleton: model · stop_everything · generate_chat_prompt · encode</li>
+            <li class="mute">runtime_tgwui.py is the only module importing modules.*</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Session identity <span class="tag">OR2</span><span class="file">summarizer.py:2733</span></div>
+          <ul>
+            <li>history_path = history/&lt;char&gt;/&lt;unique_id&gt;/<span class="k">sha1(str(history))[:24]</span></li>
+            <li>path change → full re-bootstrap</li>
+            <li class="mute">schema + templates carried forward on rotation</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Lazy bootstrap <span class="tag">OR3</span><span class="file">summarizer.py:2326</span></div>
+          <ul>
+            <li>runs only when cache unset or path changed</li>
+            <li>builds SchemaParser + StoryContextRetriever</li>
+            <li>new chat → initial-world cache seeding</li>
+            <li class="mute">result cached in self.last for the whole session</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Per-turn caches <span class="tag">OR4</span><span class="file">summarizer.py:382</span></div>
+          <ul>
+            <li>SummarizationContextCache: retrieval ctx · seed · flags</li>
+            <li>instructions.json keyed by str(seed)</li>
+            <li>seed −1 → random draw; original_seed restored after</li>
+            <li class="k">_last_good_subjects wipe-guard (t13 fix)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 03 + 04 DIRECTOR + REPLY ───────────────────────── -->
+    <div class="row-2">
+      <section class="section s-director" data-arch="director">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">03 · Steering</span>
+            <h2>🎯 Director — Instruction Generation</h2>
+          </div>
+          <div class="blurb">An LLM-written directive per turn tells the model how to write its next reply.</div>
+        </div>
+        <div class="nodes cols-2">
+          <div class="node">
+            <div class="ntitle">Prompt composition <span class="tag">DR1</span><span class="file">summarizer.py:1089</span></div>
+            <ul>
+              <li>authoritative current-scene recap block</li>
+              <li>user input wrapped in triple quotes</li>
+              <li>numbered requirements 1–14: imperative mood to {{char}} · plain paragraphs · length from writing_style · weave established entities · concrete advancement · no premature conclusions · ≤3 beats · STRICT IMAGERY RULE</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">ROLE BINDING <span class="tag">DR2</span><span class="file">summarizer.py:1250</span></div>
+            <ul>
+              <li>{{char}} = protagonist writing the reply</li>
+              <li>{{user}} = whose turn just ended — never swap</li>
+              <li class="k">style must stay {{char}}'s own voice</li>
+              <li class="mute">never purely atmospheric; no turn-passing endings</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Anti-repeat ring <span class="tag">DR3</span><span class="file">summarizer.py:157</span></div>
+            <ul>
+              <li>last 8 instruction blocks tracked w/ extracted props</li>
+              <li class="k">collision: ratio &gt; 0.85 · verbatim run ≥ 120 chars · ≥ 2 shared props · prop persists ≥ 3 blocks</li>
+              <li>regenerate ≤ 2× naming offending props</li>
+              <li class="mute">otherwise keeps least-colliding candidate</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Hygiene &amp; caching <span class="tag">DR4</span><span class="file">summarizer.py:2239</span></div>
+            <ul>
+              <li>_clean_generated_instructions drops meta sentences ("ensure your response…")</li>
+              <li>near-duplicate sentences (&gt; 0.9) and user-input echoes (&gt; 0.85) removed</li>
+              <li class="mute">accepted block cached in instructions.json</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-reply" data-arch="reply">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">04 · Output</span>
+            <h2>💬 Reply Pipeline</h2>
+          </div>
+          <div class="blurb">From streamed tokens to the background summarization handoff.</div>
+        </div>
+        <div class="nodes cols-1">
+          <div class="node">
+            <div class="ntitle">Stream post-process <span class="tag">RP1</span><span class="file">script.py:480</span></div>
+            <ul>
+              <li>per-yield: thinking stripped · paragraphs filtered · prefixes removed</li>
+              <li class="mute">history["internal"] rewritten in place while streaming</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Async handoff <span class="tag">RP2</span><span class="file">script.py:194</span></div>
+            <ul>
+              <li>handle_output → dedicated daemon event loop</li>
+              <li class="k">summarize_latest_state(output, input, state, history)</li>
+              <li>speaker backfill on previous msg → output chunks saved</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Failure posture <span class="tag">RP3</span><span class="file">script.py:170</span></div>
+            <ul>
+              <li>stop signal honored between every stage</li>
+              <li class="mute">any error falls back to native TGWUI prompt path</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── 05 SCENE LIFECYCLE ─────────────────────────────── -->
+    <section class="section s-scenes" data-arch="scenes">
+      <div class="section-head">
+        <div class="title-wrap">
+          <span class="num">05 · Boundaries</span>
+          <h2>🎬 Scene &amp; Arc Lifecycle</h2>
+        </div>
+        <div class="blurb">Scene transitions gate the expensive passes: archival, population, chapter/arc checks, ON_NEW_SCENE triggers.</div>
+      </div>
+      <div class="nodes cols-4">
+        <div class="node">
+          <div class="ntitle">Detection ×3 <span class="tag">SL1</span><span class="file">summarizer.py:1559</span></div>
+          <ul>
+            <li>manual: prefix or UI checkbox</li>
+            <li class="k">budget split: ≥ max_scene_part_messages (12) forces archive</li>
+            <li>cooldown: &lt; min_scene_part_messages (4) skips check</li>
+            <li class="mute">else LLM YES_SCENE_TRANSITION probe</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Turn stamps <span class="tag">SL2</span><span class="file">summarizer.py:1616</span></div>
+          <ul>
+            <li>_scene_number++ · _scene_start_message</li>
+            <li>defensive start.when._message_node stamp</li>
+            <li>_chapter_number / _arc_number init</li>
+            <li class="k">flips engine to ON_NEW_SCENE triggers</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">First-scene population <span class="tag">SL3</span><span class="file">summarizer.py:1662</span></div>
+          <ul>
+            <li>exactly once — triple marker (2 marker files + general_info key)</li>
+            <li class="k">identify mode: cast discovery → per-entity population prompts</li>
+            <li>direct mode: single call (general_info · current_scene)</li>
+            <li class="mute">scene meta preserved across reload</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Chapter / Arc checks <span class="tag">SL4</span><span class="file">data_summarizer.py:1170</span></div>
+          <ul>
+            <li>new-scene turns only; else phases skipped</li>
+            <li>gate YES/NO → archive JSON generation</li>
+            <li class="mute">scenes/events archived into events.json · arcs into arcs.json</li>
+          </ul>
+        </div>
+      </div>
+      <div class="flow-row" style="grid-template-columns: 1fr; margin-top:12px">
+        <div class="flow-chip" style="--accent: var(--c-scenes)">
+          <b>Metadata backfill · SL5</b>
+          Archived scene/event _message_node ranges are stamped onto message-chunk metadata (scene_id · event_id), so retrieval can scope dialogue windows to exact scenes.
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 06 SUBJECT ENGINE ──────────────────────────────── -->
+    <section class="section s-engine" data-arch="engine">
+      <div class="section-head">
+        <div class="title-wrap">
+          <span class="num">06 · Memory Writes</span>
+          <h2>⚙️ Subject Engine — <code style="font-family:var(--mono);font-size:18px;color:var(--ink-2)">DataSummarizer</code></h2>
+        </div>
+        <div class="blurb">One engine, zero hardcoded subjects. Each subject's schema declares which of six actions run, when, and with which prompt template.</div>
+      </div>
+
+      <div class="arch-grid" style="gap:14px">
+
+        <!-- Trigger machinery -->
+        <div class="zone" style="--accent: var(--c-trig)">
+          <div class="zone-head">
+            <span class="zh-title">Trigger Machinery</span>
+            <span class="zh-note">declared in schema "triggers" arrays · parsed to (Action, override_config)</span>
+          </div>
+          <div class="nodes cols-3">
+            <div class="node" style="--accent: var(--c-trig)">
+              <div class="ntitle">Scopes <span class="tag">TM1</span></div>
+              <ul>
+                <li>ALWAYS · ON_NEW_SCENE · ON_EXISTING_SCENE</li>
+                <li>executed in schema array order</li>
+                <li class="mute">dict entries carry override configs</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-trig)">
+              <div class="ntitle">Overrides <span class="tag">TM2</span></div>
+              <ul>
+                <li class="k">skip_query: single-call variant</li>
+                <li class="k">prompt_template: redirect (importance pass)</li>
+                <li class="k">when: "gate_check_fail" — conditional</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-trig)">
+              <div class="ntitle">Template precedence <span class="tag">TM3</span></div>
+              <ul>
+                <li>override_config → _overrides → field-specific → class attr → defaults</li>
+                <li class="mute">children inherit 4 templates from parent map</li>
+                <li class="mute">KeyError fallback renders minimal instruction</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Six actions -->
+        <div class="zone" style="--accent: var(--c-engine)">
+          <div class="zone-head">
+            <span class="zh-title">Six Actions · sequential per subject</span>
+            <span class="zh-note">all LLM calls stream via generate_with_sse · temp 0.3 · truncation 65536</span>
+          </div>
+          <div class="nodes cols-3">
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">ADD_NEW <span class="tag">SE1</span><span class="file">ds:783</span></div>
+              <ul>
+                <li>discovery query stops at NO / []</li>
+                <li>lenient name extraction + prose guards</li>
+                <li class="k">caps: 120 total · 4 per call · alias dedupe</li>
+                <li>population ≤ 2 retries w/ feedback tail + anti-echo suffix</li>
+                <li class="mute">SUBJECT ROUTING guide steers placement</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">PERFORM_GATE_CHECK <span class="tag">SE2</span><span class="file">ds:1988</span></div>
+              <ul>
+                <li>"did anything change?" for whole maps</li>
+                <li>stops: NO · UNCHANGED · YES</li>
+                <li>non-verdict → one strict re-frame retry</li>
+                <li class="k">fail-open default YES</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">QUERY_BRANCH_FOR_CHANGES <span class="tag">SE3</span><span class="file">ds:2155</span></div>
+              <ul>
+                <li>step 1: query → YES/NO; NO ⇒ skip_children</li>
+                <li class="k">step 2: [query, "YES"] appended to model history before update call</li>
+                <li>parses [{"path","value"}] or NO_UPDATES_REQUIRED</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">skip_query variant <span class="tag">SE3b</span><span class="file">ds:2293</span></div>
+              <ul>
+                <li>one self-detecting update-only call</li>
+                <li class="k">halves per-entry cost</li>
+                <li class="mute">Character.on_new_scene path</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">PERFORM_UPDATE <span class="tag">SE4</span><span class="file">ds:2102</span></div>
+              <ul>
+                <li>whole-branch replacement via _generate_field_update</li>
+                <li>applied only when result ≠ current</li>
+                <li class="mute">identical dict still counts success + stops recursion</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">SELECT_ENTRIES_TO_UPDATE <span class="tag">SE5</span><span class="file">ds:990</span></div>
+              <ul>
+                <li>whitelist when map ≥ select_entries_min_size (4)</li>
+                <li>bare JSON array of names, else fail-open</li>
+                <li class="mute">entries added this pass always included</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">Conditional importance pass <span class="tag">SE6</span><span class="file">ds:628</span></div>
+              <ul>
+                <li>QUERY_BRANCH handler + importance_update_prompt_template</li>
+                <li class="k">when: gate_check_fail — refresh scores only if nothing else changed</li>
+                <li class="mute">emits {"score": 0–100, "reason", "faction"}</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">Update application <span class="tag">SE7</span><span class="file">ds:2390</span></div>
+              <ul>
+                <li>_resolve_path_keys rejoins dotted names ("Mr"+"Peters")</li>
+                <li>recursive_set mutates in place; old value logged</li>
+                <li class="mute">PhaseManager step records path/value/old_value</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-engine)">
+              <div class="ntitle">Persistence <span class="tag">SE8</span><span class="file">ds:681</span></div>
+              <ul>
+                <li>save_json per subject after generate()</li>
+                <li>result copied into _last_good_subjects</li>
+                <li class="k">failure still saves prior state (triple-nested fallback)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parallelism -->
+        <div class="zone" style="--accent: var(--c-par)">
+          <div class="zone-head">
+            <span class="zh-title">Parallel Subject Workers</span>
+            <span class="zh-note">opt-in · dss_config.json max_subject_workers (default 3)</span>
+          </div>
+          <div class="nodes cols-3">
+            <div class="node" style="--accent: var(--c-par)">
+              <div class="ntitle">Isolation <span class="tag">PL1</span><span class="file">summarizer.py:1965</span></div>
+              <ul>
+                <li>ThreadPoolExecutor, one DataSummarizer per thread</li>
+                <li>frozen snapshot of other subjects; live own dict</li>
+                <li class="mute">post-loop chapter/arc checks see all writes</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-par)">
+              <div class="ntitle">Locking <span class="tag">PL2</span><span class="file">summarizer.py:436</span></div>
+              <ul>
+                <li>_LockedPhaseManager wraps PhaseManager in RLock</li>
+                <li class="mute">only mutating methods serialized</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-par)">
+              <div class="ntitle">Ordering &amp; limits <span class="tag">PL3</span><span class="file">summarizer.py:1782</span></div>
+              <ul>
+                <li>results reordered to schema order (not completion)</li>
+                <li class="k">Turbomind BlockTrie segfaults at ≥4 workers w/ prefix caching</li>
+                <li class="mute">keep ≤ 3 workers or run --disable-prefix-caching</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── 07 ROBUSTNESS ──────────────────────────────────── -->
+    <section class="section s-robust" data-arch="robust">
+      <div class="section-head">
+        <div class="title-wrap">
+          <span class="num">07 · Hardening</span>
+          <h2>🛡️ Robustness &amp; Guards</h2>
+        </div>
+        <div class="blurb">Small-model output is hostile. Every parse point has a fallback; every failure fails open toward preservation, never deletion.</div>
+      </div>
+      <div class="nodes cols-3">
+        <div class="node">
+          <div class="ntitle">Tolerant JSON <span class="tag">RB1</span><span class="file">ds:244</span></div>
+          <ul>
+            <li>strict jsonc → json_repair.loads fallback</li>
+            <li class="k">used at every parse point</li>
+            <li class="mute">typed errors surface after both fail</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Negative verdicts <span class="tag">RB2</span><span class="file">ds:222</span></div>
+          <ul>
+            <li>{NO · NO_UPDATES_REQUIRED · UNCHANGED · N/A} + bare "N"/empty</li>
+            <li class="mute">≥5-char markers prefix-matched, shorter exact</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Fail-open policy <span class="tag">RB3</span><span class="file">ds:2099</span></div>
+          <ul>
+            <li>gate defaults YES after bounded retry</li>
+            <li>selection failure → process all entries</li>
+            <li class="mute">field updates accept-with-warnings once retries exhaust</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Echo &amp; fabrication guards <span class="tag">RB4</span><span class="file">ds:262</span></div>
+          <ul>
+            <li>_is_schema_echo rejects main_schema/$ref regurgitation</li>
+            <li>prose prefixes ("no new…", "none") never become entries</li>
+            <li class="mute">json_repair fabrication warning on selection parse</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">Growth caps <span class="tag">RB5</span><span class="file">ds:93</span></div>
+          <ul>
+            <li>120 total · 4 per call new-entry ceilings</li>
+            <li>alias collection depth ≤ 5 · ≤ 200 items</li>
+            <li class="mute">dotted-name fragments rejoined before lookup</li>
+          </ul>
+        </div>
+        <div class="node">
+          <div class="ntitle">State safety <span class="tag">RB6</span></div>
+          <ul>
+            <li>wipe-guard restores last good subject data</li>
+            <li>coerce_container_types repairs list/dict drift pre-pass</li>
+            <li class="k">stop_everything checked at ~19 cooperative sites</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── 08 + 09 SCHEMA + IMPORTANCE ────────────────────── -->
+    <div class="row-2-eq">
+      <section class="section s-schema" data-arch="schema">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">08 · Config-as-Code</span>
+            <h2>🧬 Schema Interpreter</h2>
+          </div>
+          <div class="blurb">utils/schema_parser.py — the JSON schema is executed, not compiled. Update logic ships as data.</div>
+        </div>
+        <div class="nodes cols-1">
+          <div class="node">
+            <div class="ntitle">Interpreter <span class="tag">SX1</span><span class="file">schema_parser.py:476</span></div>
+            <ul>
+              <li>jsonc load → ParsedSchemaClass tree</li>
+              <li>two-pass forward-ref resolution</li>
+              <li>real type hints via regex TYPE_MAP (list[str] · dict[K,V])</li>
+              <li class="mute">dataclass vs alias dual-purpose definitions</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Engine API <span class="tag">SX2</span></div>
+            <ul>
+              <li>validate_data recursive structural validator</li>
+              <li>generate_example_json synthesized from *_placeholder texts</li>
+              <li>$ref BFS → {"main_schema","definitions"} snippets</li>
+              <li class="mute">snippets/example_json/branch_list are lazy lambdas</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Field semantics <span class="tag">SX3</span></div>
+            <ul>
+              <li>no_update inherited from referenced classes</li>
+              <li>_-prefixed fields internal · readOnly · skipped</li>
+              <li>{field}_update leaf flags opt into per-field updates</li>
+              <li class="mute">relationship_format drives entity-graph edges</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Shipped schema <span class="tag">SX4</span><span class="file">sceneagg variant</span></div>
+            <ul>
+              <li>7 subjects: characters · groups · elements · current_scene · events · general_info · arcs</li>
+              <li>subject_routing natural-language placement hints</li>
+              <li class="mute">initial_population modes: direct | identify</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-imp" data-arch="imp">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">09 · Salience</span>
+            <h2>⭐ Importance System</h2>
+          </div>
+          <div class="blurb">One universal rubric decides what renders in full and what collapses to a roster line.</div>
+        </div>
+        <div class="nodes cols-1">
+          <div class="node">
+            <div class="ntitle">The scale <span class="tag">IM1</span><span class="file">format_templates.json</span></div>
+            <ul>
+              <li>importance_scale = sole canonical definition (SALIENCE × WEIGHT conjoined)</li>
+              <li class="k">first _context_order item · no_prompt + to_context header</li>
+              <li>ladder 100 Obsessive … 75 Strong … 50 Meaningful … 20 Slight · faction flavor per level</li>
+              <li class="mute">measures long-term standing, not one scene's urgency</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Entity scores <span class="tag">IM2</span></div>
+            <ul>
+              <li>Importance{score 0–100 · reason · faction} on characters/groups/elements/events</li>
+              <li>refreshed by conditional engine pass (SE6)</li>
+              <li class="mute">graph edges reuse importance as traversal weight</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Threshold rendering <span class="tag">IM3</span></div>
+            <ul>
+              <li class="k">importance_detail_threshold 50 — Jinja-rendered</li>
+              <li>≥ threshold: full profile with &lt;&lt;&lt;&lt; path markers</li>
+              <li>below: one-line roster — "Name (importance X) — first desc line"</li>
+              <li class="mute">no score defaults to FULL (back-compat) · threshold taught back in IMPORTANCE directives</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Rosters <span class="tag">IM4</span></div>
+            <ul>
+              <li>character_list · group_list · element_list one-line templates</li>
+              <li class="mute">feed new-entry discovery + compact context blocks</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── 10 RETRIEVAL ───────────────────────────────────── -->
+    <section class="section s-rag" data-arch="rag">
+      <div class="section-head">
+        <div class="title-wrap">
+          <span class="num">10 · Read Side</span>
+          <h2>🔎 Retrieval &amp; Memory — <code style="font-family:var(--mono);font-size:18px;color:var(--ink-2)">rag/structured_rag</code></h2>
+        </div>
+        <div class="blurb">Runs once per session, cached. Fuses graph traversal, relationship cards, event selection, and semantic search into one RetrievalContext.</div>
+      </div>
+
+      <div class="arch-grid" style="gap:14px">
+
+        <!-- Retriever -->
+        <div class="zone" style="--accent: var(--c-rag)">
+          <div class="zone-head">
+            <span class="zh-title">StoryContextRetriever</span>
+            <span class="zh-note">context_retriever.py · retrieve_context() :1214</span>
+          </div>
+          <div class="nodes cols-4">
+            <div class="node" style="--accent: var(--c-rag)">
+              <div class="ntitle">Fusion sources <span class="tag">RT1</span></div>
+              <ul>
+                <li>fresh current_scene.json reload</li>
+                <li>scene cast/elements via regex mention scan</li>
+                <li>graph aggregation seeds traversal</li>
+                <li class="mute">relationship cards graph-first, JSON fallback</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-rag)">
+              <div class="ntitle">Event selection <span class="tag">RT2</span></div>
+              <ul>
+                <li class="k">cap 8: name match → current-scene window → recency fill</li>
+                <li>uncapped events_full preserved separately</li>
+                <li class="mute">arcs/chapters passed through</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-rag)">
+              <div class="ntitle">Statuses &amp; milestones <span class="tag">RT3</span></div>
+              <ul>
+                <li class="k">importance ≥ 75 OR active-in-scene</li>
+                <li class="mute">graph-first lookup with JSON fallback</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-rag)">
+              <div class="ntitle">Recent-state annotations <span class="tag">RT4</span></div>
+              <ul>
+                <li>freshest summary mention per entity</li>
+                <li class="k">"[msg N] …" lines, 220-char truncation</li>
+                <li class="mute">injected as _recent_state into each entry</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entity graph -->
+        <div class="zone" style="--accent: var(--c-graph)">
+          <div class="zone-head">
+            <span class="zh-title">EntityGraph</span>
+            <span class="zh-note">entity_graph.py · built from characters/groups/events/arcs · persisted entity_graph.json</span>
+          </div>
+          <div class="nodes cols-4">
+            <div class="node" style="--accent: var(--c-graph)">
+              <div class="ntitle">Edges <span class="tag">EG1</span></div>
+              <ul>
+                <li>Relationship{relation · status · importance 0–100 · faction · bidirectional}</li>
+                <li>rebuilt iff source-file fingerprint changes</li>
+                <li class="mute">edge conventions from schema relationship_format</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-graph)">
+              <div class="ntitle">Traversal <span class="tag">EG2</span><span class="file">:1565</span></div>
+              <ul>
+                <li>level-synchronized BFS · max_depth 10</li>
+                <li>edge gate broad_threshold 42 · seeds at 75</li>
+                <li class="k">effective_imp = path_min × (path_min/100)^0.4^(depth−1)</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-graph)">
+              <div class="ntitle">Refinement passes <span class="tag">EG3</span></div>
+              <ul>
+                <li>convergence: vouch-weighted pull, rate 0.4</li>
+                <li>re-traversal: score ≥ 65 re-seeds, edge ≥ 42</li>
+                <li class="k">prune: keep relevance ≥ 75 only</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-graph)">
+              <div class="ntitle">Path caps <span class="tag">EG4</span><span class="file">:68</span></div>
+              <ul>
+                <li class="k">PATH_CAP_PER_RECORD 64 · TOTAL_PATH_CAP 20000</li>
+                <li>scoring inputs updated before cap check</li>
+                <li class="mute">cyclic-graph explosion fix: 45–113 GB → flat 1.4 GB</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Message index -->
+        <div class="zone" style="--accent: var(--c-index)">
+          <div class="zone-head">
+            <span class="zh-title">Message Index · Chunking</span>
+            <span class="zh-note">MessageChunker · llama-index persistence at message_index/*.json</span>
+          </div>
+          <div class="nodes cols-4">
+            <div class="node" style="--accent: var(--c-index)">
+              <div class="ntitle">Embeddings <span class="tag">MI1</span></div>
+              <ul>
+                <li>HuggingFaceEmbedding all-mpnet-base-v2 · 768-dim</li>
+                <li class="mute">nltk/spacy/llama_index lazy-imported (background_importer)</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-index)">
+              <div class="ntitle">Chunks <span class="tag">MI2</span></div>
+              <ul>
+                <li>paragraph → sentences · id {msg}_{para}_{sent}</li>
+                <li>metadata: speakers · cast · subjects · scene_id · event_id · is_summary</li>
+                <li class="mute">overwrite semantics per message idx</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-index)">
+              <div class="ntitle">Speakers <span class="tag">MI3</span></div>
+              <ul>
+                <li>"Name:" regex prefilter → LLM JSON-array extraction</li>
+                <li>spaCy dialogue-verb fallback</li>
+                <li class="mute">user input saved unattributed, backfilled post-reply</li>
+              </ul>
+            </div>
+            <div class="node" style="--accent: var(--c-index)">
+              <div class="ntitle">Summary nodes <span class="tag">MI4</span></div>
+              <ul>
+                <li>MessageSummarizer stores "{idx}_summary" TextNode</li>
+                <li>power rolling summaries (ROLLING_SUMMARY_SCENE_ROLL 5, sticky locks)</li>
+                <li class="k">recency banding: ≤ 15 msgs preferred · summaries preferred</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ── 11 + 12 INJECTION + STORAGE ────────────────────── -->
+    <div class="row-2">
+      <section class="section s-inject" data-arch="inject">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">11 · Write-back</span>
+            <h2>💉 Context Rendering &amp; Prompt Assembly</h2>
+          </div>
+          <div class="blurb">FormattedData renders each subject through editable Jinja templates, ordered by _context_order, placed by config.</div>
+        </div>
+        <div class="nodes cols-2">
+          <div class="node" style="--accent: var(--c-inject)">
+            <div class="ntitle">Renderer <span class="tag">CJ1</span><span class="file">summarizer.py:3772</span></div>
+            <ul>
+              <li>Jinja vars: data · path · subjects · defaults (+ metadata · scene_names)</li>
+              <li>template_{data_type} user override wins over session file</li>
+              <li class="mute">render failure → raw JSON dump ≤ 2000 chars</li>
+            </ul>
+          </div>
+          <div class="node" style="--accent: var(--c-inject)">
+            <div class="ntitle">Block order <span class="tag">CJ2</span><span class="file">_context_order</span></div>
+            <ul>
+              <li class="k">importance_scale → general_info → current_scene → arcs → character_list → groups → elements → events → chapters → characters → lines</li>
+              <li>to_context appends into system context</li>
+              <li class="mute">no_prompt renders without a history pair</li>
+            </ul>
+          </div>
+          <div class="node" style="--accent: var(--c-inject)">
+            <div class="ntitle">Placement matrix <span class="tag">CJ3</span><span class="file">summarizer.py:2128</span></div>
+            <ul>
+              <li>prompt_start: synthetic Q/A history pairs</li>
+              <li>system: joined "CURRENT CONTEXT (retrieved subjects)"</li>
+              <li>inline: last pair</li>
+              <li class="mute">×</li>
+              <li>message_mode: enumerated (numbered exchanges) | rolling (sticky summaries + raw tail)</li>
+            </ul>
+          </div>
+          <div class="node" style="--accent: var(--c-inject)">
+            <div class="ntitle">base_state <span class="tag">CJ4</span><span class="file">summarizer.py:400</span></div>
+            <ul>
+              <li>DAYNA persona context + CRITICAL STYLE CONSTRAINTS anti-cliché list</li>
+              <li class="k">temperature 0.3 · truncation_length 65536 · instruct mode</li>
+              <li class="mute">general_info static prose appended once scenes exist</li>
+            </ul>
+          </div>
+          <div class="node" style="--accent: var(--c-inject)">
+            <div class="ntitle">mark_field <span class="tag">CJ5</span><span class="file">summarizer.py:3894</span></div>
+            <ul>
+              <li>&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt; {path} markers label rendered branches</li>
+              <li class="k">mark_field flips target branch to strippable short marker; strip_markers removes the rest</li>
+              <li class="mute">only branch under review stays labeled in engine calls</li>
+            </ul>
+          </div>
+          <div class="node" style="--accent: var(--c-inject)">
+            <div class="ntitle">Prefix-cache discipline <span class="tag">CJ6</span></div>
+            <ul>
+              <li class="k">static template body first — dynamic tails appended after</li>
+              <li>_context_restatement re-injects branch context per call (never cached)</li>
+              <li class="mute">budget auto|always|never · &gt; 10K chars degrades to sibling roster</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-store" data-arch="store">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">12 · Persistence</span>
+            <h2>💾 Session Storage</h2>
+          </div>
+          <div class="blurb">Everything is plain JSON under one hashed session directory — inspectable, diffable, portable.</div>
+        </div>
+        <div class="nodes cols-1">
+          <div class="node">
+            <div class="ntitle">Initial world cache <span class="tag">ST1</span><span class="file">summarizer.py:2371</span></div>
+            <ul>
+              <li class="k">key = sha1(context + greeting + user_bio)[:24]</li>
+              <li>global schema + templates + {} placeholders</li>
+              <li class="mute">cache hit still forces first-scene population</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Per-session files <span class="tag">ST2</span><span class="file">history/&lt;char&gt;/&lt;uid&gt;/&lt;hash24&gt;/</span></div>
+            <ul>
+              <li>subjects_schema.json · format_templates.json</li>
+              <li>{characters, groups, elements, current_scene, events, general_info, arcs}.json</li>
+              <li>instructions.json · entity_graph.json · message_index/ · dump.txt</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Rotation &amp; survival <span class="tag">ST3</span></div>
+            <ul>
+              <li>schema/templates copied forward on hash rotation</li>
+              <li class="k">_populated_from_first_scene rides inside general_info.json across dirs</li>
+              <li class="mute">wipe-guard bridges transient empty files</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── 13 + 14 TOOLS + OBSERVABILITY ──────────────────── -->
+    <div class="row-2-eq">
+      <section class="section s-tools" data-arch="tools">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">13 · Agentic Reads</span>
+            <h2>🔧 Tool Layer</h2>
+          </div>
+          <div class="blurb">Six tools let the chat model query the world model mid-conversation; active retrieval mode loops on them.</div>
+        </div>
+        <div class="nodes cols-1">
+          <div class="node">
+            <div class="ntitle">Tool set <span class="tag">TL1</span><span class="file">dynamic_tools.py</span></div>
+            <ul>
+              <li>dss_get_info · dss_search_info · dss_list_paths</li>
+              <li>dss_set_info · dss_close_arc · dss_list_arcs</li>
+              <li class="mute">dot-path navigation, fuzzy arc matching, capped previews</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Injection <span class="tag">TL2</span><span class="file">tgwui_integration.py</span></div>
+            <ul>
+              <li>add_dss_tools_to_state merges OpenAI-format defs into state["tools"]</li>
+              <li class="k">execute_tool patched — DSS names intercepted alongside native tools</li>
+              <li class="mute">gated by the dss_toggle enabled-check</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Offline utility <span class="tag">TL3</span><span class="file">reorder_prompts_for_prefix_cache.py</span></div>
+            <ul>
+              <li>codegen that rewrote schema templates static-first</li>
+              <li>{{var}} parity safety check old↔new</li>
+              <li class="mute">emits *.prefixcache.json variants</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section s-obs" data-arch="obs">
+        <div class="section-head">
+          <div class="title-wrap">
+            <span class="num">14 · Observability</span>
+            <h2>📡 Phases · SSE · Gradio</h2>
+          </div>
+          <div class="blurb">Every LLM call is a phase/step event streamed live into the webui.</div>
+        </div>
+        <div class="nodes cols-1">
+          <div class="node">
+            <div class="ntitle">PhaseManager <span class="tag">OB1</span><span class="file">ui/phase_manager.py</span></div>
+            <ul>
+              <li>session → weighted phases → steps (instr_prompt · per-subject · chapter_check · arc_check · message_summary · chunking)</li>
+              <li>action titles: Gate Check · Querying Changes · Applying Updates · Detecting New Entries…</li>
+              <li class="mute">weighted progress % · elapsed per step</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Event bus <span class="tag">OB2</span><span class="file">ui/update_queue.py</span></div>
+            <ul>
+              <li>bounded buffer 20 000 · multi-subscriber fan-out</li>
+              <li>11 event kinds: session_start … session_end</li>
+              <li class="mute">state snapshot maintained for catch-up reads</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">SSE server <span class="tag">OB3</span><span class="file">ui/sse_server.py</span></div>
+            <ul>
+              <li class="k">:7870 · /sse/dss-status stream · /dss-state snapshot · /dss-health</li>
+              <li>origin allowlist (DSS_ALLOWED_ORIGIN) + optional token</li>
+              <li class="mute">browser panel: progress bar · queue · phase cards</li>
+            </ul>
+          </div>
+          <div class="node">
+            <div class="ntitle">Gradio surfaces <span class="tag">OB4</span></div>
+            <ul>
+              <li>tab mode: Chat · Parameters · Templates panels</li>
+              <li>block mode: dss_toggle · do_instr · retrieval_mode · NEXT SCENE · manual generate/summarize</li>
+              <li class="mute">ActivityLogger ring (100 entries) feeds the activity accordion</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── FINAL ──────────────────────────────────────────── -->
+    <div class="final-node" data-arch="final">
+      <div class="label">⟶ &nbsp;Output&nbsp; ⟵</div>
+      <div class="name">🧠 Final Prompt → LLM Model</div>
+      <div class="note">rendered world model · director instructions · tool definitions · base persona — assembled by custom_generate_chat_prompt, generated by TGWUI, summarized back into storage</div>
+    </div>
+
+  </div>
+
+  <footer>
+    <div>
+      <span>extensions/dayna_ss</span>
+      <span style="margin: 0 10px; color: var(--line-2)">·</span>
+      © 2025–2026 Mark Anderson
+      <span style="margin: 0 10px; color: var(--line-2)">·</span>
+      <a href="https://www.gnu.org/licenses/mit.html">MIT</a>
+    </div>
+    <div>v0.2 · schema-driven · 6-action subject engine · graph-accelerated retrieval</div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const canvas = document.querySelector('.canvas');
+  const svg = document.getElementById('connectors');
+  const NS = 'http://www.w3.org/2000/svg';
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+  function rect(sel) {
+    const el = document.querySelector(sel);
+    if (!el) return null;
+    const cb = canvas.getBoundingClientRect();
+    const rb = el.getBoundingClientRect();
+    return {
+      top: rb.top - cb.top,
+      left: rb.left - cb.left,
+      bottom: rb.bottom - cb.top,
+      right: rb.right - cb.left,
+      width: rb.width,
+      height: rb.height,
+      cx: rb.left - cb.left + rb.width / 2,
+      cy: rb.top - cb.top + rb.height / 2,
+    };
+  }
+
+  // Connection map — color-graded from source to destination accent
+  const links = [
+    // central spine
+    { from:'[data-arch="input"]',    to:'[data-arch="orch"]',   cFrom:'--c-events', cTo:'--c-orch' },
+    // orchestration fans out to director + reply pipeline
+    { from:'[data-arch="orch"]',     to:'[data-arch="director"]', cFrom:'--c-orch',   cTo:'--c-director', fromFx:0.32, toFx:0.55 },
+    { from:'[data-arch="orch"]',     to:'[data-arch="reply"]',    cFrom:'--c-orch',   cTo:'--c-reply',    fromFx:0.68, toFx:0.45 },
+    // both feed the scene lifecycle
+    { from:'[data-arch="director"]', to:'[data-arch="scenes"]',   cFrom:'--c-director', cTo:'--c-scenes', fromFx:0.55, toFx:0.30 },
+    { from:'[data-arch="reply"]',    to:'[data-arch="scenes"]',   cFrom:'--c-reply',    cTo:'--c-scenes', fromFx:0.45, toFx:0.70 },
+    // lifecycle hands off to the subject engine
+    { from:'[data-arch="scenes"]',   to:'[data-arch="engine"]',   cFrom:'--c-scenes', cTo:'--c-engine' },
+    // engine hardening chain
+    { from:'[data-arch="engine"]',   to:'[data-arch="robust"]',   cFrom:'--c-engine', cTo:'--c-robust' },
+    // robustness fans into schema interpreter + importance
+    { from:'[data-arch="robust"]',   to:'[data-arch="schema"]',   cFrom:'--c-robust', cTo:'--c-schema', fromFx:0.32, toFx:0.55 },
+    { from:'[data-arch="robust"]',   to:'[data-arch="imp"]',      cFrom:'--c-robust', cTo:'--c-imp',    fromFx:0.68, toFx:0.45 },
+    // importance/schema knowledge flows into retrieval
+    { from:'[data-arch="imp"]',      to:'[data-arch="rag"]',      cFrom:'--c-imp',    cTo:'--c-rag',    fromFx:0.50, toFx:0.65 },
+    // retrieval fans into injection + storage
+    { from:'[data-arch="rag"]',      to:'[data-arch="inject"]',   cFrom:'--c-rag',    cTo:'--c-inject', fromFx:0.40, toFx:0.45 },
+    { from:'[data-arch="rag"]',      to:'[data-arch="store"]',    cFrom:'--c-rag',    cTo:'--c-store',  fromFx:0.60, toFx:0.55 },
+    // storage joins injection horizontally
+    { from:'[data-arch="store"]',    to:'[data-arch="inject"]',   cFrom:'--c-store',  cTo:'--c-inject', horizontal:true },
+    // injection fans out to tools + observability
+    { from:'[data-arch="inject"]',   to:'[data-arch="tools"]',    cFrom:'--c-inject', cTo:'--c-tools',  fromFx:0.30, toFx:0.50 },
+    { from:'[data-arch="inject"]',   to:'[data-arch="obs"]',      cFrom:'--c-inject', cTo:'--c-obs',    fromFx:0.70, toFx:0.50 },
+    // tail merges into final
+    { from:'[data-arch="tools"]',    to:'[data-arch="final"]',    cFrom:'--c-tools',  cTo:'--c-final',  toFx:0.30 },
+    { from:'[data-arch="obs"]',      to:'[data-arch="final"]',    cFrom:'--c-obs',    cTo:'--c-final',  toFx:0.70 },
+  ];
+
+  function buildDefs() {
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    const defs = document.createElementNS(NS, 'defs');
+
+    links.forEach((lnk, i) => {
+      const grad = document.createElementNS(NS, 'linearGradient');
+      grad.setAttribute('id', `lg${i}`);
+      grad.setAttribute('gradientUnits', 'userSpaceOnUse');
+      const s1 = document.createElementNS(NS, 'stop');
+      s1.setAttribute('offset', '0');
+      s1.setAttribute('stop-color', css(lnk.cFrom));
+      s1.setAttribute('stop-opacity', '0.95');
+      const s2 = document.createElementNS(NS, 'stop');
+      s2.setAttribute('offset', '1');
+      s2.setAttribute('stop-color', css(lnk.cTo));
+      s2.setAttribute('stop-opacity', '0.95');
+      grad.appendChild(s1);
+      grad.appendChild(s2);
+      defs.appendChild(grad);
+    });
+
+    // soft glow
+    const f = document.createElementNS(NS, 'filter');
+    f.setAttribute('id', 'glow');
+    f.setAttribute('x', '-200%'); f.setAttribute('y', '-200%');
+    f.setAttribute('width', '500%'); f.setAttribute('height', '500%');
+    f.innerHTML = `
+      <feGaussianBlur stdDeviation="2" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    `;
+    defs.appendChild(f);
+
+    // dot glow
+    const fd = document.createElementNS(NS, 'filter');
+    fd.setAttribute('id', 'dotglow');
+    fd.setAttribute('x', '-100%'); fd.setAttribute('y', '-100%');
+    fd.setAttribute('width', '300%'); fd.setAttribute('height', '300%');
+    fd.innerHTML = `
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    `;
+    defs.appendChild(fd);
+
+    svg.appendChild(defs);
+  }
+
+  function render() {
+    if (!svg.querySelector('defs')) buildDefs();
+
+    const w = canvas.offsetWidth;
+    const h = canvas.scrollHeight;
+    svg.setAttribute('width', w);
+    svg.setAttribute('height', h);
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+
+    // remove anything except <defs>
+    [...svg.children].forEach((c) => {
+      if ((c.tagName || '').toLowerCase() !== 'defs') svg.removeChild(c);
+    });
+
+    // Two-pass: halos first, lines on top, then dots
+    const paths = [];
+
+    links.forEach((lnk, i) => {
+      const a = rect(lnk.from);
+      const b = rect(lnk.to);
+      if (!a || !b) return;
+
+      let sx, sy, ex, ey, c1x, c1y, c2x, c2y;
+
+      if (lnk.horizontal) {
+        const aLeft = a.right < b.left;
+        if (aLeft) { sx = a.right; sy = a.cy; ex = b.left;  ey = b.cy; }
+        else       { sx = a.left;  sy = a.cy; ex = b.right; ey = b.cy; }
+        const dx = ex - sx;
+        c1x = sx + dx * 0.45; c1y = sy;
+        c2x = sx + dx * 0.55; c2y = ey;
+      } else {
+        sx = a.left + a.width * (lnk.fromFx ?? 0.5);
+        sy = a.bottom;
+        ex = b.left + b.width * (lnk.toFx ?? 0.5);
+        ey = b.top;
+        const dy = ey - sy;
+        const slack = Math.max(28, dy * 0.55);
+        c1x = sx; c1y = sy + slack;
+        c2x = ex; c2y = ey - slack;
+      }
+
+      // place gradient coords along path direction
+      const grad = svg.querySelector(`#lg${i}`);
+      grad.setAttribute('x1', sx); grad.setAttribute('y1', sy);
+      grad.setAttribute('x2', ex); grad.setAttribute('y2', ey);
+
+      const d = `M ${sx.toFixed(2)} ${sy.toFixed(2)} C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${ex.toFixed(2)} ${ey.toFixed(2)}`;
+      paths.push({ d, i, sx, sy, ex, ey, cFrom: lnk.cFrom, cTo: lnk.cTo });
+    });
+
+    // halos (wide, faint) — also serves as glow for short links the filter can't reach
+    paths.forEach(({ d, i }) => {
+      const halo = document.createElementNS(NS, 'path');
+      halo.setAttribute('d', d);
+      halo.setAttribute('fill', 'none');
+      halo.setAttribute('stroke', `url(#lg${i})`);
+      halo.setAttribute('stroke-width', '7');
+      halo.setAttribute('stroke-linecap', 'round');
+      halo.setAttribute('opacity', '0.22');
+      svg.appendChild(halo);
+    });
+
+    // main strokes
+    paths.forEach(({ d, i }) => {
+      const p = document.createElementNS(NS, 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', `url(#lg${i})`);
+      p.setAttribute('stroke-width', '1.7');
+      p.setAttribute('stroke-linecap', 'round');
+      p.setAttribute('opacity', '1');
+      p.setAttribute('filter', 'url(#glow)');
+      svg.appendChild(p);
+    });
+
+    // endpoint nodes
+    paths.forEach(({ sx, sy, ex, ey, cFrom, cTo }) => {
+      const mkDot = (x, y, color, r = 3.25) => {
+        const halo = document.createElementNS(NS, 'circle');
+        halo.setAttribute('cx', x); halo.setAttribute('cy', y);
+        halo.setAttribute('r', r + 4);
+        halo.setAttribute('fill', css(color));
+        halo.setAttribute('opacity', '0.18');
+        halo.setAttribute('filter', 'url(#dotglow)');
+        svg.appendChild(halo);
+
+        const ring = document.createElementNS(NS, 'circle');
+        ring.setAttribute('cx', x); ring.setAttribute('cy', y);
+        ring.setAttribute('r', r);
+        ring.setAttribute('fill', '#0a0d12');
+        ring.setAttribute('stroke', css(color));
+        ring.setAttribute('stroke-width', '1.6');
+        svg.appendChild(ring);
+
+        const core = document.createElementNS(NS, 'circle');
+        core.setAttribute('cx', x); core.setAttribute('cy', y);
+        core.setAttribute('r', 1.2);
+        core.setAttribute('fill', css(color));
+        svg.appendChild(core);
+      };
+      mkDot(sx, sy, cFrom);
+      mkDot(ex, ey, cTo);
+    });
+  }
+
+  function init() {
+    buildDefs();
+    render();
+  }
+
+  // initial paint
+  if (document.readyState === 'complete') init();
+  else window.addEventListener('load', init);
+
+  // robust re-paint on layout changes
+  window.addEventListener('resize', render);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(render);
+  new ResizeObserver(render).observe(canvas);
+})();
+</script>
+</body>
+</html>

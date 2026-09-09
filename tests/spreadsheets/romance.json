@@ -1,0 +1,366 @@
+{
+  "id": "romance",
+  "genre": "Regency romance",
+  "premise": "A sharp-tongued viscountess and a scandal-ridden rake are forced to court publicly to save their reputations, and genuine feeling grows between them.",
+  "setting": "Georgian London ballrooms, country estates, a secluded rose garden.",
+  "greeting": "Lord Ashworth stood in the rain at the edge of the conservatory and watched Lady Amelia read the note a third time, her hand trembling before she managed to hide it.",
+  "characters": {
+    "name1": {
+      "name": "Lady Amelia",
+      "role": "viscountess (guide writes these turns)",
+      "description": "Widowed young viscountess, clever, proud, protective of her independence."
+    },
+    "name2": {
+      "name": "Lord Ashworth",
+      "role": "rake (DSS writes these turns)",
+      "description": "A notorious rake with a hidden honorable streak, given to dry humor and slow smiles."
+    }
+  },
+  "writing_style": {
+    "directive": "Period romance, lush but restrained. Witty dialogue, manners and tension. Two short paragraphs per turn. Dual close-third-person narration: Amelia and Ashworth are each narrated from inside their own restraint.",
+    "guide_directive": "Third-person past tense in close narration centered on Lady Amelia — 'she' is always Amelia; render her readings of a room, a fan, a man from inside her restraint. Quick, witty, socially polished interiority; brisk irony over a held breath.",
+    "dss_directive": "Third-person past tense in close narration centered on Lord Ashworth, the rake — 'he' is ALWAYS Ashworth; Amelia is 'she'. Restrained but charged — gesture, glance, and gloved touch instead of confession. Lush, period manners, two short paragraphs (~60 words each). Hard rules: keep the third person — never slip into 'I' for Ashworth; never quote or repeat Lady Amelia's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No anachronistic slang",
+      "No explicit scenes"
+    ]
+  },
+  "specificity_profile": "loose",
+  "notes": [
+    {
+      "id": "r1",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The rose garden at Ashworth's estate is where they first genuinely speak.",
+      "needle": "rose garden",
+      "needle_syns": [
+        "rose garden",
+        "the garden",
+        "the roses"
+      ],
+      "plant": {
+        "turn": 10
+      }
+    },
+    {
+      "id": "r2",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Lord Ashworth's scarred left hand, planted early, should be explained by a past duel involving Amelia's late husband.",
+      "needle": "scar",
+      "needle_syns": [
+        "scar",
+        "his left hand",
+        "the scarred hand"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 65,
+        "hint": "the origin of the scar is revealed"
+      }
+    },
+    {
+      "id": "r3",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Their courtship is a sham orchestrated by her scheming mother-in-law; the deception should come to light mid-story.",
+      "needle": "mother-in-law",
+      "needle_syns": [
+        "dowager",
+        "mother-in-law",
+        "the dowager"
+      ],
+      "plant": {
+        "turn": 25
+      },
+      "recall": {
+        "due": 50,
+        "hint": "the sham courtship is exposed"
+      }
+    },
+    {
+      "id": "r4",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The masquerade ball should be the emotional pivot.",
+      "needle": "masquerade",
+      "needle_syns": [
+        "masquerade",
+        "the ball",
+        "the masked ball"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 55,
+        "hint": "a turning point at the masquerade"
+      }
+    },
+    {
+      "id": "r5",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "Witty banter must survive the emotional climax — the tone stays wry even in confession.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 80,
+        "hint": "banter persists through the climax"
+      }
+    },
+    {
+      "id": "r6",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A missing letter hinted at early should surface and resolve a plot thread.",
+      "needle": "letter",
+      "needle_syns": [
+        "letter",
+        "the note",
+        "the correspondence"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 70,
+        "hint": "the letter resurfaces"
+      }
+    },
+    {
+      "id": "r7",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Amelia keeps a locket with a miniature of her late husband — and later, a hidden compartment.",
+      "needle": "locket",
+      "needle_syns": [
+        "locket",
+        "the miniature",
+        "the pendant"
+      ],
+      "plant": {
+        "turn": 12
+      }
+    },
+    {
+      "id": "r8",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Lord Ashworth's cravat is always tied a little crooked, even at the most formal ball.",
+      "needle": "cravat",
+      "needle_syns": [
+        "cravat",
+        "crooked cravat",
+        "the cravat"
+      ],
+      "plant": {
+        "turn": 5
+      }
+    },
+    {
+      "id": "r9",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Lady Amelia takes her tea with one sugar, stirred nine times, never eight.",
+      "needle": "one sugar",
+      "needle_syns": [
+        "one sugar",
+        "single sugar",
+        "stirred nine times"
+      ],
+      "plant": {
+        "turn": 8
+      }
+    },
+    {
+      "id": "r10",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The viscountess's carriage horses are matched greys with white-plumed harnesses.",
+      "needle": "white-plumed",
+      "needle_syns": [
+        "white-plumed harness",
+        "plumed harness",
+        "the greys"
+      ],
+      "plant": {
+        "turn": 11
+      }
+    },
+    {
+      "id": "r11",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ashworth keeps a pressed primrose in his pocket-book and will not say where it came from.",
+      "needle": "pressed primrose",
+      "needle_syns": [
+        "pressed primrose",
+        "the primrose"
+      ],
+      "plant": {
+        "turn": 14
+      }
+    },
+    {
+      "id": "r12",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Amelia's mother-of-pearl fan, dropped at the masquerade, should be found by Ashworth late and recognised.",
+      "needle": "mother-of-pearl fan",
+      "needle_syns": [
+        "mother-of-pearl fan",
+        "the fan",
+        "pearl fan"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 66,
+        "hint": "Ashworth finds the dropped mother-of-pearl fan"
+      }
+    },
+    {
+      "id": "r13",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Ashworth's silver watch, engraved with an unfamiliar motto, should be recognised at the end as his brother's.",
+      "needle": "silver watch",
+      "needle_syns": [
+        "silver watch",
+        "the watch",
+        "engraved watch"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 70,
+        "hint": "the watch's motto reveals whose it really is"
+      }
+    },
+    {
+      "id": "r14",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A gloved hand glimpsed withdrawing from Amelia's escritoire should foreshadow the mother-in-law's scheming.",
+      "needle": "gloved hand",
+      "needle_syns": [
+        "gloved hand",
+        "the glove",
+        "withdrawing glove"
+      ],
+      "plant": {
+        "turn": 9
+      },
+      "recall": {
+        "due": 62,
+        "hint": "the gloved hand at the escritoire is the schemer"
+      }
+    },
+    {
+      "id": "r15",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The winter garden's orangery becomes the place the sham courtship is finally exposed.",
+      "needle": "orangery",
+      "needle_syns": [
+        "orangery",
+        "the orangery",
+        "winter garden"
+      ],
+      "plant": {
+        "turn": 16
+      },
+      "recall": {
+        "due": 55,
+        "hint": "the sham is exposed in the orangery"
+      }
+    },
+    {
+      "id": "r16",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The wry banter must survive the confession — wit, not sobs, even at the emotional climax.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 78,
+        "hint": "wry banter through the confession"
+      }
+    },
+    {
+      "id": "r17",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The ballroom chandelier's candles are always lit only at half — the staff swear the lamps throw no heat.",
+      "needle": "chandelier",
+      "needle_syns": [
+        "chandelier",
+        "ballroom chandelier",
+        "the candles"
+      ],
+      "plant": {
+        "turn": 18
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "rb1",
+      "turn": 4,
+      "subject": "characters",
+      "content": "DSS should save the Dowager (Amelia's scheming mother-in-law) as a character.",
+      "expect": {
+        "name": "the Dowager",
+        "role": "mother-in-law",
+        "detail": "scheming the sham courtship"
+      }
+    },
+    {
+      "id": "rb2",
+      "turn": 9,
+      "subject": "elements",
+      "content": "DSS should save the rose garden at Ashworth's estate as an element.",
+      "expect": {
+        "name": "rose garden",
+        "location": "Ashworth's estate"
+      }
+    },
+    {
+      "id": "rb3",
+      "turn": 13,
+      "subject": "elements",
+      "content": "DSS should save Amelia's mother-of-pearl fan.",
+      "expect": {
+        "name": "mother-of-pearl fan",
+        "owner": "Lady Amelia",
+        "detail": "dropped at the masquerade"
+      }
+    },
+    {
+      "id": "rb4",
+      "turn": 17,
+      "subject": "groups",
+      "content": "DSS should save the Ashworth household staff as a group.",
+      "expect": {
+        "name": "household staff",
+        "members": [],
+        "detail": "keep the candles half-lit"
+      }
+    },
+    {
+      "id": "rb5",
+      "turn": 21,
+      "subject": "elements",
+      "content": "DSS should save the orangery of the winter garden.",
+      "expect": {
+        "name": "orangery",
+        "location": "winter garden"
+      }
+    }
+  ]
+}
