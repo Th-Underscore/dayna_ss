@@ -37,11 +37,32 @@ from typing import Any
 
 # Endpoint migrated to OpenRouter (2026-08-24): the stealth/ox-alpha trio runs
 # there; the legacy OpenCode Go endpoint is retired (rejects the OpenRouter key).
-DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
+#DEFAULT_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions"
 #DEFAULT_ENDPOINT = "https://opencode.ai/zen/go/v1/chat/completions"  # retired
 #DEFAULT_ENDPOINT = "https://opencode.ai/zen/v1/chat/completions"
-#DEFAULT_ENDPOINT = "http://localhost:5015/v1/chat/completions"
-DEFAULT_MODEL = "glm-5.3-flash"
+DEFAULT_ENDPOINT = "http://localhost:9931/v1/chat/completions"
+#DEFAULT_MODEL = "glm-5.3-flash"
+DEFAULT_MODEL = "qwen3.8-flash-next"
+
+# Sampler envelope for self-hosted (CPU) endpoints, per the model's own
+# Instruct-mode recommendation: temp 0.7 / top_p 0.80 / top_k 20 / min_p 0.0 /
+# presence 1.5 / rep 1.0, thinking OFF. Applied ONLY to local endpoints
+# (is_local_endpoint) — hosted providers keep their own defaults byte-identically.
+# Two defects this closes: (1) the client's 0.8 temperature default sat outside
+# the envelope; (2) merely sending a reasoning_effort key silently activates the
+# server's thinking path (measured: 152-char reasoning budget, ~5.5x per-call
+# latency, reasoning tokens eating the output budget) — so effort is suppressed
+# and enable_thinking is pinned False.
+DEFAULT_PARAMS: dict[str, Any] = {
+    "temperature": 0.7,
+    "top_p": 0.80,
+    "top_k": 20,
+    "min_p": 0.0,
+    "presence_penalty": 1.5,
+    "repetition_penalty": 1.0,
+    "enable_thinking": False,
+}
+
 _BROWSER_UA = (
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
@@ -476,7 +497,16 @@ class CloudModel:
             "temperature": self.temperature if temperature is None else temperature,
         }
         effort = reasoning_effort if reasoning_effort is not None else self.reasoning_effort
-        if effort is not None:
+        if is_local_endpoint(self.endpoint):
+            # Self-hosted (CPU) endpoint: apply the model's Instruct-mode
+            # envelope (DEFAULT_PARAMS) and suppress reasoning_effort entirely —
+            # on this server the mere presence of that key activates the
+            # thinking path (measured: 152-char reasoning budget, ~5.5x
+            # per-call latency, reasoning tokens eating the output budget).
+            # enable_thinking: False is the explicit instruct line.
+            payload.update(DEFAULT_PARAMS)
+            payload.pop("reasoning_effort", None)
+        elif effort is not None:
             # "none"|"low"|"medium"|"high" — supported by the Go endpoint; "none"
             # suppresses reasoning entirely, "low" keeps a small budget.
             payload["reasoning_effort"] = effort
