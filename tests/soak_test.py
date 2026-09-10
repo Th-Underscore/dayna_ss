@@ -156,13 +156,20 @@ def render_report(report: dict) -> list[str]:
     return lines
 
 
-def run_soak(name: str = "soak_conversation") -> tuple[bool, list[str]]:
+def run_soak(name: str = "soak_conversation") -> tuple[bool, list[str], Path | None]:
+    """Run the soak; return (passed, full result lines, per-turn out_dir).
+
+    The ``out_dir`` (third element) is the ephemeral per-turn state tree
+    (``after_turn_*`` + result.json) — preserved by the suite dump so the full
+    per-turn state is analyzable, not just the summary. ``None`` if the run
+    could not start (e.g. fixture missing).
+    """
     fixture_dir = FIXTURES_DIR / name
     if not (fixture_dir / "scenario.json").exists():
-        return False, [f"soak fixture not found: {fixture_dir}"]
+        return False, [f"soak fixture not found: {fixture_dir}"], None
     scenario = SoakScenario(name, fixture_dir)
-    report, model, _ = scenario.run()
+    report, model, out_dir = scenario.run()
     lines = render_report(report)
     lines.append(f"[soak:{name}] PASS ({len(model.calls)} LLM calls scripted)"
                  if report["passed"] else f"[soak:{name}] FAIL")
-    return report["passed"], lines
+    return report["passed"], lines, out_dir

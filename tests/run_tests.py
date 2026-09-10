@@ -12,6 +12,10 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
+import json as _json
+import shutil as _shutil
+import subprocess as _subprocess
 import sys
 from pathlib import Path
 
@@ -22,6 +26,112 @@ from force_boundary_test import run_force_boundary_test
 from harness import FIXTURES_DIR, Scenario
 from scene_window_test import run_scene_window_test
 from soak_test import run_soak
+
+
+class DumpWriter:
+    """Consolidated, minimal-truncation result dump for a test run.
+
+    Every hermetic test already returns its complete, un-truncated result
+    strings (the ``msgs`` list); the soak and golden scenarios additionally
+    produce an ephemeral per-turn ``out_dir``. This writer persists both so the
+    user can analyze the full results offline: a single verbatim ``results.txt``
+    (header + every test's full ``msgs`` in run order) plus a copy of each
+    preserved ``out_dir`` (per-turn state + result.json).
+
+    The dump dir is ``tests/_dumps/<UTC-timestamp>/`` (already git-ignored via
+    the ``/extensions`` pattern). Writing is best-effort: a dump failure must
+    never mask a test failure, so ``flush`` swallows and reports its own errors
+    into the results file / stdout rather than raising.
+    """
+
+    def __init__(self) -> None:
+        ts = _dt.datetime.now(_dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        self.dir = Path(__file__).parent / "_dumps" / ts
+        self.dir.mkdir(parents=True, exist_ok=True)
+        self._results: list[tuple[str, bool, list[str]]] = []
+        self._outdirs: list[tuple[str, Path]] = []
+        self._git_head = self._git_head()
+
+    @staticmethod
+    def _git_head() -> str:
+        try:
+            return _subprocess.run(
+                ["git", "rev-parse", "--short", "HEAD"],
+                capture_output=True, text=True, timeout=10,
+            ).stdout.strip() or "unknown"
+        except Exception:
+            return "unknown"
+
+    def record(self, name: str, ok: bool, msgs: list[str]) -> None:
+        """Record one test's full result (name, pass/fail, complete msgs)."""
+        self._results.append((name, ok, list(msgs)))
+
+    def record_outdir(self, name: str, out_dir: Path) -> None:
+        """Queue an ephemeral per-turn out_dir for preservation into the dump."""
+        self._outdirs.append((name, Path(out_dir)))
+
+    def flush(self) -> Path | None:
+        """Write results.txt + preserve all queued out_dirs; return the dump dir.
+
+        Best-effort: any per-item failure is recorded inline (in results.txt /
+        stdout) and skipped, never raised, so a dump problem cannot mask or
+        alter the test verdict.
+        """
+        try:
+            self.dir.mkdir(parents=True, exist_ok=True)
+        except Exception as e:
+            print(f"[dump] cannot create dump dir: {e}")
+            return None
+
+        # --- preserve out_dirs (per-turn state) first, so a results.txt write
+        #     failure below does not also lose the preserved state ---
+        preserved: list[str] = []
+        for name, out_dir in self._outdirs:
+            dest = self.dir / "out_dirs" / _slug(name)
+            try:
+                if out_dir.exists():
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    if dest.exists():
+                        _shutil.rmtree(dest, ignore_errors=True)
+                    _shutil.copytree(out_dir, dest, symlinks=True,
+                                      ignore=_shutil.ignore_patterns(".*"))
+                    preserved.append(f"{_slug(name)} <- {out_dir}")
+            except Exception as e:
+                preserved.append(f"{_slug(name)}: COPY FAILED ({e})")
+
+        # --- consolidated verbatim results.txt ---
+        lines: list[str] = []
+        lines.append("# dayna_ss test run dump")
+        lines.append(f"timestamp: {self.dir.name}")
+        lines.append(f"git HEAD: {self._git_head}")
+        n_pass = sum(1 for _, ok, _ in self._results if ok)
+        n_fail = len(self._results) - n_pass
+        overall = "PASS" if n_fail == 0 else f"FAIL ({n_fail} test(s) failed)"
+        lines.append(f"overall: {overall}")
+        lines.append(f"tests: {len(self._results)} | pass: {n_pass} | fail: {n_fail}")
+        if preserved:
+            lines.append(f"preserved out_dirs: {len(preserved)}")
+            for p in preserved:
+                lines.append(f"  {p}")
+        lines.append("")
+        for name, ok, msgs in self._results:
+            lines.append(f"=== {name} [{'PASS' if ok else 'FAIL'}] ===")
+            for m in msgs:
+                lines.append(m)
+            lines.append("")
+        try:
+            (self.dir / "results.txt").write_text("\n".join(lines), encoding="utf-8")
+        except Exception as e:
+            print(f"[dump] failed to write results.txt: {e}")
+            return None
+        print(f"[dump] results written: {self.dir / 'results.txt'} "
+              f"({len(self._results)} tests, {len(preserved)} out_dirs preserved)")
+        return self.dir
+
+
+def _slug(name: str) -> str:
+    """Filesystem-safe slug for a test/scenario name (dump subdir naming)."""
+    return "".join(c if (c.isalnum() or c in "-_") else "_" for c in name) or "unnamed"
 
 
 def list_scenarios() -> list[str]:
@@ -88,11 +198,15 @@ def main() -> int:
         return 1
 
     failures = 0
+    # Consolidated result dump (verbatim msgs + preserved per-turn out_dirs).
+    # Only for real runs — golden regeneration (-u) and single-scenario runs
+    # (-s) do not produce a suite dump.
+    dump = DumpWriter() if (not args.update_golden and not args.scenario) else None
     for name in names:
         scenario = Scenario(name, FIXTURES_DIR / name)
         if scenario.meta.get("kind") == "soak":
             if args.scenario and not args.update_golden:
-                soak_ok, soak_msgs = run_soak(name)
+                soak_ok, soak_msgs, _ = run_soak(name)
                 for m in soak_msgs:
                     print("  " + m)
                 if not soak_ok:
@@ -107,6 +221,9 @@ def main() -> int:
         missing, mismatches = scenario.compare(out_dir)
         if not missing and not mismatches:
             print(f"[{name}] PASS ({len(model.calls)} LLM calls scripted)")
+            if dump:
+                dump.record(name, True, [f"[{name}] PASS ({len(model.calls)} LLM calls scripted)"])
+                dump.record_outdir(name, out_dir)
         else:
             failures += 1
             print(f"[{name}] FAIL")
@@ -114,6 +231,11 @@ def main() -> int:
                 print(f"  MISSING: {m}")
             for m in mismatches:
                 print(f"  MISMATCH: {m}")
+            if dump:
+                dump.record(name, False,
+                             [f"[{name}] FAIL"] + [f"  MISSING: {m}" for m in missing]
+                             + [f"  MISMATCH: {m}" for m in mismatches])
+                dump.record_outdir(name, out_dir)
 
     if not args.scenario and not args.update_golden:
         director_ok, director_msgs = run_director_test()
@@ -124,6 +246,8 @@ def main() -> int:
             print("[director_pass_on_off] FAIL")
         else:
             print("[director_pass_on_off] PASS")
+        if dump:
+            dump.record("director_pass_on_off", director_ok, director_msgs)
 
         scene_ok, scene_msgs = run_scene_window_test()
         for m in scene_msgs:
@@ -133,6 +257,8 @@ def main() -> int:
             print("[scene_bounded_window] FAIL")
         else:
             print("[scene_bounded_window] PASS")
+        if dump:
+            dump.record("scene_bounded_window", scene_ok, scene_msgs)
 
         force_ok, force_msgs = run_force_boundary_test()
         for m in force_msgs:
@@ -142,6 +268,8 @@ def main() -> int:
             print("[forced_unit_boundaries] FAIL")
         else:
             print("[forced_unit_boundaries] PASS")
+        if dump:
+            dump.record("forced_unit_boundaries", force_ok, force_msgs)
 
         cadence_ok, cadence_msgs = run_cadence_profile_test()
         for m in cadence_msgs:
@@ -151,6 +279,8 @@ def main() -> int:
             print("[cadence_profiles] FAIL")
         else:
             print("[cadence_profiles] PASS")
+        if dump:
+            dump.record("cadence_profiles", cadence_ok, cadence_msgs)
 
         persist_ok, persist_msgs = run_boundary_persistence_test()
         for m in persist_msgs:
@@ -160,6 +290,8 @@ def main() -> int:
             print("[boundary_persistence] FAIL")
         else:
             print("[boundary_persistence] PASS")
+        if dump:
+            dump.record("boundary_persistence", persist_ok, persist_msgs)
 
         from chapters_render_test import run_chapters_render_test
         render_ok, render_msgs = run_chapters_render_test()
@@ -170,6 +302,8 @@ def main() -> int:
             print("[chapters_render] FAIL")
         else:
             print("[chapters_render] PASS")
+        if dump:
+            dump.record("chapters_render", render_ok, render_msgs)
 
         from canon_synopsis_test import run_canon_synopsis_test
         canon_ok, canon_msgs = run_canon_synopsis_test()
@@ -180,6 +314,8 @@ def main() -> int:
             print("[canon_synopsis] FAIL")
         else:
             print("[canon_synopsis] PASS")
+        if dump:
+            dump.record("canon_synopsis", canon_ok, canon_msgs)
 
         from hygiene_test import run_hygiene_test
         hyg_ok, hyg_msgs = run_hygiene_test()
@@ -190,12 +326,42 @@ def main() -> int:
             print("[hygiene] FAIL")
         else:
             print("[hygiene] PASS")
+        if dump:
+            dump.record("hygiene", hyg_ok, hyg_msgs)
 
-        soak_ok, soak_msgs = run_soak()
+        from referent_gate_test import run_referent_gate_test
+        gate_ok, gate_msgs = run_referent_gate_test()
+        for m in gate_msgs:
+            print("  " + m)
+        if not gate_ok:
+            failures += 1
+            print("[referent_gate] FAIL")
+        else:
+            print("[referent_gate] PASS")
+        if dump:
+            dump.record("referent_gate", gate_ok, gate_msgs)
+
+        from dangling_edge_test import run_dangling_edge_test
+        dedge_ok, dedge_msgs = run_dangling_edge_test()
+        for m in dedge_msgs:
+            print("  " + m)
+        if not dedge_ok:
+            failures += 1
+            print("[dangling_edge] FAIL")
+        else:
+            print("[dangling_edge] PASS")
+        if dump:
+            dump.record("dangling_edge", dedge_ok, dedge_msgs)
+
+        soak_ok, soak_msgs, soak_outdir = run_soak()
         for m in soak_msgs:
             print("  " + m)
         if not soak_ok:
             failures += 1
+        if dump:
+            dump.record("soak", soak_ok, soak_msgs)
+            if soak_outdir is not None:
+                dump.record_outdir("soak", soak_outdir)
 
         if args.live:
             from live_benchmark import run_live_benchmark
@@ -214,6 +380,9 @@ def main() -> int:
                 print("  " + m)
             if skip:
                 failures += 1
+
+    if dump is not None:
+        dump.flush()
 
     if args.update_golden:
         return 0

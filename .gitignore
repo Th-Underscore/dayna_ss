@@ -21,6 +21,8 @@ _runs
 .ignore
 error.log
 tests/textgen-dump.txt
+tests/_dumps/
+tests/_tmpl_extract/
 user_data/nltk_data/
 user_data/example/schemas/*.txt
 user_data/example/schemas/*.bak
