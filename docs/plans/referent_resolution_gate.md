@@ -1,7 +1,12 @@
 # Pre-Mutation Referent-Resolution Gate — Patch Scope
 
-Status: scoped, not yet implemented. Companion to `rag_redesign_p1.md`.
-Root-cause evidence: `tests/split_node_audit_report.md` (mechanical) + `tests/split_adjudication.md` (story-level) + `tests/alias_branchquery_map.md` (prompt map).
+Status: **H1-H4 IMPLEMENTED (uncommitted)** + dangling-edge regression test landed.
+Companion to `rag_redesign_p1.md`. See "Landed state (2026-09-10)" below for the
+verified coverage table and the one genuine residual (H3 value-referent retarget).
+Root-cause evidence: `tests/split_node_audit_report.md` (mechanical) +
+`tests/split_adjudication.md` (story-level) + `tests/alias_branchquery_map.md`
+(prompt map) + `tests/dangling_edge_test.py` (standing dangling-edge regression,
+GREEN 6/6) + turn-84 live-graph replay (176 nodes / 525 edges, 18.1% dangling).
 
 ## Problem (one sentence)
 
@@ -99,9 +104,15 @@ StoryEvent (aliases field).
 
 Effect: closes the "alias = other node's key" ambiguity that produced the poisoning.
 
-## Hermetic smoke gate (must pass before any soak)
+## Hermetic smoke gate
 
-New `tests/referent_gate_test.py` (read-only, stdlib, model-free) over a frozen store:
+`tests/referent_gate_test.py` (landed; read-only, stdlib, model-free, wired into
+`run_tests.py` with dump recording) over a frozen store — 27/27 GREEN. A second
+standing gate, `tests/dangling_edge_test.py` (also landed, GREEN 6/6), audits the
+entity graph's edge set for dangling endpoints and classifies each as `phantom`
+(referent spelled with no backing node anywhere) or `type_mismatch` (referent's
+bare name exists under a different type prefix) — the mechanical regression for
+the turn-84 finding below.
 
 1. **Inline presence**: build a branch update prompt for a node; assert the target's own
    alias array + relationship rows appear verbatim in the emitted prompt (H1 works).
@@ -128,13 +139,87 @@ pre-patch baseline: 323 dangling, 7 splits, 14 contamination entries).
 - Out of scope: merging already-corrupted existing run data (that's a one-time migration,
   not engine logic); the small helper model (optional/progressive, separate track).
 
+## Landed state (verified 2026-09-10, uncommitted)
+
+H1-H4 are **implemented** and green. The original "not yet implemented" status
+above is STALE. Verified sentinel coverage across BOTH schema files
+(`user_data/example/subjects_schema.json` + `.../schemas/subjects_schema_sceneagg.json`):
+
+- **H1 (target-node inline) + H2 (canonical-key constraint)** land on the
+  `branch_update_prompt_template` of **6/7 subjects**: `Character`, `Group`,
+  `SceneState`, **`StoryEvents`**, `GeneralInfo`, **`Element`**. Whole-map
+  re-arm sentinel: **False** on event/element templates (budget discipline held —
+  the inline is target-node-scoped, mirroring the field-level form, not the
+  O(whole-map) block the `restate_map_threshold_chars` gate suppresses).
+- **H4 (alias hardening)** lands on the alias placeholders of **4 classes**:
+  `CharacterRelationship`, `CharacterGroupStatus`, `Group`, **`StoryEvent`**.
+- **H3 (parse-time retargeting)**: `_resolve_path_keys` (path, parsing.py:172) +
+  `_retarget_value`/`_retarget_dict_key` (value, parsing.py:142-169), wired into
+  `_apply_branch_updates` (updates.py:445/455) — value-side retarget of
+  **dict keys** only.
+- **`tests/referent_gate_test.py`**: landed, 27/27 GREEN, dump-wired.
+- **`tests/dangling_edge_test.py`**: landed, 6/6 GREEN, dump-wired.
+
+**Consequence for the turn-84 evidence:** the 18.1% dangling-edge gap (95/525
+edges) + 6-of-7 phantom top-ranked events was produced by a run on the
+**PRE-PATCH** schema. The gate as landed is *already designed to prevent that
+class* — it simply predates the evidence. No new template hunks are required to
+"extend the gate to event/scene/element": those branch templates already carry
+H1+H2 and the StoryEvent alias already carries H4.
+
+## Residual (the one genuinely open lever)
+
+The single remaining gap, confirmed against source: **H3 does not retarget
+value-referents inside list-of-dicts rows.**
+
+- `_retarget_value` (parsing.py:142) retargets **dict keys and top-level keys of
+  dict rows** only. Its contract states it "leaving **string items, scalars, and
+  prose untouched**" (line 149-151).
+- But the dangling milestone/participant referents are stored as **list-of-dicts
+  where the target is a STRING *VALUE***, not a key: the graph reader reads
+  `rel_item.get("title", rel_item.get("name"))` (entity_graph.py:516, 528) and
+  the dangle enters via that title *value*.
+- Therefore a dangling milestone/participant **title value** passes through
+  `_retarget_value` un-retargeted and mints the dangling edge exactly as the
+  turn-84 replay recorded (38 milestone + 48 relationship + 9 character
+  dangling, all target-side).
+
+**Resolution (scoped, non-eventizing):** extend the value-side pass so that, for
+a list-of-dicts row, the string *value* fields that name a referent (the
+`title`/`name`/partner fields) are also run through `_resolve_dict_key`: if the
+value resolves to a **distinct** existing node, rewrite the value onto that
+canonical key. Same guarantees as the existing key-retarget — fires only on a
+distinct collision, guaranteed no-op otherwise, so legitimate shared/undercover
+identities (one canonical referent) and cross-subject prose are never rewritten.
+This is a **parse-time correction**, not a model change, and is the lever that
+closes the specific dangling class the turn-84 audit proves live.
+
+**Verification before any soak:** extend `tests/dangling_edge_test.py` (or the
+referent-gate test) with a fixture where a list-of-dicts milestone row carries a
+dangling title *value* distinct from an existing node; assert it is re-addressed
+onto the canonical key (and a non-colliding title value passes through
+unchanged). Then the existing 100-turn soak A/B: dangling-edge count +
+split-pair count + alias-poisoning count vs the pre-patch baseline
+(323 dangling, 7 splits, 14 contamination entries).
+
 ## File touch list
 
+Landed (uncommitted; do not re-apply):
 - `user_data/example/subjects_schema.json` + `.../schemas/subjects_schema_sceneagg.json`:
   H1 (branch update+query templates emit `{{ value }}`), H2 (constraint line),
   H4 (4× alias placeholders). NOTE: not git-tracked — JSON round-trip edits, ensure_ascii=False.
-- `agents/data_summarizer/prompts.py`: confirm `value_str` populated for node path (H1).
-- `agents/data_summarizer/updates.py` `_apply_branch_updates` (H3 retargeting) + reuse
-  `_resolve_dict_key`.
-- `agents/data_summarizer/parsing.py` `_filter_new_entry_names` (H3 retargeting branch).
-- `tests/referent_gate_test.py` (new; wire into `run_tests.py`).
+- `agents/data_summarizer/prompts.py`: `value_str` populated for node path (H1) — confirmed.
+- `agents/data_summarizer/updates.py` `_apply_branch_updates`: path canonicalization
+  (line 445) + value retarget (line 455) — landed.
+- `agents/data_summarizer/parsing.py`: `_resolve_dict_key`/`_retarget_dict_key`/
+  `_retarget_value`/`_resolve_path_keys` — landed. (`_filter_new_entry_names` left
+  untouched — its containment-rejection already handles the add_new path.)
+- `tests/referent_gate_test.py` (landed, 27/27, wired into `run_tests.py`).
+- `tests/dangling_edge_test.py` (landed, 6/6, wired into `run_tests.py`).
+
+Residual (open lever — see "Residual" above):
+- `agents/data_summarizer/parsing.py`: extend `_retarget_value` to retarget the
+  string *value* fields of list-of-dicts rows (title/name/partner) via
+  `_resolve_dict_key`, preserving the distinct-collision/no-op guarantees.
+- `tests/dangling_edge_test.py` (or `referent_gate_test.py`): value-referent
+  fixture proving the milestone/participant title-value dangle is re-addressed.

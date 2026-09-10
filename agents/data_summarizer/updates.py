@@ -52,6 +52,8 @@ from .parsing import (
     _collect_entry_aliases,
     _resolve_dict_key,
     _resolve_path_keys,
+    _retarget_dict_key,
+    _retarget_value,
     _is_negative_verdict,
     _tolerant_json_loads,
     _is_schema_echo,
@@ -441,6 +443,16 @@ class DSUpdatesMixin:
                 # ("Mr" + "Peters") and nickname/alias references ("The Judge") land
                 # on the real key instead of creating stray nested dicts.
                 keyList_relative_to_branch = _resolve_path_keys(data, keyList_relative_to_branch)
+
+                # H3 (referent-resolution gate): symmetric VALUE-side retarget. The
+                # path above is already canonicalized; the value (relationship
+                # partner keys, row keys, alias entries) was not. Re-address any
+                # dangling referent (a lookalike key that would mint a stray sibling
+                # or dangling edge) onto its canonical same-branch node. Fires only on
+                # a DISTINCT collision and is a guaranteed no-op otherwise, so
+                # legitimate shared/undercover identities (one canonical key) and
+                # cross-branch referents are never rewritten.
+                value = _retarget_value(value, data)
 
                 try:
                     old_value = recursive_get(data, keyList_relative_to_branch)

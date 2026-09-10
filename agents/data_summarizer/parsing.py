@@ -114,6 +114,61 @@ def _resolve_dict_key(data_dict: dict, key: str) -> str | None:
     return None
 
 
+def _retarget_dict_key(d: dict, key: Any, data: dict) -> None:
+    """Retarget a single dangling dict key onto its canonical form, in place.
+
+    A *dangle* is a key the model spelled as a lookalike (``The_Second_Runner``)
+    that would otherwise mint a stray sibling / dangling edge, while the same
+    referent resolves (via ``_resolve_dict_key``) to a distinct, already-present
+    key (``Second Runner``). The write is re-addressed onto the canonical node.
+    The move is a guaranteed no-op when no distinct collision exists: a key that
+    is already canonical (resolves to itself) or to nothing is left untouched —
+    so a legitimate shared/undercover identity (a single canonical key) is never
+    rewritten. A same-level dangle-vs-canonical clash merges dict payloads rather
+    than clobbering, so existing data at the canonical key survives."""
+    if not isinstance(key, str):
+        return
+    canonical = _resolve_dict_key(data, key)
+    if canonical is None or canonical == key or key not in d:
+        return
+    moved = d.pop(key)
+    existing = d.get(canonical)
+    if isinstance(existing, dict) and isinstance(moved, dict):
+        existing.update(moved)
+    elif canonical not in d:
+        d[canonical] = moved
+
+
+def _retarget_value(value: Any, data: dict, depth: int = 0) -> Any:
+    """Retarget dangling referent keys/row-keys inside an update *value* (H3).
+
+    The branch-update path already canonicalizes the update's *path* via
+    ``_resolve_path_keys``; this is the symmetric pass over the *value*. It walks
+    the value structure and retargets only keys (dict keys and top-level keys of
+    dict rows) — the structural partner/row references that dangles enter through —
+    leaving string items, scalars, and prose untouched. A referent is retargeted
+    only when it is a distinct collision (resolves to a DIFFERENT existing key),
+    so it is idempotent and a guaranteed no-op where no collision exists. The
+    structure is rewritten in place and returned."""
+    if depth > 12:
+        return value
+    if isinstance(value, dict):
+        for key in list(value.keys()):
+            _retarget_dict_key(value, key, data)
+        for k, v in value.items():
+            if isinstance(v, (dict, list)):
+                _retarget_value(v, data, depth + 1)
+    elif isinstance(value, list):
+        for item in value:
+            if isinstance(item, dict):
+                for key in list(item.keys()):
+                    _retarget_dict_key(item, key, data)
+                for k, v in item.items():
+                    if isinstance(v, (dict, list)):
+                        _retarget_value(v, data, depth + 1)
+    return value
+
+
 def _resolve_path_keys(data: Any, keys: list) -> list:
     """Canonicalize a key path against the live structure.
 
