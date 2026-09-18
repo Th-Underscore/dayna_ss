@@ -417,6 +417,15 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
 
             self._update_recursive(data_type, data, formatted_data, unexpanded_formatted_data, target_schema_class)
 
+            # Scene boundary: copy the model's fresh start → now so both render
+            # identically at the boundary (the model reliably rewrites start but
+            # only copies to now ~31% of the time; see scene_start_to_now_copy.md).
+            # Delta-check variant: only copy if start actually changed; skip when
+            # start is the empty NO_UPDATES shell and now is already populated.
+            if data_type == "current_scene" and self.summarizer.last and self.summarizer.last.is_new_scene_turn:
+                if data.get("start") is not None:
+                    data["now"] = copy.deepcopy(data["start"])
+
             # Memory hygiene: collapse restated sentences (intra-entity), strip
             # verbatim copies injected into peer entities, canonicalize/prune/cap
             # relationship rows — all shape-driven, before persistence. Note:
