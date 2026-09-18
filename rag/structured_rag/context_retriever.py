@@ -1440,6 +1440,8 @@ class StoryContextRetriever:
         scene_characters = []
         if current_scene and "who" in current_scene.get("now", {}):
             for char in current_scene["now"]["who"].get("characters", []):
+                if not isinstance(char, dict) or not char.get("name"):
+                    continue
                 print(char["name"], "-", scene_characters)
                 if char["name"] not in scene_characters:
                     scene_characters.append(char["name"])
