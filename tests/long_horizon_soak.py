@@ -1718,6 +1718,46 @@ class SoakRun:
 
         return task
 
+    def backfill_post_turn_events(self, resume_from: int) -> None:
+        """Backfill missing post-turn events for completed turns before resuming.
+
+        When a soak run is killed mid-flight, in-flight judge/audit/overview
+        tasks never complete. On resume we reconstruct and re-enqueue them
+        for every completed turn, using that turn's point-in-time data.
+        """
+        print(f"[soak] backfilling post-turn events for turns 0-{resume_from-1}")
+        saved_history = self.history
+        self.history = []
+        for t in range(resume_from):
+            d = self.run_dir / f"turn_{t:03d}"
+            result_path = d / "result.json"
+            reply_path = d / "reply.txt"
+            if not result_path.exists() or not reply_path.exists():
+                continue
+            result = json.loads(result_path.read_text(encoding="utf-8"))
+            reply_text = reply_path.read_text(encoding="utf-8")
+            # Judge: missing or error
+            judge = result.get("judge")
+            if judge is None or (isinstance(judge, dict) and judge.get("error")):
+                task = self._make_judge_task(t, [], reply_text, d)
+                if task:
+                    self._judge_q.put(task)
+            # Audit: missing
+            if not result.get("audit"):
+                task = self._make_audit_task(t, d)
+                if task:
+                    self._audit_q.put(task)
+            # Rolling overview: missing or error
+            ov_path = self.run_dir / f"rolling_overview_{t+1:03d}.json"
+            if not ov_path.exists():
+                self._judge_q.put(self._make_rolling_overview_task(t))
+            # Advance history so next task sees correct window
+            user_path = d / "user.txt"
+            if user_path.exists():
+                self.history.append([user_path.read_text(encoding="utf-8"), reply_text])
+        self.history = saved_history
+        print(f"[soak] backfill complete")
+
     def _clamp_note_windows(self) -> None:
         """B1: clamp recall due / plant turns inside the run horizon.
 
@@ -2806,6 +2846,7 @@ def main() -> int:
             except Exception:
                 soak.plan = {}
         print(f"[soak] resumed {len(soak.history)} prior exchanges")
+        soak.backfill_post_turn_events(resume_from)
 
     # graceful stop
     def _sig(signum, frame):
