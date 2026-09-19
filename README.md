@@ -50,3 +50,7 @@ Pre-alpha. The core cycle works, but this is very much a project in progress. Ex
 - Importance weighting to skip trivial updates
 - Interactive knowledge base UI for manual edits
 - Schema editor for visual schema building
+
+## License
+
+Licensed under the [GNU Affero General Public License v3.0](LICENSE).
