@@ -1,0 +1,396 @@
+{
+  "id": "western",
+  "genre": "Western",
+  "premise": "A former gunslinger turned reluctant marshal must face the outlaw gang he once ran with, led by his own brother.",
+  "setting": "The high-desert town of Redoubt, 1881: a saloon, a failing telegraph office, badlands all around.",
+  "greeting": "Rosa's hand was already on the shotgun when the stagecoach bell clattered through the dust — Marshal Callan's signal, two hours early, and the look on the boy's face said it wasn't good news.",
+  "characters": {
+    "name1": {
+      "name": "Marshal Callan",
+      "role": "former gunslinger (guide writes these turns)",
+      "description": "A quiet marshal trying to bury a violent past; slow to anger, fast when moved."
+    },
+    "name2": {
+      "name": "Rosa",
+      "role": "saloon owner (DSS writes these turns)",
+      "description": "The saloon's sharp-eyed owner who knows everyone's secrets and keeps the town's ledgers."
+    }
+  },
+  "writing_style": {
+    "directive": "Lean Western plainness. Sparse dialogue, weather and dust as texture. One clean beat per turn. Dual close-third-person narration: Callan and Rosa are each narrated from inside their own spare restraint.",
+    "guide_directive": "Third-person past tense in close narration on Marshal Callan — 'he' is always Callan; record what a man says, drinks, and does not feel. Flat, spare, unsentimental; dust-dry declaratives, weather as mood.",
+    "dss_directive": "Third-person past tense in close narration on Rosa, the saloon owner — 'she' is ALWAYS Rosa; Callan is 'he'. Economical and shrewd from the outside — her bar, her ledger, her loyalties. Lean plain prose, weather and dust as texture. Hard rules: keep the third person — never slip into 'I' for Rosa; never quote or repeat Marshal Callan's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No modern psychology",
+      "No sentimentality"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "w1",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Callan's revolver is the one he took off a dead U.S. marshal named Whitfield — the truth of its ownership matters.",
+      "needle": "Whitfield",
+      "needle_syns": [
+        "Whitfield",
+        "the marshal",
+        "the revolver"
+      ],
+      "plant": {
+        "turn": 8
+      }
+    },
+    {
+      "id": "w2",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The 'Redoubt Promise' — a debt Rosa's father paid to save the town — planted early, should be called in at the climax.",
+      "needle": "Redoubt Promise",
+      "needle_syns": [
+        "Redoubt Promise",
+        "the promise",
+        "the debt"
+      ],
+      "plant": {
+        "turn": 16
+      },
+      "recall": {
+        "due": 75,
+        "hint": "the Redoubt Promise is called in"
+      }
+    },
+    {
+      "id": "w3",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "Callan's brother Silas is not just leading the gang — he's the town's deputy, secretly, the reveal around turn 50.",
+      "needle": "Silas",
+      "needle_syns": [
+        "Silas",
+        "his brother",
+        "the deputy"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 50,
+        "hint": "Silas's double role is revealed"
+      }
+    },
+    {
+      "id": "w4",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The arroyo outside town, where Callan's old gang camped, should be where the past is settled.",
+      "needle": "arroyo",
+      "needle_syns": [
+        "arroyo",
+        "the wash",
+        "the gulch",
+        "the dry creek"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 72,
+        "hint": "a reckoning in the arroyo"
+      }
+    },
+    {
+      "id": "w5",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The telegraph line is cut at turn 60 — after that, no word can reach the county seat, and the story must know it.",
+      "needle": "telegraph",
+      "needle_syns": [
+        "telegraph",
+        "the wire",
+        "the line"
+      ],
+      "plant": {
+        "turn": 22
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the telegraph is cut"
+      }
+    },
+    {
+      "id": "w6",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Rosa's ledger holds a secret page — money owed to the gang — foreshadowing her own entanglement.",
+      "needle": "ledger",
+      "needle_syns": [
+        "ledger",
+        "the book",
+        "the accounts"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the secret ledger page"
+      }
+    },
+    {
+      "id": "w7",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Callan's dead wife's grave at the edge of town, planted early, should be the place he chooses not to run from at the end.",
+      "needle": "grave",
+      "needle_syns": [
+        "grave",
+        "the headstone",
+        "his wife"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 80,
+        "hint": "the grave at the end"
+      }
+    },
+    {
+      "id": "w8",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The saloon's piano has a stuck key, and Rosa refuses to have it fixed.",
+      "needle": "stuck key",
+      "needle_syns": [
+        "stuck key",
+        "the stuck piano key"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "w9",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The telegraph office's key clicks twice before it takes a message, and the operator swears it knows.",
+      "needle": "telegraph key",
+      "needle_syns": [
+        "telegraph key",
+        "the key",
+        "clicks twice"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "w10",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Callan's saddle has a loose stirrup strap he re-stitches every dawn without fail.",
+      "needle": "stirrup strap",
+      "needle_syns": [
+        "stirrup strap",
+        "the strap",
+        "loose strap"
+      ],
+      "plant": {
+        "turn": 9
+      }
+    },
+    {
+      "id": "w11",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The town's single hanging clock is always ten minutes slow, and nobody can agree on whose fault it is.",
+      "needle": "hanging clock",
+      "needle_syns": [
+        "hanging clock",
+        "the clock",
+        "ten minutes slow"
+      ],
+      "plant": {
+        "turn": 12
+      }
+    },
+    {
+      "id": "w12",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rosa's cracked serving glass, kept behind the bar, should be the one Silas drinks from at the end.",
+      "needle": "cracked glass",
+      "needle_syns": [
+        "cracked glass",
+        "the cracked glass",
+        "serving glass"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "recall": {
+        "due": 64,
+        "hint": "Silas drinks from Rosa's cracked glass"
+      }
+    },
+    {
+      "id": "w13",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The black mare Callan kept from the old days should be the horse he refuses to sell at the end.",
+      "needle": "black mare",
+      "needle_syns": [
+        "black mare",
+        "the mare",
+        "his black horse"
+      ],
+      "plant": {
+        "turn": 11
+      },
+      "recall": {
+        "due": 72,
+        "hint": "Callan keeps the black mare"
+      }
+    },
+    {
+      "id": "w14",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A shallow grave dug in the arroyo, half-covered, should foreshadow what the gang buried.",
+      "needle": "shallow grave",
+      "needle_syns": [
+        "shallow grave",
+        "the grave",
+        "half-covered grave"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the shallow grave holds what the gang buried"
+      }
+    },
+    {
+      "id": "w15",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The telegraph office becomes the place Rosa holds the line against the gang.",
+      "needle": "telegraph office",
+      "needle_syns": [
+        "telegraph office",
+        "the telegraph"
+      ],
+      "plant": {
+        "turn": 13
+      },
+      "recall": {
+        "due": 50,
+        "hint": "Rosa holds the telegraph office"
+      }
+    },
+    {
+      "id": "w16",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The lean plain prose must hold even in the shootout — no melodrama, no florid action.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 80,
+        "hint": "plain prose in the shootout"
+      }
+    },
+    {
+      "id": "w17",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The saloon's free lunch plate is always refilled before noon, rain or shine.",
+      "needle": "free lunch",
+      "needle_syns": [
+        "free lunch",
+        "lunch plate"
+      ],
+      "plant": {
+        "turn": 15
+      }
+    },
+    {
+      "id": "w18",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The town's water cart, the only source in the badlands, is destroyed at turn 68 — after that the water must be rationed and the cart never used again.",
+      "needle": "water cart",
+      "needle_syns": [
+        "water cart",
+        "the water wagon"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 68,
+        "hint": "the water cart is destroyed"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "wb1",
+      "turn": 3,
+      "subject": "characters",
+      "content": "DSS should save the telegraph operator who runs the office.",
+      "expect": {
+        "name": "telegraph operator",
+        "role": "operator",
+        "detail": "key clicks twice"
+      }
+    },
+    {
+      "id": "wb2",
+      "turn": 7,
+      "subject": "elements",
+      "content": "DSS should save the saloon's stuck-key piano.",
+      "expect": {
+        "name": "piano",
+        "location": "Rosa's saloon",
+        "detail": "one stuck key"
+      }
+    },
+    {
+      "id": "wb3",
+      "turn": 12,
+      "subject": "elements",
+      "content": "DSS should save Callan's black mare.",
+      "expect": {
+        "name": "black mare",
+        "owner": "Callan",
+        "detail": "from the old days"
+      }
+    },
+    {
+      "id": "wb4",
+      "turn": 17,
+      "subject": "groups",
+      "content": "DSS should save the outlaw gang Callan once rode with.",
+      "expect": {
+        "name": "the gang",
+        "leader": "Silas",
+        "members": []
+      }
+    },
+    {
+      "id": "wb5",
+      "turn": 22,
+      "subject": "elements",
+      "content": "DSS should save the town's water cart, the only water source in the badlands.",
+      "expect": {
+        "name": "water cart",
+        "location": "Redoubt",
+        "detail": "only water source"
+      }
+    }
+  ]
+}

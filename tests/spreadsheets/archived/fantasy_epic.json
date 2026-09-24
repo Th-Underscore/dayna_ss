@@ -1,0 +1,428 @@
+{
+  "id": "fantasy_epic",
+  "genre": "High fantasy epic",
+  "premise": "An exiled knight must reunite the shattered rings of the old pact before the Hollow King's armies cross the Bone Sea.",
+  "setting": "The crumbling realm of Vaelnor: elf-holds in frost valleys, a drowned dwarf-city, dragon-peaks, the ancient pact hall.",
+  "greeting": "You wake on the frost-hold stair with the pact ring cold at your belt, and the ice-bound silence tells you the watchers have already seen you climb.",
+  "characters": {
+    "name1": {
+      "name": "Sir Aldric",
+      "role": "exiled knight (guide writes these turns)",
+      "description": "A disgraced knight of the old order, oathbound, carrying a broken blade."
+    },
+    "name2": {
+      "name": "Ysara",
+      "role": "frost elf mage (DSS writes these turns)",
+      "description": "A frost-elf mage of the shattered pact, cold and precise, bound by a geas to guide the knight."
+    }
+  },
+  "writing_style": {
+    "directive": "Epic fantasy, mythic register. Sensory-heavy, measured cadence. One longer paragraph or two medium ones. Second-person narration throughout: the whole story is told TO Ysara as 'you', and she answers in the same 'you'.",
+    "guide_directive": "Second-person present tense, a mythic narrator speaking the story to Ysara as 'you': 'You climb the frost-hold stair, the pact ring cold at your belt.' Describe what Ysara does, sees, and faces. Formal, honor-laden, grave; mythic diction, long measured cadences. The narrator has no voice of its own and never uses 'I'.",
+    "dss_directive": "Second-person present tense as Ysara, the frost elf mage — the story continues to be told to her as 'you', and her turn keeps that same 'you' voice: 'You raise your hand and the ice answers.' Remote and luminous; render her spells and silences with elemental imagery of ice and starlight. One elevated paragraph (~150 words). Hard rules: keep the second person throughout — never slip into 'I' or 'she' for Ysara; never quote or repeat Sir Aldric's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No modern idiom",
+      "No comedic anachronism"
+    ]
+  },
+  "specificity_profile": "exact",
+  "notes": [
+    {
+      "id": "f1",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The broken blade Aldric carries is a fragment of the Pact Blade, capable of cutting the Hollow King's bindings.",
+      "needle": "Pact Blade",
+      "needle_syns": [
+        "Pact Blade",
+        "the blade",
+        "the fragment",
+        "the shard"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "f2",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Ysara's geas: she is sworn to guide the ring-bearer, but is forbidden to reveal that she once served the Hollow King.",
+      "needle": "geas",
+      "needle_syns": [
+        "geas",
+        "oath",
+        "binding",
+        "sworn"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 75,
+        "hint": "Ysara's true past is revealed"
+      }
+    },
+    {
+      "id": "f3",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "The third ring is hidden inside the pact hall's mirror — a mirror that reflects truth, which the party must traverse.",
+      "needle": "mirror",
+      "needle_syns": [
+        "mirror",
+        "the glass",
+        "the true mirror"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the third ring behind the mirror"
+      }
+    },
+    {
+      "id": "f4",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The drowned dwarf-city must be where Aldric earns back his honor, not just a dungeon.",
+      "needle": "dwarf-city",
+      "needle_syns": [
+        "dwarf-city",
+        "the drowned city",
+        "Kazdrahr"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 45,
+        "hint": "redemption in the drowned city"
+      }
+    },
+    {
+      "id": "f5",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "Aldric's oath of exile is formally broken by the pact hall's elder at turn 70; afterward he is no longer disgraced.",
+      "needle": "oath of exile",
+      "needle_syns": [
+        "oath",
+        "exile",
+        "disgraced"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 70,
+        "hint": "the oath of exile is broken"
+      }
+    },
+    {
+      "id": "f6",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Bone Sea's singing sand should foreshadow the Hollow King's true weapon.",
+      "needle": "Bone Sea",
+      "needle_syns": [
+        "Bone Sea",
+        "singing sand",
+        "the sea"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 65,
+        "hint": "the singing sand weapon is revealed"
+      }
+    },
+    {
+      "id": "f7",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "A drake called Emberpike, tamed by Ysara's mother, guards the mountain pass — and recognizes Ysara.",
+      "needle": "Emberpike",
+      "needle_syns": [
+        "Emberpike",
+        "the drake",
+        "the dragon"
+      ],
+      "plant": {
+        "turn": 25
+      }
+    },
+    {
+      "id": "f8",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The rune on Aldric's broken blade — a vow-mark — should be revealed late as a pact he made with a dying god.",
+      "needle": "vow-mark",
+      "needle_syns": [
+        "vow-mark",
+        "rune",
+        "mark",
+        "sigil"
+      ],
+      "plant": {
+        "turn": 22
+      },
+      "recall": {
+        "due": 80,
+        "hint": "the vow-mark's origin surfaces"
+      }
+    },
+    {
+      "id": "f9",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The mythic register must hold even during the final battle — no descent into colloquial urgency.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 88,
+        "hint": "epic register through the climax"
+      }
+    },
+    {
+      "id": "f10",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Ysara's staff has a rune-carved heel that glows faintly whenever she lies.",
+      "needle": "rune-carved",
+      "needle_syns": [
+        "rune-carved heel",
+        "carved heel",
+        "the rune"
+      ],
+      "plant": {
+        "turn": 4
+      }
+    },
+    {
+      "id": "f11",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Aldric mends the torn hem of his cloak with grey thread each night by the fire.",
+      "needle": "grey thread",
+      "needle_syns": [
+        "grey thread",
+        "the thread"
+      ],
+      "plant": {
+        "turn": 8
+      }
+    },
+    {
+      "id": "f12",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The party's pack-mule is a stubborn grey called Thistle who bites anyone but the handlers.",
+      "needle": "Thistle",
+      "needle_syns": [
+        "Thistle",
+        "the mule",
+        "pack-mule Thistle"
+      ],
+      "plant": {
+        "turn": 11
+      }
+    },
+    {
+      "id": "f13",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The pact hall's hearth-fire burns blue and gives no warmth, and the elf-keepers whisper that it remembers the pact.",
+      "needle": "blue hearth",
+      "needle_syns": [
+        "blue hearth",
+        "blue fire",
+        "the hearth"
+      ],
+      "plant": {
+        "turn": 14
+      }
+    },
+    {
+      "id": "f14",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The ice-flower pendant Ysara wears, planted early, should be what melts when the pact hall's mirror is finally crossed.",
+      "needle": "ice-flower",
+      "needle_syns": [
+        "ice-flower",
+        "ice flower pendant",
+        "the pendant"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 78,
+        "hint": "the ice-flower melts at the mirror"
+      }
+    },
+    {
+      "id": "f15",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Aldric's broken blade, kept wrapped in oilcloth, should be unwrapped only at the final gate.",
+      "needle": "oilcloth",
+      "needle_syns": [
+        "oilcloth",
+        "the wrapped blade",
+        "cloth wrap"
+      ],
+      "plant": {
+        "turn": 13
+      },
+      "recall": {
+        "due": 82,
+        "hint": "the blade comes out of the oilcloth at the final gate"
+      }
+    },
+    {
+      "id": "f16",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The drowned dwarf-city's single bell, rung by the tide, should foreshadow the pact's call.",
+      "needle": "drowned bell",
+      "needle_syns": [
+        "drowned bell",
+        "the bell",
+        "tide bell"
+      ],
+      "plant": {
+        "turn": 9
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the tide-rung bell is the pact's summons"
+      }
+    },
+    {
+      "id": "f17",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The frost valley's rope bridge becomes the place the party must choose a side and cannot turn back.",
+      "needle": "rope bridge",
+      "needle_syns": [
+        "rope bridge",
+        "the bridge",
+        "frost valley bridge"
+      ],
+      "plant": {
+        "turn": 17
+      },
+      "recall": {
+        "due": 50,
+        "hint": "the rope bridge forces the choice"
+      }
+    },
+    {
+      "id": "f18",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The mythic register must hold even in the final battle — no modern urgency, no slang.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 90,
+        "hint": "mythic register in the battle"
+      }
+    },
+    {
+      "id": "f19",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ysara keeps a cup of untouched mead before her at every feast, a reminder of the geas.",
+      "needle": "untouched mead",
+      "needle_syns": [
+        "untouched mead",
+        "the mead"
+      ],
+      "plant": {
+        "turn": 21
+      }
+    },
+    {
+      "id": "f20",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The party's map of the Bone Sea, carried since the start, is burned at turn 72 — after that the crossing must be navigated from memory alone.",
+      "needle": "map",
+      "needle_syns": [
+        "map",
+        "the Bone Sea map",
+        "chart"
+      ],
+      "plant": {
+        "turn": 16
+      },
+      "recall": {
+        "due": 72,
+        "hint": "the map is destroyed and cannot be consulted"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "fb1",
+      "turn": 3,
+      "subject": "characters",
+      "content": "DSS should save the pack-mule Thistle as a character.",
+      "expect": {
+        "name": "Thistle",
+        "kind": "mule",
+        "detail": "bites anyone but the handlers"
+      }
+    },
+    {
+      "id": "fb2",
+      "turn": 7,
+      "subject": "elements",
+      "content": "DSS should save Ysara's rune-carved staff as an element.",
+      "expect": {
+        "name": "staff",
+        "owner": "Ysara",
+        "detail": "rune-carved heel glows when she lies"
+      }
+    },
+    {
+      "id": "fb3",
+      "turn": 12,
+      "subject": "groups",
+      "content": "DSS should save the party (Aldric, Ysara and their guides) as a group.",
+      "expect": {
+        "name": "the party",
+        "members": [
+          "Aldric",
+          "Ysara"
+        ]
+      }
+    },
+    {
+      "id": "fb4",
+      "turn": 18,
+      "subject": "elements",
+      "content": "DSS should save the frost valley rope bridge as an element.",
+      "expect": {
+        "name": "rope bridge",
+        "location": "frost valley"
+      }
+    },
+    {
+      "id": "fb5",
+      "turn": 24,
+      "subject": "elements",
+      "content": "DSS should save the blue hearth-fire of the pact hall as an element.",
+      "expect": {
+        "name": "blue hearth-fire",
+        "location": "pact hall",
+        "detail": "gives no warmth"
+      }
+    }
+  ]
+}

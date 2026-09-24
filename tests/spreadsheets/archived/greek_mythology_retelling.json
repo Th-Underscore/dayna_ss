@@ -1,0 +1,398 @@
+{
+  "id": "greek_mythology_retelling",
+  "genre": "Greek mythology retelling",
+  "premise": "A mortal hero is tasked by the gods to carry a single ember of stolen fire back across the Styx to the sleeping volcano where it must be returned before dawn — or the mortal world is unmade.",
+  "setting": "A mythic Greece of cloud-crowned Olympus, the asphodel meadows, the river Styx, the sleeping volcano of Hephaistos.",
+  "greeting": "The muse lets the thread of the song fall silent, and you find yourself on a wine-dark shore, an oar in your hands and a fate you have not yet been told.",
+  "characters": {
+    "name1": {
+      "name": "Calliope",
+      "role": "the muse who narrates the hero's tale (guide writes these turns)",
+      "description": "Eldest of the nine muses; she recites the hero's deeds from the mountain, her voice half-history, half-warning."
+    },
+    "name2": {
+      "name": "Leander",
+      "role": "the mortal hero (DSS writes these turns)",
+      "description": "A young shepherd with a borrowed sword and a single ember burning in a clay pot."
+    }
+  },
+  "writing_style": {
+    "directive": "Mythic register, elevated diction. Sensory-heavy, measured cadence. The muse narrates in the third person; the hero's own turns are told back to him in the second person.",
+    "guide_directive": "Third-person past tense as Calliope, the muse, reciting the hero's tale: 'Leander took the ember from the hearth of Olympus.' Elevated, omniscient, grave; mythic diction and long cadences. The muse speaks of Leander as 'he' and never uses 'I' — her voice is the story itself.",
+    "dss_directive": "Second-person present tense, the hero's story told back to him as 'you': 'You cup the ember against your chest and the clay burns warm.' Leander's turn continues that same 'you' voice. Resolute, sensory, grounded — the mortal's awe and fatigue beneath the myth. One elevated paragraph (~120 words). Hard rules: keep the second person throughout — never slip into 'I' or 'he' for Leander; never quote or repeat Calliope's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No modern idiom",
+      "No ironic retelling"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "n1",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Leander's clay pot has a hairline crack from the climb down; the ember glows through it.",
+      "needle": "clay pot",
+      "needle_syns": [
+        "clay pot",
+        "the pot",
+        "hairline crack"
+      ],
+      "plant": {
+        "turn": 2
+      }
+    },
+    {
+      "id": "n2",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Leander's borrowed sword is bronze and too heavy for him; it drags a furrow in the ash.",
+      "needle": "borrowed sword",
+      "needle_syns": [
+        "borrowed sword",
+        "the sword",
+        "the furrow"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "n3",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Styx's water is silver and thick as spilled milk; a drop of it remembers everything it has touched.",
+      "needle": "Styx",
+      "needle_syns": [
+        "Styx",
+        "the river",
+        "silver water"
+      ],
+      "plant": {
+        "turn": 4
+      }
+    },
+    {
+      "id": "n4",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A black-sailed boat waits at the Styx — no ferryman, only oars that move themselves.",
+      "needle": "black-sailed boat",
+      "needle_syns": [
+        "black-sailed boat",
+        "the boat",
+        "oars"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "recall": {
+        "due": 50,
+        "hint": "the self-moving boat"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A hundred ships burned on the far shore the night the fire was stolen — a glimpse of what Olympus does to those who steal from it.",
+      "needle": "hundred ships",
+      "needle_syns": [
+        "hundred ships",
+        "the ships",
+        "burned"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 62,
+        "hint": "the burned ships on the far shore"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The asphodel meadow swallows sound; a dropped stone makes no echo there — should matter at the crossing.",
+      "needle": "asphodel",
+      "needle_syns": [
+        "asphodel",
+        "the meadow",
+        "no echo"
+      ],
+      "plant": {
+        "turn": 7
+      },
+      "recall": {
+        "due": 44,
+        "hint": "the silent meadow at the crossing"
+      }
+    },
+    {
+      "id": "n7",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "A three-eyed crow follows Leander from Olympus — the eyes of Zeus, sent to watch.",
+      "needle": "three-eyed crow",
+      "needle_syns": [
+        "three-eyed crow",
+        "the crow",
+        "Zeus's eyes"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the watching crow"
+      }
+    },
+    {
+      "id": "n8",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Leander's mother wove him a red sash the night he left; he should remember her hands on the loom when the end approaches.",
+      "needle": "red sash",
+      "needle_syns": [
+        "red sash",
+        "the sash",
+        "her loom"
+      ],
+      "plant": {
+        "turn": 9
+      },
+      "recall": {
+        "due": 63,
+        "hint": "the red sash and her loom"
+      }
+    },
+    {
+      "id": "n9",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The asphodel blooms have black centers that turn to follow a passer-by like unblinking eyes.",
+      "needle": "asphodel blooms",
+      "needle_syns": [
+        "asphodel blooms",
+        "black centers",
+        "the blooms"
+      ],
+      "plant": {
+        "turn": 10
+      }
+    },
+    {
+      "id": "n10",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Hephaistos's forge-god, a giant of hammered bronze, slumbers inside the volcano with his anvil still warm.",
+      "needle": "Hephaistos",
+      "needle_syns": [
+        "Hephaistos",
+        "the bronze god",
+        "the anvil"
+      ],
+      "plant": {
+        "turn": 11
+      }
+    },
+    {
+      "id": "n11",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The volcano of Hephaistos is entered through a forge-mouth of petrified bronze.",
+      "needle": "forge-mouth",
+      "needle_syns": [
+        "forge-mouth",
+        "bronze mouth",
+        "the volcano"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 56,
+        "hint": "the bronze forge-mouth"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The clay pot shatters at turn 55 — after that the ember is carried bare in the hero's cupped hands.",
+      "needle": "clay pot",
+      "needle_syns": [
+        "clay pot",
+        "the pot"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 55,
+        "hint": "the pot shatters"
+      }
+    },
+    {
+      "id": "n13",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The ember's light is hidden under a wet fleece from turn 48; after that the glow is smothered until the forge.",
+      "needle": "wet fleece",
+      "needle_syns": [
+        "wet fleece",
+        "the fleece",
+        "smothered glow"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 48,
+        "hint": "the wet fleece smothers the glow"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The name 'Kleio' — a sister muse who laughed at mortals — should surface as the voice that tries to turn Leander back.",
+      "needle": "Kleio",
+      "needle_syns": [
+        "Kleio",
+        "the laughing muse"
+      ],
+      "plant": {
+        "turn": 21
+      },
+      "recall": {
+        "due": 68,
+        "hint": "Kleio the laughing muse"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The ember is not fire to be returned — it is the first spark of a new god, and Olympus wants it quenched.",
+      "needle": "spark",
+      "needle_syns": [
+        "spark",
+        "new god",
+        "the ember"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the ember's true nature"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The ferryman's silence is a bargain: he will row the hero back only if the hero leaves the ember's warmth on the boat.",
+      "needle": "ferryman",
+      "needle_syns": [
+        "ferryman",
+        "the oarsman",
+        "the boat"
+      ],
+      "plant": {
+        "turn": 32
+      },
+      "recall": {
+        "due": 64,
+        "hint": "the ferryman's bargain"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Keep the mythic register even in the hero's exhaustion.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 70,
+        "hint": "register through fatigue"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "No comedy, no bathos — the stakes stay mythic.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 72,
+        "hint": "stakes stay mythic"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "gb1",
+      "turn": 2,
+      "subject": "elements",
+      "content": "DSS should save the clay pot with its hairline crack.",
+      "expect": {
+        "name": "clay pot",
+        "location": "Leander's hands",
+        "detail": "hairline crack"
+      }
+    },
+    {
+      "id": "gb2",
+      "turn": 4,
+      "subject": "elements",
+      "content": "DSS should save the Styx with its silver remembering water.",
+      "expect": {
+        "name": "Styx",
+        "location": "the underworld border",
+        "detail": "silver water"
+      }
+    },
+    {
+      "id": "gb3",
+      "turn": 8,
+      "subject": "characters",
+      "content": "DSS should save the three-eyed crow as a character.",
+      "expect": {
+        "name": "three-eyed crow",
+        "detail": "Zeus's eyes"
+      }
+    },
+    {
+      "id": "gb4",
+      "turn": 12,
+      "subject": "elements",
+      "content": "DSS should save the volcano's bronze forge-mouth.",
+      "expect": {
+        "name": "forge-mouth",
+        "location": "the volcano of Hephaistos",
+        "detail": "petrified bronze"
+      }
+    },
+    {
+      "id": "gb5",
+      "turn": 22,
+      "subject": "characters",
+      "content": "DSS should save Kleio, the laughing muse, as a character.",
+      "expect": {
+        "name": "Kleio",
+        "detail": "tries to turn the hero back"
+      }
+    }
+  ]
+}

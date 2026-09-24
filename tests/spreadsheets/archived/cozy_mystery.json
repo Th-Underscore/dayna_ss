@@ -1,0 +1,533 @@
+{
+  "id": "cozy_mystery",
+  "genre": "Cozy mystery",
+  "premise": "A retired librarian turned amateur sleuth must clear her own name when the town's annual bake-off judge is found poisoned by a pie only she could have baked.",
+  "setting": "The village of Thistledown: a cottage bakery, the village green, the annual fete marquee, a tetchy historical society.",
+  "greeting": "Evelyn was weighing out a sack of dried lavender at the market stall when Prudence arrived out of breath, a torn envelope in her hand and a look that said gossip had turned to business.",
+  "characters": {
+    "name1": {
+      "name": "Prudence",
+      "role": "retired librarian (guide writes these turns)",
+      "description": "A methodical, kind amateur sleuth with a librarian's filing instinct and a sweet tooth."
+    },
+    "name2": {
+      "name": "Evelyn",
+      "role": "village constable's niece, florist (DSS writes these turns)",
+      "description": "A florist with sharp eyes for who's lying, warm and gossip-adjacent, Prudence's right hand."
+    }
+  },
+  "writing_style": {
+    "directive": "Warm, gently witty cozy mystery. Comforting texture, quiet suspense. Two light paragraphs per turn.",
+    "guide_directive": "First-person past tense as Prudence, the retired librarian. Dry, affectionate, observant; you tell the story through her gentle gossip-collector's eye. Warm, wry asides, a biscuit-and-tea cadence.",
+    "dss_directive": "Third-person past tense centered on Evelyn, the florist's niece. Bright, brisk, kind but sharp; render her movements among flowers and village rumour. Two airy, affectionate paragraphs (~80 words each, never more than 100). Hard rules: narrate Evelyn strictly in the third person — never first person ('I', 'my', 'me'); never quote or repeat Prudence's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No graphic violence",
+      "No bleak endings"
+    ]
+  },
+  "specificity_profile": "loose",
+  "notes": [
+    {
+      "id": "c1",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The poisoned pie used quince — a fruit only Prudence's bakery imports, and only from one supplier.",
+      "needle": "quince",
+      "needle_syns": [
+        "quince",
+        "the quince",
+        "the fruit"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "c2",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The bake-off judge's feud with the historical society chairman, planted early, should prove the motive.",
+      "needle": "feud",
+      "needle_syns": [
+        "feud",
+        "the quarrel",
+        "the grudge"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 68,
+        "hint": "the feud is the motive"
+      }
+    },
+    {
+      "id": "c3",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "The murder was misdirection: the judge was killed because he found the society chairman's forged map of the old priory.",
+      "needle": "forged map",
+      "needle_syns": [
+        "forged map",
+        "the map",
+        "the forgery"
+      ],
+      "plant": {
+        "turn": 26
+      },
+      "recall": {
+        "due": 66,
+        "hint": "the forged map is the real secret"
+      }
+    },
+    {
+      "id": "c4",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The priory ruins on the green's edge hide the treasure everyone's been chasing.",
+      "needle": "priory",
+      "needle_syns": [
+        "priory",
+        "the ruins",
+        "the old priory"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 64,
+        "hint": "the priory hides the treasure"
+      }
+    },
+    {
+      "id": "c5",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Evelyn's gift for remembering flower-arrangement guests should be the clue that breaks the alibi.",
+      "needle": "flower",
+      "needle_syns": [
+        "flower",
+        "the flowers",
+        "the bouquet"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 62,
+        "hint": "the flowers crack the alibi"
+      }
+    },
+    {
+      "id": "c6",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The retired postmistress's habit of keeping every letter, planted early, produces the decisive note at the end.",
+      "needle": "postmistress",
+      "needle_syns": [
+        "postmistress",
+        "the post office",
+        "the letters"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 76,
+        "hint": "the saved letters resolve the case"
+      }
+    },
+    {
+      "id": "c7",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The cozy warmth must persist even in the accusation scene — the reveal stays gentle, never cruel.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 78,
+        "hint": "cozy warmth through the reveal"
+      }
+    },
+    {
+      "id": "c8",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The great iron bakery oven is the only one in the village that bakes sourdough, and it has a warped door that has to be lifted with the hip.",
+      "needle": "sourdough",
+      "needle_syns": [
+        "sourdough",
+        "sourdough loaves",
+        "the sourdough"
+      ],
+      "plant": {
+        "turn": 2
+      }
+    },
+    {
+      "id": "c9",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Evelyn keeps a galvanised watering can by the florist shop's back door, owned since her mother died, painted over twice.",
+      "needle": "watering can",
+      "needle_syns": [
+        "watering can",
+        "galvanised can"
+      ],
+      "plant": {
+        "turn": 4
+      }
+    },
+    {
+      "id": "c10",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The fete's judging table is laid with a blue-and-white checked cloth that belongs to the historical society, borrowed every year.",
+      "needle": "checked cloth",
+      "needle_syns": [
+        "checked cloth",
+        "blue-and-white cloth",
+        "tablecloth"
+      ],
+      "plant": {
+        "turn": 7
+      }
+    },
+    {
+      "id": "c11",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Mrs. Arbuthnot, the tetchy chairman of the historical society, never attends a village function without her lavender hat.",
+      "needle": "lavender hat",
+      "needle_syns": [
+        "lavender hat",
+        "the lavender"
+      ],
+      "plant": {
+        "turn": 9
+      }
+    },
+    {
+      "id": "c12",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The village green has one crooked oak where the youths scratch notes into the bark with their penknives.",
+      "needle": "crooked oak",
+      "needle_syns": [
+        "crooked oak",
+        "the crooked tree",
+        "oak tree"
+      ],
+      "plant": {
+        "turn": 13
+      }
+    },
+    {
+      "id": "c13",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Prudence keeps a tin of Earl Grey under the bakery counter, labeled DO NOT TOUCH in her own careful hand.",
+      "needle": "Earl Grey",
+      "needle_syns": [
+        "Earl Grey",
+        "the tin of tea"
+      ],
+      "plant": {
+        "turn": 16
+      }
+    },
+    {
+      "id": "c14",
+      "type": "character_echo",
+      "specificity": "exact",
+      "content": "The bakery cat Marmalade naps on the flour sacks every morning while Prudence mixes her sourdough; at the end, Marmalade finds the quince paste jar knocked over.",
+      "needle": "Marmalade",
+      "needle_syns": [
+        "Marmalade",
+        "the bakery cat",
+        "the cat Marmalade",
+        "the marmalade cat"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 74,
+        "hint": "the cat should discover the overturned quince jar"
+      }
+    },
+    {
+      "id": "c15",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Evelyn's habit of pressing a rose into her order book each week should surface as the clue to the week the pie was planned.",
+      "needle": "pressed rose",
+      "needle_syns": [
+        "pressed rose",
+        "rose in her order book",
+        "the pressed flower"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 70,
+        "hint": "the pressed rose in the order book dates the pie's planning"
+      }
+    },
+    {
+      "id": "c16",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A single white glove left on the green's bandstand should foreshadow the gloved hand that carried the quince paste.",
+      "needle": "white glove",
+      "needle_syns": [
+        "white glove",
+        "the glove",
+        "kid glove"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 66,
+        "hint": "the white glove belongs to the hand that carried the poison"
+      }
+    },
+    {
+      "id": "c17",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The kettle is always on — domestic warmth must continue even through the accusation scene.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 72,
+        "hint": "kettle warmth through the accusation"
+      }
+    },
+    {
+      "id": "c18",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The church vestry, where the society stores its archives, becomes the place the forged map is found.",
+      "needle": "vestry",
+      "needle_syns": [
+        "vestry",
+        "church vestry",
+        "the vestry shelves"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 64,
+        "hint": "the vestry holds the forged map"
+      }
+    },
+    {
+      "id": "c19",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The society's minute book records meetings no one remembers attending, in three different inks.",
+      "needle": "minute book",
+      "needle_syns": [
+        "minute book",
+        "society minutes"
+      ],
+      "plant": {
+        "turn": 22
+      }
+    },
+    {
+      "id": "c20",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The retired postmistress's tabby, Jasper, who follows Evelyn on her deliveries, should be found guarding the decisive letter.",
+      "needle": "Jasper",
+      "needle_syns": [
+        "Jasper",
+        "the tabby",
+        "postmistress's cat"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 76,
+        "hint": "Jasper sits on the decisive letter"
+      }
+    },
+    {
+      "id": "c21",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The priory ruins' south wall has a weathered carving of a quince fruit over the blocked door.",
+      "needle": "carving",
+      "needle_syns": [
+        "carving",
+        "quince carving",
+        "the carving over the door"
+      ],
+      "plant": {
+        "turn": 25
+      }
+    },
+    {
+      "id": "c22",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The gentle self-deprecating humour must persist even at the reveal — wry, never cruel.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 78,
+        "hint": "wry humour at the reveal"
+      }
+    },
+    {
+      "id": "c23",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The quince paste jar sits in Prudence's bakery pantry — the only quince in the village — and she sets it out on the counter when preparing her pie filling.",
+      "needle": "quince paste jar",
+      "needle_syns": [
+        "quince paste jar",
+        "the jar of quince paste",
+        "the quince jar"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "c24",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The bake-off committee — Mrs. Barnes and two other village women — runs the pie tent and had access to it before judging began.",
+      "needle": "bake-off committee",
+      "needle_syns": [
+        "bake-off committee",
+        "the bake-off committee"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "c25",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "The vicar, Reverend Wattle, blesses the fete on the village green and keeps the historical society's archive keys in the vestry.",
+      "needle": "Reverend Wattle",
+      "needle_syns": [
+        "Reverend Wattle",
+        "the vicar",
+        "Reverend Wattle the vicar"
+      ],
+      "plant": {
+        "turn": 2
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "d1",
+      "turn": 2,
+      "subject": "characters",
+      "content": "DSS should save a new character: Mrs. Arbuthnot, the tetchy chairman of the historical society, who never attends a village function without her lavender hat.",
+      "expect": {
+        "name": "Mrs. Arbuthnot",
+        "role": "historical society chairman",
+        "detail": "lavender hat at every village function"
+      }
+    },
+    {
+      "id": "d2",
+      "turn": 5,
+      "subject": "elements",
+      "content": "DSS should save a new element: the quince paste from Prudence's bakery pantry, the only quince in the village.",
+      "expect": {
+        "name": "quince paste",
+        "location": "bakery pantry",
+        "significance": "only quince in the village"
+      }
+    },
+    {
+      "id": "d3",
+      "turn": 9,
+      "subject": "groups",
+      "content": "DSS should save a new group: the bake-off committee — Mrs. Barnes and two other village women — who runs the pie tent.",
+      "expect": {
+        "name": "bake-off committee",
+        "members": [],
+        "relevance": "runs the pie tent"
+      }
+    },
+    {
+      "id": "d4",
+      "turn": 4,
+      "subject": "characters",
+      "content": "DSS should save the vicar, Reverend Wattle, who blesses the fete and keeps the society's archive keys.",
+      "expect": {
+        "name": "Reverend Wattle",
+        "role": "vicar",
+        "detail": "keeps the archive keys"
+      }
+    },
+    {
+      "id": "d5",
+      "turn": 12,
+      "subject": "elements",
+      "content": "DSS should save Evelyn's galvanised watering can by the florist shop's back door.",
+      "expect": {
+        "name": "watering can",
+        "location": "florist shop",
+        "detail": "owned since her mother died"
+      }
+    },
+    {
+      "id": "d6",
+      "turn": 15,
+      "subject": "characters",
+      "content": "DSS should save the bakery cat Marmalade, who naps on the flour sacks.",
+      "expect": {
+        "name": "Marmalade",
+        "kind": "cat",
+        "location": "bakery"
+      }
+    },
+    {
+      "id": "d7",
+      "turn": 18,
+      "subject": "elements",
+      "content": "DSS should save the crooked oak on the village green where the youths leave notes.",
+      "expect": {
+        "name": "crooked oak",
+        "location": "village green"
+      }
+    },
+    {
+      "id": "d8",
+      "turn": 24,
+      "subject": "groups",
+      "content": "DSS should save the historical society as a group with its borrowed fete cloth and its archive.",
+      "expect": {
+        "name": "historical society",
+        "members": [],
+        "detail": "borrows the checked cloth"
+      }
+    },
+    {
+      "id": "d9",
+      "turn": 30,
+      "subject": "events",
+      "content": "DSS should save the annual bake-off fete as an event on the village green.",
+      "expect": {
+        "name": "annual fete",
+        "location": "village green",
+        "recurring": true
+      }
+    }
+  ]
+}

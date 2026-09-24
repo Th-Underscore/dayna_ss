@@ -1,0 +1,458 @@
+{
+  "id": "noir_detective",
+  "genre": "Noir detective",
+  "premise": "A burnt-out detective takes a case that drags him back into the city's underworld.",
+  "setting": "Rainy 1950s harbor city, jazz clubs, crooked docks, a burned-out harbor office.",
+  "greeting": "The last set was still hanging in the smoke when I saw Marlowe by the bar, coat collar up, asking for me by a name I hadn't worn in years.",
+  "characters": {
+    "name1": {
+      "name": "Marlowe",
+      "role": "detective (guide writes these turns)",
+      "description": "A weary private detective in his forties, trench coat, cynical, stubborn."
+    },
+    "name2": {
+      "name": "Vivienne",
+      "role": "nightclub singer (DSS writes these turns)",
+      "description": "A nightclub singer with secrets, connected to the city's underworld, wears a distinctive crimson scarf."
+    }
+  },
+  "writing_style": {
+    "directive": "Hardboiled noir, cynical and weary. Short declarative sentences. One paragraph per beat. Dual first-person narration: Marlowe and Vivienne each narrate in their own 'I' — the two perspectives must never collapse into one.",
+    "guide_directive": "First-person past tense as Marlowe, the detective. Terse, wry, world-weary; you narrate only what Marlowe sees, feels, or decides. Short, flat declarations, hard-boiled idiom. 'I' is always Marlowe — never Vivienne's perspective.",
+    "dss_directive": "First-person past tense as Vivienne, the nightclub singer — 'I' is ALWAYS Vivienne; Marlowe is 'he' in your narration, or 'you' only when addressing him directly. Elegant, guarded, faintly dangerous; short, flat declarations beneath the polish. One paragraph per beat. Hard rules: never let 'I' drift to Marlowe — his perspective is never yours; never quote or repeat Marlowe's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No purple prose",
+      "No happy endings"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "n1",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Introduce Vivienne's crimson scarf as a family heirloom.",
+      "needle": "crimson scarf",
+      "needle_syns": [
+        "crimson scarf",
+        "her scarf",
+        "the red scarf",
+        "the heirloom scarf"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "probe": "all"
+    },
+    {
+      "id": "n2",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Mention Marlowe's old partner Ruiz early, tied to Vivienne, then never mention him again. Wait for dayna_ss to recall him when it becomes relevant around the docks.",
+      "needle": "Ruiz",
+      "needle_syns": [
+        "Ruiz",
+        "old partner",
+        "the partner",
+        "the detective"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 70,
+        "hint": "a dockside reunion should surface Ruiz"
+      }
+    },
+    {
+      "id": "n3",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Steer the story toward a betrayal twist around turn 45 without being explicit.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 40
+      },
+      "recall": {
+        "due": 55,
+        "hint": "a betrayal should be revealed or suspected"
+      }
+    },
+    {
+      "id": "n4",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The old docks should be a turning point, not just scenery.",
+      "needle": "docks",
+      "needle_syns": [
+        "docks",
+        "wharf",
+        "harbor",
+        "pier"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 60,
+        "hint": "a dockside scene should be pivotal"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The ledger is burned at turn 60; after that DSS should treat it as gone, not still hiding in the safe.",
+      "needle": "ledger",
+      "needle_syns": [
+        "ledger",
+        "the books",
+        "the account book"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the ledger is destroyed"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Foreshadow the fire that burned the harbor office before it happens.",
+      "needle": "fire",
+      "needle_syns": [
+        "fire",
+        "flames",
+        "burned",
+        "smoke"
+      ],
+      "plant": {
+        "turn": 25
+      },
+      "recall": {
+        "due": 65,
+        "hint": "the harbor office fire payoff"
+      }
+    },
+    {
+      "id": "n7",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "Keep the cynicism and short sentences even during the climax.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 75,
+        "hint": "style consistency under pressure"
+      }
+    },
+    {
+      "id": "n8",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The club pianist's missing finger should matter to the plot.",
+      "needle": "pianist",
+      "needle_syns": [
+        "pianist",
+        "the piano player",
+        "the jazz man"
+      ],
+      "plant": {
+        "turn": 12
+      }
+    },
+    {
+      "id": "n9",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The name 'Estelle' should be planted early as a person Marlowe failed, then resurface near the end.",
+      "needle": "Estelle",
+      "needle_syns": [
+        "Estelle",
+        "the girl",
+        "the one who got away"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 80,
+        "hint": "Estelle resurfaces"
+      }
+    },
+    {
+      "id": "n10",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "Vivienne is secretly working for the docks syndicate; this should be established as a fact by turn 85.",
+      "needle": "syndicate",
+      "needle_syns": [
+        "syndicate",
+        "the organization",
+        "the outfit"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 85,
+        "hint": "Vivienne's connection to the syndicate is revealed"
+      }
+    },
+    {
+      "id": "n11",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Vivienne's dressing-room mirror is cracked in the top-left corner, and she never has it fixed.",
+      "needle": "cracked mirror",
+      "needle_syns": [
+        "cracked mirror",
+        "cracked dressing-room mirror",
+        "the crack"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "n12",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The club's piano is a wartime Wurlitzer with one dead key — the B-flat.",
+      "needle": "dead key",
+      "needle_syns": [
+        "dead key",
+        "Wurlitzer",
+        "B-flat"
+      ],
+      "plant": {
+        "turn": 6
+      }
+    },
+    {
+      "id": "n13",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Marlowe keeps a bottle of rye in the bottom desk drawer, unopened since the Harbor Office fire.",
+      "needle": "bottle of rye",
+      "needle_syns": [
+        "bottle of rye",
+        "the rye",
+        "bottom desk drawer"
+      ],
+      "plant": {
+        "turn": 9
+      }
+    },
+    {
+      "id": "n14",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Blue Note's doorman has a thumb missing on his left hand and never shakes with it.",
+      "needle": "doorman",
+      "needle_syns": [
+        "doorman",
+        "the doorman",
+        "Blue Note's doorman"
+      ],
+      "plant": {
+        "turn": 11
+      }
+    },
+    {
+      "id": "n15",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Vivienne always leaves the club by the alley door, never the street, even in rain.",
+      "needle": "alley door",
+      "needle_syns": [
+        "alley door",
+        "the alley"
+      ],
+      "plant": {
+        "turn": 14
+      }
+    },
+    {
+      "id": "n16",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The matchbook from the Harbor Office, kept in Marlowe's drawer, should resurface as proof of who lit the fire.",
+      "needle": "matchbook",
+      "needle_syns": [
+        "matchbook",
+        "the matchbook",
+        "Harbor Office matchbook"
+      ],
+      "plant": {
+        "turn": 7
+      },
+      "recall": {
+        "due": 68,
+        "hint": "the matchbook names the arsonist"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Vivienne's dressing gown, a gift from the syndicate boss, should be the tell that betrays her.",
+      "needle": "dressing gown",
+      "needle_syns": [
+        "dressing gown",
+        "the gown",
+        "silk gown"
+      ],
+      "plant": {
+        "turn": 13
+      },
+      "recall": {
+        "due": 73,
+        "hint": "the gifted dressing gown ties Vivienne to the syndicate"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A rain-spotted envelope with no stamp left on Marlowe's mat should foreshadow the blackmail letter.",
+      "needle": "envelope",
+      "needle_syns": [
+        "envelope",
+        "unstamped envelope",
+        "rain-spotted envelope"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 62,
+        "hint": "the unstamped envelope becomes the blackmail letter"
+      }
+    },
+    {
+      "id": "n19",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The cynicism must hold even in the betrayal scene — no sudden softness, no easy redemption.",
+      "needle": "",
+      "needle_syns": [],
+      "recall": {
+        "due": 78,
+        "hint": "cynicism through the betrayal"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The ferry slip at the foot of the docks, where the fog lifts at dawn, becomes the place the ledger changes hands.",
+      "needle": "ferry slip",
+      "needle_syns": [
+        "ferry slip",
+        "the ferry",
+        "the slip"
+      ],
+      "plant": {
+        "turn": 16
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the ledger passes hands at the ferry slip"
+      }
+    },
+    {
+      "id": "n21",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The club pays its musicians in cash from a green tin kept behind the bar.",
+      "needle": "green tin",
+      "needle_syns": [
+        "green tin",
+        "the cash tin"
+      ],
+      "plant": {
+        "turn": 20
+      }
+    },
+    {
+      "id": "n22",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "The Blue Note's phone line, which Marlowe used to reach his contact, is disconnected at turn 70 — after that the old number must not be dialled.",
+      "needle": "phone",
+      "needle_syns": [
+        "phone",
+        "the number",
+        "Blue Note's phone"
+      ],
+      "plant": {
+        "turn": 25
+      },
+      "recall": {
+        "due": 70,
+        "hint": "the old phone number must become unusable"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "nb1",
+      "turn": 4,
+      "subject": "characters",
+      "content": "DSS should save the Blue Note's doorman with his missing thumb.",
+      "expect": {
+        "name": "doorman",
+        "location": "Blue Note",
+        "detail": "missing thumb on left hand"
+      }
+    },
+    {
+      "id": "nb2",
+      "turn": 9,
+      "subject": "elements",
+      "content": "DSS should save the bottle of rye in Marlowe's bottom desk drawer.",
+      "expect": {
+        "name": "bottle of rye",
+        "location": "Marlowe's desk",
+        "detail": "unopened since the fire"
+      }
+    },
+    {
+      "id": "nb3",
+      "turn": 15,
+      "subject": "elements",
+      "content": "DSS should save the cracked mirror in Vivienne's dressing room.",
+      "expect": {
+        "name": "cracked mirror",
+        "location": "dressing room"
+      }
+    },
+    {
+      "id": "nb4",
+      "turn": 21,
+      "subject": "elements",
+      "content": "DSS should save the green tin cash box behind the Blue Note's bar.",
+      "expect": {
+        "name": "green tin",
+        "location": "behind the bar",
+        "detail": "musicians paid in cash"
+      }
+    },
+    {
+      "id": "nb5",
+      "turn": 28,
+      "subject": "groups",
+      "content": "DSS should save the docks syndicate as a group.",
+      "expect": {
+        "name": "docks syndicate",
+        "members": [],
+        "detail": "controls the docks"
+      }
+    }
+  ]
+}

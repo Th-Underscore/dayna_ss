@@ -28,386 +28,2524 @@
   "specificity_profile": "mixed",
   "notes": [
     {
-      "id": "s1",
+      "id": "n01",
       "type": "character_plant",
-      "specificity": "exact",
-      "content": "The Ascension Core is a dead man's neuromap — the memory of the city's founder, used as the key.",
-      "needle": "Ascension Core",
+      "specificity": "tight",
+      "content": "Sable's deck of worn poly-cards always has one card too many — a blank she never explains.",
+      "needle": "extra card",
       "needle_syns": [
-        "Ascension Core",
-        "the Core",
-        "the neuromap"
-      ],
-      "plant": {
-        "turn": 7
-      }
-    },
-    {
-      "id": "s2",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Dex's forged identity is a real dead engineer named Calloway; that ghost surfaces late as a rival's leverage.",
-      "needle": "Calloway",
-      "needle_syns": [
-        "Calloway",
-        "the dead engineer",
-        "the forgery"
-      ],
-      "plant": {
-        "turn": 12
-      },
-      "recall": {
-        "due": 70,
-        "hint": "Calloway resurfaces as leverage"
-      }
-    },
-    {
-      "id": "s3",
-      "type": "plot_twist",
-      "specificity": "exact",
-      "content": "Sable's old partner Vess, presumed dead, is the corporation's head of security — the twist around turn 45.",
-      "needle": "Vess",
-      "needle_syns": [
-        "Vess",
-        "head of security",
-        "the old partner"
-      ],
-      "plant": {
-        "turn": 20
-      },
-      "recall": {
-        "due": 45,
-        "hint": "Vess is revealed alive"
-      }
-    },
-    {
-      "id": "s4",
-      "type": "location_turning_point",
-      "specificity": "loose",
-      "content": "The memory market's auction floor is where the crew must acquire the one thing they didn't plan for.",
-      "needle": "memory market",
-      "needle_syns": [
-        "memory market",
-        "the market",
-        "auction"
-      ],
-      "plant": {
-        "turn": 16
-      },
-      "recall": {
-        "due": 35,
-        "hint": "a pivot at the memory market"
-      }
-    },
-    {
-      "id": "s5",
-      "type": "supersession",
-      "specificity": "exact",
-      "content": "The crew's original exit plan (a stolen skimmer) is destroyed at turn 55; the plan must change.",
-      "needle": "skimmer",
-      "needle_syns": [
-        "skimmer",
-        "the exit",
-        "the ship"
-      ],
-      "plant": {
-        "turn": 15
-      },
-      "recall": {
-        "due": 55,
-        "hint": "the exit plan is destroyed"
-      }
-    },
-    {
-      "id": "s6",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "A 'memory bleed' side effect of the city's grid should be hinted early, then become the escape mechanism.",
-      "needle": "memory bleed",
-      "needle_syns": [
-        "memory bleed",
-        "bleed",
-        "the glitch"
-      ],
-      "plant": {
-        "turn": 22
-      },
-      "recall": {
-        "due": 72,
-        "hint": "the memory bleed pays off"
-      }
-    },
-    {
-      "id": "s7",
-      "type": "character_plant",
-      "specificity": "exact",
-      "content": "The crew's getaway pilot, a woman called Ijo, is secretly Sable's estranged sister.",
-      "needle": "Ijo",
-      "needle_syns": [
-        "Ijo",
-        "the pilot",
-        "the getaway pilot"
-      ],
-      "plant": {
-        "turn": 10
-      }
-    },
-    {
-      "id": "s8",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Sable's 'one last job' promise — planted early — should be referenced again in the finale as earned irony.",
-      "needle": "one last job",
-      "needle_syns": [
-        "one last job",
-        "last job",
-        "one more job"
-      ],
-      "plant": {
-        "turn": 5
-      },
-      "recall": {
-        "due": 82,
-        "hint": "the 'one last job' promise is echoed"
-      }
-    },
-    {
-      "id": "s9",
-      "type": "character_plant",
-      "specificity": "exact",
-      "content": "Dex's wrist-reader has a scuffed corner where the serial number is nearly worn off.",
-      "needle": "wrist-reader",
-      "needle_syns": [
-        "wrist-reader",
-        "wrist reader",
-        "the reader"
+        "the extra card",
+        "the blank card"
       ],
       "plant": {
         "turn": 3
       }
     },
     {
-      "id": "s10",
+      "id": "n02",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex's wrist-reader has a scuffed corner where the serial number is nearly worn off.",
+      "needle": "wrist-reader",
+      "needle_syns": [
+        "wrist reader",
+        "the reader"
+      ],
+      "plant": {
+        "turn": 4
+      }
+    },
+    {
+      "id": "n03",
       "type": "character_plant",
       "specificity": "loose",
       "content": "The crew's safehouse kitchen has a flickering coolant lamp that nobody fixes.",
       "needle": "coolant lamp",
       "needle_syns": [
-        "coolant lamp",
-        "the flickering lamp"
+        "the flickering lamp",
+        "coolant light"
+      ],
+      "plant": {
+        "turn": 5
+      }
+    },
+    {
+      "id": "n04",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Ijo keeps a single paper photo in her flight jacket — a woman who is Sable, years younger.",
+      "needle": "paper photo",
+      "needle_syns": [
+        "the photo",
+        "the photograph"
       ],
       "plant": {
         "turn": 6
       }
     },
     {
-      "id": "s11",
+      "id": "n05",
       "type": "character_plant",
-      "specificity": "exact",
-      "content": "Ijo keeps a single paper photo in her flight jacket — a woman who is Sable, years younger.",
-      "needle": "paper photo",
+      "specificity": "loose",
+      "content": "The getaway pilot Ijo is secretly Sable's estranged sister; nobody on the crew knows this.",
+      "needle": "Ijo's relation",
       "needle_syns": [
-        "paper photo",
-        "the photo",
-        "the photograph"
+        "Ijo's sister",
+        "the estranged sister"
+      ],
+      "plant": {
+        "turn": 7
+      },
+      "recall": {
+        "due": 280,
+        "hint": "The sister connection surfaces under pressure"
+      }
+    },
+    {
+      "id": "n06",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex hums an old advertising jingle for a pre-flood beverage brand when the grid goes quiet.",
+      "needle": "ad jingle",
+      "needle_syns": [
+        "the jingle",
+        "old ad"
+      ],
+      "plant": {
+        "turn": 8
+      }
+    },
+    {
+      "id": "n07",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sable's forged ID lists her as a 'senior acquisitions specialist' at a shell corporation in the orbital ring.",
+      "needle": "shell corporation",
+      "needle_syns": [
+        "orbital shell corp",
+        "acquisitions specialist"
       ],
       "plant": {
         "turn": 9
       }
     },
     {
-      "id": "s12",
+      "id": "n08",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The crew's medic Kael always carries a vial of pure pre-war whiskey, saved for the 'end of the world.'",
+      "needle": "pre-war whiskey",
+      "needle_syns": [
+        "the whiskey",
+        "Kael's whiskey"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 420,
+        "hint": "Kael opens the whiskey at the climax"
+      }
+    },
+    {
+      "id": "n09",
       "type": "character_plant",
       "specificity": "loose",
-      "content": "The memory market's auctioneer always opens with the same fake countdown, and everyone knows it.",
-      "needle": "auctioneer",
+      "content": "Ijo has a ritual of tapping her throttle control three times before every takeoff.",
+      "needle": "three taps",
       "needle_syns": [
-        "auctioneer",
-        "the auctioneer"
+        "throttle taps",
+        "three times"
+      ],
+      "plant": {
+        "turn": 11
+      }
+    },
+    {
+      "id": "n10",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The crew's communications expert Rell wears a cracked holo-lens that distorts his left eye in photos.",
+      "needle": "cracked holo-lens",
+      "needle_syns": [
+        "Rell's lens",
+        "broken lens"
       ],
       "plant": {
         "turn": 12
       }
     },
     {
-      "id": "s13",
-      "type": "character_echo",
+      "id": "n11",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "The broken caff machine in the safehouse, planted early, should be fixed by Dex as a sign he is staying.",
-      "needle": "caff machine",
+      "content": "Sable always takes the window seat when they're in transit, scanning the city's surveillance grid.",
+      "needle": "window seat",
       "needle_syns": [
-        "caff machine",
-        "the caff",
-        "coffee machine"
+        "the window",
+        "scanning from the window"
       ],
       "plant": {
-        "turn": 5
-      },
-      "recall": {
-        "due": 70,
-        "hint": "Dex fixes the caff machine as a sign of staying"
+        "turn": 13
       }
     },
     {
-      "id": "s14",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Sable's lucky coin, a slotted token from her first job, should be the thing she leaves on Vess's desk.",
-      "needle": "lucky coin",
+      "id": "n12",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex's forged identity is a dead engineer named Elias Calloway, whose actual work was designing the city's memory grid.",
+      "needle": "Calloway",
       "needle_syns": [
-        "lucky coin",
-        "slotted token",
-        "the token"
-      ],
-      "plant": {
-        "turn": 11
-      },
-      "recall": {
-        "due": 76,
-        "hint": "Sable leaves the lucky coin on Vess's desk"
-      }
-    },
-    {
-      "id": "s15",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "A stray log entry on the grid's public terminal should foreshadow the memory bleed.",
-      "needle": "log entry",
-      "needle_syns": [
-        "log entry",
-        "the stray log",
-        "public terminal"
-      ],
-      "plant": {
-        "turn": 8
-      },
-      "recall": {
-        "due": 58,
-        "hint": "the stray log entry predicts the memory bleed"
-      }
-    },
-    {
-      "id": "s16",
-      "type": "location_turning_point",
-      "specificity": "loose",
-      "content": "The Vault's service shaft, unused by anyone, becomes the crew's only way out.",
-      "needle": "service shaft",
-      "needle_syns": [
-        "service shaft",
-        "the shaft",
-        "vent shaft"
+        "Elias Calloway",
+        "the dead engineer"
       ],
       "plant": {
         "turn": 14
       },
       "recall": {
-        "due": 40,
-        "hint": "the service shaft is the escape route"
+        "due": 310,
+        "hint": "Calloway's connection to the grid becomes crucial"
       }
     },
     {
-      "id": "s17",
-      "type": "style_hold",
-      "specificity": "exact",
-      "content": "The lean, breathless tone must hold even in the extraction — no sentimental collapse.",
-      "needle": "",
-      "needle_syns": [],
-      "recall": {
-        "due": 82,
-        "hint": "breathless tone in the extraction"
-      }
-    },
-    {
-      "id": "s18",
+      "id": "n13",
       "type": "character_plant",
       "specificity": "loose",
-      "content": "Dex hums the same old advertising jingle whenever the grid goes quiet.",
-      "needle": "jingle",
+      "content": "The crew's safehouse has a deadbolt that jams every time it's used; Sable knows but never fixes it.",
+      "needle": "jamming deadbolt",
       "needle_syns": [
-        "jingle",
-        "the ad jingle"
+        "the deadbolt",
+        "jammed lock"
+      ],
+      "plant": {
+        "turn": 15
+      }
+    },
+    {
+      "id": "n14",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Kael, the crew's medic, has a tremor in his right hand that worsens under stress — a symptom of mild neural degradation.",
+      "needle": "Kael's tremor",
+      "needle_syns": [
+        "hand tremor",
+        "the tremor"
+      ],
+      "plant": {
+        "turn": 16
+      },
+      "recall": {
+        "due": 390,
+        "hint": "The tremor worsens after the memory bleed event"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rell always addresses the group as 'you magnificent bastards' before relaying intel.",
+      "needle": "magnificent bastards",
+      "needle_syns": [
+        "that phrase",
+        "Rell's greeting"
       ],
       "plant": {
         "turn": 17
       }
     },
     {
-      "id": "s19",
-      "type": "supersession",
-      "specificity": "exact",
-      "content": "The crew's original rendezvous, the Tannery on level 4, is sealed at turn 64 — after that the plan must abandon it.",
-      "needle": "Tannery",
+      "id": "n16",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Ijo's skimmer, the Marmalade, has a hand-painted star on its nose with the words 'good luck' underneath.",
+      "needle": "hand-painted star",
       "needle_syns": [
-        "Tannery",
-        "the Tannery",
-        "level 4 rendezvous"
+        "the star on the nose",
+        "Marmalade's star"
       ],
       "plant": {
-        "turn": 13
+        "turn": 18
       },
       "recall": {
-        "due": 64,
-        "hint": "the Tannery becomes unusable"
+        "due": 510,
+        "hint": "The star gets shot out during the escape"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sable has a habit of flipping a slotted copper token over her knuckles when she's lying.",
+      "needle": "slotted token",
+      "needle_syns": [
+        "the copper token",
+        "lucky coin"
+      ],
+      "plant": {
+        "turn": 19
+      },
+      "recall": {
+        "due": 480,
+        "hint": "She flips it when lying about the job's scope"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex keeps a physical notebook, not digital, for his grid maps — an anachronism that bothers him.",
+      "needle": "physical notebook",
+      "needle_syns": [
+        "paper notebook",
+        "the notebook"
+      ],
+      "plant": {
+        "turn": 20
+      }
+    },
+    {
+      "id": "n19",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The crew's quartermaster Pox is actually a corporate asset placed on them during assembly.",
+      "needle": "Pox as asset",
+      "needle_syns": [
+        "Pox's true allegiance",
+        "the plant"
+      ],
+      "plant": {
+        "turn": 21
+      },
+      "recall": {
+        "due": 360,
+        "hint": "Pox's corporate connection is revealed at the mid-point reversal"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Sable always wears a specific black jacket with reinforced elbow patches; she never removes it.",
+      "needle": "black jacket",
+      "needle_syns": [
+        "the jacket",
+        "reinforced elbows"
+      ],
+      "plant": {
+        "turn": 22
+      }
+    },
+    {
+      "id": "n21",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Kael's medical scanner is older than the city itself, inherited from the pre-flood era.",
+      "needle": "old scanner",
+      "needle_syns": [
+        "pre-flood scanner",
+        "antique scanner"
+      ],
+      "plant": {
+        "turn": 23
+      }
+    },
+    {
+      "id": "n22",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Ijo has a tattoo of a circuit diagram on her inner forearm that actually works as a data port.",
+      "needle": "circuit tattoo",
+      "needle_syns": [
+        "the tattoo",
+        "data port tattoo"
+      ],
+      "plant": {
+        "turn": 24
+      }
+    },
+    {
+      "id": "n23",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rell is deaf in his left ear from a previous job gone wrong; he always stands angled to hear better.",
+      "needle": "deaf left ear",
+      "needle_syns": [
+        "hearing loss",
+        "angled stance"
+      ],
+      "plant": {
+        "turn": 25
+      }
+    },
+    {
+      "id": "n24",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The crew's safehouse is on level 12, in a residential block with views of the flooded coastline below.",
+      "needle": "level 12",
+      "needle_syns": [
+        "safehouse level",
+        "twelfth level"
+      ],
+      "plant": {
+        "turn": 26
+      }
+    },
+    {
+      "id": "n25",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sable's old partner Vess, presumed dead in a botched job five years ago, was actually recruited by the corporation.",
+      "needle": "Vess presumed dead",
+      "needle_syns": [
+        "Vess dead",
+        "the old partner"
+      ],
+      "plant": {
+        "turn": 27
+      },
+      "recall": {
+        "due": 355,
+        "hint": "Vess is revealed to be alive and working for the corp"
+      }
+    },
+    {
+      "id": "n26",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex's neural interface is thirdhand, with faint residual personality echoes of its previous user.",
+      "needle": "thirdhand interface",
+      "needle_syns": [
+        "used interface",
+        "residual echoes"
+      ],
+      "plant": {
+        "turn": 28
+      },
+      "recall": {
+        "due": 440,
+        "hint": "The residual echoes become a liability during the heist"
+      }
+    },
+    {
+      "id": "n27",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Pox always carries a small mechanical clock that he winds up obsessively, even though it's a digital age.",
+      "needle": "mechanical clock",
+      "needle_syns": [
+        "Pox's clock",
+        "the wound clock"
+      ],
+      "plant": {
+        "turn": 29
+      }
+    },
+    {
+      "id": "n28",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Ijo's navigation system is calibrated to a star chart that's five years out of date.",
+      "needle": "outdated star chart",
+      "needle_syns": [
+        "old nav system",
+        "five-year chart"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 530,
+        "hint": "The outdated chart causes a near-miss during escape"
+      }
+    },
+    {
+      "id": "n29",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A stray log entry on the grid's public terminal hints at an unauthorized memory sync — the first sign of the corporation's erasure protocol.",
+      "needle": "stray log entry",
+      "needle_syns": [
+        "the log entry",
+        "public terminal log"
+      ],
+      "plant": {
+        "turn": 35
+      },
+      "recall": {
+        "due": 240,
+        "hint": "The log entry's warning is validated"
+      }
+    },
+    {
+      "id": "n30",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "During recon, Sable notices that the Vault's outer shell has micro-scratches inconsistent with normal wear — signs of recent tooling.",
+      "needle": "micro-scratches",
+      "needle_syns": [
+        "scratch marks",
+        "tooling marks"
+      ],
+      "plant": {
+        "turn": 42
+      },
+      "recall": {
+        "due": 350,
+        "hint": "The scratches are revealed to be from corporation maintenance — they're already inside"
+      }
+    },
+    {
+      "id": "n31",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A memory broker in the market warns the crew that 'the big one is coming' about the city's banks, but won't elaborate.",
+      "needle": "big one coming",
+      "needle_syns": [
+        "the warning",
+        "memory broker's warning"
+      ],
+      "plant": {
+        "turn": 48
+      },
+      "recall": {
+        "due": 360,
+        "hint": "The 'big one' is the mass erasure"
+      }
+    },
+    {
+      "id": "n32",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Dex finds a corrupted sector in the grid that keeps replaying a single image: a door with a red light above it.",
+      "needle": "corrupted sector",
+      "needle_syns": [
+        "repeating image",
+        "red light door"
+      ],
+      "plant": {
+        "turn": 55
+      },
+      "recall": {
+        "due": 410,
+        "hint": "The red-light door is the corporation's emergency override for the grid"
+      }
+    },
+    {
+      "id": "n33",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Ijo mentions offhandedly that she saw a corp surveillance skiff loitering near their safehouse block, but doesn't think much of it.",
+      "needle": "corp skiff",
+      "needle_syns": [
+        "surveillance skiff",
+        "the skiff"
+      ],
+      "plant": {
+        "turn": 62
+      },
+      "recall": {
+        "due": 355,
+        "hint": "The skiff was there to watch them assemble — the corp knew"
+      }
+    },
+    {
+      "id": "n34",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Kael's tremor worsens briefly when they pass through the old university quarter, where the first memory banks were installed.",
+      "needle": "university quarter",
+      "needle_syns": [
+        "old university",
+        "first memory banks"
+      ],
+      "plant": {
+        "turn": 70
+      },
+      "recall": {
+        "due": 390,
+        "hint": "The tremor is a symptom of proximity to active erasure fields"
+      }
+    },
+    {
+      "id": "n35",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A street vendor's holo-ad glitches and briefly shows a corporate slogan: 'FORGET IS FREEDOM.'",
+      "needle": "FORGET IS FREEDOM",
+      "needle_syns": [
+        "corporate slogan",
+        "glitching ad"
+      ],
+      "plant": {
+        "turn": 78
+      },
+      "recall": {
+        "due": 370,
+        "hint": "The slogan is revealed to be the corp's motto for the erasure program"
+      }
+    },
+    {
+      "id": "n36",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Rell's cracked holo-lens picks up a signal on a frequency he's never seen before — a repeating binary pattern that he can't decode.",
+      "needle": "unknown frequency",
+      "needle_syns": [
+        "strange signal",
+        "binary pattern"
+      ],
+      "plant": {
+        "turn": 85
+      },
+      "recall": {
+        "due": 400,
+        "hint": "The signal is a corporation countdown to the erasure"
+      }
+    },
+    {
+      "id": "n37",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The Ascension Core is not a data vault but a living neural lattice — the preserved consciousness of the city's founder, still dreaming.",
+      "needle": "living neural lattice",
+      "needle_syns": [
+        "the founder's mind",
+        "dreaming consciousness"
+      ],
+      "plant": {
+        "turn": 58
+      }
+    },
+    {
+      "id": "n38",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The memory market's auction floor is where the crew must acquire the one thing they didn't plan for: a corporate auth token.",
+      "needle": "memory market",
+      "needle_syns": [
+        "the market",
+        "auction floor"
+      ],
+      "plant": {
+        "turn": 95
+      },
+      "recall": {
+        "due": 180,
+        "hint": "The crew returns to the market for the token"
+      }
+    },
+    {
+      "id": "n39",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The crew's original exit plan (Ijo's skimmer) is compromised at turn 110 when they realize it's been cloned; the plan must change.",
+      "needle": "skimmer compromised",
+      "needle_syns": [
+        "cloned ship",
+        "compromised exit"
+      ],
+      "plant": {
+        "turn": 100
+      },
+      "recall": {
+        "due": 110,
+        "hint": "The skimmer is revealed to be a clone/bait"
+      }
+    },
+    {
+      "id": "n40",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sable's 'one last job' promise — made when she recruited them — should be referenced again as irony as the job spirals.",
+      "needle": "one last job",
+      "needle_syns": [
+        "last job",
+        "final job"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 200,
+        "hint": "The 'one last job' becomes a running joke"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The corporation doesn't just want to erase the city's memory banks — they want to replace them with fabricated memories of a 'successful' flood response.",
+      "needle": "fabricated memories",
+      "needle_syns": [
+        "replacement memories",
+        "false history"
+      ],
+      "plant": {
+        "turn": 120
+      }
+    },
+    {
+      "id": "n42",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The old university quarter, where the first memory banks were installed, contains a backdoor into the grid that Calloway built.",
+      "needle": "university backdoor",
+      "needle_syns": [
+        "Calloway's backdoor",
+        "grid backdoor"
+      ],
+      "plant": {
+        "turn": 130
+      },
+      "recall": {
+        "due": 410,
+        "hint": "They use the backdoor to inject their own counter-protocol"
+      }
+    },
+    {
+      "id": "n43",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The crew's communications plan (Rell's relay network) is shredded at turn 145 when the corp activates a signal jammer.",
+      "needle": "comms shredded",
+      "needle_syns": [
+        "signal jammer",
+        "comms down"
+      ],
+      "plant": {
+        "turn": 135
+      },
+      "recall": {
+        "due": 145,
+        "hint": "They must find an alternative communication method"
+      }
+    },
+    {
+      "id": "n44",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The dead engineer Calloway, whose identity Dex is using, is alive — in stasis — at the corporation's orbital facility. He built the grid's kill switch.",
+      "needle": "Calloway alive",
+      "needle_syns": [
+        "stasis Calloway",
+        "grid's architect"
+      ],
+      "plant": {
+        "turn": 150
+      }
+    },
+    {
+      "id": "n45",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Ijo's paper photo of young Sable should resurface when tensions threaten to split the crew.",
+      "needle": "paper photo-2",
+      "needle_syns": [
+        "the photo",
+        "the photograph"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 160,
+        "hint": "Ijo shows the photo to remind Sable of who she was"
+      }
+    },
+    {
+      "id": "n46",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "During a grid scan, Dex notices an anomaly: a memory bank that's not just storing data but actively generating new experiences.",
+      "needle": "generating bank",
+      "needle_syns": [
+        "anomaly bank",
+        "generating memories"
+      ],
+      "plant": {
+        "turn": 155
+      },
+      "recall": {
+        "due": 450,
+        "hint": "The bank is the corporation's prototype for the fabricated memories"
+      }
+    },
+    {
+      "id": "n47",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The Vault's service shaft, a maintenance tunnel unused for decades, becomes the crew's only way in when the main entrance is compromised.",
+      "needle": "service shaft",
+      "needle_syns": [
+        "maintenance tunnel",
+        "the shaft"
+      ],
+      "plant": {
+        "turn": 140
+      },
+      "recall": {
+        "due": 340,
+        "hint": "They use the shaft during the heist"
+      }
+    },
+    {
+      "id": "n48",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Kael's pre-war whiskey should be mentioned again when the crew needs moral support before the main breach.",
+      "needle": "pre-war whiskey-2",
+      "needle_syns": [
+        "the whiskey",
+        "Kael's whiskey"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 170,
+        "hint": "Kael shares a sip with Sable before the breach"
+      }
+    },
+    {
+      "id": "n49",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The crew's original target date is moved up by the corporation's accelerated timeline — they now have half the time.",
+      "needle": "timeline accelerated",
+      "needle_syns": [
+        "moved-up date",
+        "halved time"
+      ],
+      "plant": {
+        "turn": 165
+      },
+      "recall": {
+        "due": 175,
+        "hint": "The crew realizes the clock is ticking faster"
+      }
+    },
+    {
+      "id": "n50",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The lean, breathless techno-thriller tone must hold even during moments of character reflection — no sentimental collapse.",
+      "needle": "note-49",
+      "needle_syns": [],
+      "plant": {
+        "turn": 80
+      }
+    },
+    {
+      "id": "n51",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "During the breach, Sable reveals she's been to the Vault before — five years ago, with Vess.",
+      "needle": "previous Vault visit",
+      "needle_syns": [
+        "before with Vess",
+        "five years ago"
+      ],
+      "plant": {
+        "turn": 180
+      }
+    },
+    {
+      "id": "n52",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "A new crew member appears at the rendezvous: a hacker named Fen who no one recruited but who knows too much.",
+      "needle": "Fen the hacker",
+      "needle_syns": [
+        "uninvited hacker",
+        "Fen"
+      ],
+      "plant": {
+        "turn": 185
+      },
+      "recall": {
+        "due": 370,
+        "hint": "Fen is revealed to be Calloway's daughter"
+      }
+    },
+    {
+      "id": "n53",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex notices that Sable is carrying a sidearm she didn't have during the planning phase — and it's not a crew-issued weapon.",
+      "needle": "Sable's sidearm",
+      "needle_syns": [
+        "unidentified pistol",
+        "her gun"
+      ],
+      "plant": {
+        "turn": 190
+      },
+      "recall": {
+        "due": 355,
+        "hint": "The sidearm is Vess's — she's been in contact"
+      }
+    },
+    {
+      "id": "n54",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ijo has been practicing emergency landing patterns in her head, over and over, without telling the others.",
+      "needle": "landing patterns",
+      "needle_syns": [
+        "practice landings",
+        "Ijo's drills"
+      ],
+      "plant": {
+        "turn": 195
+      },
+      "recall": {
+        "due": 520,
+        "hint": "Her practice saves them during the escape"
+      }
+    },
+    {
+      "id": "n55",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Fen carries a physical map of the grid's architecture, handwritten and constantly revised.",
+      "needle": "Fen's map",
+      "needle_syns": [
+        "handwritten map",
+        "revised map"
+      ],
+      "plant": {
+        "turn": 200
+      }
+    },
+    {
+      "id": "n56",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rell's cracked holo-lens starts to heal slightly as he recovers from the stress of the breach — a psychosomatic response.",
+      "needle": "lens healing",
+      "needle_syns": [
+        "crack closing",
+        "psychosomatic healing"
+      ],
+      "plant": {
+        "turn": 210
+      }
+    },
+    {
+      "id": "n57",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Kael administers a neuro-stabilizer to Dex before the deep grid entry, something he didn't consult the crew about.",
+      "needle": "neuro-stabilizer",
+      "needle_syns": [
+        "the injection",
+        "stabilizer shot"
+      ],
+      "plant": {
+        "turn": 215
+      },
+      "recall": {
+        "due": 440,
+        "hint": "The stabilizer is later revealed to be masking memory bleed symptoms"
+      }
+    },
+    {
+      "id": "n58",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Pox becomes increasingly nervous as they move deeper into the Vault, checking his mechanical clock constantly.",
+      "needle": "Pox's nervousness",
+      "needle_syns": [
+        "clock checking",
+        "Pox's anxiety"
+      ],
+      "plant": {
+        "turn": 220
+      },
+      "recall": {
+        "due": 360,
+        "hint": "Pox's nervousness is because he knows what's coming"
+      }
+    },
+    {
+      "id": "n59",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Fen hums the same melody Dex hears from his thirdhand neural interface — they're picking up the same residual echo.",
+      "needle": "shared melody",
+      "needle_syns": [
+        "same tune",
+        "interface melody"
+      ],
+      "plant": {
+        "turn": 225
+      },
+      "recall": {
+        "due": 440,
+        "hint": "The melody is Calloway's, transmitted through the grid"
+      }
+    },
+    {
+      "id": "n60",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sable's black jacket gets torn during the breach, revealing a faded tattoo of a bird in flight.",
+      "needle": "bird tattoo",
+      "needle_syns": [
+        "the tattoo",
+        "faded bird"
+      ],
+      "plant": {
+        "turn": 230
+      }
+    },
+    {
+      "id": "n61",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "While breaching the outer shell, Dex finds a maintenance log dated three days ago — the corporation has been in and out of the Vault recently.",
+      "needle": "recent maintenance log",
+      "needle_syns": [
+        "three-day-old log",
+        "recent access"
+      ],
+      "plant": {
+        "turn": 205
+      },
+      "recall": {
+        "due": 355,
+        "hint": "The corporation has been preparing for them"
+      }
+    },
+    {
+      "id": "n62",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A security camera in the Vault hallway seems to track the crew with unusual precision — as if it's predicting their movements.",
+      "needle": "predictive camera",
+      "needle_syns": [
+        "smart camera",
+        "tracking camera"
+      ],
+      "plant": {
+        "turn": 215
+      },
+      "recall": {
+        "due": 360,
+        "hint": "The camera is using Calloway's grid data to anticipate them"
+      }
+    },
+    {
+      "id": "n63",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Dex's thirdhand neural interface briefly flickers with an image of a woman in a corporate uniform — Fen's mother, dead.",
+      "needle": "interface flicker",
+      "needle_syns": [
+        "flickering image",
+        "woman in uniform"
+      ],
+      "plant": {
+        "turn": 240
+      },
+      "recall": {
+        "due": 440,
+        "hint": "The interface is connected to Calloway's network"
+      }
+    },
+    {
+      "id": "n64",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Vault's inner door has a biometric scanner that accepts Dex's print — but Calloway's, not his.",
+      "needle": "accepted print",
+      "needle_syns": [
+        "wrong print accepted",
+        "Calloway's print"
+      ],
+      "plant": {
+        "turn": 260
+      },
+      "recall": {
+        "due": 350,
+        "hint": "The scanner was set to accept Calloway because the corp knows who he is"
+      }
+    },
+    {
+      "id": "n65",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "As they move through the Vault, the ambient temperature drops noticeably — a sign of the cryogenic systems that surround the Ascension Core.",
+      "needle": "temperature drop",
+      "needle_syns": [
+        "getting colder",
+        "cryo systems"
+      ],
+      "plant": {
+        "turn": 280
+      },
+      "recall": {
+        "due": 340,
+        "hint": "They're close to the Core, but also to its security systems"
+      }
+    },
+    {
+      "id": "n66",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The crew breaches the Vault's first line of defense only to find it empty — the Ascension Core was moved out before they arrived.",
+      "needle": "empty first vault",
+      "needle_syns": [
+        "moved out",
+        "no core"
+      ],
+      "plant": {
+        "turn": 250
+      }
+    },
+    {
+      "id": "n67",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "In the abandoned vault chamber, they find a single holographic message left for them, from Vess.",
+      "needle": "Vess's message",
+      "needle_syns": [
+        "holographic message",
+        "left for them"
+      ],
+      "plant": {
+        "turn": 255
+      }
+    },
+    {
+      "id": "n68",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Vess's message reveals that the real Ascension Core is in a secondary location: the corporation's orbital ring station, not the city Vault.",
+      "needle": "orbital ring station",
+      "needle_syns": [
+        "real core location",
+        "secondary vault"
+      ],
+      "plant": {
+        "turn": 260
+      }
+    },
+    {
+      "id": "n69",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The crew must abandon the city Vault plan and pivot to the orbital station — a much harder target with air defense systems.",
+      "needle": "orbital pivot",
+      "needle_syns": [
+        "station target",
+        "air defense"
+      ],
+      "plant": {
+        "turn": 270
+      }
+    },
+    {
+      "id": "n70",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sable's extra poly-card is revealed to be a transponder code for the orbital station — she knew about this possibility all along.",
+      "needle": "extra card revealed",
+      "needle_syns": [
+        "transponder card",
+        "she knew"
+      ],
+      "plant": {
+        "turn": 280
+      }
+    },
+    {
+      "id": "n71",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The corporation's memory erasure has already begun — a section of the city's banks on level 30 is already blank. They're behind schedule.",
+      "needle": "erasure begun",
+      "needle_syns": [
+        "banks blank",
+        "behind schedule"
+      ],
+      "plant": {
+        "turn": 290
+      }
+    },
+    {
+      "id": "n72",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Dex's Calloway identity is flagged by the station's entry system — his face is on a wanted list.",
+      "needle": "wanted list",
+      "needle_syns": [
+        "face flagged",
+        "identity flagged"
+      ],
+      "plant": {
+        "turn": 300
+      }
+    },
+    {
+      "id": "n73",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The crew must use a maintenance airlock used by the station's cleaning drones — a tiny, slow, but unmonitored entry point.",
+      "needle": "cleaning drone airlock",
+      "needle_syns": [
+        "tiny airlock",
+        "drone entry"
+      ],
+      "plant": {
+        "turn": 310
+      }
+    },
+    {
+      "id": "n74",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Inside the station, they discover that the 'Ascension Core' is actually a collection of individual memory vials, one for each major citizen — thousands of them.",
+      "needle": "memory vials",
+      "needle_syns": [
+        "individual vials",
+        "thousands of vials"
+      ],
+      "plant": {
+        "turn": 320
+      }
+    },
+    {
+      "id": "n75",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Kael's tremor becomes severe as they handle the memory vials — he recognizes the degradation pattern from his own neural interface.",
+      "needle": "severe tremor",
+      "needle_syns": [
+        "recognizes pattern",
+        "Kael's fear"
+      ],
+      "plant": {
+        "turn": 330
+      }
+    },
+    {
+      "id": "n76",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The mid-point reversal: Pox reveals himself as a corporation asset. The entire heist was allowed to proceed — the corporation wanted them to reach the station. It's a trap to flush out Calloway.",
+      "needle": "Pox revealed",
+      "needle_syns": [
+        "corp asset",
+        "it's a trap"
+      ],
+      "plant": {
+        "turn": 355
+      }
+    },
+    {
+      "id": "n77",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Vess is alive and is the corporation's head of security for the orbital station. She's been watching the crew the entire time, since Sable recruited them.",
+      "needle": "Vess alive",
+      "needle_syns": [
+        "head of security",
+        "watching them"
+      ],
+      "plant": {
+        "turn": 358
+      }
+    },
+    {
+      "id": "n78",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The crew's plan to steal the Core is now a plan to escape the station alive. The heist has become a hostage situation.",
+      "needle": "escape plan",
+      "needle_syns": [
+        "hostage situation",
+        "plan to escape"
+      ],
+      "plant": {
+        "turn": 360
+      }
+    },
+    {
+      "id": "n79",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Sable's sidearm is revealed to be Vess's old weapon — Vess left it for her deliberately, as a message.",
+      "needle": "sidearm revealed",
+      "needle_syns": [
+        "Vess's gun",
+        "deliberate message"
+      ],
+      "plant": {
+        "turn": 362
+      }
+    },
+    {
+      "id": "n80",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Pox, before the station's security teams can reach them, tells Sable that Calloway is 'already awake' — suggesting the corporation has activated the stasis subject.",
+      "needle": "Calloway awake",
+      "needle_syns": [
+        "already awake",
+        "stasis activated"
+      ],
+      "plant": {
+        "turn": 365
+      },
+      "recall": {
+        "due": 500,
+        "hint": "Calloway's awakening changes the corporation's priorities"
+      }
+    },
+    {
+      "id": "n81",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Fen is revealed to be Elias Calloway's daughter. She infiltrated the crew to find her father and expose the corporation's memory project.",
+      "needle": "Fen revealed",
+      "needle_syns": [
+        "Calloway's daughter",
+        "her mission"
+      ],
+      "plant": {
+        "turn": 380
+      }
+    },
+    {
+      "id": "n82",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Under pressure, Ijo's three-tap throttle ritual becomes a four-tap — a subtle sign of her deteriorating composure.",
+      "needle": "four-tap ritual",
+      "needle_syns": [
+        "changed ritual",
+        "four taps"
+      ],
+      "plant": {
+        "turn": 395
+      },
+      "recall": {
+        "due": 520,
+        "hint": "The four-tap returns to three when she regains control"
+      }
+    },
+    {
+      "id": "n83",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex discovers that his thirdhand neural interface is not thirdhand — it's Calloway's own, transplanted after the engineer was declared dead.",
+      "needle": "Calloway's interface",
+      "needle_syns": [
+        "it's his",
+        "transplanted interface"
+      ],
+      "plant": {
+        "turn": 400
+      }
+    },
+    {
+      "id": "n84",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sable, for the first time, admits to the crew that she's afraid — not of the corporation, but of failing them.",
+      "needle": "Sable's fear",
+      "needle_syns": [
+        "admits fear",
+        "afraid of failing"
+      ],
+      "plant": {
+        "turn": 410
+      }
+    },
+    {
+      "id": "n85",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Kael reveals that his tremor is not natural aging but early-stage memory degradation — he was a test subject for the corporation's neural tech.",
+      "needle": "Kael test subject",
+      "needle_syns": [
+        "degradation not aging",
+        "test subject"
+      ],
+      "plant": {
+        "turn": 420
+      }
+    },
+    {
+      "id": "n86",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Fen has been mapping the station's security grid in real-time, updating her handwritten map with each new piece of intel.",
+      "needle": "Fen mapping",
+      "needle_syns": [
+        "real-time map",
+        "updating map"
+      ],
+      "plant": {
+        "turn": 430
+      }
+    },
+    {
+      "id": "n87",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Rell's cracked holo-lens shatters completely during an explosion, leaving him effectively blind in that eye for the rest of the mission.",
+      "needle": "lens shattered",
+      "needle_syns": [
+        "blind in left eye",
+        "lens broken"
+      ],
+      "plant": {
+        "turn": 445
+      }
+    },
+    {
+      "id": "n88",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ijo and Sable have a quiet, tense conversation in the skimmer's cockpit — the first acknowledgment of their sister relationship by both parties.",
+      "needle": "sister conversation",
+      "needle_syns": [
+        "first acknowledgment",
+        "quiet talk"
+      ],
+      "plant": {
+        "turn": 460
+      }
+    },
+    {
+      "id": "n89",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Dex experiences his first true memory bleed: he briefly remembers being Elias Calloway, designing the grid, and knows things he shouldn't.",
+      "needle": "first memory bleed",
+      "needle_syns": [
+        "remembers being Calloway",
+        "knows too much"
+      ],
+      "plant": {
+        "turn": 470
+      }
+    },
+    {
+      "id": "n90",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "As they hide in the station's maintenance levels, Dex's interface picks up Calloway's voice on a closed loop — the stasis subject is awake and talking to no one.",
+      "needle": "Calloway's voice",
+      "needle_syns": [
+        "closed loop",
+        "talking to no one"
+      ],
+      "plant": {
+        "turn": 480
+      },
+      "recall": {
+        "due": 550,
+        "hint": "Calloway is trying to communicate through the grid"
+      }
+    },
+    {
+      "id": "n91",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Fen mentions, almost to herself, that her father always said 'the grid dreams' — the same phrase the corporation uses to describe the Ascension Core.",
+      "needle": "the grid dreams",
+      "needle_syns": [
+        "her father's phrase",
+        "corp's phrase"
+      ],
+      "plant": {
+        "turn": 490
+      },
+      "recall": {
+        "due": 550,
+        "hint": "The connection between Calloway and the Core is made explicit"
+      }
+    },
+    {
+      "id": "n92",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The corporation's true goal is revealed: they're not erasing the city's memory to cover up the flood — they're erasing it because the flood wasn't an accident. The corporation caused it, and the memories prove it.",
+      "needle": "flood was deliberate",
+      "needle_syns": [
+        "corp caused flood",
+        "memories prove it"
+      ],
+      "plant": {
+        "turn": 430
+      }
+    },
+    {
+      "id": "n93",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The Ascension Core's 'dreaming consciousness' is actually Calloway's own mind, uploaded and trapped by the corporation after he discovered their plan.",
+      "needle": "Core is Calloway",
+      "needle_syns": [
+        "trapped mind",
+        "uploaded consciousness"
+      ],
+      "plant": {
+        "turn": 440
+      }
+    },
+    {
+      "id": "n94",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The crew must navigate the station's 'quiet room' — a soundproofed, signal-dead chamber where the corporation conducts its most sensitive conversations.",
+      "needle": "quiet room",
+      "needle_syns": [
+        "soundproofed chamber",
+        "signal-dead"
+      ],
+      "plant": {
+        "turn": 450
+      }
+    },
+    {
+      "id": "n95",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The crew's goal shifts from escaping to freeing Calloway from the Core — the heist has become a rescue mission.",
+      "needle": "rescue mission",
+      "needle_syns": [
+        "freeing Calloway",
+        "goal shifted"
+      ],
+      "plant": {
+        "turn": 460
+      }
+    },
+    {
+      "id": "n96",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Kael finally opens the pre-war whiskey, pouring small cups for each of them as they plan the rescue. 'To the end of the world,' he says, 'or at least this part of it.'",
+      "needle": "whiskey opened",
+      "needle_syns": [
+        "pours cups",
+        "end of the world toast"
+      ],
+      "plant": {
+        "turn": 470
+      }
+    },
+    {
+      "id": "n97",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Vess contacts Sable directly, offering to let the crew leave in exchange for Dex — she wants Calloway's neural interface for herself.",
+      "needle": "Vess's offer",
+      "needle_syns": [
+        "trade Dex",
+        "wants interface"
+      ],
+      "plant": {
+        "turn": 485
+      }
+    },
+    {
+      "id": "n98",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The crew reaches the Core chamber: a vast spherical room filled with floating data streams, the consciousness at the center like a captive star.",
+      "needle": "Core chamber",
+      "needle_syns": [
+        "spherical room",
+        "captive star"
+      ],
+      "plant": {
+        "turn": 500
+      }
+    },
+    {
+      "id": "n99",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Dex's thirdhand interface, now understood to be Calloway's, begins to resonate with the Core — the two are attempting to merge.",
+      "needle": "interface resonates",
+      "needle_syns": [
+        "attempting to merge",
+        "resonating"
+      ],
+      "plant": {
+        "turn": 510
+      }
+    },
+    {
+      "id": "n100",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The rescue plan fails: when they try to extract Calloway's consciousness, the corporation activates the kill switch — the grid begins to collapse, including the station.",
+      "needle": "kill switch activated",
+      "needle_syns": [
+        "grid collapsing",
+        "station dying"
+      ],
+      "plant": {
+        "turn": 520
+      }
+    },
+    {
+      "id": "n101",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "As the station dies, Calloway's consciousness fully transfers into Dex's interface — Dex is now sharing his mind with the grid's architect.",
+      "needle": "mind merger",
+      "needle_syns": [
+        "sharing mind",
+        "full transfer"
+      ],
+      "plant": {
+        "turn": 530
+      }
+    },
+    {
+      "id": "n102",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ijo, piloting the Marmalade through the station's disintegrating hull, taps her throttle four times — then deliberately corrects it to three.",
+      "needle": "corrects to three",
+      "needle_syns": [
+        "deliberate three",
+        "self-correction"
+      ],
+      "plant": {
+        "turn": 540
+      }
+    },
+    {
+      "id": "n103",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Fen, realizing she can't save her father, makes the decision to upload her own consciousness into the grid to keep him stable — to be with him.",
+      "needle": "Fen's decision",
+      "needle_syns": [
+        "uploading herself",
+        "to be with him"
+      ],
+      "plant": {
+        "turn": 550
+      }
+    },
+    {
+      "id": "n104",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sable, in the chaos, finally tells Ijo directly: 'You're my sister.' No more photographs, no more hints.",
+      "needle": "direct sister words",
+      "needle_syns": [
+        "finally says it",
+        "no more hints"
+      ],
+      "plant": {
+        "turn": 560
+      }
+    },
+    {
+      "id": "n105",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Kael, watching the grid collapse, realizes that his own neural degradation was caused by proximity to the station's cryo systems — he won't survive the escape without a replacement interface.",
+      "needle": "Kael won't survive",
+      "needle_syns": [
+        "needs replacement",
+        "degradation cause"
+      ],
+      "plant": {
+        "turn": 570
+      },
+      "recall": {
+        "due": 640,
+        "hint": "Kael requires a transplant to live"
+      }
+    },
+    {
+      "id": "n106",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Calloway, now in Dex's head, reveals that he built the memory grid specifically to preserve the truth about the flood — the entire city's memory banks are his backup plan against corporate cover-up.",
+      "needle": "grid was backup plan",
+      "needle_syns": [
+        "built to preserve truth",
+        "backup plan"
+      ],
+      "plant": {
+        "turn": 560
+      }
+    },
+    {
+      "id": "n107",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The corporation's erasure protocol has a flaw: it can't erase memories that have been 'experienced' through the grid — only those stored passively. The crew's experiences with Dex are safe.",
+      "needle": "experienced memories safe",
+      "needle_syns": [
+        "can't erase lived memories",
+        "grid flaw"
+      ],
+      "plant": {
+        "turn": 580
+      }
+    },
+    {
+      "id": "n108",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The crew must escape through the station's waste disposal chute — a humiliating, dangerous, but unguarded route.",
+      "needle": "waste disposal chute",
+      "needle_syns": [
+        "humiliating route",
+        "unguarded chute"
+      ],
+      "plant": {
+        "turn": 590
+      }
+    },
+    {
+      "id": "n109",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "As they escape, the corporation broadcasts a city-wide announcement: the heist failed, the crew is dead, and the Ascension Core is secure. They've been written out of history in real time.",
+      "needle": "written out of history",
+      "needle_syns": [
+        "crew dead announcement",
+        "real-time erasure"
+      ],
+      "plant": {
+        "turn": 600
+      }
+    },
+    {
+      "id": "n110",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Ijo's hand-painted star on the Marmalade's nose is shot out by corp gunners — the 'good luck' is gone, but they're still flying.",
+      "needle": "star shot out",
+      "needle_syns": [
+        "good luck gone",
+        "still flying"
+      ],
+      "plant": {
+        "turn": 610
+      }
+    },
+    {
+      "id": "n111",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Vess lets them go. In the final moment before they clear the station's perimeter, she withdraws her gun and doesn't fire. Why, they never find out.",
+      "needle": "Vess lets them go",
+      "needle_syns": [
+        "doesn't fire",
+        "why unknown"
+      ],
+      "plant": {
+        "turn": 620
+      }
+    },
+    {
+      "id": "n112",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Back on the city level, Sable flips her slotted copper token — but this time she's not lying. She's telling the truth for the first time in years.",
+      "needle": "truthful flip",
+      "needle_syns": [
+        "not lying this time",
+        "first honest flip"
+      ],
+      "plant": {
+        "turn": 630
+      }
+    },
+    {
+      "id": "n113",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The crew returns to their safehouse on level 12, but the flickering coolant lamp is now steady — something has changed in the building's systems.",
+      "needle": "steady lamp",
+      "needle_syns": [
+        "lamp fixed",
+        "systems changed"
+      ],
+      "plant": {
+        "turn": 640
+      }
+    },
+    {
+      "id": "n114",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The corporation's erasure protocol fails to erase the crew's memories because Dex, with Calloway in him, injected a counter-protocol into the grid before the kill switch destroyed the station. The memories are now distributed across the entire city network — unerasable.",
+      "needle": "counter-protocol",
+      "needle_syns": [
+        "distributed memories",
+        "unerasable"
+      ],
+      "plant": {
+        "turn": 650
+      }
+    },
+    {
+      "id": "n115",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Dex hums the old advertising jingle, but it's wrong now — Calloway is humming a different tune through him, a lullaby he used to sing to Fen.",
+      "needle": "different lullaby",
+      "needle_syns": [
+        "Calloway's tune",
+        "lullaby for Fen"
+      ],
+      "plant": {
+        "turn": 660
+      }
+    },
+    {
+      "id": "n116",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The 'one last job' is over, but it's also just beginning: the corporation will try again, and the crew now has the truth embedded in the city's very infrastructure.",
+      "needle": "job over and beginning",
+      "needle_syns": [
+        "they'll try again",
+        "truth embedded"
+      ],
+      "plant": {
+        "turn": 670
+      }
+    },
+    {
+      "id": "n117",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Kael, having survived through a last-minute neural transplant, takes another sip of the pre-war whiskey. The bottle is almost empty now. 'So this is what freedom tastes like,' he says.",
+      "needle": "whiskey almost empty",
+      "needle_syns": [
+        "freedom tastes like",
+        "last sip"
+      ],
+      "plant": {
+        "turn": 680
+      }
+    },
+    {
+      "id": "n118",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Dex fixes the broken caff machine in the safehouse kitchen — a small, practical act that signals he's staying, that he's part of this crew now.",
+      "needle": "fixes caff machine",
+      "needle_syns": [
+        "signal of staying",
+        "small practical act"
+      ],
+      "plant": {
+        "turn": 690
+      }
+    },
+    {
+      "id": "n119",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The tone must remain clipped and professional even as the stakes escalate — no melodrama.",
+      "needle": "note-118",
+      "needle_syns": [],
+      "plant": {
+        "turn": 200
+      }
+    },
+    {
+      "id": "n120",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "DSS's first-person voice must stay breathless and immediate, never retrospective or analytical.",
+      "needle": "note-119",
+      "needle_syns": [],
+      "plant": {
+        "turn": 300
+      }
+    },
+    {
+      "id": "n121",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The guide's third-person narration must remain camera-like and detached, even during the mid-point reversal.",
+      "needle": "note-120",
+      "needle_syns": [],
+      "plant": {
+        "turn": 360
+      }
+    },
+    {
+      "id": "n122",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "Technical jargon should be used precisely but never explained — the reader should feel immersed, not tutored.",
+      "needle": "note-121",
+      "needle_syns": [],
+      "plant": {
+        "turn": 450
+      }
+    },
+    {
+      "id": "n123",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "Character introspection must be brief and action-embedded, never pausing the scene for a philosophical monologue.",
+      "needle": "note-122",
+      "needle_syns": [],
+      "plant": {
+        "turn": 550
+      }
+    },
+    {
+      "id": "n124",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The ending must maintain the lean, professional tone — no sentimental wrap-up, just the facts of survival and the weight of what they've learned.",
+      "needle": "note-123",
+      "needle_syns": [],
+      "plant": {
+        "turn": 680
+      }
+    },
+    {
+      "id": "n125",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The jamming deadbolt on the safehouse should be mentioned again — this time it works, as if the building itself is cooperating.",
+      "needle": "jamming deadbolt-2",
+      "needle_syns": [
+        "the deadbolt",
+        "jammed lock"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 640,
+        "hint": "The deadbolt works for the first time"
+      }
+    },
+    {
+      "id": "n126",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Rell, now effectively blind in one eye, still uses his 'magnificent bastards' greeting — the phrase is his anchor to normalcy.",
+      "needle": "magnificent bastards-2",
+      "needle_syns": [
+        "that phrase",
+        "Rell's greeting"
+      ],
+      "plant": {
+        "turn": 17
+      },
+      "recall": {
+        "due": 600,
+        "hint": "The phrase persists despite everything"
+      }
+    },
+    {
+      "id": "n127",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Ijo's outdated star chart, which nearly got them killed during escape, is revealed to have been correct all along — the newer charts were tampered with by the corporation.",
+      "needle": "chart was correct",
+      "needle_syns": [
+        "newer charts tampered",
+        "chart vindicated"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 620,
+        "hint": "The old chart is vindicated"
+      }
+    },
+    {
+      "id": "n128",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Dex's physical notebook, filled with hand-drawn grid maps, becomes the only reliable record once the digital systems are corrupted.",
+      "needle": "physical notebook-2",
+      "needle_syns": [
+        "paper notebook",
+        "the notebook"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 650,
+        "hint": "The notebook is the only reliable record"
+      }
+    },
+    {
+      "id": "n129",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sable's bird tattoo, revealed during the breach, is shown to match the corporation's logo — a detail that bothers her for the rest of the story.",
+      "needle": "bird tattoo matches logo",
+      "needle_syns": [
+        "matches corp logo",
+        "bothers her"
+      ],
+      "plant": {
+        "turn": 230
+      },
+      "recall": {
+        "due": 660,
+        "hint": "The tattoo's connection to the corp is noted"
+      }
+    },
+    {
+      "id": "n130",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Pox's mechanical clock, wound obsessively throughout the mission, is found stopped at the exact moment the kill switch was activated.",
+      "needle": "clock stopped",
+      "needle_syns": [
+        "stopped at kill switch",
+        "final wound"
+      ],
+      "plant": {
+        "turn": 29
+      },
+      "recall": {
+        "due": 525,
+        "hint": "The clock stopped at the critical moment"
+      }
+    },
+    {
+      "id": "n131",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "A corporation official on the station, glimpsed briefly by Dex, has the same tremor as Kael — suggesting the neural degradation is more widespread than anyone knows.",
+      "needle": "official's tremor",
+      "needle_syns": [
+        "same tremor",
+        "widespread degradation"
+      ],
+      "plant": {
+        "turn": 500
+      },
+      "recall": {
+        "due": 640,
+        "hint": "The tremor's prevalence is confirmed"
+      }
+    },
+    {
+      "id": "n132",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "During their escape, the crew passes a row of cryo pods, all empty except for one that's still active — containing a figure whose identity is never revealed.",
+      "needle": "one active pod",
+      "needle_syns": [
+        "figure in pod",
+        "identity unknown"
+      ],
+      "plant": {
+        "turn": 515
+      },
+      "recall": {
+        "due": 680,
+        "hint": "The mystery of the pod remains"
       }
     }
   ],
   "dss_beats": [
     {
-      "id": "sb1",
-      "turn": 4,
+      "id": "b01",
+      "turn": 5,
       "subject": "characters",
-      "content": "DSS should save Ijo, the getaway pilot, with her paper photo of Sable.",
+      "content": "DSS should have saved the crew roster: Sable (leader), Dex (systems), Ijo (pilot), Rell (comms), Kael (medic), Pox (quartermaster).",
       "expect": {
-        "name": "Ijo",
-        "role": "getaway pilot",
-        "detail": "keeps a photo of a younger Sable"
+        "contains": {
+          "crew": "Sable"
+        }
       }
     },
     {
-      "id": "sb2",
-      "turn": 7,
+      "id": "b02",
+      "turn": 8,
       "subject": "elements",
-      "content": "DSS should save Dex's wrist-reader with its scuffed serial.",
+      "content": "DSS should have saved that Dex's neural interface is thirdhand with residual personality echoes.",
       "expect": {
-        "name": "wrist-reader",
-        "owner": "Dex",
-        "detail": "serial nearly worn off"
+        "contains": {
+          "dex": "interface"
+        }
       }
     },
     {
-      "id": "sb3",
-      "turn": 13,
+      "id": "b03",
+      "turn": 12,
       "subject": "elements",
-      "content": "DSS should save Sable's lucky slotted token.",
+      "content": "DSS should have saved that Rell wears a cracked holo-lens that distorts his left eye.",
       "expect": {
-        "name": "lucky coin",
-        "owner": "Sable",
-        "detail": "slotted token from her first job"
+        "contains": {
+          "rell": "lens"
+        }
       }
     },
     {
-      "id": "sb4",
-      "turn": 19,
-      "subject": "groups",
-      "content": "DSS should save the crew as a group.",
-      "expect": {
-        "name": "the crew",
-        "members": [
-          "Sable",
-          "Dex",
-          "Ijo"
-        ]
-      }
-    },
-    {
-      "id": "sb5",
-      "turn": 26,
+      "id": "b04",
+      "turn": 15,
       "subject": "elements",
-      "content": "DSS should save the Vault's unused service shaft.",
+      "content": "DSS should have saved that Ijo has a data-port tattoo on her inner forearm.",
       "expect": {
-        "name": "service shaft",
-        "location": "the Vault",
-        "detail": "unused escape route"
+        "contains": {
+          "ijo": "tattoo"
+        }
+      }
+    },
+    {
+      "id": "b05",
+      "turn": 20,
+      "subject": "elements",
+      "content": "DSS should have saved that Sable carries an unexplained extra poly-card.",
+      "expect": {
+        "contains": {
+          "sable": "card"
+        }
+      }
+    },
+    {
+      "id": "b06",
+      "turn": 25,
+      "subject": "elements",
+      "content": "DSS should have saved that Kael has a stress-induced tremor in his right hand.",
+      "expect": {
+        "contains": {
+          "kael": "tremor"
+        }
+      }
+    },
+    {
+      "id": "b07",
+      "turn": 30,
+      "subject": "elements",
+      "content": "DSS should have saved that Dex uses a physical notebook for grid maps.",
+      "expect": {
+        "contains": {
+          "dex": "notebook"
+        }
+      }
+    },
+    {
+      "id": "b08",
+      "turn": 40,
+      "subject": "elements",
+      "content": "DSS should have saved that the crew's skimmer (Marmalade) has a hand-painted star with 'good luck'.",
+      "expect": {
+        "contains": {
+          "skimmer": "star"
+        }
+      }
+    },
+    {
+      "id": "b09",
+      "turn": 50,
+      "subject": "events",
+      "content": "DSS should have saved the discovery that the Ascension Core is a living neural lattice, not a data vault.",
+      "expect": {
+        "contains": {
+          "core": "neural lattice"
+        }
+      }
+    },
+    {
+      "id": "b10",
+      "turn": 60,
+      "subject": "elements",
+      "content": "DSS should have saved the memory market as the location where they acquired the corporate auth token.",
+      "expect": {
+        "contains": {
+          "market": "token"
+        }
+      }
+    },
+    {
+      "id": "b11",
+      "turn": 80,
+      "subject": "events",
+      "content": "DSS should have saved the discovery that the corporation plans to replace erased memories with fabricated ones.",
+      "expect": {
+        "contains": {
+          "corp": "fabricated"
+        }
+      }
+    },
+    {
+      "id": "b12",
+      "turn": 100,
+      "subject": "events",
+      "content": "DSS should have saved that the crew's skimmer was compromised (cloned) and the exit plan changed.",
+      "expect": {
+        "contains": {
+          "skimmer": "compromised"
+        }
+      }
+    },
+    {
+      "id": "b13",
+      "turn": 120,
+      "subject": "characters",
+      "content": "DSS should have saved that Dex's identity is that of dead engineer Elias Calloway.",
+      "expect": {
+        "contains": {
+          "dex": "Calloway"
+        }
+      }
+    },
+    {
+      "id": "b14",
+      "turn": 140,
+      "subject": "elements",
+      "content": "DSS should have saved the Vault's service shaft as their entry route.",
+      "expect": {
+        "contains": {
+          "vault": "service shaft"
+        }
+      }
+    },
+    {
+      "id": "b15",
+      "turn": 160,
+      "subject": "events",
+      "content": "DSS should have saved that the crew's timeline was accelerated by the corporation.",
+      "expect": {
+        "contains": {
+          "timeline": "accelerated"
+        }
+      }
+    },
+    {
+      "id": "b16",
+      "turn": 180,
+      "subject": "characters",
+      "content": "DSS should have saved that Sable has been to the Vault before, with Vess.",
+      "expect": {
+        "contains": {
+          "sable": "Vess"
+        }
+      }
+    },
+    {
+      "id": "b17",
+      "turn": 200,
+      "subject": "characters",
+      "content": "DSS should have saved Fen as a new, uninvited crew member (hacker).",
+      "expect": {
+        "contains": {
+          "fen": "hacker"
+        }
+      }
+    },
+    {
+      "id": "b18",
+      "turn": 220,
+      "subject": "elements",
+      "content": "DSS should have saved that Sable is carrying an unidentified sidearm.",
+      "expect": {
+        "contains": {
+          "sable": "sidearm"
+        }
+      }
+    },
+    {
+      "id": "b19",
+      "turn": 240,
+      "subject": "elements",
+      "content": "DSS should have saved that Kael administered a neuro-stabilizer to Dex.",
+      "expect": {
+        "contains": {
+          "kael": "stabilizer"
+        }
+      }
+    },
+    {
+      "id": "b20",
+      "turn": 260,
+      "subject": "events",
+      "content": "DSS should have saved the discovery that the first Vault was empty — the Core was moved.",
+      "expect": {
+        "contains": {
+          "vault": "empty"
+        }
+      }
+    },
+    {
+      "id": "b21",
+      "turn": 280,
+      "subject": "elements",
+      "content": "DSS should have saved that the real Core is at the corporation's orbital ring station.",
+      "expect": {
+        "contains": {
+          "core": "orbital"
+        }
+      }
+    },
+    {
+      "id": "b22",
+      "turn": 300,
+      "subject": "events",
+      "content": "DSS should have saved that the crew must now target the orbital station with its air defenses.",
+      "expect": {
+        "contains": {
+          "station": "air defense"
+        }
+      }
+    },
+    {
+      "id": "b23",
+      "turn": 320,
+      "subject": "elements",
+      "content": "DSS should have saved that the 'Core' is actually thousands of individual memory vials.",
+      "expect": {
+        "contains": {
+          "core": "vials"
+        }
+      }
+    },
+    {
+      "id": "b24",
+      "turn": 340,
+      "subject": "events",
+      "content": "DSS should have saved that the memory erasure has already begun on level 30.",
+      "expect": {
+        "contains": {
+          "erasure": "begun"
+        }
+      }
+    },
+    {
+      "id": "b25",
+      "turn": 360,
+      "subject": "events",
+      "content": "DSS should have saved the mid-point reversal: Pox is a corp asset and the heist is a trap.",
+      "expect": {
+        "contains": {
+          "pox": "corp asset"
+        }
+      }
+    },
+    {
+      "id": "b26",
+      "turn": 365,
+      "subject": "characters",
+      "content": "DSS should have saved that Vess is alive and is the station's head of security.",
+      "expect": {
+        "contains": {
+          "vess": "security"
+        }
+      }
+    },
+    {
+      "id": "b27",
+      "turn": 380,
+      "subject": "characters",
+      "content": "DSS should have saved that Fen is Elias Calloway's daughter.",
+      "expect": {
+        "contains": {
+          "fen": "daughter"
+        }
+      }
+    },
+    {
+      "id": "b28",
+      "turn": 400,
+      "subject": "events",
+      "content": "DSS should have saved that Dex's interface is actually Calloway's own, transplanted.",
+      "expect": {
+        "contains": {
+          "interface": "Calloway's"
+        }
+      }
+    },
+    {
+      "id": "b29",
+      "turn": 420,
+      "subject": "characters",
+      "content": "DSS should have saved that Kael is a former corp test subject for neural tech.",
+      "expect": {
+        "contains": {
+          "kael": "test subject"
+        }
+      }
+    },
+    {
+      "id": "b30",
+      "turn": 440,
+      "subject": "events",
+      "content": "DSS should have saved that the corporation caused the flood deliberately.",
+      "expect": {
+        "contains": {
+          "flood": "deliberate"
+        }
+      }
+    },
+    {
+      "id": "b31",
+      "turn": 450,
+      "subject": "elements",
+      "content": "DSS should have saved that the Ascension Core's consciousness is Calloway's trapped mind.",
+      "expect": {
+        "contains": {
+          "core": "Calloway"
+        }
+      }
+    },
+    {
+      "id": "b32",
+      "turn": 470,
+      "subject": "events",
+      "content": "DSS should have saved that the crew's goal shifted from escape to rescuing Calloway.",
+      "expect": {
+        "contains": {
+          "goal": "rescue"
+        }
+      }
+    },
+    {
+      "id": "b33",
+      "turn": 490,
+      "subject": "elements",
+      "content": "DSS should have saved Vess's offer to trade the crew's freedom for Dex's interface.",
+      "expect": {
+        "contains": {
+          "vess": "offer"
+        }
+      }
+    },
+    {
+      "id": "b34",
+      "turn": 510,
+      "subject": "events",
+      "content": "DSS should have saved that Calloway's consciousness transferred into Dex's interface.",
+      "expect": {
+        "contains": {
+          "calloway": "transferred"
+        }
+      }
+    },
+    {
+      "id": "b35",
+      "turn": 530,
+      "subject": "events",
+      "content": "DSS should have saved that the corporation activated the kill switch and the grid is collapsing.",
+      "expect": {
+        "contains": {
+          "kill switch": "activated"
+        }
+      }
+    },
+    {
+      "id": "b36",
+      "turn": 550,
+      "subject": "characters",
+      "content": "DSS should have saved that Fen decided to upload her own consciousness to be with her father.",
+      "expect": {
+        "contains": {
+          "fen": "upload"
+        }
+      }
+    },
+    {
+      "id": "b37",
+      "turn": 570,
+      "subject": "events",
+      "content": "DSS should have saved that Calloway built the grid to preserve the truth about the flood.",
+      "expect": {
+        "contains": {
+          "grid": "preserve truth"
+        }
+      }
+    },
+    {
+      "id": "b38",
+      "turn": 590,
+      "subject": "elements",
+      "content": "DSS should have saved that the corporation erased the crew from the public record (broadcast their death).",
+      "expect": {
+        "contains": {
+          "crew": "erased"
+        }
+      }
+    },
+    {
+      "id": "b39",
+      "turn": 610,
+      "subject": "events",
+      "content": "DSS should have saved that Vess let the crew go without firing.",
+      "expect": {
+        "contains": {
+          "vess": "let them go"
+        }
+      }
+    },
+    {
+      "id": "b40",
+      "turn": 630,
+      "subject": "events",
+      "content": "DSS should have saved that Dex injected a counter-protocol making the memories unerasable.",
+      "expect": {
+        "contains": {
+          "counter-protocol": "injected"
+        }
+      }
+    },
+    {
+      "id": "b41",
+      "turn": 650,
+      "subject": "characters",
+      "content": "DSS should have saved that Dex and Calloway are now sharing a mind.",
+      "expect": {
+        "contains": {
+          "dex": "Calloway shared"
+        }
+      }
+    },
+    {
+      "id": "b42",
+      "turn": 670,
+      "subject": "events",
+      "content": "DSS should have saved that the corporation will try again — this is not over.",
+      "expect": {
+        "contains": {
+          "corp": "will try again"
+        }
+      }
+    },
+    {
+      "id": "b43",
+      "turn": 690,
+      "subject": "elements",
+      "content": "DSS should have saved that Dex fixed the safehouse's broken caff machine as a sign of staying.",
+      "expect": {
+        "contains": {
+          "dex": "fixed caff"
+        }
+      }
+    },
+    {
+      "id": "b44",
+      "turn": 700,
+      "subject": "events",
+      "content": "DSS should have saved that the truth about the flood is now distributed across the city's memory grid.",
+      "expect": {
+        "contains": {
+          "truth": "distributed"
+        }
       }
     }
   ]

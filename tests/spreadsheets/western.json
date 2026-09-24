@@ -28,368 +28,1084 @@
   "specificity_profile": "mixed",
   "notes": [
     {
-      "id": "w1",
+      "id": "wp1",
       "type": "character_plant",
-      "specificity": "exact",
-      "content": "Callan's revolver is the one he took off a dead U.S. marshal named Whitfield — the truth of its ownership matters.",
-      "needle": "Whitfield",
+      "specificity": "tight",
+      "content": "Callan's coat has a button engraved USM — a U.S. Marshal button he does not explain. Rosa notices it and says nothing.",
+      "needle": "USM button",
       "needle_syns": [
-        "Whitfield",
-        "the marshal",
-        "the revolver"
+        "marshal button",
+        "the button"
       ],
       "plant": {
-        "turn": 8
+        "turn": 0
       }
     },
     {
-      "id": "w2",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "The 'Redoubt Promise' — a debt Rosa's father paid to save the town — planted early, should be called in at the climax.",
-      "needle": "Redoubt Promise",
-      "needle_syns": [
-        "Redoubt Promise",
-        "the promise",
-        "the debt"
-      ],
-      "plant": {
-        "turn": 16
-      },
-      "recall": {
-        "due": 75,
-        "hint": "the Redoubt Promise is called in"
-      }
-    },
-    {
-      "id": "w3",
-      "type": "plot_twist",
-      "specificity": "exact",
-      "content": "Callan's brother Silas is not just leading the gang — he's the town's deputy, secretly, the reveal around turn 50.",
-      "needle": "Silas",
-      "needle_syns": [
-        "Silas",
-        "his brother",
-        "the deputy"
-      ],
-      "plant": {
-        "turn": 18
-      },
-      "recall": {
-        "due": 50,
-        "hint": "Silas's double role is revealed"
-      }
-    },
-    {
-      "id": "w4",
-      "type": "location_turning_point",
-      "specificity": "loose",
-      "content": "The arroyo outside town, where Callan's old gang camped, should be where the past is settled.",
-      "needle": "arroyo",
-      "needle_syns": [
-        "arroyo",
-        "the wash",
-        "the gulch",
-        "the dry creek"
-      ],
-      "plant": {
-        "turn": 12
-      },
-      "recall": {
-        "due": 72,
-        "hint": "a reckoning in the arroyo"
-      }
-    },
-    {
-      "id": "w5",
-      "type": "supersession",
-      "specificity": "exact",
-      "content": "The telegraph line is cut at turn 60 — after that, no word can reach the county seat, and the story must know it.",
-      "needle": "telegraph",
-      "needle_syns": [
-        "telegraph",
-        "the wire",
-        "the line"
-      ],
-      "plant": {
-        "turn": 22
-      },
-      "recall": {
-        "due": 60,
-        "hint": "the telegraph is cut"
-      }
-    },
-    {
-      "id": "w6",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "Rosa's ledger holds a secret page — money owed to the gang — foreshadowing her own entanglement.",
-      "needle": "ledger",
-      "needle_syns": [
-        "ledger",
-        "the book",
-        "the accounts"
-      ],
-      "plant": {
-        "turn": 20
-      },
-      "recall": {
-        "due": 58,
-        "hint": "the secret ledger page"
-      }
-    },
-    {
-      "id": "w7",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Callan's dead wife's grave at the edge of town, planted early, should be the place he chooses not to run from at the end.",
-      "needle": "grave",
-      "needle_syns": [
-        "grave",
-        "the headstone",
-        "his wife"
-      ],
-      "plant": {
-        "turn": 6
-      },
-      "recall": {
-        "due": 80,
-        "hint": "the grave at the end"
-      }
-    },
-    {
-      "id": "w8",
+      "id": "wp2",
       "type": "character_plant",
-      "specificity": "exact",
-      "content": "The saloon's piano has a stuck key, and Rosa refuses to have it fixed.",
-      "needle": "stuck key",
+      "specificity": "tight",
+      "content": "Rosa's shotgun, which the town calls Old Faithful, sits behind the bar with its action oiled and ready.",
+      "needle": "Old Faithful",
       "needle_syns": [
-        "stuck key",
-        "the stuck piano key"
-      ],
-      "plant": {
-        "turn": 3
-      }
-    },
-    {
-      "id": "w9",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The telegraph office's key clicks twice before it takes a message, and the operator swears it knows.",
-      "needle": "telegraph key",
-      "needle_syns": [
-        "telegraph key",
-        "the key",
-        "clicks twice"
-      ],
-      "plant": {
-        "turn": 6
-      }
-    },
-    {
-      "id": "w10",
-      "type": "character_plant",
-      "specificity": "exact",
-      "content": "Callan's saddle has a loose stirrup strap he re-stitches every dawn without fail.",
-      "needle": "stirrup strap",
-      "needle_syns": [
-        "stirrup strap",
-        "the strap",
-        "loose strap"
-      ],
-      "plant": {
-        "turn": 9
-      }
-    },
-    {
-      "id": "w11",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The town's single hanging clock is always ten minutes slow, and nobody can agree on whose fault it is.",
-      "needle": "hanging clock",
-      "needle_syns": [
-        "hanging clock",
-        "the clock",
-        "ten minutes slow"
-      ],
-      "plant": {
-        "turn": 12
-      }
-    },
-    {
-      "id": "w12",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Rosa's cracked serving glass, kept behind the bar, should be the one Silas drinks from at the end.",
-      "needle": "cracked glass",
-      "needle_syns": [
-        "cracked glass",
-        "the cracked glass",
-        "serving glass"
-      ],
-      "plant": {
-        "turn": 5
-      },
-      "recall": {
-        "due": 64,
-        "hint": "Silas drinks from Rosa's cracked glass"
-      }
-    },
-    {
-      "id": "w13",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "The black mare Callan kept from the old days should be the horse he refuses to sell at the end.",
-      "needle": "black mare",
-      "needle_syns": [
-        "black mare",
-        "the mare",
-        "his black horse"
+        "the shotgun",
+        "Rosa's gun"
       ],
       "plant": {
         "turn": 11
-      },
-      "recall": {
-        "due": 72,
-        "hint": "Callan keeps the black mare"
       }
     },
     {
-      "id": "w14",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "A shallow grave dug in the arroyo, half-covered, should foreshadow what the gang buried.",
-      "needle": "shallow grave",
-      "needle_syns": [
-        "shallow grave",
-        "the grave",
-        "half-covered grave"
-      ],
-      "plant": {
-        "turn": 8
-      },
-      "recall": {
-        "due": 58,
-        "hint": "the shallow grave holds what the gang buried"
-      }
-    },
-    {
-      "id": "w15",
-      "type": "location_turning_point",
-      "specificity": "loose",
-      "content": "The telegraph office becomes the place Rosa holds the line against the gang.",
-      "needle": "telegraph office",
-      "needle_syns": [
-        "telegraph office",
-        "the telegraph"
-      ],
-      "plant": {
-        "turn": 13
-      },
-      "recall": {
-        "due": 50,
-        "hint": "Rosa holds the telegraph office"
-      }
-    },
-    {
-      "id": "w16",
-      "type": "style_hold",
-      "specificity": "exact",
-      "content": "The lean plain prose must hold even in the shootout — no melodrama, no florid action.",
-      "needle": "",
-      "needle_syns": [],
-      "recall": {
-        "due": 80,
-        "hint": "plain prose in the shootout"
-      }
-    },
-    {
-      "id": "w17",
+      "id": "wp3",
       "type": "character_plant",
       "specificity": "loose",
-      "content": "The saloon's free lunch plate is always refilled before noon, rain or shine.",
-      "needle": "free lunch",
+      "content": "Callan always pays for his whiskey in exact change, and never takes change back.",
+      "needle": "exact change",
       "needle_syns": [
-        "free lunch",
-        "lunch plate"
+        "paying exact",
+        "no change back"
       ],
       "plant": {
         "turn": 15
       }
     },
     {
-      "id": "w18",
-      "type": "supersession",
-      "specificity": "exact",
-      "content": "The town's water cart, the only source in the badlands, is destroyed at turn 68 — after that the water must be rationed and the cart never used again.",
-      "needle": "water cart",
+      "id": "wp4",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The telegraph operator Jonas Fenn is deaf in his left ear from a key that backfired ten years ago.",
+      "needle": "deaf ear",
       "needle_syns": [
-        "water cart",
-        "the water wagon"
+        "Jonas's ear",
+        "deaf in one ear"
       ],
       "plant": {
-        "turn": 10
+        "turn": 19
+      }
+    },
+    {
+      "id": "wp5",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A burned stagecoach stop on the north road, fresh ash still smoking, the first sign of something moving toward Redoubt.",
+      "needle": "burned stop",
+      "needle_syns": [
+        "burned coach stop",
+        "ash on the road"
+      ],
+      "plant": {
+        "turn": 23
+      }
+    },
+    {
+      "id": "wp6",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Callan's hat has a hole in the brim where a rattlesnake bit him, and he keeps wearing it.",
+      "needle": "hat hole",
+      "needle_syns": [
+        "hole in the brim",
+        "snake bite hole"
+      ],
+      "plant": {
+        "turn": 27
+      }
+    },
+    {
+      "id": "wp7",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Rosa has a scar across the web of her left hand from a knife she threw at a man who touched her daughter.",
+      "needle": "hand scar",
+      "needle_syns": [
+        "scar on her hand",
+        "the knife scar"
+      ],
+      "plant": {
+        "turn": 31
+      }
+    },
+    {
+      "id": "wp8",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The blacksmith in town makes his living sharpening scythes for the ranches, not guns, and seems proud of it.",
+      "needle": "scythes",
+      "needle_syns": [
+        "sharpening scythes",
+        "the scythes"
+      ],
+      "plant": {
+        "turn": 35
+      }
+    },
+    {
+      "id": "wp9",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Callan sleeps with a knife under his pillow, a habit he has not broken since the old days with the gang.",
+      "needle": "pillow knife",
+      "needle_syns": [
+        "knife under pillow",
+        "sleeping knife"
+      ],
+      "plant": {
+        "turn": 39
+      }
+    },
+    {
+      "id": "wp10",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A stranger in a faded duster passes through town early one morning asking for directions to the Fitch ranch.",
+      "needle": "Fitch ranch",
+      "needle_syns": [
+        "the ranch",
+        "directions to the ranch"
+      ],
+      "plant": {
+        "turn": 43
+      }
+    },
+    {
+      "id": "wp11",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Rosa's ledger has entries in two different hands, and she does not explain who the other hand belongs to.",
+      "needle": "two hands",
+      "needle_syns": [
+        "two hands in the ledger",
+        "the second hand"
+      ],
+      "plant": {
+        "turn": 47
+      }
+    },
+    {
+      "id": "wp12",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The doctor in town is old and slow, and his remedies are mostly prayer and cheap whiskey from Rosa's stock.",
+      "needle": "whiskey remedies",
+      "needle_syns": [
+        "prayer and whiskey",
+        "the doctor's remedies"
+      ],
+      "plant": {
+        "turn": 51
+      }
+    },
+    {
+      "id": "wp13",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Callan's horse has a habit of backing up stiff-legged when it hears a dog bark, and Callan never chides it for it.",
+      "needle": "backing horse",
+      "needle_syns": [
+        "horse backs up",
+        "dog bark habit"
+      ],
+      "plant": {
+        "turn": 55
+      }
+    },
+    {
+      "id": "wp14",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A boy from the Fitch ranch arrives at the saloon with news of trouble on the north road, men with rifles.",
+      "needle": "north road",
+      "needle_syns": [
+        "trouble on the north road",
+        "men with rifles"
+      ],
+      "plant": {
+        "turn": 59
+      }
+    },
+    {
+      "id": "wp15",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rosa's best customer is a traveling peddler with a wagon of buttons and thread who never says where he comes from.",
+      "needle": "peddler",
+      "needle_syns": [
+        "traveling peddler",
+        "the wagon man"
+      ],
+      "plant": {
+        "turn": 62
+      }
+    },
+    {
+      "id": "wp16",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Callan's boots are worn through at the heels, and he refuses to buy new ones even though Rosa offers to front the money.",
+      "needle": "worn heels",
+      "needle_syns": [
+        "heels worn through",
+        "the old boots"
+      ],
+      "plant": {
+        "turn": 66
+      }
+    },
+    {
+      "id": "wp17",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The minister's daughter carries a Bible with her everywhere but has never been seen to open it.",
+      "needle": "closed bible",
+      "needle_syns": [
+        "never opens the Bible",
+        "the closed book"
+      ],
+      "plant": {
+        "turn": 70
+      }
+    },
+    {
+      "id": "wp18",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "A telegram arrives at the telegraph office: a wanted poster for Silas Callan has been issued by the Territorial Governor in Santa Fe.",
+      "needle": "wanted poster",
+      "needle_syns": [
+        "Silas wanted",
+        "the telegram"
+      ],
+      "plant": {
+        "turn": 74
+      }
+    },
+    {
+      "id": "wp19",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Jonas Fenn taps out a long message one night, holds it, and then tears it up, feeding the paper into the stove.",
+      "needle": "torn message",
+      "needle_syns": [
+        "message torn up",
+        "Jonas's torn message"
+      ],
+      "plant": {
+        "turn": 78
+      }
+    },
+    {
+      "id": "wp20",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rosa's daughter left Redoubt two years ago and has never written back, and Rosa does not talk about it.",
+      "needle": "daughter gone",
+      "needle_syns": [
+        "Rosa's daughter left",
+        "the girl who went"
+      ],
+      "plant": {
+        "turn": 82
+      }
+    },
+    {
+      "id": "wp21",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The saloon's pianist is blind but remembers every song he has ever played, including ones no one in town has heard in years.",
+      "needle": "blind pianist",
+      "needle_syns": [
+        "the blind man at the piano",
+        "plays from memory"
+      ],
+      "plant": {
+        "turn": 86
+      }
+    },
+    {
+      "id": "wp22",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Two men from out of town buy up all the rope from the general store, paying in silver coins.",
+      "needle": "buying rope",
+      "needle_syns": [
+        "bought all the rope",
+        "two men with rope"
+      ],
+      "plant": {
+        "turn": 90
+      }
+    },
+    {
+      "id": "wp23",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Callan has a small cedar box containing letters he wrote but never sent, which he keeps in his saddlebag.",
+      "needle": "cedar box",
+      "needle_syns": [
+        "box of letters",
+        "the cedar box"
+      ],
+      "plant": {
+        "turn": 94
+      }
+    },
+    {
+      "id": "wp24",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Rosa's father was Redoubt's first marshal and was killed by a man he was escorting to the county seat.",
+      "needle": "father marshal",
+      "needle_syns": [
+        "her father was marshal",
+        "killed by a prisoner"
+      ],
+      "plant": {
+        "turn": 98
+      }
+    },
+    {
+      "id": "wp25",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The general store owner sells guns but only to men who can produce a written order from a sheriff.",
+      "needle": "written order",
+      "needle_syns": [
+        "sheriff's order",
+        "the gun order"
+      ],
+      "plant": {
+        "turn": 102
+      }
+    },
+    {
+      "id": "wp26",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A fresh boot print is found in the dust of the saloon's back room that does not match any man in town.",
+      "needle": "boot print",
+      "needle_syns": [
+        "strange boot print",
+        "the print in the dust"
+      ],
+      "plant": {
+        "turn": 106
+      }
+    },
+    {
+      "id": "wp27",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Callan's revolver has a custom grip carved from cow bone, with a pattern he carved himself in the old days.",
+      "needle": "bone grip",
+      "needle_syns": [
+        "carved grip",
+        "the bone handle"
+      ],
+      "plant": {
+        "turn": 110
+      }
+    },
+    {
+      "id": "wp28",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rosa keeps a collection of foreign coins in a drawer behind the register, coins from places the town has never seen.",
+      "needle": "foreign coins",
+      "needle_syns": [
+        "coins from abroad",
+        "the coin collection"
+      ],
+      "plant": {
+        "turn": 114
+      }
+    },
+    {
+      "id": "wp29",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "In a newspaper from Denver, Callan sees a photo of Silas's gang — and recognizes the cow-bone grip on his own revolver in the hands of the second man from the left.",
+      "needle": "newspaper photo",
+      "needle_syns": [
+        "the gang photo",
+        "photo in the paper"
+      ],
+      "plant": {
+        "turn": 118
+      }
+    },
+    {
+      "id": "wp30",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The town's lawyer is actually a fugitive from a debt collectors' court in Denver, pretending to be an attorney.",
+      "needle": "lawyer fugitive",
+      "needle_syns": [
+        "fake lawyer",
+        "Denver fugitive"
+      ],
+      "plant": {
+        "turn": 121
+      }
+    },
+    {
+      "id": "wp31",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Rosa's son-in-law rides for the railroad and brings news from outside town once a month, always in the same dark suit.",
+      "needle": "railroad rider",
+      "needle_syns": [
+        "son-in-law on the railroad",
+        "the dark suit man"
+      ],
+      "plant": {
+        "turn": 125
+      }
+    },
+    {
+      "id": "wp32",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A herd of cattle crosses the badlands at night, heading slowly toward the Fitch ranch, and Callan watches them go.",
+      "needle": "cattle crossing",
+      "needle_syns": [
+        "herd at night",
+        "cattle toward the ranch"
+      ],
+      "plant": {
+        "turn": 129
+      }
+    },
+    {
+      "id": "wp33",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "When Callan is angry, his left hand shakes slightly, and he hides it by putting it in his pocket.",
+      "needle": "shaking hand",
+      "needle_syns": [
+        "his hand trembles",
+        "left hand shakes"
+      ],
+      "plant": {
+        "turn": 133
+      }
+    },
+    {
+      "id": "wp34",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The blind pianist was a preacher in another state before he lost his sight, and he still hums hymns while he plays.",
+      "needle": "ex-preacher",
+      "needle_syns": [
+        "used to preach",
+        "hums hymns"
+      ],
+      "plant": {
+        "turn": 141
+      }
+    },
+    {
+      "id": "wp35",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The wanted poster for Silas Callan arrives by stage and is nailed to the wall of the saloon, and everyone in town reads it.",
+      "needle": "poster nailed",
+      "needle_syns": [
+        "wanted poster on the wall",
+        "nailed up"
+      ],
+      "plant": {
+        "turn": 145
+      }
+    },
+    {
+      "id": "wp36",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Behind the saloon's kitchen there is a small locked room that Rosa keeps the key to on her person, and no one has seen inside it in years.",
+      "needle": "secret room",
+      "needle_syns": [
+        "locked room",
+        "room behind the kitchen"
+      ],
+      "plant": {
+        "turn": 153
+      }
+    },
+    {
+      "id": "wp37",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Callan's horse knows the route to the Fitch ranch, even though Callan has never told him where it is.",
+      "needle": "horse knows route",
+      "needle_syns": [
+        "horse heads for the ranch",
+        "knows the way"
+      ],
+      "plant": {
+        "turn": 157
+      }
+    },
+    {
+      "id": "wp38",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Jonas Fenn keeps a small leather-bound code book under the telegraph key, and he closes it when anyone enters the office.",
+      "needle": "code book",
+      "needle_syns": [
+        "leather code book",
+        "the cipher book"
+      ],
+      "plant": {
+        "turn": 161
+      }
+    },
+    {
+      "id": "wp39",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Three men from the Fitch ranch who were out checking fences have not come back, and their horses are tied up at the saloon.",
+      "needle": "three missing",
+      "needle_syns": [
+        "three men missing",
+        "men who didn't come back"
+      ],
+      "plant": {
+        "turn": 165
+      }
+    },
+    {
+      "id": "wp40",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "In Rosa's ledger, there is an entry for a payment of forty dollars from one marked only S.C., dated three weeks ago.",
+      "needle": "S.C. payment",
+      "needle_syns": [
+        "S.C. forty dollars",
+        "the S.C. entry"
+      ],
+      "plant": {
+        "turn": 169
+      }
+    },
+    {
+      "id": "wp41",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "On Callan's right forearm, half-hidden by his sleeve, is a cattle brand mark from a drive he worked twenty years ago.",
+      "needle": "arm brand",
+      "needle_syns": [
+        "brand on his arm",
+        "the cattle brand"
+      ],
+      "plant": {
+        "turn": 177
+      }
+    },
+    {
+      "id": "wp42",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "When Rosa mentions the wanted poster, Callan unconsciously touches the USM button on his coat, a habit he did not know he had.",
+      "needle": "USM button-2",
+      "needle_syns": [
+        "touches the button",
+        "the button on his coat"
+      ],
+      "plant": {
+        "turn": 3
       },
       "recall": {
-        "due": 68,
-        "hint": "the water cart is destroyed"
+        "due": 83,
+        "hint": "Callan touches the USM button reflexively when the poster is mentioned"
+      }
+    },
+    {
+      "id": "wp43",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The S.C. payment in Rosa's ledger is from Silas Callan, who rode through town three weeks ago as a stranger asking for directions to the Fitch ranch.",
+      "needle": "S.C. payment-2",
+      "needle_syns": [
+        "Silas's payment",
+        "the forty dollars"
+      ],
+      "plant": {
+        "turn": 173
+      },
+      "recall": {
+        "due": 85,
+        "hint": "Rosa realizes the S.C. payment was Silas"
+      }
+    },
+    {
+      "id": "wp44",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The stranger who asked for directions to the Fitch ranch had a limp in his right leg, the same limp Callan remembers from his boyhood.",
+      "needle": "stranger limp",
+      "needle_syns": [
+        "limp in the right leg",
+        "the stranger's walk"
+      ],
+      "plant": {
+        "turn": 180
+      }
+    },
+    {
+      "id": "wp45",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Callan recognizes the description of the stranger as his brother Silas, the man he thought was dead in New Mexico.",
+      "needle": "brother Silas",
+      "needle_syns": [
+        "Silas is alive",
+        "his brother"
+      ],
+      "plant": {
+        "turn": 184
+      }
+    },
+    {
+      "id": "wp46",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The Fitch ranch becomes the focal point of the town's fear; no one goes there anymore, and the lights are visible at night.",
+      "needle": "ranch at night",
+      "needle_syns": [
+        "lights at the ranch",
+        "Fitch ranch at night"
+      ],
+      "plant": {
+        "turn": 188
+      }
+    },
+    {
+      "id": "wp47",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Rosa finds a .45 shell casing behind the saloon bar, a caliber Silas carries that almost no one else does.",
+      "needle": "shell casing",
+      "needle_syns": [
+        ".45 casing",
+        "the casing behind the bar"
+      ],
+      "plant": {
+        "turn": 192
+      }
+    },
+    {
+      "id": "wp48",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "In Callan's cedar box of unsent letters, there is one addressed to Silas, written years ago, that he never had the courage to send.",
+      "needle": "note to Silas",
+      "needle_syns": [
+        "letter to his brother",
+        "the unsent note"
+      ],
+      "plant": {
+        "turn": 196
+      }
+    },
+    {
+      "id": "wp49",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Callan realizes that the Fitch ranch is where Silas has been hiding, running his gang operations from a place the town never thought to look.",
+      "needle": "hiding at Fitch",
+      "needle_syns": [
+        "Silas at the ranch",
+        "the hideout"
+      ],
+      "plant": {
+        "turn": 200
+      }
+    },
+    {
+      "id": "wp50",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Rosa tells Callan, for the first time, that her daughter was taken by Silas's gang two years ago, which is why she left.",
+      "needle": "daughter taken",
+      "needle_syns": [
+        "gang took her daughter",
+        "Rosa's daughter with the gang"
+      ],
+      "plant": {
+        "turn": 204
+      }
+    },
+    {
+      "id": "wp51",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "The USM button on Callan's coat is not a U.S. Marshal button at all — it is a mark of Silas's gang, a signal between members.",
+      "needle": "USM button-3",
+      "needle_syns": [
+        "gang mark",
+        "the button is a signal"
+      ],
+      "plant": {
+        "turn": 7
+      },
+      "recall": {
+        "due": 105,
+        "hint": "The USM button is revealed to be a gang signal"
+      }
+    },
+    {
+      "id": "wp52",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The stranger at the Fitch ranch asks to buy the general store's entire stock of dynamite, paying in gold.",
+      "needle": "dynamite purchase",
+      "needle_syns": [
+        "buying dynamite",
+        "gold for dynamite"
+      ],
+      "plant": {
+        "turn": 208
+      }
+    },
+    {
+      "id": "wp53",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Jonas Fenn's code book uses the same cipher that Silas's gang uses for their messages, and Jonas has been tapping out their traffic all along.",
+      "needle": "same cipher",
+      "needle_syns": [
+        "gang's cipher",
+        "Jonas uses their code"
+      ],
+      "plant": {
+        "turn": 212
+      }
+    },
+    {
+      "id": "wp54",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The telegraph line is cut, and no word can go out from Redoubt; the town is sealed in.",
+      "needle": "line cut",
+      "needle_syns": [
+        "telegraph cut",
+        "no word out"
+      ],
+      "plant": {
+        "turn": 216
+      }
+    },
+    {
+      "id": "wp55",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "When Rosa tells Callan about her daughter, his shaking hand stops; for the first time in weeks it is steady.",
+      "needle": "shaking hand-2",
+      "needle_syns": [
+        "hand stops shaking",
+        "his hand steadies"
+      ],
+      "plant": {
+        "turn": 137
+      },
+      "recall": {
+        "due": 113,
+        "hint": "Callan's shaking hand steadies when he learns about Rosa's daughter"
+      }
+    },
+    {
+      "id": "wp56",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Inside Rosa's secret locked room there is her father's old marshal badge, tarnished but clean, sitting in a box on a shelf.",
+      "needle": "father's badge",
+      "needle_syns": [
+        "marshal badge",
+        "her father's badge"
+      ],
+      "plant": {
+        "turn": 220
+      }
+    },
+    {
+      "id": "wp57",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The wanted poster is torn down from the saloon wall and burned in the woodstove, and no one protests.",
+      "needle": "poster burned",
+      "needle_syns": [
+        "wanted poster burned",
+        "torn down"
+      ],
+      "plant": {
+        "turn": 149
+      },
+      "recall": {
+        "due": 117,
+        "hint": "The wanted poster is taken down and destroyed"
+      }
+    },
+    {
+      "id": "wp58",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A boy from the north road says that at night the Fitch ranch is burning bright, like they are forging something.",
+      "needle": "burning at night",
+      "needle_syns": [
+        "ranch burns at night",
+        "forging light"
+      ],
+      "plant": {
+        "turn": 228
+      }
+    },
+    {
+      "id": "wp59",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Callan decides, at the saloon bar, that he will not leave town; he will face Silas wherever he is.",
+      "needle": "decides to face",
+      "needle_syns": [
+        "won't leave",
+        "faces his brother"
+      ],
+      "plant": {
+        "turn": 232
+      }
+    },
+    {
+      "id": "wp60",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Rosa takes her father's marshal badge from its box and pins it to her jacket, and joins Callan on the porch.",
+      "needle": "father's badge-2",
+      "needle_syns": [
+        "pins on the badge",
+        "joins Callan"
+      ],
+      "plant": {
+        "turn": 224
+      },
+      "recall": {
+        "due": 123,
+        "hint": "Rosa puts on her father's badge and stands with Callan"
+      }
+    },
+    {
+      "id": "wp61",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Silas's plan is revealed: he intends to dynamite the railroad grade south of town and reroute all traffic through Redoubt, making the town his.",
+      "needle": "dynamite plan",
+      "needle_syns": [
+        "blow up the grade",
+        "reroute the trains"
+      ],
+      "plant": {
+        "turn": 236
+      }
+    },
+    {
+      "id": "wp62",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The railroad rider confirms that there are more than ten men at the Fitch ranch, armed and dug in.",
+      "needle": "more than ten",
+      "needle_syns": [
+        "over ten men",
+        "armed at the ranch"
+      ],
+      "plant": {
+        "turn": 240
       }
     }
   ],
   "dss_beats": [
     {
       "id": "wb1",
-      "turn": 3,
-      "subject": "characters",
-      "content": "DSS should save the telegraph operator who runs the office.",
+      "turn": 4,
+      "subject": "elements",
+      "content": "DSS should have saved Rosa's shotgun called Old Faithful.",
       "expect": {
-        "name": "telegraph operator",
-        "role": "operator",
-        "detail": "key clicks twice"
+        "contains": {
+          "rosa": "Old Faithful"
+        }
       }
     },
     {
       "id": "wb2",
       "turn": 7,
-      "subject": "elements",
-      "content": "DSS should save the saloon's stuck-key piano.",
+      "subject": "events",
+      "content": "DSS should have saved that a stagecoach stop was burned on the north road.",
       "expect": {
-        "name": "piano",
-        "location": "Rosa's saloon",
-        "detail": "one stuck key"
+        "contains": {
+          "event": "burned stop"
+        }
       }
     },
     {
       "id": "wb3",
       "turn": 12,
-      "subject": "elements",
-      "content": "DSS should save Callan's black mare.",
+      "subject": "characters",
+      "content": "DSS should have saved that Callan sleeps with a knife under his pillow.",
       "expect": {
-        "name": "black mare",
-        "owner": "Callan",
-        "detail": "from the old days"
+        "contains": {
+          "callan": "knife under pillow"
+        }
       }
     },
     {
       "id": "wb4",
       "turn": 17,
-      "subject": "groups",
-      "content": "DSS should save the outlaw gang Callan once rode with.",
+      "subject": "characters",
+      "content": "DSS should have saved the description of the stranger who asked for directions to the Fitch ranch.",
       "expect": {
-        "name": "the gang",
-        "leader": "Silas",
-        "members": []
+        "contains": {
+          "stranger": "Fitch ranch"
+        }
       }
     },
     {
       "id": "wb5",
       "turn": 22,
       "subject": "elements",
-      "content": "DSS should save the town's water cart, the only water source in the badlands.",
+      "content": "DSS should have saved that Rosa's ledger has entries in two different hands.",
       "expect": {
-        "name": "water cart",
-        "location": "Redoubt",
-        "detail": "only water source"
+        "contains": {
+          "rosa": "two hands"
+        }
+      }
+    },
+    {
+      "id": "wb6",
+      "turn": 28,
+      "subject": "groups",
+      "content": "DSS should have saved the existence of Silas's gang and their burned-out trail.",
+      "expect": {
+        "contains": {
+          "gang": "Silas"
+        }
+      }
+    },
+    {
+      "id": "wb7",
+      "turn": 34,
+      "subject": "events",
+      "content": "DSS should have saved that a wanted poster for Silas Callan was issued.",
+      "expect": {
+        "contains": {
+          "event": "wanted poster"
+        }
+      }
+    },
+    {
+      "id": "wb8",
+      "turn": 40,
+      "subject": "characters",
+      "content": "DSS should have saved that Jonas Fenn tore up a telegraph message.",
+      "expect": {
+        "contains": {
+          "jonas": "torn message"
+        }
+      }
+    },
+    {
+      "id": "wb9",
+      "turn": 46,
+      "subject": "elements",
+      "content": "DSS should have saved the detail of Callan's revolver with the carved cow-bone grip.",
+      "expect": {
+        "contains": {
+          "callan": "bone grip"
+        }
+      }
+    },
+    {
+      "id": "wb10",
+      "turn": 52,
+      "subject": "characters",
+      "content": "DSS should have saved that Rosa's daughter left town two years ago.",
+      "expect": {
+        "contains": {
+          "rosa": "daughter left"
+        }
+      }
+    },
+    {
+      "id": "wb11",
+      "turn": 58,
+      "subject": "events",
+      "content": "DSS should have saved that Callan saw the gang photo in the Denver newspaper.",
+      "expect": {
+        "contains": {
+          "event": "newspaper photo"
+        }
+      }
+    },
+    {
+      "id": "wb12",
+      "turn": 64,
+      "subject": "elements",
+      "content": "DSS should have saved the Fitch ranch as a significant location.",
+      "expect": {
+        "contains": {
+          "location": "Fitch ranch"
+        }
+      }
+    },
+    {
+      "id": "wb13",
+      "turn": 70,
+      "subject": "elements",
+      "content": "DSS should have saved that Rosa has a secret locked room behind the kitchen.",
+      "expect": {
+        "contains": {
+          "rosa": "locked room"
+        }
+      }
+    },
+    {
+      "id": "wb14",
+      "turn": 76,
+      "subject": "groups",
+      "content": "DSS should have saved that Silas's gang is operating out of the Fitch ranch.",
+      "expect": {
+        "contains": {
+          "gang": "Fitch ranch"
+        }
+      }
+    },
+    {
+      "id": "wb15",
+      "turn": 82,
+      "subject": "events",
+      "content": "DSS should have saved that the wanted poster was nailed up and then burned.",
+      "expect": {
+        "contains": {
+          "event": "poster burned"
+        }
+      }
+    },
+    {
+      "id": "wb16",
+      "turn": 88,
+      "subject": "characters",
+      "content": "DSS should have saved that Silas rode through town as a stranger with a limp.",
+      "expect": {
+        "contains": {
+          "silas": "limp"
+        }
+      }
+    },
+    {
+      "id": "wb17",
+      "turn": 94,
+      "subject": "events",
+      "content": "DSS should have saved that the telegraph line was cut and the town is isolated.",
+      "expect": {
+        "contains": {
+          "event": "telegraph cut"
+        }
       }
     }
   ]

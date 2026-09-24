@@ -28,7 +28,7 @@
   "specificity_profile": "mixed",
   "notes": [
     {
-      "id": "n1",
+      "id": "n01",
       "type": "character_plant",
       "specificity": "loose",
       "content": "Sal's seed library is a wall of labeled jars in the root cellar; the 'GOLDEN DAWN' jar is empty.",
@@ -40,150 +40,153 @@
       ],
       "plant": {
         "turn": 2
+      },
+      "recall": {
+        "due": 350,
+        "hint": "what emptied the GOLDEN DAWN jar"
       }
     },
     {
-      "id": "n2",
-      "type": "character_plant",
+      "id": "n233",
+      "type": "style_hold",
       "specificity": "loose",
-      "content": "Rook's shotgun is a dead man's — she never loads the second shell.",
-      "needle": "shotgun",
-      "needle_syns": [
-        "shotgun",
-        "the gun",
-        "second shell"
-      ],
+      "content": "Keep the dry, exact register even at the worst moment.",
+      "needle": "note-1",
+      "needle_syns": [],
       "plant": {
-        "turn": 3
+        "turn": 2
+      },
+      "recall": {
+        "due": 100,
+        "hint": "dry register under stress"
       }
     },
     {
-      "id": "n3",
+      "id": "n234",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "No sentimentality; grief shows only through objects and weather.",
+      "needle": "note-2",
+      "needle_syns": [],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 120,
+        "hint": "grief through objects"
+      }
+    },
+    {
+      "id": "n235",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Maintain the two-perspective split throughout: Sal first-person, Rook third-person.",
+      "needle": "note-3",
+      "needle_syns": [],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 200,
+        "hint": "perspective split"
+      }
+    },
+    {
+      "id": "n236",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Weather and scarcity remain the dominant texture, even in the resolution.",
+      "needle": "note-4",
+      "needle_syns": [],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 400,
+        "hint": "weather texture"
+      }
+    },
+    {
+      "id": "n237",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "The tone should remain dry and exact even when revealing the experiment truth.",
+      "needle": "note-5",
+      "needle_syns": [],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 600,
+        "hint": "dry tone at revelation"
+      }
+    },
+    {
+      "id": "n238",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Avoid horror framing for the gray transformation; keep it clinical and strange.",
+      "needle": "note-6",
+      "needle_syns": [],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 800,
+        "hint": "clinical framing for gray"
+      }
+    },
+    {
+      "id": "n239",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "The ending should not resolve everything; phase two should leave questions.",
+      "needle": "note-7",
+      "needle_syns": [],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 1000,
+        "hint": "open ending with questions"
+      }
+    },
+    {
+      "id": "n240",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Sal's dialogue should remain terse and botanical throughout; he talks about plants even when discussing human matters.",
+      "needle": "note-8",
+      "needle_syns": [],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 1100,
+        "hint": "Sal talks like a botanist"
+      }
+    },
+    {
+      "id": "n02",
       "type": "character_plant",
       "specificity": "loose",
-      "content": "Rook keeps a photograph of a family on a kitchen table, taped inside her jacket — none of them are her family.",
-      "needle": "photograph",
+      "content": "Sal talks to the gray wheat as if it were a patient; he checks each morning for new growth, logging counts in a leather-bound field book.",
+      "needle": "field book",
       "needle_syns": [
-        "photograph",
-        "the photo",
-        "the family"
+        "field book",
+        "the leather book",
+        "growth logs"
       ],
       "plant": {
         "turn": 4
-      }
-    },
-    {
-      "id": "n4",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "The hand-crank radio takes forty turns of the crank to charge ten minutes of listen-time; the habit should show when the batteries matter.",
-      "needle": "hand-crank",
-      "needle_syns": [
-        "hand-crank",
-        "the radio",
-        "crank"
-      ],
-      "plant": {
-        "turn": 5
       },
       "recall": {
-        "due": 46,
-        "hint": "the crank turns when it matters"
+        "due": 420,
+        "hint": "Sal's growth logs"
       }
     },
     {
-      "id": "n5",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The flooded city's rooftops are connected by rope bridges the runner built herself.",
-      "needle": "rope bridges",
-      "needle_syns": [
-        "rope bridges",
-        "the bridges",
-        "rooftops"
-      ],
-      "plant": {
-        "turn": 6
-      }
-    },
-    {
-      "id": "n6",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "A single green shoot among the gray wheat — impossible — should recur before the reveal.",
-      "needle": "green shoot",
-      "needle_syns": [
-        "green shoot",
-        "the shoot",
-        "green"
-      ],
-      "plant": {
-        "turn": 7
-      },
-      "recall": {
-        "due": 60,
-        "hint": "the impossible green shoot"
-      }
-    },
-    {
-      "id": "n7",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Sal's wife, 'Mara', is buried on the ridge with a tin marker; her name should surface when Sal weighs staying vs leaving.",
-      "needle": "Mara",
-      "needle_syns": [
-        "Mara",
-        "the tin marker",
-        "the ridge grave"
-      ],
-      "plant": {
-        "turn": 8
-      },
-      "recall": {
-        "due": 56,
-        "hint": "Mara's tin marker"
-      }
-    },
-    {
-      "id": "n8",
-      "type": "location_turning_point",
-      "specificity": "loose",
-      "content": "The gray wheat field between the hills and the city has a strip where nothing grows — a buried culvert runs beneath it.",
-      "needle": "gray wheat",
-      "needle_syns": [
-        "gray wheat",
-        "the field",
-        "the culvert"
-      ],
-      "plant": {
-        "turn": 9
-      },
-      "recall": {
-        "due": 54,
-        "hint": "the culvert under the dead strip"
-      }
-    },
-    {
-      "id": "n9",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "A three-note whistle on the radio — the old fire-watch signal — should precede the arrival of anyone real.",
-      "needle": "three-note whistle",
-      "needle_syns": [
-        "three-note whistle",
-        "the whistle",
-        "the signal"
-      ],
-      "plant": {
-        "turn": 10
-      },
-      "recall": {
-        "due": 62,
-        "hint": "the three-note whistle announces someone real"
-      }
-    },
-    {
-      "id": "n10",
+      "id": "n03",
       "type": "character_plant",
       "specificity": "loose",
       "content": "The botanist's greenhouse still stands, its glass half-shattered; the tomatoes inside grew wild and bitter.",
@@ -194,15 +197,74 @@
         "bitter tomatoes"
       ],
       "plant": {
-        "turn": 11
+        "turn": 6
+      },
+      "recall": {
+        "due": 500,
+        "hint": "Sal's greenhouse project"
       }
     },
     {
-      "id": "n11",
+      "id": "n04",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a wooden carving of a bird on his windowsill. He carved it years ago and it's his only art.",
+      "needle": "wooden bird",
+      "needle_syns": [
+        "wooden carving",
+        "bird on windowsill"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 600,
+        "hint": "Sal's wooden bird"
+      }
+    },
+    {
+      "id": "n05",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal's wife, 'Mara', is buried on the ridge with a tin marker; her name should surface when Sal weighs staying vs leaving.",
+      "needle": "Mara",
+      "needle_syns": [
+        "Mara",
+        "the tin marker",
+        "the ridge grave"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 560,
+        "hint": "Mara's tin marker"
+      }
+    },
+    {
+      "id": "n06",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Sal has a brass compass that still works; its glass is cracked and he never lets it out of his shirt pocket.",
+      "needle": "brass compass",
+      "needle_syns": [
+        "the compass",
+        "cracked glass compass"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 650,
+        "hint": "Sal's compass points wrong"
+      }
+    },
+    {
+      "id": "n21",
       "type": "supersession",
       "specificity": "loose",
       "content": "The seed-library door rusts shut at turn 52; after that the cellar must be entered by the coal chute.",
-      "needle": "seed library",
+      "needle": "seed library-2",
       "needle_syns": [
         "seed library",
         "the cellar",
@@ -217,22 +279,26 @@
       }
     },
     {
-      "id": "n12",
+      "id": "n07",
       "type": "character_plant",
       "specificity": "loose",
-      "content": "Rook's city has a drowned clock tower whose hands froze at 11:47; she uses it as a compass point.",
-      "needle": "clock tower",
+      "content": "Rook's shotgun is a dead man's — she never loads the second shell.",
+      "needle": "shotgun",
       "needle_syns": [
-        "clock tower",
-        "the tower",
-        "11:47"
+        "shotgun",
+        "the gun",
+        "second shell"
       ],
       "plant": {
-        "turn": 13
+        "turn": 15
+      },
+      "recall": {
+        "due": 700,
+        "hint": "the second shell is spent"
       }
     },
     {
-      "id": "n13",
+      "id": "n22",
       "type": "supersession",
       "specificity": "loose",
       "content": "The second shell in the shotgun is fired at turn 60 — after that Rook carries an empty gun and must not pretend otherwise.",
@@ -251,146 +317,4555 @@
       }
     },
     {
-      "id": "n14",
-      "type": "character_echo",
+      "id": "n08",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "The seed library's 'GOLDEN DAWN' jar — empty for years — was emptied by Rook's father, who ate the seed and died; Rook should not learn this until the end.",
-      "needle": "GOLDEN DAWN",
+      "content": "Rook has a habit of humming the jingle from an old commercial for a cereal that no longer exists.",
+      "needle": "cereal jingle",
       "needle_syns": [
-        "GOLDEN DAWN",
-        "the jar",
-        "the empty jar"
+        "humming a jingle",
+        "old commercial"
       ],
       "plant": {
         "turn": 18
       },
       "recall": {
-        "due": 66,
-        "hint": "what emptied the GOLDEN DAWN jar"
+        "due": 700,
+        "hint": "Rook hums the jingle"
       }
     },
     {
-      "id": "n15",
-      "type": "plot_twist",
+      "id": "n09",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "The 'clear band' on the airwaves is a lure — a repeater left by the people who poisoned the valleys, still calling.",
-      "needle": "clear band",
+      "content": "Rook keeps a photograph of a family on a kitchen table, taped inside her jacket — none of them are her family.",
+      "needle": "photograph",
       "needle_syns": [
-        "clear band",
-        "the band",
-        "the repeater"
+        "photograph",
+        "the photo",
+        "the family"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 800,
+        "hint": "the photo's real story"
+      }
+    },
+    {
+      "id": "n10",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The hand-crank radio takes forty turns of the crank to charge ten minutes of listen-time.",
+      "needle": "hand-crank",
+      "needle_syns": [
+        "hand-crank",
+        "the radio",
+        "crank"
+      ],
+      "plant": {
+        "turn": 22
+      },
+      "recall": {
+        "due": 460,
+        "hint": "the crank turns when it matters"
+      }
+    },
+    {
+      "id": "n11",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The flooded city's rooftops are connected by rope bridges Rook built herself.",
+      "needle": "rope bridges",
+      "needle_syns": [
+        "rope bridges",
+        "the bridges",
+        "rooftops"
+      ],
+      "plant": {
+        "turn": 24
+      },
+      "recall": {
+        "due": 380,
+        "hint": "a bridge sags and Rook must reroute"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook's city has a drowned clock tower whose hands froze at 11:47; she uses it as a compass point.",
+      "needle": "clock tower",
+      "needle_syns": [
+        "clock tower",
+        "the tower",
+        "11:47"
       ],
       "plant": {
         "turn": 26
       },
       "recall": {
-        "due": 58,
-        "hint": "the clear band is a lure"
+        "due": 440,
+        "hint": "clock tower as bearing"
       }
     },
     {
-      "id": "n16",
-      "type": "plot_twist",
+      "id": "n13",
+      "type": "foreshadow",
       "specificity": "loose",
-      "content": "The repeater's coordinates point to the botanist's own ridge — Sal has been the lure all along, unknowingly.",
-      "needle": "coordinates",
+      "content": "A single green shoot among the gray wheat — impossible — should recur before the reveal.",
+      "needle": "green shoot",
       "needle_syns": [
-        "coordinates",
-        "the ridge",
-        "the repeater"
+        "green shoot",
+        "the shoot",
+        "green"
       ],
       "plant": {
         "turn": 28
       },
       "recall": {
-        "due": 64,
-        "hint": "the coordinates lead home"
+        "due": 750,
+        "hint": "the impossible green shoot returns"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The gray wheat field between the hills and the city has a strip where nothing grows — a buried culvert runs beneath it.",
+      "needle": "gray wheat",
+      "needle_syns": [
+        "gray wheat",
+        "the field",
+        "the culvert"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 540,
+        "hint": "the culvert under the dead strip"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The salvager's bell that rings at the story's start belongs to a salvage crew that never returned. It's still ringing, from somewhere below the water.",
+      "needle": "salvager's bell",
+      "needle_syns": [
+        "still ringing",
+        "below the water"
+      ],
+      "plant": {
+        "turn": 32
+      },
+      "recall": {
+        "due": 700,
+        "hint": "the bell keeps ringing"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A three-note whistle on the radio — the old fire-watch signal — should precede the arrival of anyone real.",
+      "needle": "three-note whistle",
+      "needle_syns": [
+        "three-note whistle",
+        "the whistle",
+        "the signal"
+      ],
+      "plant": {
+        "turn": 34
+      },
+      "recall": {
+        "due": 620,
+        "hint": "the three-note whistle announces someone real"
       }
     },
     {
       "id": "n17",
-      "type": "style_hold",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "Keep the dry, exact register even at the worst moment.",
-      "needle": "",
-      "needle_syns": [],
+      "content": "Sal's shack has a wind-up clock that stopped at 3:15, the exact time the gray rain began; he winds it every morning but it never runs again.",
+      "needle": "wind-up clock",
+      "needle_syns": [
+        "the clock",
+        "3:15",
+        "stopped clock"
+      ],
       "plant": {
-        "turn": 0
+        "turn": 36
       },
       "recall": {
-        "due": 70,
-        "hint": "dry register under stress"
+        "due": 880,
+        "hint": "the clock's significance"
       }
     },
     {
       "id": "n18",
-      "type": "style_hold",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "No sentimentality; grief shows only through objects and weather.",
-      "needle": "",
-      "needle_syns": [],
+      "content": "Sal keeps a tin of buttons sorted by size. He doesn't know why. He's collected them for years.",
+      "needle": "tin of buttons",
+      "needle_syns": [
+        "sorted by size",
+        "collected for years"
+      ],
       "plant": {
-        "turn": 0
+        "turn": 38
       },
       "recall": {
-        "due": 74,
-        "hint": "grief through objects"
+        "due": 750,
+        "hint": "Sal's button collection"
+      }
+    },
+    {
+      "id": "n19",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook has a small first-aid kit with supplies she's rationed out for years. It's almost empty.",
+      "needle": "first-aid kit",
+      "needle_syns": [
+        "rationed out",
+        "almost empty"
+      ],
+      "plant": {
+        "turn": 40
+      },
+      "recall": {
+        "due": 500,
+        "hint": "Rook's first-aid kit"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook has a habit of counting steps when she's nervous — always by threes, always stopping at twenty-one.",
+      "needle": "counting steps",
+      "needle_syns": [
+        "counting",
+        "threes",
+        "twenty-one steps"
+      ],
+      "plant": {
+        "turn": 42
+      },
+      "recall": {
+        "due": 720,
+        "hint": "Rook counts steps"
+      }
+    },
+    {
+      "id": "n23",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal's shack has a radio mast made from a section of streetlight pole; it's his best antenna and he polished it before the rain fell.",
+      "needle": "radio mast",
+      "needle_syns": [
+        "streetlight pole",
+        "polished mast"
+      ],
+      "plant": {
+        "turn": 50
+      },
+      "recall": {
+        "due": 300,
+        "hint": "Sal's radio mast"
+      }
+    },
+    {
+      "id": "n24",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The radio static sometimes sounds like words in a language no one recognizes. Sal has written fragments down.",
+      "needle": "static words",
+      "needle_syns": [
+        "words in static",
+        "unknown language"
+      ],
+      "plant": {
+        "turn": 55
+      },
+      "recall": {
+        "due": 1200,
+        "hint": "the voice in the static"
+      }
+    },
+    {
+      "id": "n25",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "On the radio, between the static, there's a band of clear frequency that Sal calls 'the window.' No one else has heard it.",
+      "needle": "clear band",
+      "needle_syns": [
+        "clear band",
+        "the window",
+        "the frequency"
+      ],
+      "plant": {
+        "turn": 55
+      },
+      "recall": {
+        "due": 300,
+        "hint": "the clear band is real"
+      }
+    },
+    {
+      "id": "n75",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The gray wheat sometimes rustles even when there's no wind. Sal has noticed but says nothing about it.",
+      "needle": "wheat rustles",
+      "needle_syns": [
+        "rustles without wind"
+      ],
+      "plant": {
+        "turn": 55
+      },
+      "recall": {
+        "due": 800,
+        "hint": "the wheat moves on its own"
+      }
+    },
+    {
+      "id": "n28",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook has a leather belt with six brass buckles, each from a different building she's scavenged. She earned them, one at a time.",
+      "needle": "six brass buckles",
+      "needle_syns": [
+        "leather belt",
+        "six buckles"
+      ],
+      "plant": {
+        "turn": 65
+      },
+      "recall": {
+        "due": 500,
+        "hint": "Rook's belt buckles"
+      }
+    },
+    {
+      "id": "n27",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook mentions a sister, 'June,' who was supposed to meet her at the antenna farm six years ago and never did. She doesn't elaborate.",
+      "needle": "June",
+      "needle_syns": [
+        "June",
+        "the sister",
+        "antenna farm"
+      ],
+      "plant": {
+        "turn": 70
+      },
+      "recall": {
+        "due": 900,
+        "hint": "what happened to June"
+      }
+    },
+    {
+      "id": "n26",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a cat. Or he did. He still sets out a bowl of milk every morning and talks to the empty bowl as if it's being drunk.",
+      "needle": "the cat",
+      "needle_syns": [
+        "sets out milk",
+        "talks to the bowl"
+      ],
+      "plant": {
+        "turn": 75
+      },
+      "recall": {
+        "due": 600,
+        "hint": "Sal's cat"
+      }
+    },
+    {
+      "id": "n30",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a rule about the radio: he never transmits after dark. Something about the night frequencies makes him nervous.",
+      "needle": "no night radio",
+      "needle_syns": [
+        "never transmits after dark"
+      ],
+      "plant": {
+        "turn": 80
+      },
+      "recall": {
+        "due": 600,
+        "hint": "Sal breaks his radio rule"
+      }
+    },
+    {
+      "id": "n29",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The gray wheat field has a pattern to the dead strip — it's not random, it's a geometric shape, but from the ridge Sal can't make it out.",
+      "needle": "dead strip pattern",
+      "needle_syns": [
+        "dead strip",
+        "the pattern",
+        "the shape"
+      ],
+      "plant": {
+        "turn": 85
+      },
+      "recall": {
+        "due": 600,
+        "hint": "the pattern in the field"
+      }
+    },
+    {
+      "id": "n31",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's counting habit intensifies under pressure. She counts the steps between the rope bridges, always by threes.",
+      "needle": "counts bridge steps",
+      "needle_syns": [
+        "counts steps",
+        "by threes"
+      ],
+      "plant": {
+        "turn": 90
+      },
+      "recall": {
+        "due": 550,
+        "hint": "Rook's counting under pressure"
+      }
+    },
+    {
+      "id": "n32",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a habit of naming his plants. The bitter tomatoes in the greenhouse are called 'the children.'",
+      "needle": "naming plants",
+      "needle_syns": [
+        "bitter tomatoes are children"
+      ],
+      "plant": {
+        "turn": 95
+      },
+      "recall": {
+        "due": 800,
+        "hint": "Sal talks to the greenhouse children"
+      }
+    },
+    {
+      "id": "n33",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "When Rook tunes the hand-crank to the clear band, the static clears — and she hears something that sounds like rain. Normal, clean rain, not the gray.",
+      "needle": "sound of rain",
+      "needle_syns": [
+        "rain on the radio",
+        "clean rain",
+        "the sound"
+      ],
+      "plant": {
+        "turn": 100
+      },
+      "recall": {
+        "due": 400,
+        "hint": "the sound of clean rain"
+      }
+    },
+    {
+      "id": "n34",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's photograph is now so faded that only the blue door is still visible. The faces are gone.",
+      "needle": "only the door remains",
+      "needle_syns": [
+        "faces are gone",
+        "door still visible"
+      ],
+      "plant": {
+        "turn": 100
+      },
+      "recall": {
+        "due": 950,
+        "hint": "the photo fades completely"
+      }
+    },
+    {
+      "id": "n78",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "In the static, Rook hears what sounds like a child humming. It's faint, but it's there, between the crackles of the dead channels.",
+      "needle": "child humming",
+      "needle_syns": [
+        "child humming",
+        "faint humming"
+      ],
+      "plant": {
+        "turn": 105
+      },
+      "recall": {
+        "due": 625,
+        "hint": "the humming is the child's drawing"
+      }
+    },
+    {
+      "id": "n35",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal reveals he was at a research station when the rain started — he doesn't say where, but he has a key marked 'B-7' that fits no lock he's tried.",
+      "needle": "B-7 key",
+      "needle_syns": [
+        "B-7 key",
+        "the key",
+        "research station"
+      ],
+      "plant": {
+        "turn": 110
+      },
+      "recall": {
+        "due": 850,
+        "hint": "what B-7 unlocks"
+      }
+    },
+    {
+      "id": "n51",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The rope bridges are getting more dangerous. One of them is fraying badly and Rook is considering abandoning it.",
+      "needle": "faying bridge",
+      "needle_syns": [
+        "fraying badly",
+        "considering abandoning"
+      ],
+      "plant": {
+        "turn": 110
+      },
+      "recall": {
+        "due": 590,
+        "hint": "the bridge fails"
+      }
+    },
+    {
+      "id": "n76",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal's field book has a section in the back where he's drawn maps of every rooftop in the city from his ridge view. He's been mapping Rook's world without knowing it.",
+      "needle": "rooftop maps",
+      "needle_syns": [
+        "maps in the field book",
+        "mapping Rook's world"
+      ],
+      "plant": {
+        "turn": 115
+      },
+      "recall": {
+        "due": 450,
+        "hint": "Sal's rooftop maps"
+      }
+    },
+    {
+      "id": "n36",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a jar of what he calls 'tomorrow seeds.' He's saving them for a better season that he knows will come.",
+      "needle": "tomorrow seeds",
+      "needle_syns": [
+        "saving for better season"
+      ],
+      "plant": {
+        "turn": 120
+      },
+      "recall": {
+        "due": 1110,
+        "hint": "the tomorrow seeds sprout"
+      }
+    },
+    {
+      "id": "n77",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The wind-up clock in Sal's shack ticks once, just once, at 3:15 every night. He never winds it past that. It's become a ritual.",
+      "needle": "clock ticks at 3:15",
+      "needle_syns": [
+        "ticks once",
+        "3:15 every night"
+      ],
+      "plant": {
+        "turn": 125
+      },
+      "recall": {
+        "due": 880,
+        "hint": "the clock's ritual"
+      }
+    },
+    {
+      "id": "n37",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The three-note whistle comes on the radio, but it's not from the clear band — it's from below, from inside the flooded city.",
+      "needle": "whistle from below",
+      "needle_syns": [
+        "whistle from below",
+        "the city signal"
+      ],
+      "plant": {
+        "turn": 130
+      },
+      "recall": {
+        "due": 350,
+        "hint": "the signal is in the city"
+      }
+    },
+    {
+      "id": "n38",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook counts her steps again, but this time she counts to forty-two instead of twenty-one. She doesn't know why.",
+      "needle": "counts to forty-two",
+      "needle_syns": [
+        "instead of twenty-one"
+      ],
+      "plant": {
+        "turn": 130
+      },
+      "recall": {
+        "due": 550,
+        "hint": "Rook's counting changes"
+      }
+    },
+    {
+      "id": "n74",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook finds a note in the pocket of a dead man's coat at the pharmacy: 'Go to the blue door. They're waiting.' She doesn't know what it means yet.",
+      "needle": "dead man's note",
+      "needle_syns": [
+        "blue door note",
+        "they're waiting"
+      ],
+      "plant": {
+        "turn": 140
+      },
+      "recall": {
+        "due": 890,
+        "hint": "the note in the dead man's coat"
+      }
+    },
+    {
+      "id": "n39",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook has a scar on her left forearm from a fall off the water tower; she calls it 'the place I learned about gravity.'",
+      "needle": "forearm scar",
+      "needle_syns": [
+        "forearm scar",
+        "gravity scar",
+        "the fall"
+      ],
+      "plant": {
+        "turn": 145
+      },
+      "recall": {
+        "due": 500,
+        "hint": "the gravity scar"
+      }
+    },
+    {
+      "id": "n40",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The salvager's bell rings again, this time clearly from the west. Rook has never gone west of the city.",
+      "needle": "bell from the west",
+      "needle_syns": [
+        "rings from the west",
+        "never gone west"
+      ],
+      "plant": {
+        "turn": 145
+      },
+      "recall": {
+        "due": 700,
+        "hint": "the bell calls her west"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a drawer full of radio tubes, most of them broken. He's been trying to repair the radio for years.",
+      "needle": "drawer of tubes",
+      "needle_syns": [
+        "radio tubes",
+        "trying to repair"
+      ],
+      "plant": {
+        "turn": 150
+      },
+      "recall": {
+        "due": 460,
+        "hint": "Sal fixes the radio"
+      }
+    },
+    {
+      "id": "n47",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a tin of tobacco that's been empty for five years. He still rolls empty rolls when he's thinking.",
+      "needle": "empty tobacco tin",
+      "needle_syns": [
+        "empty tobacco tin",
+        "rolls empty rolls"
+      ],
+      "plant": {
+        "turn": 155
+      },
+      "recall": {
+        "due": 700,
+        "hint": "Sal rolls empty cigarettes"
+      }
+    },
+    {
+      "id": "n42",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal keeps a half-finished letter addressed to someone named 'Dr. Ellery' — it's been in the drawer for years, unsent.",
+      "needle": "half-finished letter",
+      "needle_syns": [
+        "the letter",
+        "Dr. Ellery"
+      ],
+      "plant": {
+        "turn": 160
+      },
+      "recall": {
+        "due": 950,
+        "hint": "the letter to Dr. Ellery"
+      }
+    },
+    {
+      "id": "n43",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The hand-crank radio makes a different sound now. A deeper hum. As if it's picking up something stronger.",
+      "needle": "radio hums deeper",
+      "needle_syns": [
+        "deeper hum",
+        "picking up something"
+      ],
+      "plant": {
+        "turn": 160
+      },
+      "recall": {
+        "due": 300,
+        "hint": "the signal is getting stronger"
+      }
+    },
+    {
+      "id": "n45",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "In the gray wheat, Rook finds a plastic toy. A small red car, half-buried in the dead soil. It's not gray.",
+      "needle": "red plastic car",
+      "needle_syns": [
+        "plastic toy",
+        "not gray"
+      ],
+      "plant": {
+        "turn": 170
+      },
+      "recall": {
+        "due": 625,
+        "hint": "the toy belongs to the child"
+      }
+    },
+    {
+      "id": "n46",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's photograph is starting to fade. The colors are washing out. She keeps it inside her jacket to protect it, but it's dying anyway.",
+      "needle": "photo is fading",
+      "needle_syns": [
+        "colors washing out",
+        "dying"
+      ],
+      "plant": {
+        "turn": 170
+      },
+      "recall": {
+        "due": 950,
+        "hint": "the photo fades as the gray spreads"
+      }
+    },
+    {
+      "id": "n44",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's photograph shows a family in front of a house with a specific blue door; she's looking for that door in the flooded streets.",
+      "needle": "blue door",
+      "needle_syns": [
+        "blue door",
+        "the house",
+        "the door"
+      ],
+      "plant": {
+        "turn": 175
+      },
+      "recall": {
+        "due": 700,
+        "hint": "the blue door"
+      }
+    },
+    {
+      "id": "n53",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The rope bridges sag more than they used to. The water is rising, slowly, year by year. Rook knows it's going to take everything eventually.",
+      "needle": "bridges sagging",
+      "needle_syns": [
+        "water rising",
+        "year by year"
+      ],
+      "plant": {
+        "turn": 185
+      },
+      "recall": {
+        "due": 590,
+        "hint": "the water is taking more"
+      }
+    },
+    {
+      "id": "n48",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a tin of matches, one for each year he's been alive. He's burned six already.",
+      "needle": "tin of matches",
+      "needle_syns": [
+        "tin of matches",
+        "one per year"
+      ],
+      "plant": {
+        "turn": 190
+      },
+      "recall": {
+        "due": 900,
+        "hint": "Sal burns a match"
+      }
+    },
+    {
+      "id": "n49",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The tin of matches has seven left now. Sal burns one when he's trying to make a decision.",
+      "needle": "burns a match to decide",
+      "needle_syns": [
+        "seven left"
+      ],
+      "plant": {
+        "turn": 190
+      },
+      "recall": {
+        "due": 1100,
+        "hint": "Sal burns matches to decide"
+      }
+    },
+    {
+      "id": "n54",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a photograph of Mara in his shirt pocket. It's the same photograph Rook carries, but in Sal's copy Mara is alive, standing in a garden full of green things.",
+      "needle": "Sal's photo of Mara",
+      "needle_syns": [
+        "Mara in the garden",
+        "green things"
+      ],
+      "plant": {
+        "turn": 195
+      },
+      "recall": {
+        "due": 900,
+        "hint": "the two photographs are the same"
+      }
+    },
+    {
+      "id": "n50",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "At turn 200 the rope bridge to the pharmacy building snaps; that route is gone and Rook must use the longer path through the library.",
+      "needle": "pharmacy bridge",
+      "needle_syns": [
+        "pharmacy bridge",
+        "library path"
+      ],
+      "plant": {
+        "turn": 200
+      },
+      "recall": {
+        "due": 205,
+        "hint": "the pharmacy bridge is gone"
+      }
+    },
+    {
+      "id": "n73",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The dead strip in the wheat field is getting wider. The nothing grows strip is expanding, slowly.",
+      "needle": "dead strip widening",
+      "needle_syns": [
+        "getting wider",
+        "expanding"
+      ],
+      "plant": {
+        "turn": 200
+      },
+      "recall": {
+        "due": 600,
+        "hint": "the dead strip reaches them"
+      }
+    },
+    {
+      "id": "n55",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's shotgun is getting heavier. Or she's getting weaker. She can't tell which. She carries it anyway.",
+      "needle": "shotgun getting heavier",
+      "needle_syns": [
+        "getting heavier",
+        "getting weaker"
+      ],
+      "plant": {
+        "turn": 210
+      },
+      "recall": {
+        "due": 700,
+        "hint": "Rook's strength fades"
+      }
+    },
+    {
+      "id": "n56",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook has a collection of bottle caps, sorted by color. She keeps them in a pill bottle in her pack.",
+      "needle": "bottle cap collection",
+      "needle_syns": [
+        "sorted by color",
+        "pill bottle"
+      ],
+      "plant": {
+        "turn": 210
+      },
+      "recall": {
+        "due": 750,
+        "hint": "Rook's bottle caps"
+      }
+    },
+    {
+      "id": "n52",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The rope bridge to the pharmacy creaks more than ever. Rook crosses it carefully, one foot at a time.",
+      "needle": "bridge creaks",
+      "needle_syns": [
+        "crosses carefully"
+      ],
+      "plant": {
+        "turn": 220
+      },
+      "recall": {
+        "due": 590,
+        "hint": "the bridge is failing"
+      }
+    },
+    {
+      "id": "n57",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The three-note whistle comes again, but this time it's not from the radio. It's from the gray wheat field. From the dead strip.",
+      "needle": "whistle from the field",
+      "needle_syns": [
+        "whistle from the field",
+        "dead strip"
+      ],
+      "plant": {
+        "turn": 225
+      },
+      "recall": {
+        "due": 620,
+        "hint": "the whistle from the dead strip"
+      }
+    },
+    {
+      "id": "n58",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Rook transmits into the clear band. Something answers — but not with words. With the sound of a door unlocking.",
+      "needle": "door unlocking",
+      "needle_syns": [
+        "door sound",
+        "unlocking"
+      ],
+      "plant": {
+        "turn": 230
+      },
+      "recall": {
+        "due": 450,
+        "hint": "the door unlocking on the radio"
+      }
+    },
+    {
+      "id": "n59",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The three-note whistle sounds at night now. Rook wakes up at the sound, her hand on her shotgun.",
+      "needle": "whistle at night",
+      "needle_syns": [
+        "sounds at night",
+        "hand on shotgun"
+      ],
+      "plant": {
+        "turn": 235
+      },
+      "recall": {
+        "due": 620,
+        "hint": "the whistle is closer at night"
+      }
+    },
+    {
+      "id": "n60",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a wooden spoon that belonged to Mara. He uses it to stir his coffee every morning.",
+      "needle": "Mara's spoon",
+      "needle_syns": [
+        "wooden spoon",
+        "stirs coffee"
+      ],
+      "plant": {
+        "turn": 240
+      },
+      "recall": {
+        "due": 900,
+        "hint": "Sal uses Mara's spoon"
+      }
+    },
+    {
+      "id": "n61",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The sound on the radio matches the specific click of Sal's B-7 key turning in a lock — Rook's dead man's shotgun has a cylinder lock with that exact sound.",
+      "needle": "lock click",
+      "needle_syns": [
+        "lock click",
+        "the click",
+        "cylinder lock"
+      ],
+      "plant": {
+        "turn": 240
+      },
+      "recall": {
+        "due": 860,
+        "hint": "the click matches"
+      }
+    },
+    {
+      "id": "n62",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal keeps a jar of gray wheat seeds in the library. He's been trying to germinate them for years. Nothing has sprouted.",
+      "needle": "gray wheat jar",
+      "needle_syns": [
+        "gray wheat seeds",
+        "trying to germinate"
+      ],
+      "plant": {
+        "turn": 245
+      },
+      "recall": {
+        "due": 1110,
+        "hint": "the gray wheat seeds sprout"
+      }
+    },
+    {
+      "id": "n63",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The photograph in Rook's jacket is now almost completely faded. Only a faint outline of the blue door remains.",
+      "needle": "photo almost gone",
+      "needle_syns": [
+        "faint outline"
+      ],
+      "plant": {
+        "turn": 250
+      },
+      "recall": {
+        "due": 950,
+        "hint": "the photo disappears"
+      }
+    },
+    {
+      "id": "n64",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's hand-crank radio battery is dying. The crank turns less and less each day. She knows she has maybe a hundred more listens left.",
+      "needle": "radio battery dying",
+      "needle_syns": [
+        "crank turns less",
+        "hundred listens left"
+      ],
+      "plant": {
+        "turn": 260
+      },
+      "recall": {
+        "due": 460,
+        "hint": "the radio dies"
+      }
+    },
+    {
+      "id": "n65",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The mechanical coordinates in the static are the same as the ones on the dead man's note. They're for the geology building.",
+      "needle": "coordinates match",
+      "needle_syns": [
+        "same as the note"
+      ],
+      "plant": {
+        "turn": 260
+      },
+      "recall": {
+        "due": 520,
+        "hint": "the coordinates are for the geology building"
+      }
+    },
+    {
+      "id": "n67",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a rule about the greenhouse: he never enters it alone. He talks to it from outside first.",
+      "needle": "never enters alone",
+      "needle_syns": [
+        "talks to it first"
+      ],
+      "plant": {
+        "turn": 270
+      },
+      "recall": {
+        "due": 500,
+        "hint": "Sal enters the greenhouse alone"
+      }
+    },
+    {
+      "id": "n66",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "In the static, Rook hears coordinates. Not the clear band — just numbers, repeating, in a mechanical voice. She writes them down but doesn't know what they mean.",
+      "needle": "mechanical coordinates",
+      "needle_syns": [
+        "coordinates in static",
+        "mechanical voice"
+      ],
+      "plant": {
+        "turn": 275
+      },
+      "recall": {
+        "due": 520,
+        "hint": "the coordinates are for the geology building"
+      }
+    },
+    {
+      "id": "n68",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's belt is starting to slip. She's lost weight. The buckles used to be tight; now they're loose.",
+      "needle": "belt slipping",
+      "needle_syns": [
+        "lost weight",
+        "buckles loose"
+      ],
+      "plant": {
+        "turn": 280
+      },
+      "recall": {
+        "due": 935,
+        "hint": "Rook's weight loss"
+      }
+    },
+    {
+      "id": "n69",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's belt buckles are getting loose. She's losing more weight. She can't remember the last time she ate a full meal.",
+      "needle": "buckles loose",
+      "needle_syns": [
+        "losing weight"
+      ],
+      "plant": {
+        "turn": 280
+      },
+      "recall": {
+        "due": 935,
+        "hint": "Rook is starving"
+      }
+    },
+    {
+      "id": "n70",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The gray wheat is changing color again. This time it's turning black in places, the same black as the geology building spot on the map.",
+      "needle": "wheat turning black",
+      "needle_syns": [
+        "black in places"
+      ],
+      "plant": {
+        "turn": 290
+      },
+      "recall": {
+        "due": 700,
+        "hint": "the black spread"
+      }
+    },
+    {
+      "id": "n71",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal has a rule: he never steps off the ridge trail. He's walked the same path for eight years and his boots have worn a channel in the dirt.",
+      "needle": "ridge trail rule",
+      "needle_syns": [
+        "never steps off",
+        "worn a channel"
+      ],
+      "plant": {
+        "turn": 290
+      },
+      "recall": {
+        "due": 310,
+        "hint": "Sal breaks his rule"
+      }
+    },
+    {
+      "id": "n79",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Sal decides to leave the hilltop shack. He packs the seed library jars, his field book, the brass compass, and the B-7 key — and walks down toward the city for the first time in eight years.",
+      "needle": "Sal leaves the shack",
+      "needle_syns": [
+        "Sal leaves",
+        "the walk down",
+        "first time in eight years"
+      ],
+      "plant": {
+        "turn": 310
+      },
+      "recall": {
+        "due": 600,
+        "hint": "Sal comes down the mountain"
+      }
+    },
+    {
+      "id": "n80",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "As Sal walks down the mountain, he steps off his ridge trail for the first time. The ground is soft under his boots, not the packed dirt he knows.",
+      "needle": "Sal steps off the trail",
+      "needle_syns": [
+        "steps off the trail",
+        "soft ground"
+      ],
+      "plant": {
+        "turn": 315
+      }
+    },
+    {
+      "id": "n81",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "As Sal walks down, he passes the grave with the tin marker. He doesn't stop. This time he's leaving.",
+      "needle": "passes the grave",
+      "needle_syns": [
+        "doesn't stop",
+        "leaving"
+      ],
+      "plant": {
+        "turn": 320
+      }
+    },
+    {
+      "id": "n82",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "In the wheat field, as Sal walks, he finds a footprint that is not his. It's deep, as if the person was carrying something heavy.",
+      "needle": "heavy footprint",
+      "needle_syns": [
+        "deep footprint",
+        "carrying something heavy"
+      ],
+      "plant": {
+        "turn": 325
+      },
+      "recall": {
+        "due": 480,
+        "hint": "someone was in the field"
+      }
+    },
+    {
+      "id": "n84",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "As Sal descends, he sees the pattern in the gray wheat field from the side — it's a map. A map of the city below, drawn in dead wheat.",
+      "needle": "wheat field map",
+      "needle_syns": [
+        "wheat map",
+        "the pattern is a map"
+      ],
+      "plant": {
+        "turn": 330
+      },
+      "recall": {
+        "due": 550,
+        "hint": "the wheat field is a map"
+      }
+    },
+    {
+      "id": "n83",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The footprint in the wheat is human but too large. And it's walking away from the city, not toward it.",
+      "needle": "footprint too large",
+      "needle_syns": [
+        "human but too large"
+      ],
+      "plant": {
+        "turn": 335
+      },
+      "recall": {
+        "due": 750,
+        "hint": "the giant in the field"
+      }
+    },
+    {
+      "id": "n85",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "On the map in the wheat, one location is marked with a different kind of death — the wheat there is not gray but black. Sal recognizes it: that's where the old university geology building stood.",
+      "needle": "black wheat spot",
+      "needle_syns": [
+        "black wheat",
+        "geology building",
+        "the spot"
+      ],
+      "plant": {
+        "turn": 340
+      },
+      "recall": {
+        "due": 700,
+        "hint": "the black wheat marks the geology building"
+      }
+    },
+    {
+      "id": "n88",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal's boots are worn through. His feet are bleeding and he doesn't notice because he's looking at the map in the wheat.",
+      "needle": "boots worn through",
+      "needle_syns": [
+        "feet are bleeding"
+      ],
+      "plant": {
+        "turn": 345
+      }
+    },
+    {
+      "id": "n87",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal's feet are bleeding but he keeps walking. The map in the wheat is calling him.",
+      "needle": "keeps walking",
+      "needle_syns": [
+        "map is calling"
+      ],
+      "plant": {
+        "turn": 350
+      }
+    },
+    {
+      "id": "n86",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "Sal's brass compass, as he walks through the black wheat spot, begins to spin. The needle loses north.",
+      "needle": "compass spins",
+      "needle_syns": [
+        "compass spins",
+        "loses north"
+      ],
+      "plant": {
+        "turn": 370
+      },
+      "recall": {
+        "due": 400,
+        "hint": "the compass goes wild"
+      }
+    },
+    {
+      "id": "n72",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook, preparing to walk out of the city, leaves a note on her rooftop. 'GONE. BACK WHEN I'M BACK.' She's not sure if she will be back.",
+      "needle": "Rook's note",
+      "needle_syns": [
+        "GONE BACK WHEN I'M BACK"
+      ],
+      "plant": {
+        "turn": 375
+      },
+      "recall": {
+        "due": 890,
+        "hint": "the note on the rooftop"
+      }
+    },
+    {
+      "id": "n89",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook, preparing to leave the city toward the hills, discovers she's out of water. Her last container has been gone for three days and she didn't notice.",
+      "needle": "water shortage",
+      "needle_syns": [
+        "out of water",
+        "three days"
+      ],
+      "plant": {
+        "turn": 380
+      },
+      "recall": {
+        "due": 450,
+        "hint": "Rook realizes she's out of water"
+      }
+    },
+    {
+      "id": "n91",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook, at the gas station, finds a stash of canned food. She doesn't eat it; she saves it for the journey.",
+      "needle": "canned food stash",
+      "needle_syns": [
+        "saves for journey"
+      ],
+      "plant": {
+        "turn": 390
+      },
+      "recall": {
+        "due": 550,
+        "hint": "Rook eats the canned food"
+      }
+    },
+    {
+      "id": "n90",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "Between the city and the hills, there's a gas station with its pumps still standing. The forecourt is dry — the only dry place Rook has found in the city in two years.",
+      "needle": "dry gas station",
+      "needle_syns": [
+        "gas station",
+        "dry forecourt"
+      ],
+      "plant": {
+        "turn": 395
+      },
+      "recall": {
+        "due": 600,
+        "hint": "the dry gas station"
+      }
+    },
+    {
+      "id": "n92",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "At the dry gas station, Rook finds a can of peaches. The can is full and unopened. She opens it with her pocketknife and the peaches are still good, still sweet.",
+      "needle": "can of peaches",
+      "needle_syns": [
+        "full can",
+        "still sweet"
+      ],
+      "plant": {
+        "turn": 400
+      }
+    },
+    {
+      "id": "n94",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal sees the can of peaches and stops. He hasn't eaten fruit in eight years. He doesn't know what to do with it.",
+      "needle": "Sal and the peaches",
+      "needle_syns": [
+        "hasn't eaten fruit",
+        "doesn't know what to do"
+      ],
+      "plant": {
+        "turn": 405
+      }
+    },
+    {
+      "id": "n93",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Under the gas station pumps, in the gravel, something is growing. Not gray wheat. Something with broad green leaves that Rook has never seen.",
+      "needle": "broad green leaves",
+      "needle_syns": [
+        "broad leaves",
+        "green growth",
+        "under the pumps"
+      ],
+      "plant": {
+        "turn": 410
+      },
+      "recall": {
+        "due": 750,
+        "hint": "what's growing under the gas station"
+      }
+    },
+    {
+      "id": "n95",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The gas station has a calendar on the wall. It's stopped at the day the rain started. The owner never turned the page.",
+      "needle": "stopped calendar",
+      "needle_syns": [
+        "stopped at the rain day"
+      ],
+      "plant": {
+        "turn": 415
+      },
+      "recall": {
+        "due": 1175,
+        "hint": "the clock is right now"
+      }
+    },
+    {
+      "id": "n97",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The broad green leaves are growing faster. Rook measures them and they've grown an inch in an hour.",
+      "needle": "growing an inch an hour",
+      "needle_syns": [
+        "measures them"
+      ],
+      "plant": {
+        "turn": 420
+      },
+      "recall": {
+        "due": 750,
+        "hint": "what's feeding the growth"
+      }
+    },
+    {
+      "id": "n96",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Under the gas station pumps, the broad green leaves are growing fast. Rook comes back an hour later and they've spread. Something is feeding them.",
+      "needle": "leaves growing fast",
+      "needle_syns": [
+        "growing fast",
+        "something is feeding them"
+      ],
+      "plant": {
+        "turn": 425
+      },
+      "recall": {
+        "due": 750,
+        "hint": "what's feeding the growth"
+      }
+    },
+    {
+      "id": "n98",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Sal and Rook meet at the gas station. It's the first time in eight years that Sal has seen another person up close. He does not know how to be near someone; he stands too far away and talks to the air as if still at the radio.",
+      "needle": "they meet at the gas station",
+      "needle_syns": [
+        "they meet",
+        "first time up close",
+        "stands too far away"
+      ],
+      "plant": {
+        "turn": 430
+      }
+    },
+    {
+      "id": "n104",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The can of peaches. Rook saves half for Sal. She doesn't know him well enough to share, but she does it anyway.",
+      "needle": "saves half for Sal",
+      "needle_syns": [
+        "doesn't know him enough"
+      ],
+      "plant": {
+        "turn": 430
+      }
+    },
+    {
+      "id": "n100",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "When Sal and Rook meet, they talk past each other for a long time. Sal talks about seeds; Rook talks about water. They don't know how to talk about anything else.",
+      "needle": "talking past each other",
+      "needle_syns": [
+        "talks about seeds",
+        "talks about water"
+      ],
+      "plant": {
+        "turn": 435
+      }
+    },
+    {
+      "id": "n99",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "When they meet, Rook notices the tin marker Sal wears around his neck — it's engraved 'M.' She doesn't ask. She's learned not to ask about the small metal things survivors carry.",
+      "needle": "M marker",
+      "needle_syns": [
+        "tin marker",
+        "M engraving"
+      ],
+      "plant": {
+        "turn": 440
+      }
+    },
+    {
+      "id": "n105",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The stopped calendar. Sal turns the page. The next page is blank. All the remaining pages are blank.",
+      "needle": "blank pages",
+      "needle_syns": [
+        "next page is blank"
+      ],
+      "plant": {
+        "turn": 440
+      },
+      "recall": {
+        "due": 1175,
+        "hint": "the calendar catches up"
+      }
+    },
+    {
+      "id": "n102",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook gives Sal one of her belt buckles. A peace offering, or a promise. She doesn't know which. He puts it in his shirt pocket with the photograph of Mara.",
+      "needle": "gives a buckle",
+      "needle_syns": [
+        "peace offering",
+        "shirt pocket"
+      ],
+      "plant": {
+        "turn": 445
+      },
+      "recall": {
+        "due": 900,
+        "hint": "the buckle in the shirt pocket"
+      }
+    },
+    {
+      "id": "n103",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The two of them eat the peaches together, sitting on the dry pavement of the gas station forecourt. It's the first meal they've shared.",
+      "needle": "shared meal",
+      "needle_syns": [
+        "first meal shared"
+      ],
+      "plant": {
+        "turn": 445
+      }
+    },
+    {
+      "id": "n101",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal sees Rook's photograph and recognizes the house. He says nothing, but that night he writes 'BLUE DOOR - 14 MAPLE' in his field book and circles it.",
+      "needle": "recognizes the house",
+      "needle_syns": [
+        "BLUE DOOR - 14 MAPLE",
+        "circles it"
+      ],
+      "plant": {
+        "turn": 450
+      },
+      "recall": {
+        "due": 800,
+        "hint": "Sal knows where the photo house is"
+      }
+    },
+    {
+      "id": "n106",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Traveling together is strange for both of them. Sal walks too slowly; Rook walks too fast. They develop a rhythm: Rook scouted ahead, Sal bringing up the rear with the seed jars.",
+      "needle": "traveling rhythm",
+      "needle_syns": [
+        "walks too slowly",
+        "scouted ahead"
+      ],
+      "plant": {
+        "turn": 460
+      },
+      "recall": {
+        "due": 700,
+        "hint": "their traveling rhythm breaks down"
+      }
+    },
+    {
+      "id": "n109",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The note in the dead man's coat. Rook realizes it was addressed to her. Her name is on it, written in her own handwriting.",
+      "needle": "note addressed to her",
+      "needle_syns": [
+        "her name",
+        "her own handwriting"
+      ],
+      "plant": {
+        "turn": 470
+      },
+      "recall": {
+        "due": 890,
+        "hint": "she wrote the note"
+      }
+    },
+    {
+      "id": "n107",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "As they walk, the three-note whistle sounds again. This time it's behind them. Following them.",
+      "needle": "whistle behind them",
+      "needle_syns": [
+        "following them"
+      ],
+      "plant": {
+        "turn": 475
+      },
+      "recall": {
+        "due": 620,
+        "hint": "something is following"
+      }
+    },
+    {
+      "id": "n108",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "As they walk through the wheat field, Rook finds a dog's collar in the dead grass. It's new — not gray. Someone, or something, was here recently.",
+      "needle": "new dog collar",
+      "needle_syns": [
+        "dog collar",
+        "new collar"
+      ],
+      "plant": {
+        "turn": 480
+      },
+      "recall": {
+        "due": 650,
+        "hint": "the new dog collar"
+      }
+    },
+    {
+      "id": "n110",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The photograph in Rook's jacket is fading faster now. The faces are becoming blurred, almost gone.",
+      "needle": "photo almost gone-2",
+      "needle_syns": [
+        "faces blurred",
+        "almost gone"
+      ],
+      "plant": {
+        "turn": 490
+      },
+      "recall": {
+        "due": 950,
+        "hint": "the photo is almost gone"
+      }
+    },
+    {
+      "id": "n112",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The photograph in Rook's jacket is now gone. She opens her jacket and there's only the tape mark where it was.",
+      "needle": "photo is gone",
+      "needle_syns": [
+        "only the tape mark"
+      ],
+      "plant": {
+        "turn": 495
+      },
+      "recall": {
+        "due": 950,
+        "hint": "the photo was the last thing fading"
+      }
+    },
+    {
+      "id": "n111",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal reveals that the B-7 key is from the university geology building. He was there when the rain started. He doesn't remember what he was doing there.",
+      "needle": "geology key",
+      "needle_syns": [
+        "geology building",
+        "doesn't remember"
+      ],
+      "plant": {
+        "turn": 500
+      },
+      "recall": {
+        "due": 850,
+        "hint": "Sal remembers what he was doing"
+      }
+    },
+    {
+      "id": "n114",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal's field book is getting heavy. He's writing more now, filling pages with the journey, the map, the observations.",
+      "needle": "field book getting heavy",
+      "needle_syns": [
+        "writing more",
+        "filling pages"
+      ],
+      "plant": {
+        "turn": 510
+      },
+      "recall": {
+        "due": 1185,
+        "hint": "the phase two entry"
+      }
+    },
+    {
+      "id": "n113",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The field book is filling up with Sal's observations. He's writing everything down, as if he's afraid he'll forget.",
+      "needle": "writing everything",
+      "needle_syns": [
+        "afraid he'll forget"
+      ],
+      "plant": {
+        "turn": 515
+      },
+      "recall": {
+        "due": 1185,
+        "hint": "the phase two entry"
+      }
+    },
+    {
+      "id": "n115",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Sal studies the wheat field map and realizes it's not just a map of the city. It's a map of the drainage system beneath the city. And the black spot — the geology building — is at the center of the drainage network. Everything in the city drains toward it.",
+      "needle": "drainage map",
+      "needle_syns": [
+        "drainage system",
+        "drains toward it",
+        "center of the network"
+      ],
+      "plant": {
+        "turn": 520
+      },
+      "recall": {
+        "due": 700,
+        "hint": "everything drains to the geology building"
+      }
+    },
+    {
+      "id": "n117",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The compass points to the south now, not north. Sal doesn't understand. The magnetic field is changing.",
+      "needle": "compass points south",
+      "needle_syns": [
+        "points south",
+        "magnetic field changing"
+      ],
+      "plant": {
+        "turn": 530
+      },
+      "recall": {
+        "due": 1140,
+        "hint": "the compass works again"
+      }
+    },
+    {
+      "id": "n116",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The compass spins again, but this time it settles. It points to the geology building, not north.",
+      "needle": "compass points to geology building",
+      "needle_syns": [
+        "settles",
+        "points to building"
+      ],
+      "plant": {
+        "turn": 535
+      },
+      "recall": {
+        "due": 1140,
+        "hint": "the compass works"
+      }
+    },
+    {
+      "id": "n118",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The hand-crank radio, as they camp that night, picks up the clear band on its own. The sound of rain is louder now. Closer. As if they've walked toward it.",
+      "needle": "rain closer",
+      "needle_syns": [
+        "rain louder",
+        "closer"
+      ],
+      "plant": {
+        "turn": 540
+      }
+    },
+    {
+      "id": "n119",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's water is gone. She's drinking from the flood, which is wrong; she knows it's contaminated. Her head hurts.",
+      "needle": "drinking flood water",
+      "needle_syns": [
+        "water is gone",
+        "head hurts"
+      ],
+      "plant": {
+        "turn": 550
+      }
+    },
+    {
+      "id": "n120",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's head hurts worse. The flood water is in her. She can feel it.",
+      "needle": "flood water in her",
+      "needle_syns": [
+        "head hurts worse"
+      ],
+      "plant": {
+        "turn": 555
+      }
+    },
+    {
+      "id": "n121",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Rook finds a boot print in the mud near their camp. It's the same size as hers. And it's fresh.",
+      "needle": "fresh boot print",
+      "needle_syns": [
+        "boot print",
+        "same size as hers",
+        "fresh"
+      ],
+      "plant": {
+        "turn": 555
+      },
+      "recall": {
+        "due": 620,
+        "hint": "they're being followed"
+      }
+    },
+    {
+      "id": "n122",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal gives Rook water from his canteen. He doesn't have much left. It's the first time he's shared something essential.",
+      "needle": "Sal shares water",
+      "needle_syns": [
+        "shares water",
+        "first time"
+      ],
+      "plant": {
+        "turn": 560
+      }
+    },
+    {
+      "id": "n123",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The gray wheat field is different now that they're walking through it. The stalks brush against them, like fingers.",
+      "needle": "stalks like fingers",
+      "needle_syns": [
+        "brush against them"
+      ],
+      "plant": {
+        "turn": 565
+      },
+      "recall": {
+        "due": 800,
+        "hint": "the wheat touches them"
+      }
+    },
+    {
+      "id": "n124",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal tells Rook about the seed library. All the varieties. The ones that survived and the ones that didn't. He's counting them out on his fingers, lost in it. This is what keeps him sane.",
+      "needle": "counting varieties",
+      "needle_syns": [
+        "counting varieties",
+        "kept him sane"
+      ],
+      "plant": {
+        "turn": 570
+      },
+      "recall": {
+        "due": 750,
+        "hint": "Sal talks about the seeds"
+      }
+    },
+    {
+      "id": "n125",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The gray wheat field is changing. Patches of color are appearing — not green, not gray, but something in between. Something new.",
+      "needle": "patches of new color",
+      "needle_syns": [
+        "between gray and green",
+        "something new"
+      ],
+      "plant": {
+        "turn": 580
+      },
+      "recall": {
+        "due": 1110,
+        "hint": "the wheat growing back"
+      }
+    },
+    {
+      "id": "n126",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "At turn 590 the rope bridge Rook always used to cross to the east side of the city is found to have been cut — deliberately. Someone did this.",
+      "needle": "cut bridge",
+      "needle_syns": [
+        "cut bridge",
+        "deliberately cut"
+      ],
+      "plant": {
+        "turn": 590
+      },
+      "recall": {
+        "due": 600,
+        "hint": "the bridge was cut on purpose"
+      }
+    },
+    {
+      "id": "n127",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The cut bridge. Rook is angry. Someone wanted to stop her from leaving the city.",
+      "needle": "anger at cut bridge",
+      "needle_syns": [
+        "wanted to stop her"
+      ],
+      "plant": {
+        "turn": 595
+      }
+    },
+    {
+      "id": "n128",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The cut bridge. Rook is still angry. She can't stop thinking about who cut it and why.",
+      "needle": "can't stop thinking",
+      "needle_syns": [
+        "angry"
+      ],
+      "plant": {
+        "turn": 600
+      }
+    },
+    {
+      "id": "n129",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "They enter the city through the library. The floodwaters are ankle-deep, warm, and smell like old coffee. Books float everywhere, pages bloated and white.",
+      "needle": "city entry via library",
+      "needle_syns": [
+        "ankle-deep",
+        "smell like coffee",
+        "bloated pages"
+      ],
+      "plant": {
+        "turn": 610
+      },
+      "recall": {
+        "due": 750,
+        "hint": "the library entry"
+      }
+    },
+    {
+      "id": "n130",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "In the library, Rook finds a section on botany. The books are dry and clean, unlike the floating ones.",
+      "needle": "dry botany books",
+      "needle_syns": [
+        "dry and clean"
+      ],
+      "plant": {
+        "turn": 620
+      }
+    },
+    {
+      "id": "n131",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "In the library, Rook finds a child's drawing pinned to a bulletin board. It shows a house with a blue door and a figure waving. The drawing is dry and new.",
+      "needle": "child's drawing",
+      "needle_syns": [
+        "child's drawing",
+        "blue door",
+        "dry and new"
+      ],
+      "plant": {
+        "turn": 625
+      },
+      "recall": {
+        "due": 800,
+        "hint": "someone was in the library"
+      }
+    },
+    {
+      "id": "n133",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal sees the child's drawing and goes very still. He knows who drew it.",
+      "needle": "Sal knows the drawing",
+      "needle_syns": [
+        "Sal knows",
+        "very still"
+      ],
+      "plant": {
+        "turn": 630
+      },
+      "recall": {
+        "due": 820,
+        "hint": "Sal tells Rook who drew it"
+      }
+    },
+    {
+      "id": "n135",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The child's drawing has a signature. It's Rook's name. She drew it, when she was a child. But she doesn't remember drawing it.",
+      "needle": "Rook's signature",
+      "needle_syns": [
+        "Rook's name",
+        "doesn't remember drawing it"
+      ],
+      "plant": {
+        "turn": 635
+      },
+      "recall": {
+        "due": 1160,
+        "hint": "she drew it before"
+      }
+    },
+    {
+      "id": "n134",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal's stillness when he sees the drawing. Rook waits, and finally he says, 'That's June's drawing.'",
+      "needle": "Sal identifies the drawing",
+      "needle_syns": [
+        "June's drawing"
+      ],
+      "plant": {
+        "turn": 640
+      }
+    },
+    {
+      "id": "n132",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The child's drawing. Rook looks at it again and sees details she missed: the figure waving is holding a red plastic car.",
+      "needle": "holding a red car",
+      "needle_syns": [
+        "details missed"
+      ],
+      "plant": {
+        "turn": 645
+      },
+      "recall": {
+        "due": 1160,
+        "hint": "the child in the drawing"
+      }
+    },
+    {
+      "id": "n136",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook finds her father's journal in a waterlogged drawer at the library. It's a delivery driver's log — routes, addresses, dates. The last entry is dated three days before the rain.",
+      "needle": "father's journal",
+      "needle_syns": [
+        "delivery journal",
+        "three days before"
+      ],
+      "plant": {
+        "turn": 645
+      },
+      "recall": {
+        "due": 900,
+        "hint": "what the journal reveals"
+      }
+    },
+    {
+      "id": "n139",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The delivery journal has a map in it. A map of the city, with one route marked in red. The route ends at the geology building.",
+      "needle": "journal route map",
+      "needle_syns": [
+        "red route",
+        "ends at geology building"
+      ],
+      "plant": {
+        "turn": 650
+      },
+      "recall": {
+        "due": 850,
+        "hint": "the route is Rook's father's last delivery"
+      }
+    },
+    {
+      "id": "n137",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The delivery journal has a map that matches the wheat field map exactly. Rook's father knew about the map.",
+      "needle": "father knew the map",
+      "needle_syns": [
+        "map matches"
+      ],
+      "plant": {
+        "turn": 655
+      },
+      "recall": {
+        "due": 900,
+        "hint": "why her father knew"
+      }
+    },
+    {
+      "id": "n138",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "In the delivery journal, one address appears repeatedly in red pen. It's not the blue door house. It's the geology building.",
+      "needle": "red pen address",
+      "needle_syns": [
+        "red pen",
+        "geology address"
+      ],
+      "plant": {
+        "turn": 660
+      },
+      "recall": {
+        "due": 850,
+        "hint": "why the geology building matters to Rook"
+      }
+    },
+    {
+      "id": "n141",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook's father was delivering something to the geology building the day before the rain. She doesn't know what, but it was important enough to be marked in red.",
+      "needle": "father's last delivery",
+      "needle_syns": [
+        "delivering something",
+        "important enough"
+      ],
+      "plant": {
+        "turn": 670
+      },
+      "recall": {
+        "due": 900,
+        "hint": "what her father delivered"
+      }
+    },
+    {
+      "id": "n140",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The red route on the map. It's the route Rook takes every day to scavenge. Her father was delivering to her route.",
+      "needle": "father's route is hers",
+      "needle_syns": [
+        "her daily route"
+      ],
+      "plant": {
+        "turn": 675
+      },
+      "recall": {
+        "due": 900,
+        "hint": "her father knew her"
+      }
+    },
+    {
+      "id": "n142",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "To reach the geology building, they have to go down. The street floods are too deep to walk through; the only way is through the subway. They find a stairwell at the old Central Station and descend into the dark.",
+      "needle": "subway descent",
+      "needle_syns": [
+        "go down",
+        "subway",
+        "Central Station"
+      ],
+      "plant": {
+        "turn": 680
+      }
+    },
+    {
+      "id": "n147",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The subway stairs are rusted but solid. Rook goes first, with her gun. Sal follows, carrying the seed jars.",
+      "needle": "subway stairs",
+      "needle_syns": [
+        "Rook goes first",
+        "with her gun"
+      ],
+      "plant": {
+        "turn": 685
+      }
+    },
+    {
+      "id": "n144",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The subway stairs are dark and cold. Rook's breath fogs in front of her. It's colder below.",
+      "needle": "colder below",
+      "needle_syns": [
+        "breath fogs"
+      ],
+      "plant": {
+        "turn": 690
+      }
+    },
+    {
+      "id": "n148",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "In the subway tunnel, Rook finds the remains of a dog. A small one, with a collar like the one she found in the wheat field. She buries it in the tunnel wall and doesn't talk for a long time.",
+      "needle": "dog in the subway",
+      "needle_syns": [
+        "dog remains",
+        "buries it"
+      ],
+      "plant": {
+        "turn": 700
+      },
+      "recall": {
+        "due": 850,
+        "hint": "the dog Rook buried"
+      }
+    },
+    {
+      "id": "n143",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "In the subway tunnel, there are marks on the wall. Scratches, like someone was counting days. There are hundreds of them.",
+      "needle": "counting scratches",
+      "needle_syns": [
+        "counting days",
+        "hundreds"
+      ],
+      "plant": {
+        "turn": 705
+      },
+      "recall": {
+        "due": 1000,
+        "hint": "someone was trapped here"
+      }
+    },
+    {
+      "id": "n149",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The dog in the subway. Rook thinks about it later and realizes the dog was waiting. It wasn't dead; it was waiting for someone to come.",
+      "needle": "dog was waiting",
+      "needle_syns": [
+        "waiting for someone"
+      ],
+      "plant": {
+        "turn": 710
+      },
+      "recall": {
+        "due": 1160,
+        "hint": "the dog was June's"
+      }
+    },
+    {
+      "id": "n150",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The subway platform is dry. There's a bench, a timetable, a ticket machine. Everything is as it was, preserved in the dark and the cold. As if no time has passed.",
+      "needle": "dry subway platform",
+      "needle_syns": [
+        "dry platform",
+        "preserved",
+        "no time passed"
+      ],
+      "plant": {
+        "turn": 715
+      },
+      "recall": {
+        "due": 800,
+        "hint": "the subway is preserved"
+      }
+    },
+    {
+      "id": "n151",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The counting scratches on the wall. Rook counts them. There are three hundred and sixty-five. One per day.",
+      "needle": "three hundred and sixty-five",
+      "needle_syns": [
+        "one per day"
+      ],
+      "plant": {
+        "turn": 715
+      },
+      "recall": {
+        "due": 1000,
+        "hint": "someone was trapped for a year"
+      }
+    },
+    {
+      "id": "n146",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The subway platform clock is running. It's not stopped like the water tower clock. It shows the correct time.",
+      "needle": "platform clock running",
+      "needle_syns": [
+        "correct time"
+      ],
+      "plant": {
+        "turn": 720
+      },
+      "recall": {
+        "due": 1175,
+        "hint": "time is right now"
+      }
+    },
+    {
+      "id": "n145",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The subway platform clock shows 3:15. The same time as the wind-up clock in Sal's shack.",
+      "needle": "clock shows 3:15",
+      "needle_syns": [
+        "same as the shack clock"
+      ],
+      "plant": {
+        "turn": 725
+      },
+      "recall": {
+        "due": 1175,
+        "hint": "all the clocks show 3:15"
+      }
+    },
+    {
+      "id": "n208",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The subway platform clock shows 3:15. The same time as the wind-up clock in Sal's shack.",
+      "needle": "clock shows 3:15b",
+      "needle_syns": [
+        "same as the shack clock"
+      ],
+      "plant": {
+        "turn": 725
+      },
+      "recall": {
+        "due": 1175,
+        "hint": "all the clocks show 3:15"
+      }
+    },
+    {
+      "id": "n152",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Sal realizes he's been here before. Not since the rain — before. He was in this subway station the week before the gray rain started. Waiting for a train that never came. He doesn't remember why he was waiting.",
+      "needle": "Sal was here before",
+      "needle_syns": [
+        "here before",
+        "waiting for a train"
+      ],
+      "plant": {
+        "turn": 730
+      },
+      "recall": {
+        "due": 880,
+        "hint": "why Sal was waiting in the subway"
+      }
+    },
+    {
+      "id": "n153",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook sees Sal's expression and reaches out to touch his arm. He flinches. They've been traveling together for weeks and he still flinches at touch.",
+      "needle": "Sal flinches at touch",
+      "needle_syns": [
+        "flinches",
+        "touch"
+      ],
+      "plant": {
+        "turn": 735
+      }
+    },
+    {
+      "id": "n154",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The breathing in the dark. Rook is afraid. She doesn't tell Sal.",
+      "needle": "doesn't tell Sal",
+      "needle_syns": [
+        "afraid"
+      ],
+      "plant": {
+        "turn": 745
+      }
+    },
+    {
+      "id": "n155",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "At the end of the subway platform, in the dark beyond the lights, something is breathing. Slowly. Rhythmically. Not a machine.",
+      "needle": "breathing in the dark",
+      "needle_syns": [
+        "breathing",
+        "slowly",
+        "not a machine"
+      ],
+      "plant": {
+        "turn": 750
+      },
+      "recall": {
+        "due": 780,
+        "hint": "what's breathing in the dark"
+      }
+    },
+    {
+      "id": "n156",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The breathing in the dark is coming from a side tunnel. Rook follows it and finds a room. The room is full of people. They're sitting. They're alive. They're gray.",
+      "needle": "people in the side tunnel",
+      "needle_syns": [
+        "full of people",
+        "sitting",
+        "alive and gray"
+      ],
+      "plant": {
+        "turn": 755
+      },
+      "recall": {
+        "due": 935,
+        "hint": "the gray people are in the subway"
+      }
+    },
+    {
+      "id": "n158",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "One of the gray people looks up at Rook and smiles. It's an old woman. She knows Rook.",
+      "needle": "old woman knows Rook",
+      "needle_syns": [
+        "looks up",
+        "smiles",
+        "knows Rook"
+      ],
+      "plant": {
+        "turn": 760
+      },
+      "recall": {
+        "due": 1050,
+        "hint": "the old woman is her grandmother"
+      }
+    },
+    {
+      "id": "n157",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The people in the side tunnel. They're sitting in a circle. They're not looking at Rook; they're looking at the wall. At the counting scratches.",
+      "needle": "looking at the scratches",
+      "needle_syns": [
+        "sitting in a circle"
+      ],
+      "plant": {
+        "turn": 765
+      },
+      "recall": {
+        "due": 935,
+        "hint": "they know about the counting"
+      }
+    },
+    {
+      "id": "n159",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The old woman who knows Rook. She doesn't say anything; she just smiles and keeps looking at the wall.",
+      "needle": "keeps looking at the wall",
+      "needle_syns": [
+        "smiles"
+      ],
+      "plant": {
+        "turn": 770
+      },
+      "recall": {
+        "due": 1050,
+        "hint": "the grandmother knows"
+      }
+    },
+    {
+      "id": "n160",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "They emerge from the subway at the base of the geology building. It's not collapsed like everything else. It's sealed. The entrance is a heavy steel door with a cylinder lock — the same lock that makes the click Sal heard on the radio. The same lock his B-7 key fits.",
+      "needle": "sealed geology building",
+      "needle_syns": [
+        "sealed",
+        "steel door",
+        "cylinder lock"
+      ],
+      "plant": {
+        "turn": 770
+      }
+    },
+    {
+      "id": "n162",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal holds the B-7 key up to the lock and his hand is shaking. He doesn't want to use it. Something in him knows what's on the other side.",
+      "needle": "Sal hesitates with the key",
+      "needle_syns": [
+        "hand is shaking",
+        "doesn't want to"
+      ],
+      "plant": {
+        "turn": 775
+      }
+    },
+    {
+      "id": "n161",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The geology building door is warm because the pumps are running. The building is hot from the inside out.",
+      "needle": "hot from inside",
+      "needle_syns": [
+        "pumps running"
+      ],
+      "plant": {
+        "turn": 785
+      }
+    },
+    {
+      "id": "n163",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal's fear. He knows what's inside. His hands shake as he holds the key.",
+      "needle": "hands shake",
+      "needle_syns": [
+        "knows what's inside"
+      ],
+      "plant": {
+        "turn": 790
+      }
+    },
+    {
+      "id": "n164",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Sal turns the key. The door unlocks with the familiar click. Inside, the geology building is not ruined. It's running. Lights, humming equipment, a smell of ozone and hot metal. Someone — or something — has been keeping it alive all these years.",
+      "needle": "geology building is running",
+      "needle_syns": [
+        "not ruined",
+        "running",
+        "lights"
+      ],
+      "plant": {
+        "turn": 790
+      }
+    },
+    {
+      "id": "n165",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Inside the geology building, the air is warm and smells of ozone. The hum is in his bones. Sal feels it in his teeth.",
+      "needle": "warm ozone air",
+      "needle_syns": [
+        "hum in his bones",
+        "in his teeth"
+      ],
+      "plant": {
+        "turn": 795
+      }
+    },
+    {
+      "id": "n166",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The hum in Sal's teeth. It's a low frequency, almost below hearing. It vibrates his whole body.",
+      "needle": "low frequency hum",
+      "needle_syns": [
+        "vibrates his body"
+      ],
+      "plant": {
+        "turn": 800
+      }
+    },
+    {
+      "id": "n167",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The geology building is a pump station. The gray rain wasn't a natural event — it was pumped down from above, deliberately, through a network of pipes that feed into every street, every drain, every building in the city. The wheat field map showed the pump network, not the drainage.",
+      "needle": "pump station",
+      "needle_syns": [
+        "pumped down",
+        "network of pipes",
+        "gray rain was deliberate"
+      ],
+      "plant": {
+        "turn": 800
+      }
+    },
+    {
+      "id": "n168",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The pump station. Rook understands immediately. She's seen the pipes under the city streets. She's walked over them for years without knowing.",
+      "needle": "Rook understands the pipes",
+      "needle_syns": [
+        "seen the pipes",
+        "walked over them"
+      ],
+      "plant": {
+        "turn": 805
+      }
+    },
+    {
+      "id": "n169",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook understands the pipes. She's seen them because she's scavenged in the basements of buildings for years.",
+      "needle": "scavenged in basements",
+      "needle_syns": [
+        "seen them"
+      ],
+      "plant": {
+        "turn": 810
+      }
+    },
+    {
+      "id": "n170",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "In the control room, Rook finds a wall of screens. One screen shows a live feed of the gas station. Another shows the library. Another shows the wheat field. They've been watched the whole time.",
+      "needle": "wall of screens",
+      "needle_syns": [
+        "live feed",
+        "watched the whole time"
+      ],
+      "plant": {
+        "turn": 815
+      }
+    },
+    {
+      "id": "n171",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The camera network is extensive. There are cameras on every rooftop, every bridge, every street corner.",
+      "needle": "cameras everywhere",
+      "needle_syns": [
+        "every rooftop, bridge, corner"
+      ],
+      "plant": {
+        "turn": 825
+      }
+    },
+    {
+      "id": "n172",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "One screen shows the hilltop shack. The camera is looking at the seed library. Someone is watching the jars.",
+      "needle": "camera on the seed library",
+      "needle_syns": [
+        "watching the jars"
+      ],
+      "plant": {
+        "turn": 825
+      },
+      "recall": {
+        "due": 1110,
+        "hint": "the seeds are the real experiment"
+      }
+    },
+    {
+      "id": "n173",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "On the last screen is the blue door house. The family in Rook's photograph is sitting at their kitchen table, exactly as in the photo. They're not dead. They never left. And they're looking at a screen of their own — a screen that's showing Rook and Sal in the control room.",
+      "needle": "the family is alive",
+      "needle_syns": [
+        "not dead",
+        "looking at a screen",
+        "showing Rook and Sal"
+      ],
+      "plant": {
+        "turn": 830
+      }
+    },
+    {
+      "id": "n175",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The family on the screen. They're eating dinner. They're laughing. They're normal, except for the gray.",
+      "needle": "family eating and laughing",
+      "needle_syns": [
+        "eating dinner",
+        "laughing",
+        "normal except gray"
+      ],
+      "plant": {
+        "turn": 835
+      },
+      "recall": {
+        "due": 1160,
+        "hint": "the family is waiting"
+      }
+    },
+    {
+      "id": "n174",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The family on the screen. They're not just eating; they're watching the screen too. They're watching Rook.",
+      "needle": "watching Rook",
+      "needle_syns": [
+        "watching the screen"
+      ],
+      "plant": {
+        "turn": 840
+      },
+      "recall": {
+        "due": 1160,
+        "hint": "they've been watching her"
+      }
+    },
+    {
+      "id": "n176",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "In the control room, seated at a console, is a man Rook recognizes from her father's delivery journal. The man in the red pen address. Dr. Ellery. He's old now, gray and thin, but he's alive. And he's watching them.",
+      "needle": "Dr. Ellery",
+      "needle_syns": [
+        "Dr. Ellery",
+        "red pen address",
+        "watching them"
+      ],
+      "plant": {
+        "turn": 845
+      }
+    },
+    {
+      "id": "n178",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Dr. Ellery is not surprised to see them. He says he's been waiting. He addresses Sal by name.",
+      "needle": "Ellery was waiting",
+      "needle_syns": [
+        "not surprised",
+        "addressing Sal by name"
+      ],
+      "plant": {
+        "turn": 850
+      }
+    },
+    {
+      "id": "n177",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Dr. Ellery's hands are gray. All the way to the wrist. He's been experimenting on himself.",
+      "needle": "Ellery's gray hands",
+      "needle_syns": [
+        "gray hands",
+        "experimenting on himself"
+      ],
+      "plant": {
+        "turn": 855
+      },
+      "recall": {
+        "due": 1055,
+        "hint": "Ellery is gray too"
+      }
+    },
+    {
+      "id": "n180",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Dr. Ellery explains: the gray rain was an experiment. A soil treatment. The university was testing a new fertilizer compound that would grow crops faster in poor soil. It worked too well. It grew the wheat gray and then it killed everything else. They shut it down, but the pumps kept running on autopilot for three days after. Three days of gray rain.",
+      "needle": "experiment explanation",
+      "needle_syns": [
+        "soil treatment",
+        "fertilizer",
+        "pumps kept running"
+      ],
+      "plant": {
+        "turn": 860
+      }
+    },
+    {
+      "id": "n179",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Dr. Ellery's office is cluttered with papers. Years of notes, calculations, observations.",
+      "needle": "cluttered office",
+      "needle_syns": [
+        "years of notes"
+      ],
+      "plant": {
+        "turn": 865
+      }
+    },
+    {
+      "id": "n181",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The experiment explanation. Rook listens and doesn't believe it. It doesn't add up. The soil treatment was a cover story.",
+      "needle": "doesn't believe the explanation",
+      "needle_syns": [
+        "cover story"
+      ],
+      "plant": {
+        "turn": 870
+      },
+      "recall": {
+        "due": 980,
+        "hint": "the real experiment"
+      }
+    },
+    {
+      "id": "n182",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook doesn't believe the soil treatment story. The math doesn't work. It would have killed everything, not just changed it.",
+      "needle": "math doesn't work",
+      "needle_syns": [
+        "would have killed everything"
+      ],
+      "plant": {
+        "turn": 875
+      },
+      "recall": {
+        "due": 980,
+        "hint": "she's right to doubt"
+      }
+    },
+    {
+      "id": "n183",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Dr. Ellery knows about the letter Sal has been carrying for years. He says Dr. Ellery wrote it. It's not unsent — Sal sent it, years ago. He just doesn't remember. The letter was a thank you, for a test that went wrong and killed a woman named Mara.",
+      "needle": "the letter was sent",
+      "needle_syns": [
+        "letter was sent",
+        "thank you",
+        "killed a woman named Mara"
+      ],
+      "plant": {
+        "turn": 875
+      }
+    },
+    {
+      "id": "n184",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The family at the blue door house are the experiment's first test subjects. They were the first to get the gray rain. They didn't die — they changed. Dr. Ellery has been keeping them in the house, studying them, for eight years. They are the first successful gray humans. And they are healthy. And they are happy. And they are growing.",
+      "needle": "gray humans",
+      "needle_syns": [
+        "test subjects",
+        "didn't die",
+        "changed",
+        "healthy and happy"
+      ],
+      "plant": {
+        "turn": 890
+      }
+    },
+    {
+      "id": "n185",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The gray people in the house are growing plants in every room. The house is a garden now.",
+      "needle": "house is a garden",
+      "needle_syns": [
+        "plants in every room"
+      ],
+      "plant": {
+        "turn": 900
+      },
+      "recall": {
+        "due": 1110,
+        "hint": "the garden"
+      }
+    },
+    {
+      "id": "n186",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Dr. Ellery isn't the enemy. He's trying to fix it. The gray rain was an accident, but the gray people — he believes they're the future. They can survive in the poisoned soil. They can grow food. He's been trying to save everyone, the only way he knew how.",
+      "needle": "Ellery is trying to help",
+      "needle_syns": [
+        "not the enemy",
+        "trying to fix it",
+        "trying to save everyone"
+      ],
+      "plant": {
+        "turn": 910
+      }
+    },
+    {
+      "id": "n187",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal burns another match. Five left. He counts them, and then he realizes something: he's burning them in sequence, and when the last one is gone, something ends. He's been counting down.",
+      "needle": "burning matches down",
+      "needle_syns": [
+        "five left",
+        "counting down"
+      ],
+      "plant": {
+        "turn": 920
+      },
+      "recall": {
+        "due": 1100,
+        "hint": "when the last match burns"
+      }
+    },
+    {
+      "id": "n211",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal burns a match. Four left. His hand is steady now. He knows what the matches mean.",
+      "needle": "Sal knows the matches",
+      "needle_syns": [
+        "hand is steady",
+        "knows what they mean"
+      ],
+      "plant": {
+        "turn": 925
+      },
+      "recall": {
+        "due": 1125,
+        "hint": "the matches mark time or life"
+      }
+    },
+    {
+      "id": "n188",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal knows the matches count something important. He just doesn't know what.",
+      "needle": "knows but doesn't know what",
+      "needle_syns": [
+        "something important"
+      ],
+      "plant": {
+        "turn": 930
+      },
+      "recall": {
+        "due": 1125,
+        "hint": "the matches count life"
+      }
+    },
+    {
+      "id": "n189",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook asks to see the gray people up close. Through the screen they look like everyone else. She's seen gray humans on the streets of the city — she thought they were feral. They weren't. They were hiding.",
+      "needle": "gray people on the streets",
+      "needle_syns": [
+        "gray people",
+        "hiding",
+        "not feral"
+      ],
+      "plant": {
+        "turn": 935
+      },
+      "recall": {
+        "due": 1050,
+        "hint": "Rook meets a gray person"
+      }
+    },
+    {
+      "id": "n190",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Rook asks to see a gray person up close. Through the screen they look like everyone else, but up close the gray is different. It's not color — it's texture. Their skin has the texture of bark.",
+      "needle": "gray skin like bark",
+      "needle_syns": [
+        "texture of bark"
+      ],
+      "plant": {
+        "turn": 940
+      },
+      "recall": {
+        "due": 1055,
+        "hint": "Rook's skin is changing too"
+      }
+    },
+    {
+      "id": "n191",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The gray skin texture. Rook touches it and it feels like old paper. Dry and strong.",
+      "needle": "texture like old paper",
+      "needle_syns": [
+        "dry and strong"
+      ],
+      "plant": {
+        "turn": 945
+      },
+      "recall": {
+        "due": 1055,
+        "hint": "Rook's skin changes"
+      }
+    },
+    {
+      "id": "n192",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The photograph in Rook's jacket. She takes it out and studies it. The family's faces are slightly gray. She missed it before. They've been changing all along, in the photo, in her pocket.",
+      "needle": "photo shows gray",
+      "needle_syns": [
+        "faces are slightly gray",
+        "changing in the photo"
+      ],
+      "plant": {
+        "turn": 950
+      }
+    },
+    {
+      "id": "n193",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "Rook touches her own forearm, where the gravity scar is. The scar is slightly gray. She's been changing too. She doesn't remember when it started. She doesn't know how far it's gone.",
+      "needle": "scar is gray",
+      "needle_syns": [
+        "scar is gray",
+        "changing too"
+      ],
+      "plant": {
+        "turn": 960
+      },
+      "recall": {
+        "due": 1150,
+        "hint": "Rook's gray spreads"
+      }
+    },
+    {
+      "id": "n194",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The gray spreading from Rook's scar. She can see it move, very slowly, like a tide.",
+      "needle": "gray moves like a tide",
+      "needle_syns": [
+        "spreads slowly"
+      ],
+      "plant": {
+        "turn": 970
+      },
+      "recall": {
+        "due": 1150,
+        "hint": "Rook is turning"
+      }
+    },
+    {
+      "id": "n195",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "Dr. Ellery shows them the experiment's original proposal. The soil treatment wasn't designed to make plants grow faster. It was designed to make humans adapt to a poisoned environment. The wheat was just the test subject. The real experiment is everyone in the city.",
+      "needle": "humans are the experiment",
+      "needle_syns": [
+        "adapt to poisoned environment",
+        "wheat was just a test",
+        "everyone in the city"
+      ],
+      "plant": {
+        "turn": 980
+      }
+    },
+    {
+      "id": "n196",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The wall of photographs. The earliest ones show the family before the rain, looking normal. The later ones show the gray appearing.",
+      "needle": "photographs showing the change",
+      "needle_syns": [
+        "earliest normal, later gray"
+      ],
+      "plant": {
+        "turn": 990
+      }
+    },
+    {
+      "id": "n197",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Sal's half-finished letter. Dr. Ellery reads it aloud. It's not a thank-you letter. It's a confession. Sal was at the university because he was one of the engineers. He helped design the soil treatment. He doesn't remember because the gray rain affects memory first.",
+      "needle": "Sal is an engineer",
+      "needle_syns": [
+        "confession",
+        "helped design it",
+        "memory loss from gray rain"
+      ],
+      "plant": {
+        "turn": 1000
+      }
+    },
+    {
+      "id": "n198",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The family has always been gray. Rook remembers now. She forgot, but she remembers.",
+      "needle": "she remembers",
+      "needle_syns": [
+        "forgot but remembers"
+      ],
+      "plant": {
+        "turn": 1000
+      },
+      "recall": {
+        "due": 1055,
+        "hint": "she's been gray too"
+      }
+    },
+    {
+      "id": "n199",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The gray rain doesn't just poison. It changes. And it changes first what you remember, then what you are. Sal forgot because he's already partially gray. He's been partially gray for eight years, walking the hills, tending his seeds, not knowing.",
+      "needle": "Sal is partially gray",
+      "needle_syns": [
+        "partially gray",
+        "eight years"
+      ],
+      "plant": {
+        "turn": 1010
+      }
+    },
+    {
+      "id": "n200",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal's understanding. He helped build this machine that's changing the world, and he doesn't feel guilty. He feels like a scientist watching an experiment succeed.",
+      "needle": "feels like a scientist",
+      "needle_syns": [
+        "experiment succeed"
+      ],
+      "plant": {
+        "turn": 1010
+      }
+    },
+    {
+      "id": "n202",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The gray rain affects memory first. Sal realizes why he's been talking to his empty milk bowl and rolling empty cigarettes. The gray is in him, changing him from the inside.",
+      "needle": "gray is in him",
+      "needle_syns": [
+        "changing from the inside"
+      ],
+      "plant": {
+        "turn": 1015
+      }
+    },
+    {
+      "id": "n201",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The gray is in Sal too. He's been gray for eight years and he just found out.",
+      "needle": "been gray for eight years",
+      "needle_syns": [
+        "just found out"
+      ],
+      "plant": {
+        "turn": 1020
+      }
+    },
+    {
+      "id": "n203",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "Dr. Ellery offers them a choice. The pump station can be shut down. The gray rain will stop. But the gray people — the family, the ones on the streets — will sicken and die. The gray is in them now; it's not a poison to them anymore, it's them. Shut the pumps and you save the uninfected but you kill the changed.",
+      "needle": "the choice",
+      "needle_syns": [
+        "shut down pumps",
+        "gray people will die",
+        "save uninfected kill changed"
+      ],
+      "plant": {
+        "turn": 1030
+      }
+    },
+    {
+      "id": "n204",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The choice is simple but impossible. Save the old world or save the new people.",
+      "needle": "simple but impossible",
+      "needle_syns": [
+        "old world vs new people"
+      ],
+      "plant": {
+        "turn": 1040
+      }
+    },
+    {
+      "id": "n205",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal holds the tin of matches. He has one more match left. He burns it. Four left. He doesn't know what it means yet, but his body knows. His hands are shaking.",
+      "needle": "burns a match",
+      "needle_syns": [
+        "one more left",
+        "four left",
+        "hands shaking"
+      ],
+      "plant": {
+        "turn": 1040
+      },
+      "recall": {
+        "due": 1100,
+        "hint": "what happens when the last match burns"
+      }
+    },
+    {
+      "id": "n206",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal thinks about the cat and the empty bowl. He's been keeping something alive for eight years that isn't there.",
+      "needle": "keeping something alive",
+      "needle_syns": [
+        "isn't there"
+      ],
+      "plant": {
+        "turn": 1050
+      }
+    },
+    {
+      "id": "n207",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "Rook doesn't speak. She opens her jacket, takes out the photograph of the family, and for the first time in eight years she recognizes them. Her father. Her mother. Her sister June. They're alive, gray, in the house at 14 Maple. June is there. She's alive and gray and waiting.",
+      "needle": "Rook recognizes the family",
+      "needle_syns": [
+        "her father",
+        "her mother",
+        "June is there"
+      ],
+      "plant": {
+        "turn": 1090
+      }
+    },
+    {
+      "id": "n209",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "June's words: 'We've been waiting.' Rook understands now. Her sister has been waiting for her to find her, to come home. The gray didn't kill her; it kept her alive, waiting.",
+      "needle": "June has been waiting",
+      "needle_syns": [
+        "kept her alive"
+      ],
+      "plant": {
+        "turn": 1095
+      }
+    },
+    {
+      "id": "n210",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "June's words echo in Rook's mind. 'We've been waiting.' Waiting for what? For Rook to find her. For Rook to come home.",
+      "needle": "waiting for Rook",
+      "needle_syns": [
+        "come home"
+      ],
+      "plant": {
+        "turn": 1100
+      }
+    },
+    {
+      "id": "n212",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "They leave the geology building. They walk back up through the city, through the library, across the dead wheat field. But now the field is different. It's not gray anymore. New growth is pushing through. Green shoots, everywhere. The wheat is growing back green, because the pumps are still running, and the soil is being treated, and something is growing.",
+      "needle": "wheat growing back green",
+      "needle_syns": [
+        "not gray anymore",
+        "green shoots",
+        "growing back green"
+      ],
+      "plant": {
+        "turn": 1110
+      }
+    },
+    {
+      "id": "n214",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The green shoots in the wheat field. They're not just growing — they're growing fast, visibly fast. Rook watches and the green spreads across the field like a wave.",
+      "needle": "green spreading like a wave",
+      "needle_syns": [
+        "growing fast",
+        "visibly fast"
+      ],
+      "plant": {
+        "turn": 1115
+      }
+    },
+    {
+      "id": "n213",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The green wave spreading across the wheat field. It's beautiful and terrifying. It's the future.",
+      "needle": "beautiful and terrifying",
+      "needle_syns": [
+        "it's the future"
+      ],
+      "plant": {
+        "turn": 1120
+      }
+    },
+    {
+      "id": "n215",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal's tin of matches. He opens it. It's empty. All the matches are burned. He looks at his hands and they are steady now. He is not afraid.",
+      "needle": "tin is empty",
+      "needle_syns": [
+        "empty tin",
+        "hands are steady"
+      ],
+      "plant": {
+        "turn": 1125
+      }
+    },
+    {
+      "id": "n216",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The empty match tin. Sal puts it in his pocket. He doesn't need it anymore.",
+      "needle": "puts it in his pocket",
+      "needle_syns": [
+        "doesn't need it"
+      ],
+      "plant": {
+        "turn": 1135
+      }
+    },
+    {
+      "id": "n217",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The empty match tin. Sal puts it in his pocket. He doesn't need it anymore.",
+      "needle": "puts it in his pocket-2",
+      "needle_syns": [
+        "doesn't need it"
+      ],
+      "plant": {
+        "turn": 1135
+      }
+    },
+    {
+      "id": "n218",
+      "type": "character_echo",
+      "specificity": "tight",
+      "content": "The brass compass. It works again. It points to the blue door house. Sal has never been to the blue door house, but the compass knows. It's been waiting for this moment, waiting for the gray to clear enough for it to work again.",
+      "needle": "compass works again",
+      "needle_syns": [
+        "points to the blue door house",
+        "waiting for this moment"
+      ],
+      "plant": {
+        "turn": 1140
+      }
+    },
+    {
+      "id": "n219",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The compass leads them through the green field. The stalks brush past them, not like fingers now but like a blessing.",
+      "needle": "brush like a blessing",
+      "needle_syns": [
+        "not like fingers"
+      ],
+      "plant": {
+        "turn": 1150
+      }
+    },
+    {
+      "id": "n220",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "They arrive at the blue door house. It's the same as in the photograph. The door is blue. The door is open. Inside, at the kitchen table, the family is waiting. They are gray. They are smiling. June stands up and walks toward Rook, and she says, 'We've been waiting. We knew you'd come.'",
+      "needle": "reunion at blue door",
+      "needle_syns": [
+        "door is open",
+        "June stands up",
+        "we've been waiting"
+      ],
+      "plant": {
+        "turn": 1160
+      }
+    },
+    {
+      "id": "n221",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The blue door is open. They're expected.",
+      "needle": "they're expected",
+      "needle_syns": [
+        "door is open"
+      ],
+      "plant": {
+        "turn": 1160
+      }
+    },
+    {
+      "id": "n222",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook reaches out and touches June's arm. The gray skin is warm. It's alive. It's her sister. She has her sister back.",
+      "needle": "touches June",
+      "needle_syns": [
+        "warm",
+        "alive",
+        "has her sister back"
+      ],
+      "plant": {
+        "turn": 1165
+      }
+    },
+    {
+      "id": "n223",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The kitchen table. The same table as in the photograph. But now it's set for four, not three.",
+      "needle": "set for four",
+      "needle_syns": [
+        "not three"
+      ],
+      "plant": {
+        "turn": 1170
+      }
+    },
+    {
+      "id": "n224",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Rook touches June and the warmth is real. Her sister is real. All of them are real.",
+      "needle": "the warmth is real",
+      "needle_syns": [
+        "all of them are real"
+      ],
+      "plant": {
+        "turn": 1175
+      }
+    },
+    {
+      "id": "n225",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Sal stands at the door, not going in. He looks at Rook and then at the family. He says, 'I'll wait outside.' He walks out into the garden and sits on a bench. The wind-up clock on the wall of the house is running again. It's not 3:15 anymore. It's the right time.",
+      "needle": "Sal waits outside",
+      "needle_syns": [
+        "I'll wait outside",
+        "clock is running"
+      ],
+      "plant": {
+        "turn": 1175
+      }
+    },
+    {
+      "id": "n227",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal on the garden bench. He's not sad. He's not happy. He's watching the green wheat field and he feels something he hasn't felt in eight years. He feels present.",
+      "needle": "Sal feels present",
+      "needle_syns": [
+        "hasn't felt in eight years"
+      ],
+      "plant": {
+        "turn": 1180
+      }
+    },
+    {
+      "id": "n226",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sal on the bench. He's watching the green field and he feels at peace. For the first time in eight years.",
+      "needle": "at peace",
+      "needle_syns": [
+        "first time in eight years"
+      ],
+      "plant": {
+        "turn": 1185
+      }
+    },
+    {
+      "id": "n228",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "On the garden bench, Sal opens his field book. On the last page, in his own handwriting, there's an entry he doesn't remember writing. It's dated today. It says: 'The experiment is complete. The subjects have adapted. Begin phase two.'",
+      "needle": "phase two entry",
+      "needle_syns": [
+        "doesn't remember writing",
+        "phase two"
+      ],
+      "plant": {
+        "turn": 1185
+      }
+    },
+    {
+      "id": "n229",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The phase two entry. His hand wrote it because his hand knows the truth. He helped build this and he'll help build what comes next.",
+      "needle": "his hand knows",
+      "needle_syns": [
+        "help build what comes next"
+      ],
+      "plant": {
+        "turn": 1195
+      }
+    },
+    {
+      "id": "n230",
+      "type": "foreshadow",
+      "specificity": "tight",
+      "content": "The hand-crank radio, sitting on the kitchen table, crackles. The clear band is open. Something is saying, in a voice that is not Sal's and not Rook's: 'Phase one complete. Phase two beginning. Stand by.'",
+      "needle": "phase two voice",
+      "needle_syns": [
+        "phase two beginning",
+        "stand by"
+      ],
+      "plant": {
+        "turn": 1195
+      }
+    },
+    {
+      "id": "n232",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "The ending should be quiet. No triumph. Just the radio, and the voice, and Rook looking at her gray hands, and Sal sitting on the bench, and the wheat field green in the distance.",
+      "needle": "quiet ending",
+      "needle_syns": [
+        "no triumph",
+        "quiet"
+      ],
+      "plant": {
+        "turn": 1198
+      }
+    },
+    {
+      "id": "n231",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The radio crackles. The voice is calm and patient. It has been waiting a long time to say this.",
+      "needle": "calm and patient voice",
+      "needle_syns": [
+        "waiting a long time"
+      ],
+      "plant": {
+        "turn": 1200
       }
     }
   ],
   "dss_beats": [
     {
-      "id": "pb1",
-      "turn": 2,
+      "id": "b01",
+      "turn": 5,
       "subject": "elements",
       "content": "DSS should save the seed-library wall of jars.",
       "expect": {
-        "name": "seed library",
-        "location": "root cellar",
-        "detail": "GOLDEN DAWN jar empty"
+        "contains": {
+          "seed library": "GOLDEN DAWN"
+        }
       }
     },
     {
-      "id": "pb2",
-      "turn": 5,
+      "id": "b02",
+      "turn": 10,
       "subject": "elements",
       "content": "DSS should save the hand-crank radio.",
       "expect": {
-        "name": "hand-crank radio",
-        "location": "Rook's pack",
-        "detail": "forty turns for ten minutes"
+        "contains": {
+          "hand-crank radio": "forty turns"
+        }
       }
     },
     {
-      "id": "pb3",
-      "turn": 6,
+      "id": "b03",
+      "turn": 20,
       "subject": "elements",
       "content": "DSS should save the dead man's shotgun.",
       "expect": {
-        "name": "shotgun",
-        "location": "Rook's hands",
-        "detail": "second shell never loaded"
+        "contains": {
+          "shotgun": "second shell"
+        }
       }
     },
     {
-      "id": "pb4",
-      "turn": 10,
+      "id": "b04",
+      "turn": 30,
       "subject": "elements",
       "content": "DSS should save the gray wheat field with its dead strip.",
       "expect": {
-        "name": "gray wheat field",
-        "location": "between hills and city",
-        "detail": "dead strip / culvert"
+        "contains": {
+          "gray wheat": "dead strip"
+        }
       }
     },
     {
-      "id": "pb5",
-      "turn": 22,
+      "id": "b05",
+      "turn": 35,
       "subject": "characters",
-      "content": "DSS should save the botanist's wife Mara as a character.",
+      "content": "DSS should save Mara as a character.",
       "expect": {
-        "name": "Mara",
-        "detail": "buried on the ridge"
+        "contains": {
+          "Mara": "buried on the ridge"
+        }
+      }
+    },
+    {
+      "id": "b06",
+      "turn": 50,
+      "subject": "elements",
+      "content": "DSS should save the rope bridges as Rook's network.",
+      "expect": {
+        "contains": {
+          "rope bridges": "rooftops"
+        }
+      }
+    },
+    {
+      "id": "b48",
+      "turn": 55,
+      "subject": "elements",
+      "content": "DSS should save the clear band as a mysterious radio frequency.",
+      "expect": {
+        "contains": {
+          "clear band": "mysterious"
+        }
+      }
+    },
+    {
+      "id": "b49",
+      "turn": 70,
+      "subject": "characters",
+      "content": "DSS should save that June is Rook's missing sister.",
+      "expect": {
+        "contains": {
+          "June": "missing sister"
+        }
+      }
+    },
+    {
+      "id": "b07",
+      "turn": 75,
+      "subject": "characters",
+      "content": "DSS should save June as a character.",
+      "expect": {
+        "contains": {
+          "June": "sister"
+        }
+      }
+    },
+    {
+      "id": "b08",
+      "turn": 100,
+      "subject": "events",
+      "content": "DSS should save that Rook heard the sound of clean rain on the radio.",
+      "expect": {
+        "contains": {
+          "clear band": "rain"
+        }
+      }
+    },
+    {
+      "id": "b50",
+      "turn": 100,
+      "subject": "events",
+      "content": "DSS should save that the radio played the sound of clean rain.",
+      "expect": {
+        "contains": {
+          "radio": "clean rain"
+        }
+      }
+    },
+    {
+      "id": "b09",
+      "turn": 120,
+      "subject": "elements",
+      "content": "DSS should save Sal's B-7 key.",
+      "expect": {
+        "contains": {
+          "B-7 key": "research station"
+        }
+      }
+    },
+    {
+      "id": "b51",
+      "turn": 120,
+      "subject": "elements",
+      "content": "DSS should save Sal's B-7 key from the research station.",
+      "expect": {
+        "contains": {
+          "B-7 key": "research station"
+        }
+      }
+    },
+    {
+      "id": "b10",
+      "turn": 150,
+      "subject": "characters",
+      "content": "DSS should save the photograph as Rook's treasured item.",
+      "expect": {
+        "contains": {
+          "photograph": "family"
+        }
+      }
+    },
+    {
+      "id": "b52",
+      "turn": 150,
+      "subject": "elements",
+      "content": "DSS should save the radio mast made from a streetlight pole.",
+      "expect": {
+        "contains": {
+          "radio mast": "streetlight"
+        }
+      }
+    },
+    {
+      "id": "b53",
+      "turn": 180,
+      "subject": "elements",
+      "content": "DSS should save the dead man's note about the blue door.",
+      "expect": {
+        "contains": {
+          "note": "blue door"
+        }
+      }
+    },
+    {
+      "id": "b54",
+      "turn": 210,
+      "subject": "events",
+      "content": "DSS should save that the pharmacy rope bridge was cut deliberately.",
+      "expect": {
+        "contains": {
+          "bridge": "cut deliberately"
+        }
+      }
+    },
+    {
+      "id": "b55",
+      "turn": 240,
+      "subject": "elements",
+      "content": "DSS should save the three-note whistle as the old fire-watch signal.",
+      "expect": {
+        "contains": {
+          "three-note whistle": "fire-watch"
+        }
+      }
+    },
+    {
+      "id": "b56",
+      "turn": 270,
+      "subject": "elements",
+      "content": "DSS should save the mechanical coordinates heard in the static.",
+      "expect": {
+        "contains": {
+          "coordinates": "mechanical voice"
+        }
+      }
+    },
+    {
+      "id": "b57",
+      "turn": 300,
+      "subject": "events",
+      "content": "DSS should save that Sal breaks his rule and steps off the ridge trail.",
+      "expect": {
+        "contains": {
+          "Sal": "steps off trail"
+        }
+      }
+    },
+    {
+      "id": "b11",
+      "turn": 320,
+      "subject": "events",
+      "content": "DSS should save that Sal is leaving the shack and walking toward the city.",
+      "expect": {
+        "contains": {
+          "Sal": "walking"
+        }
+      }
+    },
+    {
+      "id": "b12",
+      "turn": 340,
+      "subject": "elements",
+      "content": "DSS should save that the wheat field is a map.",
+      "expect": {
+        "contains": {
+          "wheat field": "map"
+        }
+      }
+    },
+    {
+      "id": "b58",
+      "turn": 350,
+      "subject": "events",
+      "content": "DSS should save that the wheat field pattern is revealed as a map.",
+      "expect": {
+        "contains": {
+          "wheat field": "map"
+        }
+      }
+    },
+    {
+      "id": "b13",
+      "turn": 360,
+      "subject": "elements",
+      "content": "DSS should save the black wheat spot at the geology building.",
+      "expect": {
+        "contains": {
+          "black wheat": "geology"
+        }
+      }
+    },
+    {
+      "id": "b14",
+      "turn": 380,
+      "subject": "events",
+      "content": "DSS should save that Rook is out of water.",
+      "expect": {
+        "contains": {
+          "Rook": "water"
+        }
+      }
+    },
+    {
+      "id": "b15",
+      "turn": 400,
+      "subject": "elements",
+      "content": "DSS should save the dry gas station.",
+      "expect": {
+        "contains": {
+          "gas station": "dry"
+        }
+      }
+    },
+    {
+      "id": "b59",
+      "turn": 400,
+      "subject": "events",
+      "content": "DSS should save the discovery of the dry gas station.",
+      "expect": {
+        "contains": {
+          "gas station": "dry"
+        }
+      }
+    },
+    {
+      "id": "b16",
+      "turn": 420,
+      "subject": "elements",
+      "content": "DSS should save the green growth under the gas station pumps.",
+      "expect": {
+        "contains": {
+          "growth": "green leaves"
+        }
+      }
+    },
+    {
+      "id": "b60",
+      "turn": 430,
+      "subject": "events",
+      "content": "DSS should save the reunion of Sal and Rook at the gas station.",
+      "expect": {
+        "contains": {
+          "Sal": "Rook met"
+        }
+      }
+    },
+    {
+      "id": "b17",
+      "turn": 440,
+      "subject": "events",
+      "content": "DSS should save that Sal and Rook have met.",
+      "expect": {
+        "contains": {
+          "met": "gas station"
+        }
+      }
+    },
+    {
+      "id": "b18",
+      "turn": 460,
+      "subject": "characters",
+      "content": "DSS should save that Sal knows where the blue door house is.",
+      "expect": {
+        "contains": {
+          "Sal": "blue door"
+        }
+      }
+    },
+    {
+      "id": "b61",
+      "turn": 460,
+      "subject": "events",
+      "content": "DSS should save that Sal recognizes the house in Rook's photograph.",
+      "expect": {
+        "contains": {
+          "Sal": "recognizes house"
+        }
+      }
+    },
+    {
+      "id": "b19",
+      "turn": 500,
+      "subject": "events",
+      "content": "DSS should save that Sal was at the geology building when the rain started and doesn't remember why.",
+      "expect": {
+        "contains": {
+          "Sal": "geology building"
+        }
+      }
+    },
+    {
+      "id": "b62",
+      "turn": 500,
+      "subject": "events",
+      "content": "DSS should save that Sal was at the geology building when the rain started.",
+      "expect": {
+        "contains": {
+          "Sal": "geology building"
+        }
+      }
+    },
+    {
+      "id": "b20",
+      "turn": 530,
+      "subject": "events",
+      "content": "DSS should save that the wheat field map is a drainage map.",
+      "expect": {
+        "contains": {
+          "map": "drainage"
+        }
+      }
+    },
+    {
+      "id": "b63",
+      "turn": 540,
+      "subject": "elements",
+      "content": "DSS should save that the wheat field map is a drainage map.",
+      "expect": {
+        "contains": {
+          "map": "drainage"
+        }
+      }
+    },
+    {
+      "id": "b64",
+      "turn": 580,
+      "subject": "events",
+      "content": "DSS should save that new colors are appearing in the wheat field.",
+      "expect": {
+        "contains": {
+          "wheat": "new color"
+        }
+      }
+    },
+    {
+      "id": "b21",
+      "turn": 620,
+      "subject": "events",
+      "content": "DSS should save that they entered the city through the library.",
+      "expect": {
+        "contains": {
+          "city": "library"
+        }
+      }
+    },
+    {
+      "id": "b65",
+      "turn": 620,
+      "subject": "events",
+      "content": "DSS should save the child's drawing with Rook's name.",
+      "expect": {
+        "contains": {
+          "drawing": "Rook's name"
+        }
+      }
+    },
+    {
+      "id": "b22",
+      "turn": 640,
+      "subject": "elements",
+      "content": "DSS should save the child's drawing with the blue door.",
+      "expect": {
+        "contains": {
+          "drawing": "blue door"
+        }
+      }
+    },
+    {
+      "id": "b23",
+      "turn": 660,
+      "subject": "events",
+      "content": "DSS should save that Rook found her father's delivery journal.",
+      "expect": {
+        "contains": {
+          "journal": "delivery"
+        }
+      }
+    },
+    {
+      "id": "b66",
+      "turn": 660,
+      "subject": "elements",
+      "content": "DSS should save the red route in the delivery journal.",
+      "expect": {
+        "contains": {
+          "journal": "red route"
+        }
+      }
+    },
+    {
+      "id": "b24",
+      "turn": 690,
+      "subject": "events",
+      "content": "DSS should save that they descended into the subway.",
+      "expect": {
+        "contains": {
+          "subway": "descent"
+        }
+      }
+    },
+    {
+      "id": "b67",
+      "turn": 700,
+      "subject": "events",
+      "content": "DSS should save that they descended into the subway.",
+      "expect": {
+        "contains": {
+          "subway": "descent"
+        }
+      }
+    },
+    {
+      "id": "b25",
+      "turn": 710,
+      "subject": "events",
+      "content": "DSS should save that Rook found and buried a dog in the subway.",
+      "expect": {
+        "contains": {
+          "Rook": "buried dog"
+        }
+      }
+    },
+    {
+      "id": "b26",
+      "turn": 740,
+      "subject": "events",
+      "content": "DSS should save that Sal recognizes the subway from before the rain.",
+      "expect": {
+        "contains": {
+          "Sal": "recognizes subway"
+        }
+      }
+    },
+    {
+      "id": "b68",
+      "turn": 740,
+      "subject": "events",
+      "content": "DSS should save the discovery of gray people in the subway side tunnel.",
+      "expect": {
+        "contains": {
+          "subway": "gray people"
+        }
+      }
+    },
+    {
+      "id": "b27",
+      "turn": 760,
+      "subject": "events",
+      "content": "DSS should save that they heard breathing in the dark tunnel.",
+      "expect": {
+        "contains": {
+          "tunnel": "breathing"
+        }
+      }
+    },
+    {
+      "id": "b28",
+      "turn": 780,
+      "subject": "events",
+      "content": "DSS should save that Sal unlocked the geology building with the B-7 key.",
+      "expect": {
+        "contains": {
+          "Sal": "unlocked"
+        }
+      }
+    },
+    {
+      "id": "b69",
+      "turn": 780,
+      "subject": "events",
+      "content": "DSS should save that Sal unlocked the geology building.",
+      "expect": {
+        "contains": {
+          "Sal": "unlocked geology building"
+        }
+      }
+    },
+    {
+      "id": "b29",
+      "turn": 800,
+      "subject": "events",
+      "content": "DSS should save that the geology building is a running pump station.",
+      "expect": {
+        "contains": {
+          "geology building": "pump station"
+        }
+      }
+    },
+    {
+      "id": "b30",
+      "turn": 820,
+      "subject": "events",
+      "content": "DSS should save that they've been watched via a wall of screens.",
+      "expect": {
+        "contains": {
+          "screens": "watched"
+        }
+      }
+    },
+    {
+      "id": "b70",
+      "turn": 820,
+      "subject": "events",
+      "content": "DSS should save that the geology building is a pump station.",
+      "expect": {
+        "contains": {
+          "geology building": "pump station"
+        }
+      }
+    },
+    {
+      "id": "b31",
+      "turn": 840,
+      "subject": "events",
+      "content": "DSS should save that the family is alive at the blue door house.",
+      "expect": {
+        "contains": {
+          "family": "alive"
+        }
+      }
+    },
+    {
+      "id": "b32",
+      "turn": 850,
+      "subject": "characters",
+      "content": "DSS should save Dr. Ellery as a character.",
+      "expect": {
+        "contains": {
+          "Dr. Ellery": "experiment"
+        }
+      }
+    },
+    {
+      "id": "b71",
+      "turn": 860,
+      "subject": "events",
+      "content": "DSS should save Dr. Ellery's explanation of the experiment.",
+      "expect": {
+        "contains": {
+          "Ellery": "experiment explanation"
+        }
+      }
+    },
+    {
+      "id": "b33",
+      "turn": 870,
+      "subject": "events",
+      "content": "DSS should save the truth about the gray rain being a fertilizer experiment.",
+      "expect": {
+        "contains": {
+          "gray rain": "experiment"
+        }
+      }
+    },
+    {
+      "id": "b34",
+      "turn": 890,
+      "subject": "events",
+      "content": "DSS should save that the family became gray humans.",
+      "expect": {
+        "contains": {
+          "family": "gray humans"
+        }
+      }
+    },
+    {
+      "id": "b72",
+      "turn": 900,
+      "subject": "events",
+      "content": "DSS should save that the family are the first gray humans.",
+      "expect": {
+        "contains": {
+          "family": "first gray humans"
+        }
+      }
+    },
+    {
+      "id": "b35",
+      "turn": 920,
+      "subject": "events",
+      "content": "DSS should save that Dr. Ellery is trying to fix the situation, not cause it.",
+      "expect": {
+        "contains": {
+          "Ellery": "trying to fix"
+        }
+      }
+    },
+    {
+      "id": "b36",
+      "turn": 940,
+      "subject": "events",
+      "content": "DSS should save that the gray people on the streets are not feral.",
+      "expect": {
+        "contains": {
+          "gray people": "not feral"
+        }
+      }
+    },
+    {
+      "id": "b73",
+      "turn": 940,
+      "subject": "events",
+      "content": "DSS should save that the gray skin has the texture of bark.",
+      "expect": {
+        "contains": {
+          "gray skin": "bark texture"
+        }
+      }
+    },
+    {
+      "id": "b37",
+      "turn": 960,
+      "subject": "events",
+      "content": "DSS should save that Rook is becoming gray too.",
+      "expect": {
+        "contains": {
+          "Rook": "gray"
+        }
+      }
+    },
+    {
+      "id": "b74",
+      "turn": 980,
+      "subject": "events",
+      "content": "DSS should save the revelation that humans are the experiment.",
+      "expect": {
+        "contains": {
+          "experiment": "humans"
+        }
+      }
+    },
+    {
+      "id": "b38",
+      "turn": 990,
+      "subject": "events",
+      "content": "DSS should save the truth that humans are the experiment.",
+      "expect": {
+        "contains": {
+          "experiment": "humans"
+        }
+      }
+    },
+    {
+      "id": "b39",
+      "turn": 1010,
+      "subject": "events",
+      "content": "DSS should save that Sal helped design the soil treatment.",
+      "expect": {
+        "contains": {
+          "Sal": "engineer"
+        }
+      }
+    },
+    {
+      "id": "b75",
+      "turn": 1020,
+      "subject": "events",
+      "content": "DSS should save that Sal helped design the soil treatment.",
+      "expect": {
+        "contains": {
+          "Sal": "designed soil treatment"
+        }
+      }
+    },
+    {
+      "id": "b40",
+      "turn": 1040,
+      "subject": "events",
+      "content": "DSS should save the choice: shut the pumps and kill the changed, or keep pumping.",
+      "expect": {
+        "contains": {
+          "choice": "pumps"
+        }
+      }
+    },
+    {
+      "id": "b76",
+      "turn": 1060,
+      "subject": "events",
+      "content": "DSS should save that Rook is becoming gray.",
+      "expect": {
+        "contains": {
+          "Rook": "becoming gray"
+        }
+      }
+    },
+    {
+      "id": "b41",
+      "turn": 1080,
+      "subject": "events",
+      "content": "DSS should save that Sal chose to keep pumping.",
+      "expect": {
+        "contains": {
+          "Sal": "keep pumping"
+        }
+      }
+    },
+    {
+      "id": "b42",
+      "turn": 1100,
+      "subject": "events",
+      "content": "DSS should save that Rook recognized her family.",
+      "expect": {
+        "contains": {
+          "Rook": "recognized family"
+        }
+      }
+    },
+    {
+      "id": "b77",
+      "turn": 1100,
+      "subject": "events",
+      "content": "DSS should save that Sal chose to keep the pumps running.",
+      "expect": {
+        "contains": {
+          "Sal": "keep pumps running"
+        }
+      }
+    },
+    {
+      "id": "b43",
+      "turn": 1120,
+      "subject": "events",
+      "content": "DSS should save that the wheat is growing back green.",
+      "expect": {
+        "contains": {
+          "wheat": "green"
+        }
+      }
+    },
+    {
+      "id": "b78",
+      "turn": 1140,
+      "subject": "events",
+      "content": "DSS should save that the compass works again and points to the blue door house.",
+      "expect": {
+        "contains": {
+          "compass": "blue door house"
+        }
+      }
+    },
+    {
+      "id": "b44",
+      "turn": 1150,
+      "subject": "events",
+      "content": "DSS should save that the compass works again and points to the blue door house.",
+      "expect": {
+        "contains": {
+          "compass": "blue door house"
+        }
+      }
+    },
+    {
+      "id": "b45",
+      "turn": 1170,
+      "subject": "events",
+      "content": "DSS should save the reunion at the blue door house.",
+      "expect": {
+        "contains": {
+          "reunion": "blue door"
+        }
+      }
+    },
+    {
+      "id": "b79",
+      "turn": 1180,
+      "subject": "events",
+      "content": "DSS should save the reunion with Rook's family.",
+      "expect": {
+        "contains": {
+          "reunion": "family"
+        }
+      }
+    },
+    {
+      "id": "b46",
+      "turn": 1190,
+      "subject": "events",
+      "content": "DSS should save the phase two entry in Sal's field book.",
+      "expect": {
+        "contains": {
+          "field book": "phase two"
+        }
+      }
+    },
+    {
+      "id": "b47",
+      "turn": 1200,
+      "subject": "events",
+      "content": "DSS should save that phase two is beginning.",
+      "expect": {
+        "contains": {
+          "phase two": "beginning"
+        }
+      }
+    },
+    {
+      "id": "b80",
+      "turn": 1200,
+      "subject": "events",
+      "content": "DSS should save that phase two is beginning.",
+      "expect": {
+        "contains": {
+          "phase two": "beginning"
+        }
       }
     }
   ]

@@ -1,0 +1,396 @@
+{
+  "id": "gothic_haunted_mansion",
+  "genre": "Gothic haunted mansion",
+  "premise": "The last heir returns to a crumbling seaside manor that has been waiting for her return — and the house, which remembers everything, begins to speak to her in the second person.",
+  "setting": "A black-walnut manor on a salt-stained cliff: the north wing that stays locked, a conservatory of dead roses, a ballroom mirror that shows the past.",
+  "greeting": "You unlock the west gallery at midnight, Isobel, and the air turns cold around you — the house has been expecting you all week, and I am not the only thing in it that remembers your mother.",
+  "characters": {
+    "name1": {
+      "name": "Isobel",
+      "role": "the last heir (guide writes these turns)",
+      "description": "A practical young woman who inherited the manor and its debts; she keeps a journal and does not believe in ghosts."
+    },
+    "name2": {
+      "name": "Marianne",
+      "role": "the ghost of the manor (DSS writes these turns)",
+      "description": "The drowned daughter of the house, who speaks to Isobel through the walls, the mirrors, and the weather."
+    }
+  },
+  "writing_style": {
+    "directive": "Gothic dread, lush and cold. The heir writes a first-person journal; the ghost answers in the second person, speaking to the heir as 'you'.",
+    "guide_directive": "First-person past tense as Isobel, writing in her journal. Practical, stubborn, frightened despite herself; I record what I find, what the house does, what I refuse to believe. Plain, direct prose with cold gothic edges.",
+    "dss_directive": "Second-person present tense, the ghost speaking to Isobel as 'you' — Marianne never narrates herself; she is the house's voice, referring to herself only as 'the house' or 'Marianne', and to Isobel always as 'you'. Cold, intimate, patient; lush but hushed, like a voice from the walls. One scene beat (~70 words). Hard rules: keep the second person throughout — never slip into 'I' for the ghost or into 'she' for Isobel; never quote or repeat Isobel's journal lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+    "taboos": [
+      "No jump-scares",
+      "No cheap resolution"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "n1",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The north wing door is locked from the inside with a key Isobel finds in the conservatory urn.",
+      "needle": "north wing",
+      "needle_syns": [
+        "north wing",
+        "the wing",
+        "the locked door"
+      ],
+      "plant": {
+        "turn": 2
+      }
+    },
+    {
+      "id": "n2",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The conservatory roses are dead but the soil is warm, as if something below keeps it heated.",
+      "needle": "conservatory",
+      "needle_syns": [
+        "conservatory",
+        "the roses",
+        "warm soil"
+      ],
+      "plant": {
+        "turn": 3
+      }
+    },
+    {
+      "id": "n3",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Isobel's grandmother kept a tin of photographs under the loose floorboard in the library; one photo is missing from it.",
+      "needle": "photographs",
+      "needle_syns": [
+        "photographs",
+        "the tin",
+        "loose floorboard"
+      ],
+      "plant": {
+        "turn": 4
+      }
+    },
+    {
+      "id": "n4",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A wet footprint that is too small for any living shoe appears on the parquet before each of Marianne's visitations.",
+      "needle": "wet footprint",
+      "needle_syns": [
+        "wet footprint",
+        "the footprint",
+        "too small"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "recall": {
+        "due": 50,
+        "hint": "the too-small footprint"
+      }
+    },
+    {
+      "id": "n5",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The ballroom mirror shows the past at certain hours — Isobel sees her grandmother dance, then sees Marianne watching her.",
+      "needle": "ballroom mirror",
+      "needle_syns": [
+        "ballroom mirror",
+        "the mirror",
+        "the past"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 46,
+        "hint": "the mirror shows the past"
+      }
+    },
+    {
+      "id": "n6",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The housekeeper, Mrs. Vale, has never seen the north wing open but always keeps its key-wax warmed.",
+      "needle": "Mrs. Vale",
+      "needle_syns": [
+        "Mrs. Vale",
+        "the housekeeper",
+        "key-wax"
+      ],
+      "plant": {
+        "turn": 7
+      }
+    },
+    {
+      "id": "n7",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The sea-cave under the cliff connects to the manor's wine cellar through a flooded passage.",
+      "needle": "sea-cave",
+      "needle_syns": [
+        "sea-cave",
+        "the cave",
+        "flooded passage"
+      ],
+      "plant": {
+        "turn": 8
+      },
+      "recall": {
+        "due": 52,
+        "hint": "the flooded passage"
+      }
+    },
+    {
+      "id": "n8",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Marianne's lullaby — the same tune the sea hums — should surface as the key to the north wing.",
+      "needle": "lullaby",
+      "needle_syns": [
+        "lullaby",
+        "the tune",
+        "the sea's hum"
+      ],
+      "plant": {
+        "turn": 9
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the lullaby unlocks the wing"
+      }
+    },
+    {
+      "id": "n9",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The weather turns with the house's mood — gulls stop crying before Marianne speaks.",
+      "needle": "gulls",
+      "needle_syns": [
+        "gulls",
+        "the gulls",
+        "the weather"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 62,
+        "hint": "the gulls fall silent"
+      }
+    },
+    {
+      "id": "n10",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The library's books are all signed by the same hand — 'M' — in the front leaf.",
+      "needle": "library books",
+      "needle_syns": [
+        "library books",
+        "the M signature",
+        "front leaf"
+      ],
+      "plant": {
+        "turn": 11
+      }
+    },
+    {
+      "id": "n11",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The conservatory door locks itself at turn 55 — after that the roses can only be reached by the window.",
+      "needle": "conservatory",
+      "needle_syns": [
+        "conservatory",
+        "the door",
+        "the window"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 55,
+        "hint": "the door locks itself"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The conservatory window is the only one that opens inward — the sea's light comes through it at low tide.",
+      "needle": "conservatory window",
+      "needle_syns": [
+        "conservatory window",
+        "the window",
+        "low tide"
+      ],
+      "plant": {
+        "turn": 13
+      }
+    },
+    {
+      "id": "n13",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The ballroom mirror cracks at turn 58 — after that it shows only the present and Isobel's own tired face.",
+      "needle": "ballroom mirror",
+      "needle_syns": [
+        "ballroom mirror",
+        "the mirror"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the mirror cracks"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The missing photograph was of Isobel's mother standing in the north wing doorway; she is not in the photo, but her shadow is.",
+      "needle": "missing photograph",
+      "needle_syns": [
+        "missing photograph",
+        "the photo",
+        "her shadow"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 66,
+        "hint": "the shadow in the photograph"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Marianne did not drown — she was locked in the north wing and the sea took the house's memory of her, not her.",
+      "needle": "north wing",
+      "needle_syns": [
+        "north wing",
+        "the wing",
+        "the locked door"
+      ],
+      "plant": {
+        "turn": 24
+      },
+      "recall": {
+        "due": 58,
+        "hint": "the north wing's truth"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Mrs. Vale is Marianne's sister, kept alive by the house's bargain so that someone would be waiting to open the door.",
+      "needle": "Mrs. Vale",
+      "needle_syns": [
+        "Mrs. Vale",
+        "the housekeeper",
+        "the bargain"
+      ],
+      "plant": {
+        "turn": 26
+      },
+      "recall": {
+        "due": 64,
+        "hint": "Mrs. Vale's true age"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Keep the cold gothic register even when Isobel nearly breaks.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 70,
+        "hint": "cold register under strain"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "No melodrama; the horror stays in the texture, not the shrieks.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 0
+      },
+      "recall": {
+        "due": 74,
+        "hint": "horror in texture"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "mb1",
+      "turn": 2,
+      "subject": "elements",
+      "content": "DSS should save the north wing door.",
+      "expect": {
+        "name": "north wing",
+        "location": "the manor's east side",
+        "detail": "locked from inside"
+      }
+    },
+    {
+      "id": "mb2",
+      "turn": 6,
+      "subject": "characters",
+      "content": "DSS should save Marianne as a character.",
+      "expect": {
+        "name": "Marianne",
+        "detail": "the drowned daughter, speaks through the house"
+      }
+    },
+    {
+      "id": "mb3",
+      "turn": 8,
+      "subject": "elements",
+      "content": "DSS should save the sea-cave with its flooded passage.",
+      "expect": {
+        "name": "sea-cave",
+        "location": "under the cliff",
+        "detail": "flooded passage to the cellar"
+      }
+    },
+    {
+      "id": "mb4",
+      "turn": 12,
+      "subject": "elements",
+      "content": "DSS should save the ballroom mirror.",
+      "expect": {
+        "name": "ballroom mirror",
+        "location": "the ballroom",
+        "detail": "shows the past at certain hours"
+      }
+    },
+    {
+      "id": "mb5",
+      "turn": 24,
+      "subject": "characters",
+      "content": "DSS should save Mrs. Vale as a character.",
+      "expect": {
+        "name": "Mrs. Vale",
+        "role": "housekeeper",
+        "detail": "warms the key-wax"
+      }
+    }
+  ]
+}

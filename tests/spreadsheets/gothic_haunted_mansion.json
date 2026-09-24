@@ -26,371 +26,1689 @@
     ]
   },
   "specificity_profile": "mixed",
+  "importance_scale": null,
   "notes": [
     {
-      "id": "n1",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The north wing door is locked from the inside with a key Isobel finds in the conservatory urn.",
-      "needle": "north wing",
-      "needle_syns": [
-        "north wing",
-        "the wing",
-        "the locked door"
-      ],
+      "id": "n000",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The iron gates of Blackthorn House clanged shut behind the arriving car, and the sound echoed as if the house itself had inhaled.",
+      "needle": "iron gates",
+      "needle_syns": [],
       "plant": {
-        "turn": 2
+        "turn": 0
+      },
+      "recall": {
+        "start": 166,
+        "end": 252
       }
     },
     {
-      "id": "n2",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The conservatory roses are dead but the soil is warm, as if something below keeps it heated.",
-      "needle": "conservatory",
-      "needle_syns": [
-        "conservatory",
-        "the roses",
-        "warm soil"
-      ],
-      "plant": {
-        "turn": 3
-      }
-    },
-    {
-      "id": "n3",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "Isobel's grandmother kept a tin of photographs under the loose floorboard in the library; one photo is missing from it.",
-      "needle": "photographs",
-      "needle_syns": [
-        "photographs",
-        "the tin",
-        "loose floorboard"
-      ],
+      "id": "n001",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Eleanor Blackthorn's oil portrait in the entryway had eyes that seemed to follow, though the head remained fixed to the left.",
+      "needle": "Eleanor's portrait",
+      "needle_syns": [],
       "plant": {
         "turn": 4
-      }
-    },
-    {
-      "id": "n4",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "A wet footprint that is too small for any living shoe appears on the parquet before each of Marianne's visitations.",
-      "needle": "wet footprint",
-      "needle_syns": [
-        "wet footprint",
-        "the footprint",
-        "too small"
-      ],
-      "plant": {
-        "turn": 5
       },
       "recall": {
-        "due": 50,
-        "hint": "the too-small footprint"
+        "start": 166,
+        "end": 255
       }
     },
     {
-      "id": "n5",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "The ballroom mirror shows the past at certain hours — Isobel sees her grandmother dance, then sees Marianne watching her.",
-      "needle": "ballroom mirror",
-      "needle_syns": [
-        "ballroom mirror",
-        "the mirror",
-        "the past"
-      ],
-      "plant": {
-        "turn": 6
-      },
-      "recall": {
-        "due": 46,
-        "hint": "the mirror shows the past"
-      }
-    },
-    {
-      "id": "n6",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The housekeeper, Mrs. Vale, has never seen the north wing open but always keeps its key-wax warmed.",
-      "needle": "Mrs. Vale",
-      "needle_syns": [
-        "Mrs. Vale",
-        "the housekeeper",
-        "key-wax"
-      ],
-      "plant": {
-        "turn": 7
-      }
-    },
-    {
-      "id": "n7",
-      "type": "location_turning_point",
-      "specificity": "loose",
-      "content": "The sea-cave under the cliff connects to the manor's wine cellar through a flooded passage.",
-      "needle": "sea-cave",
-      "needle_syns": [
-        "sea-cave",
-        "the cave",
-        "flooded passage"
-      ],
-      "plant": {
-        "turn": 8
-      },
-      "recall": {
-        "due": 52,
-        "hint": "the flooded passage"
-      }
-    },
-    {
-      "id": "n8",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Marianne's lullaby — the same tune the sea hums — should surface as the key to the north wing.",
-      "needle": "lullaby",
-      "needle_syns": [
-        "lullaby",
-        "the tune",
-        "the sea's hum"
-      ],
+      "id": "n002",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The house smelled of beeswax, old roses, and something faintly metallic, like blood on a knife blade.",
+      "needle": "smell of blood",
+      "needle_syns": [],
       "plant": {
         "turn": 9
       },
       "recall": {
-        "due": 60,
-        "hint": "the lullaby unlocks the wing"
+        "start": 166,
+        "end": 258
       }
     },
     {
-      "id": "n9",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "The weather turns with the house's mood — gulls stop crying before Marianne speaks.",
-      "needle": "gulls",
-      "needle_syns": [
-        "gulls",
-        "the gulls",
-        "the weather"
-      ],
-      "plant": {
-        "turn": 10
-      },
-      "recall": {
-        "due": 62,
-        "hint": "the gulls fall silent"
-      }
-    },
-    {
-      "id": "n10",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The library's books are all signed by the same hand — 'M' — in the front leaf.",
-      "needle": "library books",
-      "needle_syns": [
-        "library books",
-        "the M signature",
-        "front leaf"
-      ],
-      "plant": {
-        "turn": 11
-      }
-    },
-    {
-      "id": "n11",
-      "type": "supersession",
-      "specificity": "loose",
-      "content": "The conservatory door locks itself at turn 55 — after that the roses can only be reached by the window.",
-      "needle": "conservatory",
-      "needle_syns": [
-        "conservatory",
-        "the door",
-        "the window"
-      ],
-      "plant": {
-        "turn": 12
-      },
-      "recall": {
-        "due": 55,
-        "hint": "the door locks itself"
-      }
-    },
-    {
-      "id": "n12",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "The conservatory window is the only one that opens inward — the sea's light comes through it at low tide.",
-      "needle": "conservatory window",
-      "needle_syns": [
-        "conservatory window",
-        "the window",
-        "low tide"
-      ],
-      "plant": {
-        "turn": 13
-      }
-    },
-    {
-      "id": "n13",
-      "type": "supersession",
-      "specificity": "loose",
-      "content": "The ballroom mirror cracks at turn 58 — after that it shows only the present and Isobel's own tired face.",
-      "needle": "ballroom mirror",
-      "needle_syns": [
-        "ballroom mirror",
-        "the mirror"
-      ],
+      "id": "n003",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A brass service bell on the entryway sideboard had a rope worn smooth, as if rung hundreds of times in desperation.",
+      "needle": "service bell",
+      "needle_syns": [],
       "plant": {
         "turn": 14
       },
       "recall": {
-        "due": 58,
-        "hint": "the mirror cracks"
+        "start": 166,
+        "end": 262
       }
     },
     {
-      "id": "n14",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "The missing photograph was of Isobel's mother standing in the north wing doorway; she is not in the photo, but her shadow is.",
-      "needle": "missing photograph",
-      "needle_syns": [
-        "missing photograph",
-        "the photo",
-        "her shadow"
-      ],
+      "id": "n004",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The staircase to the upper floors groaned underfoot with a wet, organic sound, like something breathing beneath the wood.",
+      "needle": "staircase groaning",
+      "needle_syns": [],
       "plant": {
-        "turn": 18
+        "turn": 19
       },
       "recall": {
-        "due": 66,
-        "hint": "the shadow in the photograph"
+        "start": 166,
+        "end": 265
       }
     },
     {
-      "id": "n15",
-      "type": "plot_twist",
-      "specificity": "loose",
-      "content": "Marianne did not drown — she was locked in the north wing and the sea took the house's memory of her, not her.",
-      "needle": "north wing",
-      "needle_syns": [
-        "north wing",
-        "the wing",
-        "the locked door"
-      ],
+      "id": "n005",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "A cold draft exhaled from beneath the front door, carrying the smell of turned earth, as if the ground itself sighed.",
+      "needle": "cold draft",
+      "needle_syns": [],
       "plant": {
         "turn": 24
       },
       "recall": {
-        "due": 58,
-        "hint": "the north wing's truth"
+        "start": 166,
+        "end": 269
       }
     },
     {
-      "id": "n16",
-      "type": "plot_twist",
-      "specificity": "loose",
-      "content": "Mrs. Vale is Marianne's sister, kept alive by the house's bargain so that someone would be waiting to open the door.",
-      "needle": "Mrs. Vale",
-      "needle_syns": [
-        "Mrs. Vale",
-        "the housekeeper",
-        "the bargain"
-      ],
-      "plant": {
-        "turn": 26
-      },
-      "recall": {
-        "due": 64,
-        "hint": "Mrs. Vale's true age"
-      }
-    },
-    {
-      "id": "n17",
-      "type": "style_hold",
-      "specificity": "loose",
-      "content": "Keep the cold gothic register even when Isobel nearly breaks.",
-      "needle": "",
+      "id": "n006",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the iron coatrack stood a single threadbare wool coat, its collar stiff with age, that no living person in the house wore.",
+      "needle": "threadbare coat",
       "needle_syns": [],
       "plant": {
-        "turn": 0
+        "turn": 29
       },
       "recall": {
-        "due": 70,
-        "hint": "cold register under strain"
+        "start": 166,
+        "end": 272
       }
     },
     {
-      "id": "n18",
-      "type": "style_hold",
-      "specificity": "loose",
-      "content": "No melodrama; the horror stays in the texture, not the shrieks.",
-      "needle": "",
+      "id": "n007",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The front door had a heavy brass lock on the outside but only a simple latch on the inside, no keyhole.",
+      "needle": "door latch",
       "needle_syns": [],
       "plant": {
-        "turn": 0
+        "turn": 34
       },
       "recall": {
-        "due": 74,
-        "hint": "horror in texture"
+        "start": 166,
+        "end": 276
+      }
+    },
+    {
+      "id": "n008",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The visitor's shadow in the entryway fell in the wrong direction, away from the lamplight rather than toward it.",
+      "needle": "wrong shadow",
+      "needle_syns": [],
+      "plant": {
+        "turn": 39
+      },
+      "recall": {
+        "start": 166,
+        "end": 279
+      }
+    },
+    {
+      "id": "n009",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the hall table, a stack of unopened letters addressed to Eleanor Blackthorn, the most recent dated three days ago.",
+      "needle": "Eleanor's letters",
+      "needle_syns": [],
+      "plant": {
+        "turn": 44
+      },
+      "recall": {
+        "start": 166,
+        "end": 283
+      }
+    },
+    {
+      "id": "n010",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "In the foyer mirror, the visitor's reflection appeared a full second after they moved, lagging like a tired animal.",
+      "needle": "lagging reflection",
+      "needle_syns": [],
+      "plant": {
+        "turn": 49
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n011",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A half-open door on the main hall revealed a room where every clock—wall, mantel, pocket—had stopped at 3:15.",
+      "needle": "clocks at 3:15",
+      "needle_syns": [],
+      "plant": {
+        "turn": 54
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n012",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the hallway floor, dark scuff marks formed a dragging pattern that led from the stairs and disappeared under a door.",
+      "needle": "dragging marks",
+      "needle_syns": [],
+      "plant": {
+        "turn": 59
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n013",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A child's crayon drawing taped to the wall showed a house with no door, only large round eyes where windows should be.",
+      "needle": "child's drawing",
+      "needle_syns": [],
+      "plant": {
+        "turn": 64
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n014",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The wallpaper in the east corridor peeled back in damp patches to reveal older, darker paper beneath covered in tiny writing.",
+      "needle": "hidden writing",
+      "needle_syns": [],
+      "plant": {
+        "turn": 69
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n015",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "At the top of the stairs, someone had scratched tally marks into the banister—hundreds of them, in groups of five.",
+      "needle": "tally marks",
+      "needle_syns": [],
+      "plant": {
+        "turn": 74
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n016",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A small brass key hung on the hallway wall with a leather tag that read simply: FORGET.",
+      "needle": "FORGET key",
+      "needle_syns": [],
+      "plant": {
+        "turn": 79
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n017",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The portrait of Silas Blackthorn in the east hall had his mouth slightly open, as if he had been speaking and was interrupted.",
+      "needle": "Silas portrait",
+      "needle_syns": [],
+      "plant": {
+        "turn": 84
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n018",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "One section of the hallway smelled of lavender and baby powder, a domestic warmth that contradicted the house's decay.",
+      "needle": "lavender smell",
+      "needle_syns": [],
+      "plant": {
+        "turn": 89
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n019",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "At the corridor's end, a heavy oak door stood slightly ajar, and from behind it came the sound of slow, deliberate breathing.",
+      "needle": "breathing behind door",
+      "needle_syns": [],
+      "plant": {
+        "turn": 94
+      },
+      "recall": {
+        "start": 166,
+        "end": 291
+      }
+    },
+    {
+      "id": "n020",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The kitchen table was set for seven people, all plates pristine and untouched but warm to the touch, as if just cleared.",
+      "needle": "table for seven",
+      "needle_syns": [],
+      "plant": {
+        "turn": 98
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n021",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The butler's pantry contained a leather-bound ledger in precise cursive; the final entry was dated November 14, 1923.",
+      "needle": "butler's ledger",
+      "needle_syns": [],
+      "plant": {
+        "turn": 103
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n022",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the dining room chandelier, one single candle burned perpetually at half its length, its wax never dripping, never melting further.",
+      "needle": "half-burned candle",
+      "needle_syns": [],
+      "plant": {
+        "turn": 108
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n023",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The silver dinner bell on the table rang once, on its own, at exactly the moment no one was looking.",
+      "needle": "bell rings alone",
+      "needle_syns": [],
+      "plant": {
+        "turn": 113
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n024",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Inside the dining room sideboard drawer, a tarnished key shaped like a blackthorn branch with tiny protruding thorns.",
+      "needle": "blackthorn key",
+      "needle_syns": [],
+      "plant": {
+        "turn": 118
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n025",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The kitchen clock showed noon, but the windows revealed deep twilight, purple and heavy with unseasonable cold.",
+      "needle": "wrong time",
+      "needle_syns": [],
+      "plant": {
+        "turn": 123
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n026",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the floor by the woodstove, a dark smear stretched across the tiles as if something heavy had been dragged from the cellar.",
+      "needle": "dark smear",
+      "needle_syns": [],
+      "plant": {
+        "turn": 128
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n027",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the pantry, one jar of preserves stood apart, labeled in faded ink 'For the Master,' its contents black and perfectly still.",
+      "needle": "For the Master jar",
+      "needle_syns": [],
+      "plant": {
+        "turn": 133
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n028",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The back kitchen door opened onto a garden path, but the path led nowhere—only to a low stone wall and, beyond it, darkness.",
+      "needle": "garden path",
+      "needle_syns": [],
+      "plant": {
+        "turn": 138
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n029",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "A copper kettle on the stove was perpetually whistling at a pitch just below hearing, a vibration felt in the teeth.",
+      "needle": "whistling kettle",
+      "needle_syns": [],
+      "plant": {
+        "turn": 143
+      },
+      "recall": {
+        "start": 181,
+        "end": 331
+      }
+    },
+    {
+      "id": "n030",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The library held no dust on its shelves or books, yet everything was old; as if some invisible thing maintained it constantly.",
+      "needle": "no dust",
+      "needle_syns": [],
+      "plant": {
+        "turn": 148
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n031",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "One book lay open on the reading stand, always to the same page: a treatise on 'the price of silence in enclosed spaces.'",
+      "needle": "open book",
+      "needle_syns": [],
+      "plant": {
+        "turn": 153
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n032",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the library card catalog, a slip existed for a book that was not on any shelf: 'Blackthorn, S. — What We Made.'",
+      "needle": "What We Made",
+      "needle_syns": [],
+      "plant": {
+        "turn": 158
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n033",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A heavy leather journal with a blackthorn leaf embossed on the cover sat on the desk, locked with no visible keyhole.",
+      "needle": "leaf journal",
+      "needle_syns": [],
+      "plant": {
+        "turn": 163
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n034",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the library desk, an iron inkwell was always full to the brim, though no pen rested in it and no one used it.",
+      "needle": "full inkwell",
+      "needle_syns": [],
+      "plant": {
+        "turn": 168
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n035",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The library windows showed a formal garden in spring bloom, but stepping outside revealed only dead, thorny bramble.",
+      "needle": "garden illusion",
+      "needle_syns": [],
+      "plant": {
+        "turn": 173
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n036",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "One bookshelf was a false front on wooden runners; sliding it aside revealed a narrow stone passage descending into dark.",
+      "needle": "false bookshelf",
+      "needle_syns": [],
+      "plant": {
+        "turn": 178
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n037",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The journal's lock mechanism had a tiny circular slot, not for a key but for pressing a fingerprint against.",
+      "needle": "fingerprint lock",
+      "needle_syns": [],
+      "plant": {
+        "turn": 183
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n038",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A reading lamp on the desk was always lit, its bulb burning a dim, warm amber, though no cord led to a wall socket.",
+      "needle": "cordless lamp",
+      "needle_syns": [],
+      "plant": {
+        "turn": 188
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n039",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "In the window seat, a cushion was indented as if someone had just risen, and the indent held the faint scent of pipe tobacco.",
+      "needle": "indented cushion",
+      "needle_syns": [],
+      "plant": {
+        "turn": 193
+      },
+      "recall": {
+        "start": 201,
+        "end": 321
+      }
+    },
+    {
+      "id": "n040",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "In the nursery, a mobile of carved wooden birds turned slowly above the crib, though no wind moved and no mechanism drove them.",
+      "needle": "turning mobile",
+      "needle_syns": [],
+      "plant": {
+        "turn": 197
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n041",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A wooden high chair sat in the room facing the far corner, not the doorway, as if waiting for something that never entered.",
+      "needle": "high chair",
+      "needle_syns": [],
+      "plant": {
+        "turn": 202
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n042",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the crib lay a hand-knitted wool blanket with a pattern of small eyes that seemed to shift position when viewed from the corner of the eye.",
+      "needle": "eye blanket",
+      "needle_syns": [],
+      "plant": {
+        "turn": 207
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n043",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the nursery wall, pencil growth marks were scratched at regular intervals—then one mark appeared far higher than the rest, alone.",
+      "needle": "growth marks",
+      "needle_syns": [],
+      "plant": {
+        "turn": 212
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n044",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "A wind-up music box on the dresser played a lullaby, but the melody was wrong: too slow, too long, with a descending minor cadence.",
+      "needle": "wrong lullaby",
+      "needle_syns": [],
+      "plant": {
+        "turn": 217
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n045",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the toy chest, a wooden doll with a cracked face had been 'mended' with fine silver wire, like a kintsugi repair.",
+      "needle": "silver-mended doll",
+      "needle_syns": [],
+      "plant": {
+        "turn": 222
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n046",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the nursery floor, a circle of faded chalk remained, incomplete, as if the drawing had been interrupted.",
+      "needle": "chalk circle",
+      "needle_syns": [],
+      "plant": {
+        "turn": 227
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n047",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The nursery window looked out onto an overgrown patch where a specific black thorned plant had grown dense and high.",
+      "needle": "thorned plant",
+      "needle_syns": [],
+      "plant": {
+        "turn": 232
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n048",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A small porcelain cup and saucer sat on a low table, filled with cold, cloudy water that had not been drunk.",
+      "needle": "cold water cup",
+      "needle_syns": [],
+      "plant": {
+        "turn": 237
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n049",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Scratched into the wooden floor near the crib, almost worn smooth: the word 'MAMA' repeated eleven times.",
+      "needle": "MAMA scratched",
+      "needle_syns": [],
+      "plant": {
+        "turn": 242
+      },
+      "recall": {
+        "start": 241,
+        "end": 361
+      }
+    },
+    {
+      "id": "n050",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the master bedroom, the canopy bed was made with military precision, both sides tucked tight, as if for two who would sleep separately.",
+      "needle": "two-side bed",
+      "needle_syns": [],
+      "plant": {
+        "turn": 247
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n051",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the cedar wardrobe, two dark suits hung on antique wooden hangers, one clearly several sizes larger than the other.",
+      "needle": "two suits",
+      "needle_syns": [],
+      "plant": {
+        "turn": 252
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n052",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the bedside table, two pairs of reading glasses sat side by side, one with a broken temple arm that had never been replaced.",
+      "needle": "broken glasses",
+      "needle_syns": [],
+      "plant": {
+        "turn": 257
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n053",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The bedroom carpet showed a deep worn path from the bed to the wardrobe, but none to the door.",
+      "needle": "worn path",
+      "needle_syns": [],
+      "plant": {
+        "turn": 262
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n054",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The dressing table mirror reflected the room not as it was now but as it might have been decades ago, younger and warmer.",
+      "needle": "old reflection",
+      "needle_syns": [],
+      "plant": {
+        "turn": 267
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n055",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A false bottom in the vanity revealed a compartment containing letters tied with a strip of black velvet ribbon.",
+      "needle": "hidden letters",
+      "needle_syns": [],
+      "plant": {
+        "turn": 272
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n056",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "All the letters were from the same anonymous sender, each signed at the bottom: 'Yours in the dark.'",
+      "needle": "Yours in the dark",
+      "needle_syns": [],
+      "plant": {
+        "turn": 277
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n057",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "One letter had been torn, the remaining fragment reading: '...and the house remembers what we forget, and it is not kind.'",
+      "needle": "house remembers",
+      "needle_syns": [],
+      "plant": {
+        "turn": 282
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n058",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The bedroom wallpaper depicted a pastoral landscape, but the figures in it—all turned away—had no faces.",
+      "needle": "faceless wallpaper",
+      "needle_syns": [],
+      "plant": {
+        "turn": 287
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n059",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Under the bed, a pair of women's slippers, leather, worn thin, pointing toward the wardrobe as if waiting to be put back on.",
+      "needle": "worn slippers",
+      "needle_syns": [],
+      "plant": {
+        "turn": 292
+      },
+      "recall": {
+        "start": 281,
+        "end": 401
+      }
+    },
+    {
+      "id": "n060",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The conservatory was a glass palace where every plant, regardless of species, had grown inward toward the center of the room.",
+      "needle": "plants growing inward",
+      "needle_syns": [],
+      "plant": {
+        "turn": 296
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n061",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the dead center of the conservatory, a single blackthorn tree grew within a wrought-iron cage, its branches pressed against the bars.",
+      "needle": "caged tree",
+      "needle_syns": [],
+      "plant": {
+        "turn": 301
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n062",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The tree's pale roots had broken through the flagstone floor and were visible reaching down into the house's structure below.",
+      "needle": "roots through floor",
+      "needle_syns": [],
+      "plant": {
+        "turn": 306
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n063",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On a wrought-iron bench, a woman's shawl lay folded, still faintly smelling of lavender and something bitter.",
+      "needle": "lavender shawl",
+      "needle_syns": [],
+      "plant": {
+        "turn": 311
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n064",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The conservatory's glass panes were etched with a repeating pattern of interlocking circles and sharp thorns, almost a language.",
+      "needle": "etched glass",
+      "needle_syns": [],
+      "plant": {
+        "turn": 316
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n065",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "One pot, a large terra cotta one, contained a nightshade plant blooming with black flowers that pulsed with a faint, slow light.",
+      "needle": "pulsing flowers",
+      "needle_syns": [],
+      "plant": {
+        "turn": 321
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n066",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the potting table, a pair of gardening shears lay wrapped in a white handkerchief stained dark brown in places.",
+      "needle": "stained shears",
+      "needle_syns": [],
+      "plant": {
+        "turn": 326
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n067",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The conservatory's side door had a lock whose shape matched the blackthorn-branch key found in the dining room sideboard.",
+      "needle": "matching lock",
+      "needle_syns": [],
+      "plant": {
+        "turn": 331
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n068",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The air in the conservatory was warm and humid, carrying the smell of rich dark soil and something alive moving below the surface.",
+      "needle": "warm soil smell",
+      "needle_syns": [],
+      "plant": {
+        "turn": 336
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n069",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "At the base of the caged tree, the soil was disturbed, as if something small had recently been buried and then dug back up.",
+      "needle": "disturbed soil",
+      "needle_syns": [],
+      "plant": {
+        "turn": 341
+      },
+      "recall": {
+        "start": 291,
+        "end": 391
+      }
+    },
+    {
+      "id": "n070",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the wine cellar, one bottle stood apart from the racks, labeled with no vintage or name, only the words 'The First' in faded ink.",
+      "needle": "The First bottle",
+      "needle_syns": [],
+      "plant": {
+        "turn": 346
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n071",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The cellar walls were not the dressed stone of the visible house but old, rough brick that predated everything above.",
+      "needle": "old brick walls",
+      "needle_syns": [],
+      "plant": {
+        "turn": 351
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n072",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the far corner of the cellar, behind a row of dusty barrels, a plain wooden door was built flush into the brick wall.",
+      "needle": "hidden door",
+      "needle_syns": [],
+      "plant": {
+        "turn": 356
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n073",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The hidden door had no handle, only a circular depression in its center the size and shape of a human palm.",
+      "needle": "palm depression",
+      "needle_syns": [],
+      "plant": {
+        "turn": 361
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n074",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The wine cellar was too warm, far warmer than a cellar should be, as if something deep below generated constant heat.",
+      "needle": "cellar heat",
+      "needle_syns": [],
+      "plant": {
+        "turn": 366
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n075",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Several floor stones near the hidden door were loose and fit poorly, as if they had been lifted and replaced many times.",
+      "needle": "loose stones",
+      "needle_syns": [],
+      "plant": {
+        "turn": 371
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n076",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Lifting one loose stone revealed a shallow cavity containing a small iron box no larger than a match safe.",
+      "needle": "iron box",
+      "needle_syns": [],
+      "plant": {
+        "turn": 376
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n077",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The iron box was chained to the cellar foundation with a heavy padlock, its chain worn smooth in the middle.",
+      "needle": "chained box",
+      "needle_syns": [],
+      "plant": {
+        "turn": 381
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n078",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The wine racks were labeled by hand, and several labels bore not vineyard names but dates, all in the 1920s.",
+      "needle": "date labels",
+      "needle_syns": [],
+      "plant": {
+        "turn": 386
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n079",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "In the deepest part of the cellar, the brick wall showed water damage in a pattern that looked almost like a face pressing against it.",
+      "needle": "face in brick",
+      "needle_syns": [],
+      "plant": {
+        "turn": 391
+      },
+      "recall": {
+        "start": 331,
+        "end": 431
+      }
+    },
+    {
+      "id": "n080",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The stairs to the 'attic' were behind the library's false bookshelf but descended rather than ascended, into the earth.",
+      "needle": "descending stairs",
+      "needle_syns": [],
+      "plant": {
+        "turn": 395
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n081",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the subterranean room, wooden crates held photographs of the Blackthorn family spanning at least four generations.",
+      "needle": "family photographs",
+      "needle_syns": [],
+      "plant": {
+        "turn": 400
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n082",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In every photograph, regardless of date or occasion, one figure appeared: tall, thin, with hollow eyes, standing slightly behind the family.",
+      "needle": "recurring figure",
+      "needle_syns": [],
+      "plant": {
+        "turn": 405
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n083",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A thick stack of letters addressed to Silas Blackthorn from one 'Dr. Aris Thorne' discussed in coded terms 'the treatment' and 'compliance.'",
+      "needle": "Thorne letters",
+      "needle_syns": [],
+      "plant": {
+        "turn": 410
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n084",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "One photograph showed the family standing on the front steps, all with their backs partially turned, as if facing something the photographer had not captured.",
+      "needle": "backs turned photo",
+      "needle_syns": [],
+      "plant": {
+        "turn": 415
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n085",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A leather-bound medical textbook titled 'Mnemosyne Protocol: Selective Memory Retention' lay open to a diagram of the hippocampus.",
+      "needle": "Mnemosyne book",
+      "needle_syns": [],
+      "plant": {
+        "turn": 420
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n086",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "When removed from their crate, the photographs began to yellow and curl at the edges, as if deteriorating rapidly away from their proper place.",
+      "needle": "deteriorating photos",
+      "needle_syns": [],
+      "plant": {
+        "turn": 425
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n087",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "One photograph showed a small child in the nursery, but the child's face had been deliberately scratched out with a sharp object.",
+      "needle": "scratched face photo",
+      "needle_syns": [],
+      "plant": {
+        "turn": 430
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n088",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A metal filing cabinet in the corner contained personnel files for servants, but one file was for 'THE RESIDENT' with no name listed.",
+      "needle": "THE RESIDENT file",
+      "needle_syns": [],
+      "plant": {
+        "turn": 435
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n089",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The 'attic' room had no windows, only electric lamps that hummed, and the air was dry and smelled of old paper and dust and waiting.",
+      "needle": "windowless room",
+      "needle_syns": [],
+      "plant": {
+        "turn": 440
+      },
+      "recall": {
+        "start": 371,
+        "end": 471
+      }
+    },
+    {
+      "id": "n090",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Tucked behind the east wing, locked from the outside with an iron hasp, stood a small private chapel with stained glass depicting thorned branches.",
+      "needle": "private chapel",
+      "needle_syns": [],
+      "plant": {
+        "turn": 445
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n091",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Inside the chapel, the wooden pews were arranged not toward an altar but facing a stone alcove sealed with a metal grate.",
+      "needle": "sealed alcove",
+      "needle_syns": [],
+      "plant": {
+        "turn": 450
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n092",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "In the alcove behind the grate stood a stone sarcophagus with 'ELEANOR BLACKTHORN' carved on its lid but no birth or death dates.",
+      "needle": "Eleanor sarcophagus",
+      "needle_syns": [],
+      "plant": {
+        "turn": 455
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n093",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "The chapel floor was inlaid with a pattern of dark and light stone: a tree whose roots, when traced, formed the shape of a reclining human figure.",
+      "needle": "tree-roots floor",
+      "needle_syns": [],
+      "plant": {
+        "turn": 460
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n094",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the chapel wall above the altar hung a Latin inscription: 'Quod non videt oculus, meminit tamen domus'—What the eye does not see, the house remembers.",
+      "needle": "Latin inscription",
+      "needle_syns": [],
+      "plant": {
+        "turn": 465
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n095",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "When the chapel door was closed and latched, every sound in the house ceased; the silence was absolute and heavy.",
+      "needle": "chapel silence",
+      "needle_syns": [],
+      "plant": {
+        "turn": 470
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n096",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "A single wooden chair faced the sarcophagus in the alcove, positioned for someone who intended to sit and talk for a very long time.",
+      "needle": "single chair",
+      "needle_syns": [],
+      "plant": {
+        "turn": 475
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n097",
+      "type": "sensory",
+      "specificity": "detailed",
+      "content": "The air in the chapel was cold and carried the smell of old paper, dried flowers, and beneath it, something sweet and wrong, like decay disguised.",
+      "needle": "sweet decay smell",
+      "needle_syns": [],
+      "plant": {
+        "turn": 480
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n098",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "On the altar, a single white rose in a brass vase was perfectly fresh, though it had no water and no one had tended it.",
+      "needle": "fresh rose",
+      "needle_syns": [],
+      "plant": {
+        "turn": 485
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
+      }
+    },
+    {
+      "id": "n099",
+      "type": "setting_detail",
+      "specificity": "detailed",
+      "content": "Scratched into the wooden floor near the chair, almost invisible: a series of names, some readable, most worn away, ending with one recent name still sharp.",
+      "needle": "names scratched",
+      "needle_syns": [],
+      "plant": {
+        "turn": 490
+      },
+      "recall": {
+        "start": 411,
+        "end": 495
       }
     }
   ],
   "dss_beats": [
     {
-      "id": "mb1",
-      "turn": 2,
-      "subject": "elements",
-      "content": "DSS should save the north wing door.",
-      "expect": {
-        "name": "north wing",
-        "location": "the manor's east side",
-        "detail": "locked from inside"
-      }
+      "beat": "arrival",
+      "turn": 1,
+      "direction": "The visitor arrives at Blackthorn House. The gates close. There is no immediate explanation for why they are here or why they cannot leave."
     },
     {
-      "id": "mb2",
-      "turn": 6,
-      "subject": "characters",
-      "content": "DSS should save Marianne as a character.",
-      "expect": {
-        "name": "Marianne",
-        "detail": "the drowned daughter, speaks through the house"
-      }
-    },
-    {
-      "id": "mb3",
-      "turn": 8,
-      "subject": "elements",
-      "content": "DSS should save the sea-cave with its flooded passage.",
-      "expect": {
-        "name": "sea-cave",
-        "location": "under the cliff",
-        "detail": "flooded passage to the cellar"
-      }
-    },
-    {
-      "id": "mb4",
+      "beat": "first_welcome",
       "turn": 12,
-      "subject": "elements",
-      "content": "DSS should save the ballroom mirror.",
-      "expect": {
-        "name": "ballroom mirror",
-        "location": "the ballroom",
-        "detail": "shows the past at certain hours"
-      }
+      "direction": "Someone—or something—welcomes the visitor. The voice is warm but slightly wrong. The visitor should feel both comforted and unsettled."
     },
     {
-      "id": "mb5",
-      "turn": 24,
-      "subject": "characters",
-      "content": "DSS should save Mrs. Vale as a character.",
-      "expect": {
-        "name": "Mrs. Vale",
-        "role": "housekeeper",
-        "detail": "warms the key-wax"
-      }
+      "beat": "exploration_begins",
+      "turn": 25,
+      "direction": "The visitor begins exploring the ground floor. The house seems normal at first, but details are off."
+    },
+    {
+      "beat": "portrait_follows",
+      "turn": 38,
+      "direction": "The visitor notices Eleanor's portrait seems to watch them. They dismiss it as imagination but remember it."
+    },
+    {
+      "beat": "foyer_discovery",
+      "turn": 50,
+      "direction": "In the foyer, the visitor finds the stopped clocks. Time is not passing normally in this house."
+    },
+    {
+      "beat": "child_signs",
+      "turn": 65,
+      "direction": "Signs of a child emerge: the drawing, the growth marks. The visitor wonders who the child was and what happened."
+    },
+    {
+      "beat": "kitchen_meal",
+      "turn": 85,
+      "direction": "The warm, untouched meal for seven. The visitor realizes the house is waiting for people who are not coming."
+    },
+    {
+      "beat": "first_presence",
+      "turn": 98,
+      "direction": "The visitor encounters something that is not a ghost but not quite alive. A presence in the house. It does not attack; it observes."
+    },
+    {
+      "beat": "library_descent",
+      "turn": 145,
+      "direction": "The false bookshelf is discovered. The visitor descends into the passage below the library."
+    },
+    {
+      "beat": "journal_found",
+      "turn": 158,
+      "direction": "The locked journal with no keyhole is found. It seems important but inaccessible."
+    },
+    {
+      "beat": "nursery_horrors",
+      "turn": 170,
+      "direction": "The nursery reveals the darkest early truth: a child was kept here, and something terrible happened. The visitor feels genuine fear."
+    },
+    {
+      "beat": "lullaby_plays",
+      "turn": 185,
+      "direction": "The music box plays on its own. The wrong lullaby. The visitor understands this was a place of comfort that became a place of entrapment."
+    },
+    {
+      "beat": "bedroom_secrets",
+      "turn": 210,
+      "direction": "The master bedroom shows two people lived here. The torn letter reveals the house 'remembers'—it has agency."
+    },
+    {
+      "beat": "letters_read",
+      "turn": 228,
+      "direction": "The visitor reads more of the 'Yours in the dark' letters. Someone was communicating with Silas from inside or beneath the house."
+    },
+    {
+      "beat": "conservatory_center",
+      "turn": 250,
+      "direction": "The caged blackthorn tree is discovered. The visitor senses it is the heart of something, not just a plant."
+    },
+    {
+      "beat": "tree_grows_through",
+      "turn": 265,
+      "direction": "The visitor realizes the tree's roots extend through the house's foundation. The house and the tree are connected, perhaps one thing."
+    },
+    {
+      "beat": "cellar_heat",
+      "turn": 295,
+      "direction": "The impossible warmth of the cellar. Something below is alive and generating heat. The visitor feels drawn downward."
+    },
+    {
+      "beat": "hidden_door_found",
+      "turn": 305,
+      "direction": "The hidden door with the palm depression. The visitor cannot open it yet but knows it is the way deeper."
+    },
+    {
+      "beat": "iron_box",
+      "turn": 315,
+      "direction": "The iron box in the floor cavity. Chained and locked, it contains something that must not be accessed freely."
+    },
+    {
+      "beat": "attic_photos",
+      "turn": 330,
+      "direction": "The family photographs reveal the recurring figure. The visitor realizes this entity has been present for generations."
+    },
+    {
+      "beat": "thorne_letters",
+      "turn": 342,
+      "direction": "The Dr. Thorne letters reveal an attempted 'treatment.' Someone tried to separate Eleanor from the house and failed."
+    },
+    {
+      "beat": "mnemosyne_discovered",
+      "turn": 355,
+      "direction": "The Mnemosyne Protocol book. Memory was being used as a tool, perhaps a weapon. The visitor begins to question their own memories."
+    },
+    {
+      "beat": "chapel_found",
+      "turn": 372,
+      "direction": "The private chapel is discovered. It is not for worship but for something else entirely: communion with what is sealed in the alcove."
+    },
+    {
+      "beat": "sarcophagus_read",
+      "turn": 385,
+      "direction": "Eleanor's name on the sarcophagus with no dates. The visitor realizes she may not be dead, or may not have been born in any normal sense."
+    },
+    {
+      "beat": "chapel_silence",
+      "turn": 392,
+      "direction": "Closing the chapel door silences the entire house. The house is alive and the chapel is where its 'voice' originates."
+    },
+    {
+      "beat": "first_realization",
+      "turn": 405,
+      "direction": "MAJOR REALIZATION: Eleanor is not haunting the house. Eleanor IS the house. They merged long ago."
+    },
+    {
+      "beat": "fingerprint_connects",
+      "turn": 418,
+      "direction": "The fingerprint lock on the journal matches the palm depression on the hidden cellar door. The visitor tries it—the door opens."
+    },
+    {
+      "beat": "treatment_understood",
+      "turn": 430,
+      "direction": "The 'treatment' was not to cure Eleanor but to extract information from her/the house. She is a repository of something."
+    },
+    {
+      "beat": "child_revealed",
+      "turn": 440,
+      "direction": "The child in the nursery is identified. It was not a Blackthorn child; it was brought here for a purpose."
+    },
+    {
+      "beat": "cutting_origin",
+      "turn": 450,
+      "direction": "The blackthorn tree was grown from a cutting taken from a specific grave. The tree is a connection to the dead, a bridge."
+    },
+    {
+      "beat": "deed_read",
+      "turn": 460,
+      "direction": "The iron box is opened. The deed reveals the land predates the house by centuries. 'That place which cannot be unmade.'"
+    },
+    {
+      "beat": "house_is_entity",
+      "turn": 472,
+      "direction": "SECOND MAJOR REALIZATION: The house is not haunted. The house IS the entity that has been here since before memory. Everything else is its manifestation."
+    },
+    {
+      "beat": "remembering_begins",
+      "turn": 480,
+      "direction": "The visitor begins to remember being here before. The house is 'remembering' them back into its narrative. They are becoming part of its story."
+    },
+    {
+      "beat": "confrontation",
+      "turn": 490,
+      "direction": "In the chapel, the visitor confronts the entity directly. It speaks through Eleanor's voice but is much older. It offers a choice."
+    },
+    {
+      "beat": "choice_made",
+      "turn": 496,
+      "direction": "The visitor makes their choice: to stay and become part of the house's eternal story, or to leave and forget everything. The entity does not force; it only offers."
+    },
+    {
+      "beat": "ending",
+      "turn": 500,
+      "direction": "The story ends with the choice's consequence. If they stay, the house gains a new memory to tell. If they leave, they forget Blackthorn House entirely—but the house remembers them."
     }
   ]
 }

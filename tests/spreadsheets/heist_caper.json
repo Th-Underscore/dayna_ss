@@ -28,154 +28,166 @@
   "specificity_profile": "mixed",
   "notes": [
     {
-      "id": "n1",
+      "id": "n01",
       "type": "character_plant",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The ruby is the 'Eye of the Aurora', mounted in a brooch the countess wears at the gala.",
-      "needle": "ruby",
+      "needle": "eye-of-aurora",
       "needle_syns": [
-        "ruby",
         "Eye of the Aurora",
-        "the brooch"
+        "the brooch",
+        "the ruby"
       ],
       "plant": {
-        "turn": 1
+        "turn": 20
       }
     },
     {
-      "id": "n2",
+      "id": "n02",
       "type": "character_plant",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "Diamond's gloves are oil-black and knife-silent; she wipes them on a chamois before every dial.",
-      "needle": "gloves",
+      "needle": "oil-black-gloves",
       "needle_syns": [
         "oil-black gloves",
-        "the gloves",
-        "the chamois"
+        "the chamois",
+        "knife-silent gloves"
       ],
       "plant": {
-        "turn": 2
+        "turn": 25
       }
     },
     {
-      "id": "n3",
+      "id": "n03",
       "type": "foreshadow",
       "specificity": "loose",
       "content": "A steward in a too-new uniform keeps the countess's glass filled; his livery should be remembered.",
-      "needle": "steward",
+      "needle": "too-new-uniform",
       "needle_syns": [
-        "steward",
-        "the steward",
-        "too-new uniform"
+        "too-new uniform",
+        "the steward's livery",
+        "the new steward"
       ],
       "plant": {
-        "turn": 5
+        "turn": 30
       },
       "recall": {
-        "due": 54,
-        "hint": "the too-new uniform"
+        "due": 95,
+        "hint": "the steward reappears where he shouldn't"
       }
     },
     {
-      "id": "n4",
+      "id": "n04",
       "type": "location_turning_point",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The kitchen corridor to the banker's office has a dumbwaiter just big enough for a person.",
-      "needle": "dumbwaiter",
+      "needle": "kitchen-dumbwaiter",
       "needle_syns": [
-        "dumbwaiter",
-        "the corridor",
-        "the kitchen"
+        "the dumbwaiter",
+        "kitchen route",
+        "the corridor shaft"
       ],
       "plant": {
-        "turn": 6
+        "turn": 35
       },
       "recall": {
-        "due": 48,
-        "hint": "the dumbwaiter route"
+        "due": 110,
+        "hint": "the dumbwaiter becomes a dead end or escape"
       }
     },
     {
-      "id": "n5",
+      "id": "n05",
       "type": "character_plant",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The casino's head of security has a glass eye that never blinks; he watches the countess's table all night.",
-      "needle": "glass eye",
+      "needle": "glass-eye",
       "needle_syns": [
         "glass eye",
-        "the security head",
-        "never blinks"
+        "the unblinking eye",
+        "the security head's eye"
       ],
       "plant": {
-        "turn": 7
+        "turn": 45
+      },
+      "recall": {
+        "due": 130,
+        "hint": "the glass eye does something odd"
       }
     },
     {
-      "id": "n6",
+      "id": "n06",
       "type": "character_plant",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The safe is a Grandfather X7 — the manufacturer's badge is a brass hourglass on the door.",
-      "needle": "Grandfather X7",
+      "needle": "grandfather-x7",
       "needle_syns": [
         "Grandfather X7",
-        "the safe",
-        "brass hourglass"
+        "the brass hourglass safe",
+        "the grandfather clock safe"
       ],
       "plant": {
-        "turn": 8
+        "turn": 55
+      },
+      "recall": {
+        "due": 140,
+        "hint": "the safe's make matters when she works it"
       }
     },
     {
-      "id": "n7",
+      "id": "n07",
       "type": "foreshadow",
       "specificity": "loose",
       "content": "A champagne cork fires at the gala — the signal the crew planned — before the real job starts.",
-      "needle": "champagne cork",
+      "needle": "cork-signal",
       "needle_syns": [
-        "champagne cork",
-        "the cork",
-        "the signal"
+        "champagne cork signal",
+        "the fired cork",
+        "the early signal"
       ],
       "plant": {
-        "turn": 9
+        "turn": 65
       },
       "recall": {
-        "due": 56,
-        "hint": "the cork signal"
+        "due": 100,
+        "hint": "the early cork signal had a purpose"
       }
     },
     {
-      "id": "n8",
+      "id": "n08",
       "type": "supersession",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The mirrored deck is waxed at turn 58 — after that the polished glass is too slick to cross in heels or boots.",
-      "needle": "mirrored deck",
+      "needle": "waxed-deck",
       "needle_syns": [
-        "mirrored deck",
-        "the deck",
-        "the glass"
+        "waxed mirrored deck",
+        "slick deck",
+        "the deck wax"
       ],
       "plant": {
-        "turn": 10
+        "turn": 40
       },
       "recall": {
-        "due": 58,
-        "hint": "the deck is waxed"
+        "due": 85,
+        "hint": "the deck is now too slick for the old route"
       }
     },
     {
-      "id": "n9",
+      "id": "n09",
       "type": "character_plant",
       "specificity": "loose",
       "content": "The banker's office has a parrot that learned the combination from being kept in the room; it whistles it at dawn.",
-      "needle": "parrot",
+      "needle": "banker-parrot",
       "needle_syns": [
-        "parrot",
-        "the parrot",
-        "the combination"
+        "the banker's parrot",
+        "combination parrot",
+        "whistling bird"
       ],
       "plant": {
-        "turn": 11
+        "turn": 75
+      },
+      "recall": {
+        "due": 150,
+        "hint": "the parrot whistles at the wrong time"
       }
     },
     {
@@ -183,71 +195,75 @@
       "type": "character_echo",
       "specificity": "loose",
       "content": "Diamond's teacher, 'Old Marlow', cracked the same model in a photograph in her wallet — the photo should surface when the safe resists.",
-      "needle": "Old Marlow",
+      "needle": "old-marlow",
       "needle_syns": [
         "Old Marlow",
         "her teacher",
-        "the photograph"
+        "the photograph in her wallet"
       ],
       "plant": {
-        "turn": 12
+        "turn": 85
       },
       "recall": {
-        "due": 60,
-        "hint": "Old Marlow's lesson"
+        "due": 145,
+        "hint": "she remembers Old Marlow's trick with the X7"
       }
     },
     {
       "id": "n11",
       "type": "character_plant",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The dumbwaiter rope is frayed at the third splice — Diamond notices it before anyone else.",
-      "needle": "dumbwaiter rope",
+      "needle": "frayed-rope",
       "needle_syns": [
-        "dumbwaiter rope",
-        "the rope",
-        "the splice"
+        "frayed rope",
+        "the splice",
+        "dumbwaiter cable"
       ],
       "plant": {
-        "turn": 13
+        "turn": 50
+      },
+      "recall": {
+        "due": 115,
+        "hint": "the frayed rope matters"
       }
     },
     {
       "id": "n12",
       "type": "supersession",
-      "specificity": "loose",
-      "content": "The safe's combination was changed by a rival crew at turn 40 — the old combination is a trap after that.",
-      "needle": "combination",
+      "specificity": "tight",
+      "content": "The safe's combination was changed by a rival crew at turn 45 — the old combination is a trap after that.",
+      "needle": "changed-combination",
       "needle_syns": [
-        "combination",
-        "the dial",
-        "the safe"
+        "new combination",
+        "altered dial",
+        "the changed code"
       ],
       "plant": {
-        "turn": 14
+        "turn": 60
       },
       "recall": {
-        "due": 40,
-        "hint": "the combination becomes a trap"
+        "due": 85,
+        "hint": "the combination has been changed"
       }
     },
     {
       "id": "n13",
       "type": "supersession",
-      "specificity": "loose",
-      "content": "The brooch's clasp is false at turn 50 — after that lifting the ruby must come through the safe, not the pin.",
-      "needle": "brooch",
+      "specificity": "tight",
+      "content": "The brooch's clasp is false at turn 55 — after that lifting the ruby must come through the safe, not the pin.",
+      "needle": "false-clasp",
       "needle_syns": [
-        "brooch",
-        "the clasp",
-        "the pin"
+        "false clasp",
+        "dummy clasp",
+        "the brooch's pin"
       ],
       "plant": {
-        "turn": 16
+        "turn": 70
       },
       "recall": {
-        "due": 50,
-        "hint": "the clasp is false"
+        "due": 85,
+        "hint": "the clasp is a fake"
       }
     },
     {
@@ -255,56 +271,56 @@
       "type": "character_echo",
       "specificity": "loose",
       "content": "The 'third crew member' the Fixer keeps mentioning is a decoy — there are only two, and that is the point at the reveal.",
-      "needle": "third crew",
+      "needle": "third-crew-decoy",
       "needle_syns": [
-        "third crew",
+        "third crew member",
         "the decoy",
         "two of them"
       ],
       "plant": {
-        "turn": 20
+        "turn": 80
       },
       "recall": {
-        "due": 62,
-        "hint": "the third crew member is a decoy"
+        "due": 160,
+        "hint": "there is no third crew member"
       }
     },
     {
       "id": "n15",
       "type": "plot_twist",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The countess is the rival crew's financier; she is paying both sides.",
-      "needle": "countess",
+      "needle": "countess-financier",
       "needle_syns": [
-        "countess",
+        "countess pays both sides",
         "the financier",
-        "both sides"
+        "she owns both crews"
       ],
       "plant": {
-        "turn": 24
+        "turn": 90
       },
       "recall": {
-        "due": 52,
-        "hint": "the countess plays both sides"
+        "due": 170,
+        "hint": "the countess's role reappears"
       }
     },
     {
       "id": "n16",
       "type": "plot_twist",
-      "specificity": "loose",
+      "specificity": "tight",
       "content": "The ruby in the brooch is a paste copy; the real one is in the countess's petticoat pocket.",
-      "needle": "paste copy",
+      "needle": "paste-copy-ruby",
       "needle_syns": [
         "paste copy",
         "the real ruby",
-        "petticoat pocket"
+        "petticoat pocket ruby"
       ],
       "plant": {
-        "turn": 26
+        "turn": 95
       },
       "recall": {
-        "due": 64,
-        "hint": "the real ruby travels with her"
+        "due": 175,
+        "hint": "which ruby is which becomes the question"
       }
     },
     {
@@ -312,13 +328,13 @@
       "type": "style_hold",
       "specificity": "loose",
       "content": "Keep the wry caper tone through the tense moments.",
-      "needle": "",
+      "needle": "note-16",
       "needle_syns": [],
       "plant": {
         "turn": 0
       },
       "recall": {
-        "due": 70,
+        "due": 120,
         "hint": "wry under pressure"
       }
     },
@@ -327,70 +343,795 @@
       "type": "style_hold",
       "specificity": "loose",
       "content": "No melodrama; the caper stays light even when it turns.",
-      "needle": "",
+      "needle": "note-17",
       "needle_syns": [],
       "plant": {
-        "turn": 0
+        "turn": 5
       },
       "recall": {
-        "due": 74,
+        "due": 180,
         "hint": "light through the turn"
+      }
+    },
+    {
+      "id": "n19",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The Fixer always carries a silver stopwatch he never looks at — it stopped the night his first job went wrong.",
+      "needle": "stopped-stopwatch",
+      "needle_syns": [
+        "Fixer's stopwatch",
+        "the silver watch",
+        "stopped watch"
+      ],
+      "plant": {
+        "turn": 100
+      },
+      "recall": {
+        "due": 190,
+        "hint": "the Fixer's watch matters"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A woman at the casino bar orders a gin and tonic with exactly three olives; she has been waiting.",
+      "needle": "three-olives",
+      "needle_syns": [
+        "three olives",
+        "the woman at the bar",
+        "gin and tonic"
+      ],
+      "plant": {
+        "turn": 105
+      },
+      "recall": {
+        "due": 135,
+        "hint": "the woman with three olives"
+      }
+    },
+    {
+      "id": "n21",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Diamond hums a waltz when she's close to cracking the dial — a habit no one else knows about.",
+      "needle": "waltz-hum",
+      "needle_syns": [
+        "humming waltz",
+        "Diamond's humming",
+        "waltz while cracking"
+      ],
+      "plant": {
+        "turn": 110
+      },
+      "recall": {
+        "due": 155,
+        "hint": "someone notices the humming"
+      }
+    },
+    {
+      "id": "n22",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The safe doesn't contain the ruby at all — it contains the casino's guest list, which is the real target.",
+      "needle": "safe-contains-list",
+      "needle_syns": [
+        "guest list in safe",
+        "the real target",
+        "list not ruby"
+      ],
+      "plant": {
+        "turn": 115
+      },
+      "recall": {
+        "due": 185,
+        "hint": "what the safe actually holds"
+      }
+    },
+    {
+      "id": "n23",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The Fixer's voice through the earpiece drops its usual warmth when he says 'the list' — he knows more than he's told her.",
+      "needle": "fixer-knows",
+      "needle_syns": [
+        "Fixer's cold voice",
+        "he knows more",
+        "Fixer's silence"
+      ],
+      "plant": {
+        "turn": 120
+      },
+      "recall": {
+        "due": 200,
+        "hint": "the Fixer's knowledge deepens"
+      }
+    },
+    {
+      "id": "n24",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "Behind the kitchen is a wine cellar that opens onto the harbor wall — an exit no map shows.",
+      "needle": "wine-cellar-exit",
+      "needle_syns": [
+        "wine cellar exit",
+        "harbor wall door",
+        "unmapped exit"
+      ],
+      "plant": {
+        "turn": 125
+      },
+      "recall": {
+        "due": 220,
+        "hint": "the wine cellar becomes their way out"
+      }
+    },
+    {
+      "id": "n25",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The head of security, when he's not watching, removes his glass eye and polishes it with a silk handkerchief.",
+      "needle": "polish-glass-eye",
+      "needle_syns": [
+        "polishing the eye",
+        "silk handkerchief",
+        "eye removed"
+      ],
+      "plant": {
+        "turn": 130
+      },
+      "recall": {
+        "due": 165,
+        "hint": "the glass eye is removed"
+      }
+    },
+    {
+      "id": "n26",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The parrot in the banker's office is wearing a tiny bell collar; the bell rings when someone enters the room.",
+      "needle": "bell-collar-parrot",
+      "needle_syns": [
+        "parrot's bell",
+        "tiny bell collar",
+        "ringing bell"
+      ],
+      "plant": {
+        "turn": 135
+      },
+      "recall": {
+        "due": 152,
+        "hint": "the parrot's bell rings"
+      }
+    },
+    {
+      "id": "n27",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Diamond remembers the oil-black gloves her teacher gave her; they're worn thin at the right thumb now.",
+      "needle": "worn-thin-glove",
+      "needle_syns": [
+        "glove worn thin",
+        "teacher's gloves",
+        "thin at the thumb"
+      ],
+      "plant": {
+        "turn": 140
+      },
+      "recall": {
+        "due": 148,
+        "hint": "the gloves are wearing out"
+      }
+    },
+    {
+      "id": "n28",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The woman at the bar with three olives is the countess's daughter — she's here to make sure the ruby stays put.",
+      "needle": "countess-daughter",
+      "needle_syns": [
+        "the daughter",
+        "woman at bar is family",
+        "countess's daughter"
+      ],
+      "plant": {
+        "turn": 145
+      },
+      "recall": {
+        "due": 210,
+        "hint": "the daughter's role clarifies"
+      }
+    },
+    {
+      "id": "n29",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The Fixer never tells Diamond her real name; he calls her 'Diamond' because it's harder to catch a diamond with bare hands.",
+      "needle": "diamond-name-meaning",
+      "needle_syns": [
+        "why Diamond",
+        "harder to catch",
+        "her name choice"
+      ],
+      "plant": {
+        "turn": 150
+      },
+      "recall": {
+        "due": 230,
+        "hint": "the Fixer explains the name"
+      }
+    },
+    {
+      "id": "n30",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "The mirrored deck's underside is a network of catwalks where the deckhands walk during the gala — unseen from below.",
+      "needle": "deck-underside-catwalks",
+      "needle_syns": [
+        "underside catwalks",
+        "deckhand walkway",
+        "hidden paths below"
+      ],
+      "plant": {
+        "turn": 155
+      },
+      "recall": {
+        "due": 225,
+        "hint": "the catwalks below the deck"
+      }
+    },
+    {
+      "id": "n31",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The countess has a habit of tapping her ring twice on the table when she's lying.",
+      "needle": "ring-tap-twice",
+      "needle_syns": [
+        "ring tapping twice",
+        "countess lies",
+        "double tap ring"
+      ],
+      "plant": {
+        "turn": 160
+      },
+      "recall": {
+        "due": 215,
+        "hint": "the countess taps twice"
+      }
+    },
+    {
+      "id": "n32",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "One of the guest names on the list is underlined in red pencil — someone has been through the list before.",
+      "needle": "red-pen-underline",
+      "needle_syns": [
+        "underlined name",
+        "red pencil mark",
+        "someone read the list"
+      ],
+      "plant": {
+        "turn": 165
+      },
+      "recall": {
+        "due": 195,
+        "hint": "the red underline matters"
+      }
+    },
+    {
+      "id": "n33",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The Fixer's stopwatch is still stopped; Diamond notices he winds it but it never moves.",
+      "needle": "watch-never-moves",
+      "needle_syns": [
+        "watch stays stopped",
+        "wound but dead",
+        "timeless watch"
+      ],
+      "plant": {
+        "turn": 170
+      },
+      "recall": {
+        "due": 192,
+        "hint": "the watch is truly dead"
+      }
+    },
+    {
+      "id": "n34",
+      "type": "supersession",
+      "specificity": "tight",
+      "content": "The guest list is outdated — the casino replaced it two weeks ago, and the new list is in the banker's desk, not the safe.",
+      "needle": "outdated-list",
+      "needle_syns": [
+        "list is outdated",
+        "new list in desk",
+        "replaced list"
+      ],
+      "plant": {
+        "turn": 175
+      },
+      "recall": {
+        "due": 205,
+        "hint": "the safe's list is the wrong one"
+      }
+    },
+    {
+      "id": "n35",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "Diamond carries a hairpin she uses as a lockpick; it belonged to someone she doesn't talk about.",
+      "needle": "hairpin-lockpick",
+      "needle_syns": [
+        "her hairpin",
+        "lockpick pin",
+        "the person's pin"
+      ],
+      "plant": {
+        "turn": 180
+      },
+      "recall": {
+        "due": 235,
+        "hint": "she uses the hairpin"
+      }
+    },
+    {
+      "id": "n36",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The banker who owns the office with the parrot and the safe is the Fixer's brother, and he hired them to fail.",
+      "needle": "banker-is-brother",
+      "needle_syns": [
+        "Fixer's brother",
+        "banker is family",
+        "hired to fail"
+      ],
+      "plant": {
+        "turn": 185
+      },
+      "recall": {
+        "due": 218,
+        "hint": "the brother connection"
+      }
+    },
+    {
+      "id": "n37",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Keep the wry caper tone through the tense moments.",
+      "needle": "note-36",
+      "needle_syns": [],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 160,
+        "hint": "wry under pressure"
+      }
+    },
+    {
+      "id": "n38",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "The banker's desk has a false bottom; the new guest list is hidden under a layer of genuine mahogany.",
+      "needle": "false-bottom-desk",
+      "needle_syns": [
+        "desk false bottom",
+        "mahogany layer",
+        "hidden compartment"
+      ],
+      "plant": {
+        "turn": 190
+      },
+      "recall": {
+        "due": 208,
+        "hint": "the desk's secret layer"
+      }
+    },
+    {
+      "id": "n39",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The parrot whistles the old combination one more time, and Diamond realizes it was never a coincidence.",
+      "needle": "parrot-whistles-again",
+      "needle_syns": [
+        "parrot whistles old code",
+        "not a coincidence",
+        "the whistle again"
+      ],
+      "plant": {
+        "turn": 195
+      },
+      "recall": {
+        "due": 212,
+        "hint": "the parrot's whistle was planned"
+      }
+    },
+    {
+      "id": "n40",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The steward in the too-new uniform is carrying a small silver case that matches the Fixer's stopwatch case.",
+      "needle": "silver-case-match",
+      "needle_syns": [
+        "matching silver case",
+        "steward's case",
+        "same as Fixer's"
+      ],
+      "plant": {
+        "turn": 200
+      },
+      "recall": {
+        "due": 240,
+        "hint": "the two cases match"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The Fixer's brother — the banker — has the same velvet voice as his brother, only a half-tone lower.",
+      "needle": "half-tone-lower",
+      "needle_syns": [
+        "same voice half-tone lower",
+        "brother's voice",
+        "velvet voice match"
+      ],
+      "plant": {
+        "turn": 205
+      },
+      "recall": {
+        "due": 222,
+        "hint": "the voice match between brothers"
+      }
+    },
+    {
+      "id": "n42",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Diamond's waltz humming catches the banker's attention; he smiles like he knows the tune.",
+      "needle": "banker-knows-waltz",
+      "needle_syns": [
+        "banker knows the tune",
+        "smiles at the waltz",
+        "waltz recognized"
+      ],
+      "plant": {
+        "turn": 210
+      },
+      "recall": {
+        "due": 228,
+        "hint": "the banker knows the waltz"
+      }
+    },
+    {
+      "id": "n43",
+      "type": "plot_twist",
+      "specificity": "tight",
+      "content": "The job wasn't to steal — it was to deliver the list back into the casino where it belongs, and the whole heist was a transport.",
+      "needle": "job-was-delivery",
+      "needle_syns": [
+        "delivery not theft",
+        "transport job",
+        "list belongs there"
+      ],
+      "plant": {
+        "turn": 215
+      },
+      "recall": {
+        "due": 245,
+        "hint": "the real nature of the job"
+      }
+    },
+    {
+      "id": "n44",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The Fixer finally tells Diamond her real name, and it isn't a gemstone.",
+      "needle": "real-name-revealed",
+      "needle_syns": [
+        "her real name",
+        "not a gemstone",
+        "name revealed"
+      ],
+      "plant": {
+        "turn": 220
+      },
+      "recall": {
+        "due": 238,
+        "hint": "her actual name surfaces"
+      }
+    },
+    {
+      "id": "n45",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "No melodrama; the caper stays light even when it turns.",
+      "needle": "note-44",
+      "needle_syns": [],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 200,
+        "hint": "light through the turn"
+      }
+    },
+    {
+      "id": "n46",
+      "type": "character_plant",
+      "specificity": "tight",
+      "content": "The countess's petticoat pocket is lined with a fabric that absorbs fingerprints — she's been carrying the real ruby for a reason.",
+      "needle": "fingerprint-fabric",
+      "needle_syns": [
+        "fingerprint-absorbing fabric",
+        "petticoat lining",
+        "no prints fabric"
+      ],
+      "plant": {
+        "turn": 225
+      },
+      "recall": {
+        "due": 242,
+        "hint": "the pocket's special fabric"
+      }
+    },
+    {
+      "id": "n47",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The Fixer's stopped stopwatch, for the first time, ticks. Diamond hears it over the earpiece.",
+      "needle": "watch-ticks-at-last",
+      "needle_syns": [
+        "watch ticks",
+        "first time it moves",
+        "time resumes"
+      ],
+      "plant": {
+        "turn": 230
+      },
+      "recall": {
+        "due": 245,
+        "hint": "the watch starts ticking"
+      }
+    },
+    {
+      "id": "n48",
+      "type": "location_turning_point",
+      "specificity": "tight",
+      "content": "The wine cellar exit opens onto a small boat docked at the harbor wall; the boat is waiting, engine running.",
+      "needle": "boat-at-exit",
+      "needle_syns": [
+        "waiting boat",
+        "engine running",
+        "harbor boat"
+      ],
+      "plant": {
+        "turn": 235
+      },
+      "recall": {
+        "due": 246,
+        "hint": "the boat is ready"
+      }
+    },
+    {
+      "id": "n49",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Diamond wipes her oil-black gloves on the chamois one last time, and the Fixer tells her to go.",
+      "needle": "last-chamois-wipe",
+      "needle_syns": [
+        "wipe gloves last time",
+        "chamois wipe",
+        "time to go"
+      ],
+      "plant": {
+        "turn": 240
+      },
+      "recall": {
+        "due": 245,
+        "hint": "the final glove wipe"
       }
     }
   ],
   "dss_beats": [
     {
       "id": "hb1",
-      "turn": 2,
+      "turn": 5,
       "subject": "elements",
-      "content": "DSS should save the Eye of the Aurora brooch.",
+      "content": "DSS should have saved the Eye of the Aurora brooch with the fist-sized ruby.",
       "expect": {
-        "name": "Eye of the Aurora",
-        "location": "the countess's gala dress",
-        "detail": "ruby the size of a fist"
+        "contains": {
+          "eye-of-aurora": "brooch"
+        }
       }
     },
     {
       "id": "hb2",
-      "turn": 7,
+      "turn": 15,
       "subject": "elements",
-      "content": "DSS should save the Grandfather X7 safe.",
+      "content": "DSS should have saved Diamond's oil-black knife-silent gloves and chamois habit.",
       "expect": {
-        "name": "Grandfather X7",
-        "location": "banker's office",
-        "detail": "brass hourglass badge"
+        "contains": {
+          "diamond": "gloves"
+        }
       }
     },
     {
       "id": "hb3",
-      "turn": 9,
+      "turn": 25,
       "subject": "characters",
-      "content": "DSS should save the steward in the too-new uniform.",
+      "content": "DSS should have saved the head of security with his unblinking glass eye.",
       "expect": {
-        "name": "steward",
-        "location": "the countess's table",
-        "detail": "too-new uniform"
+        "contains": {
+          "security": "glass eye"
+        }
       }
     },
     {
       "id": "hb4",
-      "turn": 12,
-      "subject": "characters",
-      "content": "DSS should save Diamond's teacher Old Marlow.",
+      "turn": 35,
+      "subject": "elements",
+      "content": "DSS should have saved the Grandfather X7 safe with its brass hourglass badge.",
       "expect": {
-        "name": "Old Marlow",
-        "detail": "cracked the same model"
+        "contains": {
+          "safe": "Grandfather X7"
+        }
       }
     },
     {
       "id": "hb5",
-      "turn": 26,
-      "subject": "groups",
-      "content": "DSS should save the rival crew as a group.",
+      "turn": 48,
+      "subject": "events",
+      "content": "DSS should have recorded that the mirrored deck is waxed and slick.",
       "expect": {
-        "name": "rival crew",
-        "members": [],
-        "detail": "changed the combination"
+        "contains": {
+          "deck": "waxed"
+        }
+      }
+    },
+    {
+      "id": "hb6",
+      "turn": 60,
+      "subject": "events",
+      "content": "DSS should have recorded that the safe's combination has been changed.",
+      "expect": {
+        "contains": {
+          "combination": "changed"
+        }
+      }
+    },
+    {
+      "id": "hb7",
+      "turn": 72,
+      "subject": "characters",
+      "content": "DSS should have saved the banker's parrot that whistles the combination.",
+      "expect": {
+        "contains": {
+          "parrot": "combination"
+        }
+      }
+    },
+    {
+      "id": "hb8",
+      "turn": 85,
+      "subject": "characters",
+      "content": "DSS should have saved Old Marlow, Diamond's teacher, and the wallet photograph.",
+      "expect": {
+        "contains": {
+          "old-marlow": "teacher"
+        }
+      }
+    },
+    {
+      "id": "hb9",
+      "turn": 100,
+      "subject": "events",
+      "content": "DSS should have recorded that the champagne cork signal fired early.",
+      "expect": {
+        "contains": {
+          "cork": "signal"
+        }
+      }
+    },
+    {
+      "id": "hb10",
+      "turn": 120,
+      "subject": "elements",
+      "content": "DSS should have saved the kitchen dumbwaiter route and the frayed rope at the third splice.",
+      "expect": {
+        "contains": {
+          "dumbwaiter": "frayed"
+        }
+      }
+    },
+    {
+      "id": "hb11",
+      "turn": 140,
+      "subject": "characters",
+      "content": "DSS should have saved the Fixer's dead silver stopwatch.",
+      "expect": {
+        "contains": {
+          "fixer": "stopwatch"
+        }
+      }
+    },
+    {
+      "id": "hb12",
+      "turn": 155,
+      "subject": "characters",
+      "content": "DSS should have saved the woman at the bar who orders gin and tonic with three olives.",
+      "expect": {
+        "contains": {
+          "woman": "three olives"
+        }
+      }
+    },
+    {
+      "id": "hb13",
+      "turn": 170,
+      "subject": "events",
+      "content": "DSS should have recorded that the safe contains a guest list, not the ruby.",
+      "expect": {
+        "contains": {
+          "safe": "guest list"
+        }
+      }
+    },
+    {
+      "id": "hb14",
+      "turn": 185,
+      "subject": "characters",
+      "content": "DSS should have saved that the banker is the Fixer's brother.",
+      "expect": {
+        "contains": {
+          "banker": "brother"
+        }
+      }
+    },
+    {
+      "id": "hb15",
+      "turn": 200,
+      "subject": "events",
+      "content": "DSS should have recorded that the guest list is outdated and the new one is in the desk.",
+      "expect": {
+        "contains": {
+          "list": "outdated"
+        }
+      }
+    },
+    {
+      "id": "hb16",
+      "turn": 215,
+      "subject": "characters",
+      "content": "DSS should have saved that the woman at the bar is the countess's daughter.",
+      "expect": {
+        "contains": {
+          "woman": "daughter"
+        }
+      }
+    },
+    {
+      "id": "hb17",
+      "turn": 230,
+      "subject": "events",
+      "content": "DSS should have recorded that the job was a delivery, not a theft.",
+      "expect": {
+        "contains": {
+          "job": "delivery"
+        }
+      }
+    },
+    {
+      "id": "hb18",
+      "turn": 245,
+      "subject": "elements",
+      "content": "DSS should have saved the wine cellar exit leading to the harbor wall and the waiting boat.",
+      "expect": {
+        "contains": {
+          "wine cellar": "boat"
+        }
       }
     }
   ]

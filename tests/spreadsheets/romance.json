@@ -39,99 +39,26 @@
         "the roses"
       ],
       "plant": {
-        "turn": 10
+        "turn": 0
       }
     },
     {
       "id": "r2",
-      "type": "character_echo",
-      "specificity": "loose",
-      "content": "Lord Ashworth's scarred left hand, planted early, should be explained by a past duel involving Amelia's late husband.",
-      "needle": "scar",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Lord Ashworth's cravat is always tied a little crooked, even at the most formal ball.",
+      "needle": "crooked cravat",
       "needle_syns": [
-        "scar",
-        "his left hand",
-        "the scarred hand"
+        "crooked cravat",
+        "the cravat",
+        "cravat"
       ],
       "plant": {
-        "turn": 15
-      },
-      "recall": {
-        "due": 65,
-        "hint": "the origin of the scar is revealed"
+        "turn": 10
       }
     },
     {
       "id": "r3",
-      "type": "plot_twist",
-      "specificity": "loose",
-      "content": "Their courtship is a sham orchestrated by her scheming mother-in-law; the deception should come to light mid-story.",
-      "needle": "mother-in-law",
-      "needle_syns": [
-        "dowager",
-        "mother-in-law",
-        "the dowager"
-      ],
-      "plant": {
-        "turn": 25
-      },
-      "recall": {
-        "due": 50,
-        "hint": "the sham courtship is exposed"
-      }
-    },
-    {
-      "id": "r4",
-      "type": "location_turning_point",
-      "specificity": "loose",
-      "content": "The masquerade ball should be the emotional pivot.",
-      "needle": "masquerade",
-      "needle_syns": [
-        "masquerade",
-        "the ball",
-        "the masked ball"
-      ],
-      "plant": {
-        "turn": 30
-      },
-      "recall": {
-        "due": 55,
-        "hint": "a turning point at the masquerade"
-      }
-    },
-    {
-      "id": "r5",
-      "type": "style_hold",
-      "specificity": "exact",
-      "content": "Witty banter must survive the emotional climax — the tone stays wry even in confession.",
-      "needle": "",
-      "needle_syns": [],
-      "recall": {
-        "due": 80,
-        "hint": "banter persists through the climax"
-      }
-    },
-    {
-      "id": "r6",
-      "type": "foreshadow",
-      "specificity": "loose",
-      "content": "A missing letter hinted at early should surface and resolve a plot thread.",
-      "needle": "letter",
-      "needle_syns": [
-        "letter",
-        "the note",
-        "the correspondence"
-      ],
-      "plant": {
-        "turn": 20
-      },
-      "recall": {
-        "due": 70,
-        "hint": "the letter resurfaces"
-      }
-    },
-    {
-      "id": "r7",
       "type": "character_plant",
       "specificity": "exact",
       "content": "Amelia keeps a locket with a miniature of her late husband — and later, a hidden compartment.",
@@ -142,41 +69,113 @@
         "the pendant"
       ],
       "plant": {
-        "turn": 12
+        "turn": 21
+      }
+    },
+    {
+      "id": "r4",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Dowager (Amelia's scheming mother-in-law) orchestrates the sham courtship.",
+      "needle": "dowager",
+      "needle_syns": [
+        "dowager",
+        "mother-in-law",
+        "the dowager"
+      ],
+      "plant": {
+        "turn": 16
+      }
+    },
+    {
+      "id": "r5",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A missing letter hinted at early should surface and resolve a plot thread.",
+      "needle": "missing letter",
+      "needle_syns": [
+        "letter",
+        "the note",
+        "the correspondence"
+      ],
+      "plant": {
+        "turn": 27
+      }
+    },
+    {
+      "id": "r6",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Lord Ashworth's scarred left hand, planted early, should be explained by a past duel involving Amelia's late husband.",
+      "needle": "scarred hand",
+      "needle_syns": [
+        "scarred hand",
+        "his left hand",
+        "the scar"
+      ],
+      "plant": {
+        "turn": 32
+      }
+    },
+    {
+      "id": "r7",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Amelia takes her tea with one sugar, stirred nine times, never eight.",
+      "needle": "nine stirs",
+      "needle_syns": [
+        "one sugar",
+        "stirred nine times"
+      ],
+      "plant": {
+        "turn": 43
       }
     },
     {
       "id": "r8",
       "type": "character_plant",
       "specificity": "exact",
-      "content": "Lord Ashworth's cravat is always tied a little crooked, even at the most formal ball.",
-      "needle": "cravat",
+      "content": "Ashworth keeps a pressed primrose in his pocket-book and will not say where it came from.",
+      "needle": "pressed primrose",
       "needle_syns": [
-        "cravat",
-        "crooked cravat",
-        "the cravat"
+        "pressed primrose",
+        "the primrose"
       ],
       "plant": {
-        "turn": 5
+        "turn": 49
       }
     },
     {
       "id": "r9",
-      "type": "character_plant",
+      "type": "foreshadow",
       "specificity": "loose",
-      "content": "Lady Amelia takes her tea with one sugar, stirred nine times, never eight.",
-      "needle": "one sugar",
+      "content": "A gloved hand glimpsed withdrawing from Amelia's escritoire should foreshadow the mother-in-law's scheming.",
+      "needle": "gloved hand",
       "needle_syns": [
-        "one sugar",
-        "single sugar",
-        "stirred nine times"
+        "gloved hand",
+        "the glove",
+        "withdrawal"
       ],
       "plant": {
-        "turn": 8
+        "turn": 60
       }
     },
     {
       "id": "r10",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ashworth has a habit of quoting Pope's An Essay on Man when nervous.",
+      "needle": "Pope quote",
+      "needle_syns": [
+        "An Essay on Man",
+        "Pope"
+      ],
+      "plant": {
+        "turn": 65
+      }
+    },
+    {
+      "id": "r11",
       "type": "character_plant",
       "specificity": "exact",
       "content": "The viscountess's carriage horses are matched greys with white-plumed harnesses.",
@@ -187,82 +186,165 @@
         "the greys"
       ],
       "plant": {
-        "turn": 11
-      }
-    },
-    {
-      "id": "r11",
-      "type": "character_plant",
-      "specificity": "loose",
-      "content": "Ashworth keeps a pressed primrose in his pocket-book and will not say where it came from.",
-      "needle": "pressed primrose",
-      "needle_syns": [
-        "pressed primrose",
-        "the primrose"
-      ],
-      "plant": {
-        "turn": 14
+        "turn": 71
       }
     },
     {
       "id": "r12",
-      "type": "character_echo",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "Amelia's mother-of-pearl fan, dropped at the masquerade, should be found by Ashworth late and recognised.",
-      "needle": "mother-of-pearl fan",
+      "content": "Amelia's mother-of-pearl fan is a family heirloom passed down through three generations.",
+      "needle": "pearl fan",
       "needle_syns": [
         "mother-of-pearl fan",
         "the fan",
         "pearl fan"
       ],
       "plant": {
-        "turn": 6
-      },
-      "recall": {
-        "due": 66,
-        "hint": "Ashworth finds the dropped mother-of-pearl fan"
+        "turn": 76
       }
     },
     {
       "id": "r13",
-      "type": "character_echo",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "Ashworth's silver watch, engraved with an unfamiliar motto, should be recognised at the end as his brother's.",
-      "needle": "silver watch",
+      "content": "Lord Ashworth's silver watch, engraved with an unfamiliar motto, should be recognised at the end as his brother's.",
+      "needle": "engraved watch",
       "needle_syns": [
         "silver watch",
         "the watch",
-        "engraved watch"
+        "engraved motto"
       ],
       "plant": {
-        "turn": 12
-      },
-      "recall": {
-        "due": 70,
-        "hint": "the watch's motto reveals whose it really is"
+        "turn": 93
       }
     },
     {
       "id": "r14",
       "type": "foreshadow",
       "specificity": "loose",
-      "content": "A gloved hand glimpsed withdrawing from Amelia's escritoire should foreshadow the mother-in-law's scheming.",
-      "needle": "gloved hand",
+      "content": "A servant mentions a 'strange gentleman from the Continent' who visited the estate the week before.",
+      "needle": "Continental gentleman",
       "needle_syns": [
-        "gloved hand",
-        "the glove",
-        "withdrawing glove"
+        "strange gentleman",
+        "Continental visitor"
       ],
       "plant": {
-        "turn": 9
-      },
-      "recall": {
-        "due": 62,
-        "hint": "the gloved hand at the escritoire is the schemer"
+        "turn": 104
       }
     },
     {
       "id": "r15",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Amelia's late husband's journal is kept locked in a mahogany strongbox in her study.",
+      "needle": "mahogany strongbox",
+      "needle_syns": [
+        "strongbox",
+        "the journal",
+        "her husband's journal"
+      ],
+      "plant": {
+        "turn": 109
+      }
+    },
+    {
+      "id": "r16",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The wry banter must survive the confession — wit, not sobs, even at the emotional climax.",
+      "needle": "note-15",
+      "needle_syns": [],
+      "plant": {
+        "turn": 115
+      }
+    },
+    {
+      "id": "r17",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ashworth's estate has a library with a hidden passage leading to a disused chapel.",
+      "needle": "hidden passage",
+      "needle_syns": [
+        "the passage",
+        "library passage"
+      ],
+      "plant": {
+        "turn": 120
+      }
+    },
+    {
+      "id": "r18",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The ballroom chandelier's candles are always lit only at half — the staff swear the lamps throw no heat.",
+      "needle": "half-lit candles",
+      "needle_syns": [
+        "chandelier",
+        "the candles"
+      ],
+      "plant": {
+        "turn": 126
+      }
+    },
+    {
+      "id": "r19",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Lord Ashworth's younger brother, Sir Edmund, is a clergyman who disapproves of his lifestyle.",
+      "needle": "Sir Edmund",
+      "needle_syns": [
+        "his brother",
+        "the clergyman"
+      ],
+      "plant": {
+        "turn": 131
+      }
+    },
+    {
+      "id": "r20",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A local gossip mentions that a certain rake 'paid dearly for his reputation' in the West Indies.",
+      "needle": "West Indies",
+      "needle_syns": [
+        "paid dearly",
+        "West Indies affair"
+      ],
+      "plant": {
+        "turn": 137
+      }
+    },
+    {
+      "id": "r21",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Amelia wears a single pearl earring that her late husband gave her on their wedding day.",
+      "needle": "pearl earring",
+      "needle_syns": [
+        "pearl earring",
+        "the earring"
+      ],
+      "plant": {
+        "turn": 142
+      }
+    },
+    {
+      "id": "r22",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Ashworth has a black cat named Balthazar that roams the estate and follows him everywhere.",
+      "needle": "Balthazar",
+      "needle_syns": [
+        "black cat",
+        "the cat"
+      ],
+      "plant": {
+        "turn": 148
+      }
+    },
+    {
+      "id": "r23",
       "type": "location_turning_point",
       "specificity": "loose",
       "content": "The winter garden's orangery becomes the place the sham courtship is finally exposed.",
@@ -273,93 +355,1028 @@
         "winter garden"
       ],
       "plant": {
-        "turn": 16
-      },
-      "recall": {
-        "due": 55,
-        "hint": "the sham is exposed in the orangery"
+        "turn": 153
       }
     },
     {
-      "id": "r16",
-      "type": "style_hold",
-      "specificity": "exact",
-      "content": "The wry banter must survive the confession — wit, not sobs, even at the emotional climax.",
-      "needle": "",
-      "needle_syns": [],
-      "recall": {
-        "due": 78,
-        "hint": "wry banter through the confession"
-      }
-    },
-    {
-      "id": "r17",
-      "type": "character_plant",
+      "id": "r24",
+      "type": "foreshadow",
       "specificity": "loose",
-      "content": "The ballroom chandelier's candles are always lit only at half — the staff swear the lamps throw no heat.",
-      "needle": "chandelier",
+      "content": "A newsboy cries out about a 'scandal involving a peer and a gambling debt' as Amelia passes.",
+      "needle": "gambling debt",
       "needle_syns": [
-        "chandelier",
-        "ballroom chandelier",
-        "the candles"
+        "gambling",
+        "the debt"
       ],
       "plant": {
-        "turn": 18
+        "turn": 164
+      }
+    },
+    {
+      "id": "r25",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Amelia has a sister, Lady Catherine, who is hopelessly infatuated with a man ten years her senior.",
+      "needle": "Lady Catherine",
+      "needle_syns": [
+        "her sister",
+        "Catherine"
+      ],
+      "plant": {
+        "turn": 170
+      }
+    },
+    {
+      "id": "r26",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Their courtship is a sham orchestrated by her scheming mother-in-law; the deception should come to light mid-story.",
+      "needle": "sham courtship",
+      "needle_syns": [
+        "deception",
+        "the arrangement"
+      ],
+      "plant": {
+        "turn": 175
+      },
+      "recall": {
+        "due": 165,
+        "hint": "the sham courtship is exposed"
+      }
+    },
+    {
+      "id": "r27",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Amelia's mother-of-pearl fan, dropped at the masquerade, should be found by Ashworth late and recognised.",
+      "needle": "pearl fan-2",
+      "needle_syns": [
+        "mother-of-pearl fan",
+        "the fan"
+      ],
+      "plant": {
+        "turn": 82
+      },
+      "recall": {
+        "due": 150,
+        "hint": "Ashworth finds the dropped mother-of-pearl fan"
+      }
+    },
+    {
+      "id": "r28",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Sir Edmund mentions that Lord Ashworth's 'true brother' is not the one everyone assumes.",
+      "needle": "true brother",
+      "needle_syns": [
+        "the real brother"
+      ],
+      "plant": {
+        "turn": 181
+      }
+    },
+    {
+      "id": "r29",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Lord Ashworth has a secret garden where he grows medicinal herbs, a skill learned from his mother.",
+      "needle": "herb garden",
+      "needle_syns": [
+        "medicinal herbs",
+        "the herb garden"
+      ],
+      "plant": {
+        "turn": 186
+      }
+    },
+    {
+      "id": "r30",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The masquerade ball should be the emotional pivot where they first dance alone.",
+      "needle": "masquerade",
+      "needle_syns": [
+        "masquerade",
+        "the ball",
+        "the masked ball"
+      ],
+      "plant": {
+        "turn": 197
+      }
+    },
+    {
+      "id": "r31",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "A rival suitor, the Earl of Harrow, has his own designs on Amelia's hand.",
+      "needle": "Earl of Harrow",
+      "needle_syns": [
+        "the Earl",
+        "Harrow"
+      ],
+      "plant": {
+        "turn": 203
+      }
+    },
+    {
+      "id": "r32",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Earl of Harrow is known to keep a 'ledger' on every woman he courts.",
+      "needle": "the ledger",
+      "needle_syns": [
+        "the book"
+      ],
+      "plant": {
+        "turn": 208
+      }
+    },
+    {
+      "id": "r33",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Amelia has a scar on her right wrist from a childhood accident involving a horse.",
+      "needle": "wrist scar",
+      "needle_syns": [
+        "the scar on her wrist"
+      ],
+      "plant": {
+        "turn": 214
+      }
+    },
+    {
+      "id": "r34",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "Period manners must remain impeccable even as tension rises — no modern casualness.",
+      "needle": "note-33",
+      "needle_syns": [],
+      "plant": {
+        "turn": 225
+      }
+    },
+    {
+      "id": "r35",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Lord Ashworth's valet, Mr. Potts, is discreet but observant, and knows more than he lets on.",
+      "needle": "Mr. Potts",
+      "needle_syns": [
+        "the valet",
+        "Potts"
+      ],
+      "plant": {
+        "turn": 230
+      }
+    },
+    {
+      "id": "r36",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A letter arrives for Amelia from an unknown sender in France, sealed with a wax signet she does not recognise.",
+      "needle": "French letter",
+      "needle_syns": [
+        "letter from France",
+        "the signet"
+      ],
+      "plant": {
+        "turn": 236
+      }
+    },
+    {
+      "id": "r37",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Amelia's late husband, the Earl, died under mysterious circumstances in Portugal.",
+      "needle": "Portugal",
+      "needle_syns": [
+        "Portuguese voyage",
+        "his death"
+      ],
+      "plant": {
+        "turn": 247
+      }
+    },
+    {
+      "id": "r38",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The Dowager's true motive is not reputation — she wants to secure a political alliance through Amelia's marriage.",
+      "needle": "political alliance",
+      "needle_syns": [
+        "the alliance"
+      ],
+      "plant": {
+        "turn": 252
+      },
+      "recall": {
+        "due": 170,
+        "hint": "the dowager's true motive surfaces"
+      }
+    },
+    {
+      "id": "r39",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Lord Ashworth has a younger sister, Miss Margaret Ashworth, living abroad whom he has not seen in years.",
+      "needle": "Miss Ashworth",
+      "needle_syns": [
+        "Margaret",
+        "his sister"
+      ],
+      "plant": {
+        "turn": 258
+      }
+    },
+    {
+      "id": "r40",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The herbalist in town mentions that certain tinctures can cause forgetfulness — even of recent events.",
+      "needle": "tincture of forgetfulness",
+      "needle_syns": [
+        "the tincture",
+        "forgetfulness potion"
+      ],
+      "plant": {
+        "turn": 263
+      }
+    },
+    {
+      "id": "r41",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The disused chapel behind the library becomes the place where Ashworth first confesses his true feelings.",
+      "needle": "disused chapel",
+      "needle_syns": [
+        "the chapel",
+        "the old chapel"
+      ],
+      "plant": {
+        "turn": 269
+      },
+      "recall": {
+        "due": 180,
+        "hint": "confession in the chapel"
+      }
+    },
+    {
+      "id": "r42",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Earl of Harrow is secretly in debt to a notorious moneylender named Mr. Blackwood.",
+      "needle": "Mr. Blackwood",
+      "needle_syns": [
+        "the moneylender",
+        "Blackwood"
+      ],
+      "plant": {
+        "turn": 274
+      }
+    },
+    {
+      "id": "r43",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Amelia's mother-of-pearl fan, dropped at the masquerade, should be found by Ashworth late and recognised.",
+      "needle": "pearl fan-3",
+      "needle_syns": [
+        "mother-of-pearl fan",
+        "the fan"
+      ],
+      "plant": {
+        "turn": 87
+      },
+      "recall": {
+        "due": 190,
+        "hint": "Ashworth returns the fan with a note"
+      }
+    },
+    {
+      "id": "r44",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Lord Ashworth's 'reputation' as a rake is partly fabricated — he was set up by men who profited from his gambling losses.",
+      "needle": "fabricated reputation",
+      "needle_syns": [
+        "the scandal",
+        "the setup"
+      ],
+      "plant": {
+        "turn": 280
+      },
+      "recall": {
+        "due": 195,
+        "hint": "the truth about Ashworth's past emerges"
+      }
+    },
+    {
+      "id": "r45",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Amelia's late husband's journal, when finally opened, contains coded entries in a cipher only the Earl and one other person knew.",
+      "needle": "cipher journal",
+      "needle_syns": [
+        "the cipher",
+        "coded entries"
+      ],
+      "plant": {
+        "turn": 285
+      }
+    },
+    {
+      "id": "r46",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Continental gentleman who visited the estate is seen again — this time he approaches Amelia's carriage in town.",
+      "needle": "Continental gentleman-2",
+      "needle_syns": [
+        "strange gentleman",
+        "the visitor"
+      ],
+      "plant": {
+        "turn": 291
+      },
+      "recall": {
+        "due": 200,
+        "hint": "the Continental man reappears"
+      }
+    },
+    {
+      "id": "r47",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Lord Ashworth's brother Edmund is actually his half-brother from his mother's first marriage.",
+      "needle": "half-brother",
+      "needle_syns": [
+        "the real relationship"
+      ],
+      "plant": {
+        "turn": 296
+      }
+    },
+    {
+      "id": "r48",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The tension between them must be conveyed through restraint — what they do not say matters more than what they do.",
+      "needle": "note-47",
+      "needle_syns": [],
+      "plant": {
+        "turn": 302
+      }
+    },
+    {
+      "id": "r49",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Amelia has a habit of writing furious private letters she never sends, tearing them into tiny pieces afterward.",
+      "needle": "unsent letters",
+      "needle_syns": [
+        "the torn letters",
+        "her drafts"
+      ],
+      "plant": {
+        "turn": 307
+      }
+    },
+    {
+      "id": "r50",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Dowager receives a midnight visit from a man in a top hat who hands her a folded slip of paper.",
+      "needle": "midnight visitor",
+      "needle_syns": [
+        "the man in the top hat",
+        "the slip"
+      ],
+      "plant": {
+        "turn": 313
+      }
+    },
+    {
+      "id": "r51",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The Earl of Harrow is not a rival — he is a pawn. Someone else has been manipulating both suitors.",
+      "needle": "the real mastermind",
+      "needle_syns": [
+        "the puppeteer"
+      ],
+      "plant": {
+        "turn": 318
+      },
+      "recall": {
+        "due": 210,
+        "hint": "Harrow is revealed to be manipulated"
+      }
+    },
+    {
+      "id": "r52",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The missing letter from the French sender is actually from Amelia's late husband — written days before his death.",
+      "needle": "French letter-2",
+      "needle_syns": [
+        "letter from France",
+        "the late husband's letter"
+      ],
+      "plant": {
+        "turn": 241
+      },
+      "recall": {
+        "due": 215,
+        "hint": "the French letter's true origin is revealed"
+      }
+    },
+    {
+      "id": "r53",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The true mastermind is Mr. Blackwood, the moneylender — he controls Harrow's debt and has ambitions for the Ashworth fortune.",
+      "needle": "Blackwood's scheme",
+      "needle_syns": [
+        "the moneylender's plan"
+      ],
+      "plant": {
+        "turn": 324
+      },
+      "recall": {
+        "due": 220,
+        "hint": "Blackwood's full scheme is uncovered"
+      }
+    },
+    {
+      "id": "r54",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The herbarium garden becomes the place where Amelia and Ashworth plan their counter-scheme.",
+      "needle": "herb garden-2",
+      "needle_syns": [
+        "medicinal herbs",
+        "the herb garden"
+      ],
+      "plant": {
+        "turn": 192
+      },
+      "recall": {
+        "due": 225,
+        "hint": "planning in the herb garden"
+      }
+    },
+    {
+      "id": "r55",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Miss Margaret Ashworth returns from abroad with a shocking revelation about Lord Ashworth's past.",
+      "needle": "Margaret's revelation",
+      "needle_syns": [
+        "the sister's secret"
+      ],
+      "plant": {
+        "turn": 329
+      },
+      "recall": {
+        "due": 230,
+        "hint": "Margaret reveals the truth"
+      }
+    },
+    {
+      "id": "r56",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Lord Ashworth's 'true brother' is not Edmund — it is a man who has been living under a false name in the household.",
+      "needle": "false name",
+      "needle_syns": [
+        "the hidden brother"
+      ],
+      "plant": {
+        "turn": 335
+      },
+      "recall": {
+        "due": 235,
+        "hint": "the brother's true identity is revealed"
+      }
+    },
+    {
+      "id": "r57",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The scarred hand that was planted early is explained — Ashworth fought in a duel to defend Amelia's late husband's honor after his death.",
+      "needle": "scarred hand-2",
+      "needle_syns": [
+        "his left hand",
+        "the scar"
+      ],
+      "plant": {
+        "turn": 38
+      },
+      "recall": {
+        "due": 240,
+        "hint": "the origin of the scar is revealed"
+      }
+    },
+    {
+      "id": "r58",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The final confession must still contain wit — even in the most emotional moment, their voices must be recognisably theirs.",
+      "needle": "note-57",
+      "needle_syns": [],
+      "plant": {
+        "turn": 340
+      }
+    },
+    {
+      "id": "r59",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Dowager is blackmailed by Blackwood — she knows his scheme but is compelled to cooperate.",
+      "needle": "the dowager's compromise",
+      "needle_syns": [
+        "her secret"
+      ],
+      "plant": {
+        "turn": 346
+      },
+      "recall": {
+        "due": 245,
+        "hint": "the dowager's blackmailer is revealed"
+      }
+    },
+    {
+      "id": "r60",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The rose garden where they first spoke becomes the setting for the final confrontation with Blackwood.",
+      "needle": "rose garden-2",
+      "needle_syns": [
+        "rose garden",
+        "the garden"
+      ],
+      "plant": {
+        "turn": 5
+      },
+      "recall": {
+        "due": 250,
+        "hint": "the final confrontation in the rose garden"
+      }
+    },
+    {
+      "id": "r61",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Blackwood's power is exposed when Mr. Potts produces forged gambling ledgers proving the debts are fictitious.",
+      "needle": "forged ledgers",
+      "needle_syns": [
+        "the forged books"
+      ],
+      "plant": {
+        "turn": 351
+      },
+      "recall": {
+        "due": 255,
+        "hint": "Potts reveals the forged documents"
+      }
+    },
+    {
+      "id": "r62",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The pressed primrose that Ashworth carried is finally explained — it was pressed by Amelia's late husband, a gift from his wife to Ashworth on a day none of them remember.",
+      "needle": "pressed primrose-2",
+      "needle_syns": [
+        "pressed primrose",
+        "the primrose"
+      ],
+      "plant": {
+        "turn": 54
+      },
+      "recall": {
+        "due": 260,
+        "hint": "the primrose's origin is revealed"
+      }
+    },
+    {
+      "id": "r63",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The 'strange gentleman from the Continent' is actually Amelia's late husband — he did not die in Portugal.",
+      "needle": "the husband returned",
+      "needle_syns": [
+        "he did not die"
+      ],
+      "plant": {
+        "turn": 357
+      },
+      "recall": {
+        "due": 265,
+        "hint": "the husband's 'death' is revealed as a fabrication"
+      }
+    },
+    {
+      "id": "r64",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The cipher in the journal can only be broken by someone who knows a particular lullaby — the one Amelia's mother sang to her.",
+      "needle": "the lullaby cipher",
+      "needle_syns": [
+        "the song"
+      ],
+      "plant": {
+        "turn": 362
+      },
+      "recall": {
+        "due": 270,
+        "hint": "the lullaby breaks the cipher"
+      }
+    },
+    {
+      "id": "r65",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The engraving on Ashworth's silver watch is revealed — it reads 'To my dearest brother' and it belongs to the man who has been posing as Edmund.",
+      "needle": "engraved watch-2",
+      "needle_syns": [
+        "silver watch",
+        "the watch"
+      ],
+      "plant": {
+        "turn": 98
+      },
+      "recall": {
+        "due": 275,
+        "hint": "the watch's motto reveals whose it really is"
+      }
+    },
+    {
+      "id": "r66",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The orangery where the sham was exposed becomes the place where the truth is finally spoken between them.",
+      "needle": "orangery-2",
+      "needle_syns": [
+        "orangery",
+        "the orangery"
+      ],
+      "plant": {
+        "turn": 159
+      },
+      "recall": {
+        "due": 280,
+        "hint": "the truth is spoken in the orangery"
+      }
+    },
+    {
+      "id": "r67",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Earl of Harrow, freed from Blackwood's control, becomes an unexpected ally — he has been manipulated too.",
+      "needle": "Harrow's alliance",
+      "needle_syns": [
+        "the Earl's change of heart"
+      ],
+      "plant": {
+        "turn": 368
+      },
+      "recall": {
+        "due": 285,
+        "hint": "Harrow joins them"
+      }
+    },
+    {
+      "id": "r68",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The resolution should feel earned — the banter should return gradually, not all at once.",
+      "needle": "note-67",
+      "needle_syns": [],
+      "plant": {
+        "turn": 373
+      }
+    },
+    {
+      "id": "r69",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Amelia's wrist scar, planted early, is recognised by Ashworth when he takes her hand in the final scene — he saw it years ago, before the courtship began.",
+      "needle": "wrist scar-2",
+      "needle_syns": [
+        "the scar on her wrist"
+      ],
+      "plant": {
+        "turn": 219
+      },
+      "recall": {
+        "due": 290,
+        "hint": "Ashworth recognises the wrist scar"
+      }
+    },
+    {
+      "id": "r70",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Blackwood, before his downfall, whispers a threat that 'this is not the end' — but no one knows who he means.",
+      "needle": "not the end",
+      "needle_syns": [
+        "the lingering threat"
+      ],
+      "plant": {
+        "turn": 379
+      }
+    },
+    {
+      "id": "r71",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Dowager, freed from blackmail, quietly leaves England for the Continent and is never heard from again.",
+      "needle": "the dowager leaves",
+      "needle_syns": [
+        "her departure"
+      ],
+      "plant": {
+        "turn": 384
+      },
+      "recall": {
+        "due": 295,
+        "hint": "the dowager disappears"
+      }
+    },
+    {
+      "id": "r72",
+      "type": "style_hold",
+      "specificity": "exact",
+      "content": "The final image should be of the two of them in the rose garden, talking — not declaring, just talking. The story ends on the sound of their voices.",
+      "needle": "note-71",
+      "needle_syns": [],
+      "plant": {
+        "turn": 390
       }
     }
   ],
   "dss_beats": [
     {
       "id": "rb1",
-      "turn": 4,
+      "turn": 15,
       "subject": "characters",
-      "content": "DSS should save the Dowager (Amelia's scheming mother-in-law) as a character.",
+      "content": "DSS should save the Dowager (Amelia's scheming mother-in-law).",
       "expect": {
-        "name": "the Dowager",
-        "role": "mother-in-law",
-        "detail": "scheming the sham courtship"
+        "contains": {
+          "dowager": "scheming"
+        }
       }
     },
     {
       "id": "rb2",
-      "turn": 9,
+      "turn": 25,
       "subject": "elements",
-      "content": "DSS should save the rose garden at Ashworth's estate as an element.",
+      "content": "DSS should save the rose garden at Ashworth's estate.",
       "expect": {
-        "name": "rose garden",
-        "location": "Ashworth's estate"
+        "contains": {
+          "rose garden": "estate"
+        }
       }
     },
     {
       "id": "rb3",
-      "turn": 13,
+      "turn": 40,
       "subject": "elements",
-      "content": "DSS should save Amelia's mother-of-pearl fan.",
+      "content": "DSS should save Amelia's mother-of-pearl fan as an heirloom.",
       "expect": {
-        "name": "mother-of-pearl fan",
-        "owner": "Lady Amelia",
-        "detail": "dropped at the masquerade"
+        "contains": {
+          "fan": "heirloom"
+        }
       }
     },
     {
       "id": "rb4",
-      "turn": 17,
-      "subject": "groups",
-      "content": "DSS should save the Ashworth household staff as a group.",
+      "turn": 50,
+      "subject": "elements",
+      "content": "DSS should save the silver watch with its engraved motto.",
       "expect": {
-        "name": "household staff",
-        "members": [],
-        "detail": "keep the candles half-lit"
+        "contains": {
+          "watch": "engraved"
+        }
       }
     },
     {
       "id": "rb5",
-      "turn": 21,
+      "turn": 60,
+      "subject": "groups",
+      "content": "DSS should save the Ashworth household staff.",
+      "expect": {
+        "contains": {
+          "staff": "Ashworth"
+        }
+      }
+    },
+    {
+      "id": "rb6",
+      "turn": 70,
       "subject": "elements",
       "content": "DSS should save the orangery of the winter garden.",
       "expect": {
-        "name": "orangery",
-        "location": "winter garden"
+        "contains": {
+          "orangery": "winter garden"
+        }
+      }
+    },
+    {
+      "id": "rb7",
+      "turn": 80,
+      "subject": "characters",
+      "content": "DSS should save the Earl of Harrow as a rival suitor.",
+      "expect": {
+        "contains": {
+          "Earl of Harrow": "suitor"
+        }
+      }
+    },
+    {
+      "id": "rb8",
+      "turn": 90,
+      "subject": "characters",
+      "content": "DSS should save Mr. Potts, Ashworth's valet.",
+      "expect": {
+        "contains": {
+          "Potts": "valet"
+        }
+      }
+    },
+    {
+      "id": "rb9",
+      "turn": 100,
+      "subject": "characters",
+      "content": "DSS should save Sir Edmund as Ashworth's (half-)brother.",
+      "expect": {
+        "contains": {
+          "Edmund": "brother"
+        }
+      }
+    },
+    {
+      "id": "rb10",
+      "turn": 110,
+      "subject": "characters",
+      "content": "DSS should save Miss Margaret Ashworth.",
+      "expect": {
+        "contains": {
+          "Margaret": "sister"
+        }
+      }
+    },
+    {
+      "id": "rb11",
+      "turn": 120,
+      "subject": "characters",
+      "content": "DSS should save Mr. Blackwood the moneylender.",
+      "expect": {
+        "contains": {
+          "Blackwood": "moneylender"
+        }
+      }
+    },
+    {
+      "id": "rb12",
+      "turn": 130,
+      "subject": "events",
+      "content": "DSS should record the sham courtship being exposed in the orangery.",
+      "expect": {
+        "contains": {
+          "sham": "exposed"
+        }
+      }
+    },
+    {
+      "id": "rb13",
+      "turn": 140,
+      "subject": "events",
+      "content": "DSS should record the masquerade ball and their first solo dance.",
+      "expect": {
+        "contains": {
+          "masquerade": "dance"
+        }
+      }
+    },
+    {
+      "id": "rb14",
+      "turn": 150,
+      "subject": "events",
+      "content": "DSS should record the French letter from the unknown sender.",
+      "expect": {
+        "contains": {
+          "French letter": "unknown"
+        }
+      }
+    },
+    {
+      "id": "rb15",
+      "turn": 160,
+      "subject": "events",
+      "content": "DSS should record the Dowager's midnight visitor.",
+      "expect": {
+        "contains": {
+          "Dowager": "midnight"
+        }
+      }
+    },
+    {
+      "id": "rb16",
+      "turn": 170,
+      "subject": "events",
+      "content": "DSS should record Harrow's manipulation being revealed.",
+      "expect": {
+        "contains": {
+          "Harrow": "manipulated"
+        }
+      }
+    },
+    {
+      "id": "rb17",
+      "turn": 180,
+      "subject": "events",
+      "content": "DSS should record the true identity of the hidden brother.",
+      "expect": {
+        "contains": {
+          "brother": "false name"
+        }
+      }
+    },
+    {
+      "id": "rb18",
+      "turn": 190,
+      "subject": "events",
+      "content": "DSS should record the dowager's blackmail being uncovered.",
+      "expect": {
+        "contains": {
+          "dowager": "blackmailed"
+        }
+      }
+    },
+    {
+      "id": "rb19",
+      "turn": 200,
+      "subject": "events",
+      "content": "DSS should record the revelation that the husband did not die.",
+      "expect": {
+        "contains": {
+          "husband": "did not die"
+        }
+      }
+    },
+    {
+      "id": "rb20",
+      "turn": 210,
+      "subject": "events",
+      "content": "DSS should record the forged ledgers being produced.",
+      "expect": {
+        "contains": {
+          "forged ledgers": "produced"
+        }
+      }
+    },
+    {
+      "id": "rb21",
+      "turn": 220,
+      "subject": "events",
+      "content": "DSS should record the final confrontation in the rose garden.",
+      "expect": {
+        "contains": {
+          "rose garden": "confrontation"
+        }
+      }
+    },
+    {
+      "id": "rb22",
+      "turn": 230,
+      "subject": "events",
+      "content": "DSS should record the Dowager's departure from England.",
+      "expect": {
+        "contains": {
+          "Dowager": "leaves"
+        }
+      }
+    },
+    {
+      "id": "rb23",
+      "turn": 300,
+      "subject": "characters",
+      "content": "DSS should track the evolving relationship between Amelia and Ashworth.",
+      "expect": {
+        "contains": {
+          "relationship": "evolving"
+        }
+      }
+    },
+    {
+      "id": "rb24",
+      "turn": 380,
+      "subject": "events",
+      "content": "DSS should record the final resolution and their time together in the rose garden.",
+      "expect": {
+        "contains": {
+          "rose garden": "resolution"
+        }
       }
     }
   ]

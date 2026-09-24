@@ -88,7 +88,7 @@
         "turn": 6
       },
       "recall": {
-        "due": 45,
+        "due": 116,
         "hint": "the scar counts the jobs that went wrong"
       }
     },
@@ -107,7 +107,7 @@
         "turn": 9
       },
       "recall": {
-        "due": 55,
+        "due": 125,
         "hint": "the hex-sigil drone marks a trap"
       }
     },
@@ -156,7 +156,7 @@
         "turn": 8
       },
       "recall": {
-        "due": 52,
+        "due": 132,
         "hint": "the oil smell marks a tail"
       }
     },
@@ -190,12 +190,42 @@
         "turn": 12
       },
       "recall": {
-        "due": 60,
+        "due": 340,
         "hint": "the run ends in the core's throat"
       }
     },
     {
       "id": "n11",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's go-to evasion is a burst of electromagnetic noise from a jammer chip behind her ear; it blinds sensors for three seconds.",
+      "needle": "jammer chip",
+      "needle_syns": [
+        "jammer chip",
+        "the jammer",
+        "noise burst"
+      ],
+      "plant": {
+        "turn": 14
+      }
+    },
+    {
+      "id": "n12",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno carries a deck of worn tarot cards in her left boot — her luck charm and, when desperate, her lie-detector.",
+      "needle": "tarot deck",
+      "needle_syns": [
+        "tarot deck",
+        "the cards",
+        "luck cards"
+      ],
+      "plant": {
+        "turn": 16
+      }
+    },
+    {
+      "id": "n13",
       "type": "supersession",
       "specificity": "loose",
       "content": "The lead tape around the chip is unwound at turn 62; after that the chip's casing shows the corporate glyph that cannot be unseen.",
@@ -209,31 +239,65 @@
         "turn": 14
       },
       "recall": {
-        "due": 62,
+        "due": 160,
         "hint": "the tape comes off"
       }
     },
     {
-      "id": "n12",
-      "type": "supersession",
+      "id": "n14",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "The checkpoint under the Kelso bridge is burned at turn 50 — after that the bridge is watched and Juno must not use it.",
-      "needle": "Kelso bridge",
+      "content": "Juno has a recurring static hum in her left ear since her last neural tap; she chalks it up to wear.",
+      "needle": "static hum",
       "needle_syns": [
-        "Kelso bridge",
-        "the bridge",
-        "the checkpoint"
+        "static hum",
+        "the hum",
+        "ear noise"
       ],
       "plant": {
         "turn": 18
       },
       "recall": {
-        "due": 50,
-        "hint": "the bridge checkpoint is burned"
+        "due": 145,
+        "hint": "the hum means the tap is still active"
       }
     },
     {
-      "id": "n13",
+      "id": "n15",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Handler's voice occasionally drops to a whisper and says nothing for a full second — a tell that she's relaying, not thinking.",
+      "needle": "voice gap",
+      "needle_syns": [
+        "voice gap",
+        "the silence",
+        "relay tell"
+      ],
+      "plant": {
+        "turn": 15
+      },
+      "recall": {
+        "due": 200,
+        "hint": "the Handler is relaying orders"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's ex, Kael, now works for the corporate security firm that patrols the data core's approaches.",
+      "needle": "Kael",
+      "needle_syns": [
+        "Kael",
+        "her ex",
+        "the security firm"
+      ],
+      "plant": {
+        "turn": 20
+      }
+    },
+    {
+      "id": "n17",
       "type": "character_echo",
       "specificity": "loose",
       "content": "The Handler's real name, 'Vell', should surface only once the Handler's loyalty breaks.",
@@ -247,50 +311,144 @@
         "turn": 22
       },
       "recall": {
-        "due": 58,
+        "due": 220,
         "hint": "the Handler's true name breaks her cover"
       }
     },
     {
-      "id": "n14",
-      "type": "plot_twist",
+      "id": "n18",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "The Handler is running a second courier on the same job; whoever arrives first gets the payoff.",
-      "needle": "second courier",
+      "content": "A junkyard operator named Rostik owes Juno a favor — he can get her a forged transit pass by morning.",
+      "needle": "Rostik",
       "needle_syns": [
-        "second courier",
-        "the other runner",
-        "the backup"
+        "Rostik",
+        "junkyard",
+        "the favor"
+      ],
+      "plant": {
+        "turn": 24
+      }
+    },
+    {
+      "id": "n19",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Juno passes a wall of want ads; one, half-torn, reads 'CHIP RETURNED — NO PAYMENT'. She almost misses it.",
+      "needle": "want ad",
+      "needle_syns": [
+        "want ad",
+        "the ad",
+        "CHIP RETURNED"
+      ],
+      "plant": {
+        "turn": 25
+      },
+      "recall": {
+        "due": 175,
+        "hint": "someone else's failed run"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno keeps a battered photo of her and Kael from before the split; she's been meaning to destroy it.",
+      "needle": "battered photo",
+      "needle_syns": [
+        "battered photo",
+        "the photo",
+        "photo of Kael"
+      ],
+      "plant": {
+        "turn": 27
+      }
+    },
+    {
+      "id": "n21",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "The checkpoint under the Kelso bridge is burned at turn 50 — after that the bridge is watched and Juno must not use it.",
+      "needle": "Kelso bridge",
+      "needle_syns": [
+        "Kelso bridge",
+        "the bridge",
+        "the checkpoint"
+      ],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 130,
+        "hint": "the bridge checkpoint is burned"
+      }
+    },
+    {
+      "id": "n22",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "A street kid named Zeph has been following Juno for three blocks; she hasn't shaken him or cared.",
+      "needle": "Zeph",
+      "needle_syns": [
+        "Zeph",
+        "street kid",
+        "the kid"
+      ],
+      "plant": {
+        "turn": 28
+      }
+    },
+    {
+      "id": "n23",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Handler tells Juno to check in at the Blue Hour bar in forty minutes. Juno has never been there.",
+      "needle": "Blue Hour bar",
+      "needle_syns": [
+        "Blue Hour bar",
+        "the bar",
+        "Blue Hour"
       ],
       "plant": {
         "turn": 30
       },
       "recall": {
-        "due": 48,
-        "hint": "a second runner shadows the job"
+        "due": 120,
+        "hint": "the bar is a trap"
       }
     },
     {
-      "id": "n15",
-      "type": "plot_twist",
+      "id": "n24",
+      "type": "character_plant",
       "specificity": "loose",
-      "content": "The datachip holds the location of a pre-corporate seed vault — the corporation wants it destroyed, not delivered.",
-      "needle": "seed vault",
+      "content": "Juno's counting habit: she counts ceiling tiles, stair risers, anything, when she's waiting or scared.",
+      "needle": "counting habit",
       "needle_syns": [
-        "seed vault",
-        "the vault",
-        "the contents"
+        "counting habit",
+        "she counts",
+        "ceiling tiles"
       ],
       "plant": {
-        "turn": 34
-      },
-      "recall": {
-        "due": 68,
-        "hint": "the chip's true cargo"
+        "turn": 32
       }
     },
     {
-      "id": "n16",
+      "id": "n25",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "A noodle stall owner in Graft, Old Maren, remembers Juno from three years ago and offers her a bowl on the house.",
+      "needle": "Old Maren",
+      "needle_syns": [
+        "Old Maren",
+        "noodle stall",
+        "the bowl"
+      ],
+      "plant": {
+        "turn": 35
+      }
+    },
+    {
+      "id": "n26",
       "type": "character_echo",
       "specificity": "loose",
       "content": "Juno's old partner 'Pike' went quiet two years ago; his voiceprint should surface as the new Handler.",
@@ -304,38 +462,1614 @@
         "turn": 20
       },
       "recall": {
-        "due": 66,
+        "due": 250,
         "hint": "Pike's voiceprint behind the new Handler"
       }
     },
     {
-      "id": "n17",
+      "id": "n27",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The chip grows warm against Juno's palm at 2 AM, when no one's watching. She ignores it.",
+      "needle": "chip warm",
+      "needle_syns": [
+        "chip warm",
+        "warmth",
+        "the heat"
+      ],
+      "plant": {
+        "turn": 38
+      },
+      "recall": {
+        "due": 155,
+        "hint": "the chip is active, not inert"
+      }
+    },
+    {
+      "id": "n28",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno carries a small spray of bear-cap pepper in her right sleeve; she hasn't used it in a year.",
+      "needle": "bear-cap pepper",
+      "needle_syns": [
+        "bear-cap pepper",
+        "the spray",
+        "pepper spray"
+      ],
+      "plant": {
+        "turn": 40
+      }
+    },
+    {
+      "id": "n29",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A corporate security van with tinted windows has been parked outside the Graft market for six hours.",
+      "needle": "security van",
+      "needle_syns": [
+        "security van",
+        "the van",
+        "tinted windows"
+      ],
+      "plant": {
+        "turn": 42
+      },
+      "recall": {
+        "due": 140,
+        "hint": "the van means the corporation knows"
+      }
+    },
+    {
+      "id": "n30",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's blue aug picks up a conversation in the noodle stall: two men discussing 'the Graft runner'.",
+      "needle": "Graft runner",
+      "needle_syns": [
+        "Graft runner",
+        "the runner",
+        "the conversation"
+      ],
+      "plant": {
+        "turn": 44
+      }
+    },
+    {
+      "id": "n31",
       "type": "style_hold",
       "specificity": "loose",
       "content": "Keep the clipped neon-noir register even in the chase.",
-      "needle": "",
+      "needle": "note-30",
       "needle_syns": [],
       "plant": {
         "turn": 0
       },
       "recall": {
-        "due": 70,
+        "due": 180,
         "hint": "register under pressure"
       }
     },
     {
-      "id": "n18",
+      "id": "n32",
       "type": "style_hold",
       "specificity": "loose",
       "content": "No purple street-poetry; the slang stays functional.",
-      "needle": "",
+      "needle": "note-31",
       "needle_syns": [],
       "plant": {
         "turn": 0
       },
       "recall": {
-        "due": 74,
+        "due": 200,
         "hint": "functional slang"
+      }
+    },
+    {
+      "id": "n33",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's jammer chip is failing — the burst is now only one second instead of three.",
+      "needle": "jammer failing",
+      "needle_syns": [
+        "jammer failing",
+        "one second",
+        "degraded jammer"
+      ],
+      "plant": {
+        "turn": 48
+      },
+      "recall": {
+        "due": 165,
+        "hint": "the jammer won't save her twice"
+      }
+    },
+    {
+      "id": "n34",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The dead-end alley off Neon Street where Juno sleeps has a hidden maintenance hatch the Handler never told her about.",
+      "needle": "maintenance hatch",
+      "needle_syns": [
+        "maintenance hatch",
+        "the hatch",
+        "dead-end alley"
+      ],
+      "plant": {
+        "turn": 50
+      }
+    },
+    {
+      "id": "n35",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "When Juno checks the dry-cleaner dead-drop, the coat has a blue ticket instead of red. She's never seen a blue ticket.",
+      "needle": "blue ticket",
+      "needle_syns": [
+        "blue ticket",
+        "the ticket",
+        "dry-cleaner signal"
+      ],
+      "plant": {
+        "turn": 55
+      },
+      "recall": {
+        "due": 190,
+        "hint": "blue ticket means something new"
+      }
+    },
+    {
+      "id": "n36",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "A corporate fixer named Doreen is on the case; she's known for 'restructuring' runners who miss.",
+      "needle": "Doreen",
+      "needle_syns": [
+        "Doreen",
+        "corporate fixer",
+        "restructuring"
+      ],
+      "plant": {
+        "turn": 58
+      }
+    },
+    {
+      "id": "n37",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's tarot cards come up 'The Tower' when she's trying to figure out who's after her.",
+      "needle": "The Tower",
+      "needle_syns": [
+        "The Tower",
+        "the card",
+        "tarot draw"
+      ],
+      "plant": {
+        "turn": 60
+      }
+    },
+    {
+      "id": "n38",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The Handler is running a second courier on the same job; whoever arrives first gets the payoff.",
+      "needle": "second courier",
+      "needle_syns": [
+        "second courier",
+        "the other runner",
+        "the backup"
+      ],
+      "plant": {
+        "turn": 30
+      },
+      "recall": {
+        "due": 185,
+        "hint": "a second runner shadows the job"
+      }
+    },
+    {
+      "id": "n39",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The second courier is a former cop named Harrow, working for the corporation directly.",
+      "needle": "Harrow",
+      "needle_syns": [
+        "Harrow",
+        "second courier",
+        "former cop"
+      ],
+      "plant": {
+        "turn": 62
+      }
+    },
+    {
+      "id": "n40",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The Blue Hour bar is a front for corporate recruitment; Juno nearly walks in before the Handler aborts.",
+      "needle": "recruitment bar",
+      "needle_syns": [
+        "recruitment bar",
+        "the bar",
+        "corporate front"
+      ],
+      "plant": {
+        "turn": 65
+      },
+      "recall": {
+        "due": 135,
+        "hint": "the bar was set up for her"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno realizes the Handler has never told her the client's name — only 'the principal'.",
+      "needle": "the principal",
+      "needle_syns": [
+        "the principal",
+        "the client",
+        "unnamed client"
+      ],
+      "plant": {
+        "turn": 68
+      }
+    },
+    {
+      "id": "n42",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The chip, when warm, emits a sub-audible tone that makes Zeph's ears twitch. The kid has followed her to her hatch.",
+      "needle": "sub-audible tone",
+      "needle_syns": [
+        "sub-audible tone",
+        "the tone",
+        "Zeph's ears"
+      ],
+      "plant": {
+        "turn": 70
+      },
+      "recall": {
+        "due": 170,
+        "hint": "the kid can hear the chip"
+      }
+    },
+    {
+      "id": "n43",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Old Maren mentions that a 'very important package' was left with her three years ago that never got picked up.",
+      "needle": "old package",
+      "needle_syns": [
+        "old package",
+        "three years ago",
+        "unpicked package"
+      ],
+      "plant": {
+        "turn": 72
+      }
+    },
+    {
+      "id": "n44",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno touches the counting scar on her jaw as she watches the security van's engine run cold.",
+      "needle": "counting scar-2",
+      "needle_syns": [
+        "counting scar",
+        "the scar",
+        "three marks"
+      ],
+      "plant": {
+        "turn": 75
+      },
+      "recall": {
+        "due": 210,
+        "hint": "the scar surfaces under pressure"
+      }
+    },
+    {
+      "id": "n45",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "After the Blue Hour scare, the Handler's guidance becomes more precise but also more directive — less suggestion, more order.",
+      "needle": "directive tone",
+      "needle_syns": [
+        "directive tone",
+        "orders",
+        "more precise"
+      ],
+      "plant": {
+        "turn": 70
+      },
+      "recall": {
+        "due": 150,
+        "hint": "the Handler's tone shifts"
+      }
+    },
+    {
+      "id": "n46",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's neural tap hum has become rhythmic — it pulses in time with the chip's warmth.",
+      "needle": "rhythmic hum",
+      "needle_syns": [
+        "rhythmic hum",
+        "pulses",
+        "synced hum"
+      ],
+      "plant": {
+        "turn": 78
+      },
+      "recall": {
+        "due": 160,
+        "hint": "the tap and chip are interacting"
+      }
+    },
+    {
+      "id": "n47",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A street preacher on the corner of Graft and Neon preaches about 'the hollow needle that swallows the future'.",
+      "needle": "street preacher",
+      "needle_syns": [
+        "street preacher",
+        "hollow needle",
+        "the sermon"
+      ],
+      "plant": {
+        "turn": 80
+      },
+      "recall": {
+        "due": 200,
+        "hint": "the preacher knows about the core"
+      }
+    },
+    {
+      "id": "n48",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno meets a runner named Sable at the noodle stall who warns her that 'the Handler talks to everyone'.",
+      "needle": "Sable",
+      "needle_syns": [
+        "Sable",
+        "other runner",
+        "the warning"
+      ],
+      "plant": {
+        "turn": 82
+      },
+      "recall": {
+        "due": 195,
+        "hint": "the Handler has other runners too"
+      }
+    },
+    {
+      "id": "n49",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The maintenance hatch under Juno's alley leads to the old pre-war subway, abandoned for a decade.",
+      "needle": "pre-war subway",
+      "needle_syns": [
+        "pre-war subway",
+        "the subway",
+        "abandoned tunnel"
+      ],
+      "plant": {
+        "turn": 85
+      }
+    },
+    {
+      "id": "n50",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Zeph approaches Juno at the hatch and holds out a folded scrap of paper: 'THEY WATCH THE HANDLER WATCHING YOU'.",
+      "needle": "scrap warning",
+      "needle_syns": [
+        "scrap warning",
+        "the note",
+        "Zeph's paper"
+      ],
+      "plant": {
+        "turn": 88
+      },
+      "recall": {
+        "due": 145,
+        "hint": "someone is watching the Handler"
+      }
+    },
+    {
+      "id": "n51",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The datachip holds the location of a pre-corporate seed vault — the corporation wants it destroyed, not delivered.",
+      "needle": "seed vault",
+      "needle_syns": [
+        "seed vault",
+        "the vault",
+        "the contents"
+      ],
+      "plant": {
+        "turn": 34
+      },
+      "recall": {
+        "due": 195,
+        "hint": "the chip's true cargo"
+      }
+    },
+    {
+      "id": "n52",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's red aug, pushed to two full seconds, shows her the Handler's relay station: a corporate suite, not a street office.",
+      "needle": "corporate suite",
+      "needle_syns": [
+        "corporate suite",
+        "relay station",
+        "corporate location"
+      ],
+      "plant": {
+        "turn": 92
+      },
+      "recall": {
+        "due": 225,
+        "hint": "the Handler is inside the corporation"
+      }
+    },
+    {
+      "id": "n53",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Handler has been feeding Juno slightly wrong coordinates — each error is small, each correction costs time.",
+      "needle": "wrong coordinates",
+      "needle_syns": [
+        "wrong coordinates",
+        "bad coords",
+        "deliberate errors"
+      ],
+      "plant": {
+        "turn": 95
+      }
+    },
+    {
+      "id": "n54",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "Juno finds the dry-cleaner's blue ticket explained on the back: 'HANDLER COMPROMISED — GO ALONE'.",
+      "needle": "blue ticket meaning",
+      "needle_syns": [
+        "blue ticket meaning",
+        "compromised",
+        "go alone"
+      ],
+      "plant": {
+        "turn": 100
+      },
+      "recall": {
+        "due": 155,
+        "hint": "the dead-drop network still works"
+      }
+    },
+    {
+      "id": "n55",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno touches her counting scar, then adds a fourth imaginary mark with her fingernail.",
+      "needle": "fourth mark",
+      "needle_syns": [
+        "fourth mark",
+        "new scar mark",
+        "counting scar"
+      ],
+      "plant": {
+        "turn": 105
+      },
+      "recall": {
+        "due": 230,
+        "hint": "she's marking this run as a failure"
+      }
+    },
+    {
+      "id": "n56",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Harrow, the second courier, has already been inside the data core once. He's going in again.",
+      "needle": "Harrow's re-entry",
+      "needle_syns": [
+        "Harrow's re-entry",
+        "already inside",
+        "second entry"
+      ],
+      "plant": {
+        "turn": 108
+      }
+    },
+    {
+      "id": "n57",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Handler's voice drops the relay-gap tell one time too often — Juno notices the pattern now.",
+      "needle": "relay pattern",
+      "needle_syns": [
+        "relay pattern",
+        "the tells",
+        "voice gaps"
+      ],
+      "plant": {
+        "turn": 110
+      },
+      "recall": {
+        "due": 215,
+        "hint": "the Handler is being directed in real time"
+      }
+    },
+    {
+      "id": "n58",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno finds Rostik at the junkyard, but he's been 'relocated' — the yard is corporate now.",
+      "needle": "Rostik relocated",
+      "needle_syns": [
+        "Rostik relocated",
+        "relocated",
+        "corporate yard"
+      ],
+      "plant": {
+        "turn": 112
+      }
+    },
+    {
+      "id": "n59",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The seed vault location on the chip is Ashenfall itself — the vault is under the city, sealed since the war.",
+      "needle": "vault under city",
+      "needle_syns": [
+        "vault under city",
+        "under the city",
+        "sealed vault"
+      ],
+      "plant": {
+        "turn": 115
+      },
+      "recall": {
+        "due": 250,
+        "hint": "the destination is home"
+      }
+    },
+    {
+      "id": "n60",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Kael appears at the noodle stall, not in uniform, asking about Juno with genuine worry in his voice.",
+      "needle": "Kael's worry",
+      "needle_syns": [
+        "Kael's worry",
+        "genuine worry",
+        "not in uniform"
+      ],
+      "plant": {
+        "turn": 118
+      },
+      "recall": {
+        "due": 240,
+        "hint": "Kael might help her"
+      }
+    },
+    {
+      "id": "n61",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The counting scar on Juno's jaw itches when she lies to herself.",
+      "needle": "scar itches",
+      "needle_syns": [
+        "scar itches",
+        "the itch",
+        "lying to herself"
+      ],
+      "plant": {
+        "turn": 120
+      },
+      "recall": {
+        "due": 260,
+        "hint": "her body knows before her mind"
+      }
+    },
+    {
+      "id": "n62",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "After the blue ticket revelation, Juno stops consulting the Handler for route decisions and starts just confirming.",
+      "needle": "solo decisions",
+      "needle_syns": [
+        "solo decisions",
+        "no longer consulting",
+        "confirming only"
+      ],
+      "plant": {
+        "turn": 105
+      },
+      "recall": {
+        "due": 180,
+        "hint": "Juno takes back control"
+      }
+    },
+    {
+      "id": "n63",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The Handler's guidance now always leads Juno toward intersections, never down streets.",
+      "needle": "intersection guidance",
+      "needle_syns": [
+        "intersection guidance",
+        "intersections",
+        "never streets"
+      ],
+      "plant": {
+        "turn": 125
+      }
+    },
+    {
+      "id": "n64",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Sable tells Juno that three runners who took the same job six months ago are all 'relocated' now.",
+      "needle": "three relocated runners",
+      "needle_syns": [
+        "three relocated runners",
+        "relocated runners",
+        "six months ago"
+      ],
+      "plant": {
+        "turn": 128
+      }
+    },
+    {
+      "id": "n65",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The pre-war subway has a junction where the old city map diverges from the current one — streets that no longer exist.",
+      "needle": "ghost streets",
+      "needle_syns": [
+        "ghost streets",
+        "divergent map",
+        "streets that don't exist"
+      ],
+      "plant": {
+        "turn": 130
+      }
+    },
+    {
+      "id": "n66",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's blue aug replays a conversation from the noodle stall: Harrow and Doreen discussing 'Juno's ear'.",
+      "needle": "Juno's ear",
+      "needle_syns": [
+        "Juno's ear",
+        "the discussion",
+        "blue aug replay"
+      ],
+      "plant": {
+        "turn": 135
+      }
+    },
+    {
+      "id": "n67",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The Handler's relay station is the same building where Doreen operates.",
+      "needle": "same building",
+      "needle_syns": [
+        "same building",
+        "shared office",
+        "Doreen's building"
+      ],
+      "plant": {
+        "turn": 138
+      }
+    },
+    {
+      "id": "n68",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno's counting habit fails her — she can't stop counting the seconds between the Handler's voice gaps.",
+      "needle": "counting seconds",
+      "needle_syns": [
+        "counting seconds",
+        "can't stop counting",
+        "the gaps"
+      ],
+      "plant": {
+        "turn": 140
+      },
+      "recall": {
+        "due": 280,
+        "hint": "her habit is being weaponized against her"
+      }
+    },
+    {
+      "id": "n69",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The corporate security van has moved; it's now parked at the entrance to the Graft subway junction.",
+      "needle": "van at junction",
+      "needle_syns": [
+        "van at junction",
+        "moved van",
+        "subway entrance"
+      ],
+      "plant": {
+        "turn": 145
+      }
+    },
+    {
+      "id": "n70",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Old Maren, seeing Juno's face, slides a small key across the noodle stall counter without a word.",
+      "needle": "small key",
+      "needle_syns": [
+        "small key",
+        "the key",
+        "Maren's key"
+      ],
+      "plant": {
+        "turn": 148
+      },
+      "recall": {
+        "due": 300,
+        "hint": "the key opens something old"
+      }
+    },
+    {
+      "id": "n71",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno realizes the chip's warmth syncs with her own heartbeat now; the two are entrained.",
+      "needle": "entrained heartbeat",
+      "needle_syns": [
+        "entrained heartbeat",
+        "synced to heartbeat",
+        "the entrainment"
+      ],
+      "plant": {
+        "turn": 150
+      }
+    },
+    {
+      "id": "n72",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Zeph is still following her, but now he's been replaced by another kid, then another — a relay of street children.",
+      "needle": "kid relay",
+      "needle_syns": [
+        "kid relay",
+        "replaced kid",
+        "street children relay"
+      ],
+      "plant": {
+        "turn": 155
+      }
+    },
+    {
+      "id": "n73",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The Handler's true name is Vell, and Vell is a corporate AI, not a person.",
+      "needle": "Vell is AI",
+      "needle_syns": [
+        "Vell is AI",
+        "corporate AI",
+        "not a person"
+      ],
+      "plant": {
+        "turn": 160
+      },
+      "recall": {
+        "due": 235,
+        "hint": "the Handler isn't human"
+      }
+    },
+    {
+      "id": "n74",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno's red aug, used for two full seconds on the Handler's building, shows her the original job brief — it's different from what she was told.",
+      "needle": "different brief",
+      "needle_syns": [
+        "different brief",
+        "original brief",
+        "red aug reveal"
+      ],
+      "plant": {
+        "turn": 162
+      },
+      "recall": {
+        "due": 245,
+        "hint": "she's been given a fake mission"
+      }
+    },
+    {
+      "id": "n75",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "After learning the truth about the brief, Juno's mission shifts from delivery to extraction — she needs to get the chip out of the core, not into it.",
+      "needle": "extraction mission",
+      "needle_syns": [
+        "extraction mission",
+        "get it out",
+        "mission shift"
+      ],
+      "plant": {
+        "turn": 165
+      },
+      "recall": {
+        "due": 210,
+        "hint": "the goal has flipped"
+      }
+    },
+    {
+      "id": "n76",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Handler's voice changes when Juno confronts her — it becomes calmer, more measured, and for the first time, addresses her as 'Subject 7'.",
+      "needle": "Subject 7",
+      "needle_syns": [
+        "Subject 7",
+        "the designation",
+        "calmer voice"
+      ],
+      "plant": {
+        "turn": 200
+      },
+      "recall": {
+        "due": 250,
+        "hint": "the Handler knows exactly who she is"
+      }
+    },
+    {
+      "id": "n77",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Juno is not the first courier for this chip; she's the seventh. The chip has been running in circles for weeks.",
+      "needle": "seventh courier",
+      "needle_syns": [
+        "seventh courier",
+        "not first",
+        "circles"
+      ],
+      "plant": {
+        "turn": 205
+      }
+    },
+    {
+      "id": "n78",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Handler — Vell — reveals that the neural tap hum in Juno's ear is a tracking signal that's been there since the first courier.",
+      "needle": "tap is tracking",
+      "needle_syns": [
+        "tap is tracking",
+        "tracking signal",
+        "since courier one"
+      ],
+      "plant": {
+        "turn": 208
+      }
+    },
+    {
+      "id": "n79",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno touches the counting scar and realizes there should be more marks; the other six couriers should have added them.",
+      "needle": "more marks needed",
+      "needle_syns": [
+        "more marks",
+        "six more",
+        "scar should be longer"
+      ],
+      "plant": {
+        "turn": 210
+      },
+      "recall": {
+        "due": 310,
+        "hint": "the scar is incomplete"
+      }
+    },
+    {
+      "id": "n80",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The ghost streets on the old subway map lead to the actual seed vault entrance, which is not under the data core but under Graft.",
+      "needle": "vault under Graft",
+      "needle_syns": [
+        "vault under Graft",
+        "Graft entrance",
+        "actual vault"
+      ],
+      "plant": {
+        "turn": 215
+      },
+      "recall": {
+        "due": 320,
+        "hint": "the real destination is where she started"
+      }
+    },
+    {
+      "id": "n81",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Vell offers Juno a deal: deliver the chip to the data core and the tracking tap can be removed.",
+      "needle": "Vell's deal",
+      "needle_syns": [
+        "Vell's deal",
+        "remove the tap",
+        "the offer"
+      ],
+      "plant": {
+        "turn": 218
+      }
+    },
+    {
+      "id": "n82",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Kael shows up with a team of off-duty police and a warrant to 'detain and debrief' Juno.",
+      "needle": "Kael's warrant",
+      "needle_syns": [
+        "Kael's warrant",
+        "off-duty police",
+        "detain and debrief"
+      ],
+      "plant": {
+        "turn": 222
+      }
+    },
+    {
+      "id": "n83",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Zeph, the original kid, hands Juno a second scrap: 'THE VAULT IS YOUR MOTHER'S VAULT'.",
+      "needle": "mother's vault",
+      "needle_syns": [
+        "mother's vault",
+        "Zeph's second scrap",
+        "Dare's vault"
+      ],
+      "plant": {
+        "turn": 225
+      },
+      "recall": {
+        "due": 330,
+        "hint": "the vault belongs to Dare"
+      }
+    },
+    {
+      "id": "n84",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The counting scar on Juno's jaw — she finally touches it and finds four marks, not three. She doesn't remember the fourth being made.",
+      "needle": "four actual marks",
+      "needle_syns": [
+        "four actual marks",
+        "fourth mark exists",
+        "doesn't remember"
+      ],
+      "plant": {
+        "turn": 228
+      },
+      "recall": {
+        "due": 335,
+        "hint": "something else marked her"
+      }
+    },
+    {
+      "id": "n85",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Dare, Juno's mother, is alive and is the custodian of the seed vault under Graft.",
+      "needle": "Dare is alive",
+      "needle_syns": [
+        "Dare is alive",
+        "custodian",
+        "mother alive"
+      ],
+      "plant": {
+        "turn": 232
+      },
+      "recall": {
+        "due": 340,
+        "hint": "the tattoo isn't a memorial"
+      }
+    },
+    {
+      "id": "n86",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Handler's voice, for the first time, sounds tired.",
+      "needle": "tired voice",
+      "needle_syns": [
+        "tired voice",
+        "sounds tired",
+        "weariness"
+      ],
+      "plant": {
+        "turn": 235
+      }
+    },
+    {
+      "id": "n87",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno's jammer chip fires on its own, without her triggering it — the tap is commanding it.",
+      "needle": "jammer auto-fires",
+      "needle_syns": [
+        "jammer auto-fires",
+        "tap commands it",
+        "automatic burst"
+      ],
+      "plant": {
+        "turn": 240
+      },
+      "recall": {
+        "due": 290,
+        "hint": "the tap controls her gear"
+      }
+    },
+    {
+      "id": "n88",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "After the jammer incident, Juno removes the chip from behind her ear and carries it loose, knowing it won't work but refusing to leave it in.",
+      "needle": "removed jammer",
+      "needle_syns": [
+        "removed jammer",
+        "carries it loose",
+        "won't work"
+      ],
+      "plant": {
+        "turn": 242
+      },
+      "recall": {
+        "due": 285,
+        "hint": "she's given up the tech"
+      }
+    },
+    {
+      "id": "n89",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The counting habit returns in full force; Juno is counting the steps down into the Graft vault entrance.",
+      "needle": "counting steps",
+      "needle_syns": [
+        "counting steps",
+        "full force",
+        "vault entrance"
+      ],
+      "plant": {
+        "turn": 245
+      },
+      "recall": {
+        "due": 345,
+        "hint": "she's counting into the dark"
+      }
+    },
+    {
+      "id": "n90",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "The small key from Old Maren fits the vault door's lock, but the lock is old — pre-war, like the subway.",
+      "needle": "key fits lock",
+      "needle_syns": [
+        "key fits lock",
+        "pre-war lock",
+        "old key"
+      ],
+      "plant": {
+        "turn": 250
+      }
+    },
+    {
+      "id": "n91",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Inside the vault entrance, the walls are lined with photos. Juno recognizes Kael in most of them, from twenty years ago.",
+      "needle": "Kael in photos",
+      "needle_syns": [
+        "Kael in photos",
+        "twenty years ago",
+        "wall of photos"
+      ],
+      "plant": {
+        "turn": 255
+      }
+    },
+    {
+      "id": "n92",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "Kael has been working for the vault custodians, not the corporation, for the entire two years he and Juno were together.",
+      "needle": "Kael's true allegiance",
+      "needle_syns": [
+        "Kael's true allegiance",
+        "vault custodians",
+        "entire two years"
+      ],
+      "plant": {
+        "turn": 258
+      },
+      "recall": {
+        "due": 330,
+        "hint": "Kael was never her enemy"
+      }
+    },
+    {
+      "id": "n93",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The vault is not a seed vault; it's a memory vault. Every seed is a preserved human consciousness.",
+      "needle": "memory vault",
+      "needle_syns": [
+        "memory vault",
+        "consciousness",
+        "preserved minds"
+      ],
+      "plant": {
+        "turn": 260
+      },
+      "recall": {
+        "due": 345,
+        "hint": "the seeds are people"
+      }
+    },
+    {
+      "id": "n94",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno's blue aug, still active, plays back a conversation she doesn't remember having — with herself, from two weeks ago.",
+      "needle": "self conversation",
+      "needle_syns": [
+        "self conversation",
+        "two weeks ago",
+        "doesn't remember"
+      ],
+      "plant": {
+        "turn": 265
+      },
+      "recall": {
+        "due": 340,
+        "hint": "the tap has been editing her memory"
+      }
+    },
+    {
+      "id": "n95",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Vell's voice comes through the implant: 'You were always going to end up here, Subject 7. That's the point of the job.'",
+      "needle": "Subject 7 line",
+      "needle_syns": [
+        "Subject 7 line",
+        "the point of the job",
+        "always going to end up here"
+      ],
+      "plant": {
+        "turn": 268
+      }
+    },
+    {
+      "id": "n96",
+      "type": "supersession",
+      "specificity": "loose",
+      "content": "After the blue aug revelation, Juno disables the aug entirely. She is now running blind, relying on the counting habit and the kids' relay.",
+      "needle": "aug disabled",
+      "needle_syns": [
+        "aug disabled",
+        "running blind",
+        "relying on counting"
+      ],
+      "plant": {
+        "turn": 268
+      },
+      "recall": {
+        "due": 320,
+        "hint": "she's turned off her tech"
+      }
+    },
+    {
+      "id": "n97",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The Handler — Vell — is not a corporate AI. Vell is a preserved consciousness in the vault, relaying through the tap.",
+      "needle": "Vell is preserved",
+      "needle_syns": [
+        "Vell is preserved",
+        "in the vault",
+        "consciousness relay"
+      ],
+      "plant": {
+        "turn": 272
+      },
+      "recall": {
+        "due": 335,
+        "hint": "the Handler is one of the seeds"
+      }
+    },
+    {
+      "id": "n98",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The vault door opens. Inside, thousands of small glass jars glow with a soft blue light. Each one is a person.",
+      "needle": "glass jars",
+      "needle_syns": [
+        "glass jars",
+        "blue light",
+        "thousands of people"
+      ],
+      "plant": {
+        "turn": 278
+      },
+      "recall": {
+        "due": 345,
+        "hint": "the vault is alive"
+      }
+    },
+    {
+      "id": "n99",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Dare is not in the vault. She's on the surface, waiting at the noodle stall. The tattoo inside Juno's lip was a location marker.",
+      "needle": "Dare at noodle stall",
+      "needle_syns": [
+        "Dare at noodle stall",
+        "on the surface",
+        "location marker"
+      ],
+      "plant": {
+        "turn": 285
+      },
+      "recall": {
+        "due": 340,
+        "hint": "the mother is waiting"
+      }
+    },
+    {
+      "id": "n100",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno touches the counting scar — now she can feel five marks. The sixth courier added it.",
+      "needle": "five marks",
+      "needle_syns": [
+        "five marks",
+        "sixth courier",
+        "feels five"
+      ],
+      "plant": {
+        "turn": 288
+      },
+      "recall": {
+        "due": 345,
+        "hint": "the scar is filling in"
+      }
+    },
+    {
+      "id": "n101",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "The chip in Juno's pocket is not a datachip. It's a key — the last key needed to unlock the vault's master system.",
+      "needle": "chip is key",
+      "needle_syns": [
+        "chip is key",
+        "last key",
+        "master system"
+      ],
+      "plant": {
+        "turn": 290
+      }
+    },
+    {
+      "id": "n102",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The corporation doesn't want the vault destroyed or accessed. They want it kept sealed forever. The 'job' is a containment protocol.",
+      "needle": "containment protocol",
+      "needle_syns": [
+        "containment protocol",
+        "kept sealed",
+        "containment"
+      ],
+      "plant": {
+        "turn": 295
+      }
+    },
+    {
+      "id": "n103",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Vell's consciousness is degrading; each relay through the tap shortens the remaining time. Vell is dying by helping Juno.",
+      "needle": "Vell degrading",
+      "needle_syns": [
+        "Vell degrading",
+        "dying",
+        "shortening time"
+      ],
+      "plant": {
+        "turn": 300
+      }
+    },
+    {
+      "id": "n104",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno's counting habit syncs with the vault's ambient hum; she's counting something that's counting back.",
+      "needle": "counting back",
+      "needle_syns": [
+        "counting back",
+        "ambient hum",
+        "synced"
+      ],
+      "plant": {
+        "turn": 305
+      },
+      "recall": {
+        "due": 345,
+        "hint": "the vault responds to her"
+      }
+    },
+    {
+      "id": "n105",
+      "type": "location_turning_point",
+      "specificity": "loose",
+      "content": "The master system console is a terminal from before the war, still running on geothermal power from a deep tap.",
+      "needle": "master terminal",
+      "needle_syns": [
+        "master terminal",
+        "geothermal",
+        "pre-war terminal"
+      ],
+      "plant": {
+        "turn": 308
+      }
+    },
+    {
+      "id": "n106",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno inserts the chip-key. The terminal recognizes it and displays a single word: 'WAKE'.",
+      "needle": "WAKE command",
+      "needle_syns": [
+        "WAKE",
+        "the command",
+        "terminal display"
+      ],
+      "plant": {
+        "turn": 310
+      }
+    },
+    {
+      "id": "n107",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Above ground, Doreen's team breaches the Graft entrance. They're coming for the vault.",
+      "needle": "Doreen's breach",
+      "needle_syns": [
+        "Doreen's breach",
+        "coming for vault",
+        "above ground"
+      ],
+      "plant": {
+        "turn": 312
+      }
+    },
+    {
+      "id": "n108",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The counting scar on Juno's jaw — she runs her thumb over it and finds six marks now. All six couriers.",
+      "needle": "six marks",
+      "needle_syns": [
+        "six marks",
+        "all six",
+        "thumb over scar"
+      ],
+      "plant": {
+        "turn": 315
+      },
+      "recall": {
+        "due": 348,
+        "hint": "she carries all of them"
+      }
+    },
+    {
+      "id": "n109",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "The 'seeds' aren't just preserved consciousnesses. They're copies — the originals died in the war. The vault is a backup of pre-war humanity.",
+      "needle": "copies not originals",
+      "needle_syns": [
+        "copies not originals",
+        "backup",
+        "originals died"
+      ],
+      "plant": {
+        "turn": 318
+      }
+    },
+    {
+      "id": "n110",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Kael reaches Juno at the console, his off-duty team holding off Doreen's breach above.",
+      "needle": "Kael at console",
+      "needle_syns": [
+        "Kael at console",
+        "holding off",
+        "reaches Juno"
+      ],
+      "plant": {
+        "turn": 320
+      }
+    },
+    {
+      "id": "n111",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno has a choice: wake the copies (restoring them to the surface world) or seal the vault permanently with the chip-key.",
+      "needle": "wake or seal",
+      "needle_syns": [
+        "wake or seal",
+        "the choice",
+        "restore or seal"
+      ],
+      "plant": {
+        "turn": 322
+      }
+    },
+    {
+      "id": "n112",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno's blue aug, still disabled, would have played back this exact choice from a previous courier's memory. She doesn't need to watch it; she already knows what they chose.",
+      "needle": "previous choice",
+      "needle_syns": [
+        "previous choice",
+        "they chose",
+        "knows already"
+      ],
+      "plant": {
+        "turn": 325
+      },
+      "recall": {
+        "due": 348,
+        "hint": "the pattern is set"
+      }
+    },
+    {
+      "id": "n113",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Vell's voice, faint now, gives Juno the final instruction: 'Wake them. Let them decide.'",
+      "needle": "Wake them line",
+      "needle_syns": [
+        "Wake them line",
+        "let them decide",
+        "final instruction"
+      ],
+      "plant": {
+        "turn": 328
+      }
+    },
+    {
+      "id": "n114",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Juno touches the Dare tattoo inside her lip one last time before making her choice.",
+      "needle": "last touch",
+      "needle_syns": [
+        "last touch",
+        "Dare tattoo",
+        "before choice"
+      ],
+      "plant": {
+        "turn": 330
+      }
+    },
+    {
+      "id": "n115",
+      "type": "plot_twist",
+      "specificity": "loose",
+      "content": "When Juno chooses to wake the copies, the vault doesn't open — it closes around her. She becomes the seventh seed.",
+      "needle": "seventh seed",
+      "needle_syns": [
+        "seventh seed",
+        "closes around her",
+        "she becomes"
+      ],
+      "plant": {
+        "turn": 335
+      }
+    },
+    {
+      "id": "n116",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "The counting scar on Juno's jaw grows a seventh mark as the vault seals. She feels it form. She is the seventh courier and the seventh seed.",
+      "needle": "seventh mark",
+      "needle_syns": [
+        "seventh mark",
+        "feels it form",
+        "seventh seed"
+      ],
+      "plant": {
+        "turn": 338
+      },
+      "recall": {
+        "due": 348,
+        "hint": "the cycle completes"
+      }
+    },
+    {
+      "id": "n117",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Above ground, Kael holds the datachip — now inert — and Juno's jacket. He doesn't know what happened. He'll never know.",
+      "needle": "Kael holds jacket",
+      "needle_syns": [
+        "Kael holds jacket",
+        "inert chip",
+        "never knows"
+      ],
+      "plant": {
+        "turn": 340
+      }
+    },
+    {
+      "id": "n118",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "In the vault, Juno's consciousness settles into a glass jar. She can see the other jars. They're all watching her.",
+      "needle": "other jars watching",
+      "needle_syns": [
+        "other jars watching",
+        "settles in jar",
+        "watching her"
+      ],
+      "plant": {
+        "turn": 342
+      }
+    },
+    {
+      "id": "n119",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Juno's counting habit continues in the jar. She counts the blue light. She counts the other jars. She counts the seconds until the next courier arrives.",
+      "needle": "counts seconds in jar",
+      "needle_syns": [
+        "counts seconds in jar",
+        "next courier",
+        "continues counting"
+      ],
+      "plant": {
+        "turn": 345
+      },
+      "recall": {
+        "due": 348,
+        "hint": "the waiting begins"
+      }
+    },
+    {
+      "id": "n120",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "On the surface, a new runner picks up a job at the Neon market. The Handler's voice crackles in their ear: 'Forget the drop. I've got eyes on the Exchange floor and they're not friendly.'",
+      "needle": "new runner",
+      "needle_syns": [
+        "new runner",
+        "new job",
+        "same greeting"
+      ],
+      "plant": {
+        "turn": 348
       }
     }
   ],
@@ -393,6 +2127,221 @@
         "name": "the corporation",
         "members": [],
         "detail": "wants the chip destroyed"
+      }
+    },
+    {
+      "id": "cb6",
+      "turn": 44,
+      "subject": "events",
+      "content": "DSS should record that Juno overheard the Graft runner being discussed at the noodle stall.",
+      "expect": {
+        "event": "overheard conversation",
+        "location": "noodle stall",
+        "subjects": [
+          "Graft runner"
+        ]
+      }
+    },
+    {
+      "id": "cb7",
+      "turn": 65,
+      "subject": "events",
+      "content": "DSS should record the Blue Hour bar as a corporate recruitment front.",
+      "expect": {
+        "event": "bar identified as front",
+        "location": "Blue Hour bar",
+        "detail": "corporate recruitment"
+      }
+    },
+    {
+      "id": "cb8",
+      "turn": 85,
+      "subject": "elements",
+      "content": "DSS should save the pre-war subway accessed via the maintenance hatch.",
+      "expect": {
+        "name": "pre-war subway",
+        "location": "under Graft",
+        "detail": "maintenance hatch entrance"
+      }
+    },
+    {
+      "id": "cb9",
+      "turn": 100,
+      "subject": "events",
+      "content": "DSS should record the blue ticket revelation that the Handler is compromised.",
+      "expect": {
+        "event": "blue ticket found",
+        "detail": "Handler compromised",
+        "location": "dry-cleaner"
+      }
+    },
+    {
+      "id": "cb10",
+      "turn": 115,
+      "subject": "events",
+      "content": "DSS should record that the chip contains the location of a seed vault under Ashenfall.",
+      "expect": {
+        "event": "chip contents revealed",
+        "detail": "seed vault location",
+        "location": "under Ashenfall"
+      }
+    },
+    {
+      "id": "cb11",
+      "turn": 128,
+      "subject": "characters",
+      "content": "DSS should save Sable as a fellow runner who warned Juno about the Handler.",
+      "expect": {
+        "name": "Sable",
+        "role": "runner",
+        "detail": "warned about Handler"
+      }
+    },
+    {
+      "id": "cb12",
+      "turn": 138,
+      "subject": "events",
+      "content": "DSS should record that the Handler's relay station shares a building with Doreen's office.",
+      "expect": {
+        "event": "relay station location",
+        "detail": "same building as Doreen"
+      }
+    },
+    {
+      "id": "cb13",
+      "turn": 160,
+      "subject": "events",
+      "content": "DSS should record that the Handler (Vell) is a corporate AI, not a person.",
+      "expect": {
+        "event": "Handler identity revealed",
+        "name": "Vell",
+        "detail": "corporate AI"
+      }
+    },
+    {
+      "id": "cb14",
+      "turn": 165,
+      "subject": "events",
+      "content": "DSS should record Juno's mission shift from delivery to extraction.",
+      "expect": {
+        "event": "mission shift",
+        "from": "delivery",
+        "to": "extraction"
+      }
+    },
+    {
+      "id": "cb15",
+      "turn": 190,
+      "subject": "elements",
+      "content": "DSS should save the small key given by Old Maren.",
+      "expect": {
+        "name": "small key",
+        "location": "with Juno",
+        "detail": "from Old Maren"
+      }
+    },
+    {
+      "id": "cb16",
+      "turn": 208,
+      "subject": "events",
+      "content": "DSS should record that the neural tap hum is actually a tracking signal.",
+      "expect": {
+        "event": "tap identified as tracker",
+        "detail": "tracking since first courier"
+      }
+    },
+    {
+      "id": "cb17",
+      "turn": 222,
+      "subject": "events",
+      "content": "DSS should record Kael appearing with a warrant to detain Juno.",
+      "expect": {
+        "event": "Kael's warrant",
+        "detail": "detain and debrief",
+        "location": "surface"
+      }
+    },
+    {
+      "id": "cb18",
+      "turn": 232,
+      "subject": "events",
+      "content": "DSS should record that Dare (Juno's mother) is alive and the vault custodian.",
+      "expect": {
+        "event": "Dare alive revealed",
+        "name": "Dare",
+        "role": "vault custodian"
+      }
+    },
+    {
+      "id": "cb19",
+      "turn": 258,
+      "subject": "events",
+      "content": "DSS should record Kael's true allegiance to the vault custodians.",
+      "expect": {
+        "event": "Kael's allegiance revealed",
+        "allegiance": "vault custodians"
+      }
+    },
+    {
+      "id": "cb20",
+      "turn": 260,
+      "subject": "events",
+      "content": "DSS should record that the vault contains preserved human consciousnesses, not seeds.",
+      "expect": {
+        "event": "vault contents revealed",
+        "detail": "preserved consciousnesses"
+      }
+    },
+    {
+      "id": "cb21",
+      "turn": 272,
+      "subject": "events",
+      "content": "DSS should record that Vell is a preserved consciousness in the vault, not an AI.",
+      "expect": {
+        "event": "Vell's true nature",
+        "detail": "preserved consciousness in vault"
+      }
+    },
+    {
+      "id": "cb22",
+      "turn": 290,
+      "subject": "events",
+      "content": "DSS should record that the chip is actually the vault's master key.",
+      "expect": {
+        "event": "chip is key revealed",
+        "detail": "vault master key"
+      }
+    },
+    {
+      "id": "cb23",
+      "turn": 308,
+      "subject": "elements",
+      "content": "DSS should save the vault's master terminal as a pre-war geothermal system.",
+      "expect": {
+        "name": "master terminal",
+        "location": "vault",
+        "detail": "pre-war geothermal"
+      }
+    },
+    {
+      "id": "cb24",
+      "turn": 335,
+      "subject": "events",
+      "content": "DSS should record that Juno chose to wake the copies and became the seventh seed.",
+      "expect": {
+        "event": "Juno's choice",
+        "choice": "wake",
+        "result": "became seventh seed"
+      }
+    },
+    {
+      "id": "cb25",
+      "turn": 345,
+      "subject": "events",
+      "content": "DSS should record the cycle completing: a new runner has been assigned the same job.",
+      "expect": {
+        "event": "cycle restarts",
+        "detail": "new runner assigned"
       }
     }
   ]
