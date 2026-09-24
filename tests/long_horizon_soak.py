@@ -515,12 +515,17 @@ class LocalModel:
                 if "usage" in chunk:
                     u = chunk.get("usage") or {}
                     pt, ct = int(u.get("prompt_tokens", 0) or 0), int(u.get("completion_tokens", 0) or 0)
+                fr = None
                 for choice in chunk.get("choices", []):
                     delta = choice.get("delta") or {}
                     if delta.get("content"):
                         content += delta["content"]
                     if delta.get("reasoning_content"):
                         reasoning += delta["reasoning_content"]
+                    if choice.get("finish_reason"):
+                        fr = choice["finish_reason"]
+                if fr:
+                    break
         return ttft, time.perf_counter() - t0, content, reasoning, pt, ct
 
     def generate_with_streaming(self, encoded_prompt: Any, state: dict):
@@ -1736,20 +1741,21 @@ class SoakRun:
                 continue
             result = json.loads(result_path.read_text(encoding="utf-8"))
             reply_text = reply_path.read_text(encoding="utf-8")
-            # Judge: missing or error
+            # Judge: missing or error (respect judge_every cadence)
             judge = result.get("judge")
-            if judge is None or (isinstance(judge, dict) and judge.get("error")):
+            judge_ok = judge is not None and not (isinstance(judge, dict) and judge.get("error"))
+            if self.args.judge_every and ((t + 1) % self.args.judge_every == 0) and not judge_ok:
                 task = self._make_judge_task(t, [], reply_text, d)
                 if task:
                     self._judge_q.put(task)
-            # Audit: missing
-            if not result.get("audit"):
+            # Audit: missing (respect audit_every cadence)
+            if self.args.audit_every and ((t + 1) % self.args.audit_every == 0) and not result.get("audit"):
                 task = self._make_audit_task(t, d)
                 if task:
                     self._audit_q.put(task)
-            # Rolling overview: missing or error
+            # Rolling overview: missing (respect overview_every cadence)
             ov_path = self.run_dir / f"rolling_overview_{t+1:03d}.json"
-            if not ov_path.exists():
+            if self.args.overview_every and ((t + 1) % self.args.overview_every == 0) and not ov_path.exists():
                 self._judge_q.put(self._make_rolling_overview_task(t))
             # Advance history so next task sees correct window
             user_path = d / "user.txt"
@@ -2547,7 +2553,9 @@ class SoakRun:
         return result
 
 
-def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | None = None) -> int:
+def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | None = None,
+                       model: str | None = None, endpoint: str | None = None,
+                       provider: str | None = None) -> int:
     """Standalone: (re-)write a final or rolling overview for an existing run dir.
 
     ``scope="final"`` writes ``final_overview.json`` over ALL turns;
@@ -2625,9 +2633,15 @@ def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | No
         live_dir.mkdir(exist_ok=True)
     except OSError:
         live_dir = None
-    judge = CloudModel(model=manifest.get("args", {}).get("judge_model") or "deepseek-v4-flash",
+    m_args = manifest.get("args", {})
+    judge_endpoint = endpoint or m_args.get("cloud_endpoint") or None
+    judge_provider = provider or m_args.get("cloud_provider") or None
+    judge_model = model or m_args.get("judge_model") or "deepseek-v4-flash"
+    judge = CloudModel(endpoint=judge_endpoint, model=judge_model,
                        max_tokens=8000, timeout=300,
-                       status_dir=str(live_dir) if live_dir else None, role="judge")
+                       reasoning_effort="low", fallback_reasoning=False,
+                       status_dir=str(live_dir) if live_dir else None, role="judge",
+                       provider=judge_provider)
     if not judge.api_key:
         print("[soak] ERROR: no cloud API key (set OPENCODE_GO_API_KEY)")
         return 1
@@ -2665,12 +2679,18 @@ def main() -> int:
     args = _arg_parser().parse_args()
 
     if args.final_overview:
-        return _backfill_overview(args.final_overview, scope="final")
+        return _backfill_overview(args.final_overview, scope="final",
+                                  model=args.judge_model,
+                                  endpoint=args.cloud_endpoint,
+                                  provider=args.cloud_provider)
 
     if args.backfill_rolling_overview:
         code = 0
         for run_dir, n in args.backfill_rolling_overview:
-            code = max(code, _backfill_overview(run_dir, scope="rolling", checkpoint=int(n)))
+            code = max(code, _backfill_overview(run_dir, scope="rolling", checkpoint=int(n),
+                                                model=args.judge_model,
+                                                endpoint=args.cloud_endpoint,
+                                                provider=args.cloud_provider))
         return code
 
     _apply_embed_device(args.embed_device)
@@ -2839,13 +2859,31 @@ def main() -> int:
                     (d / "user.txt").read_text(encoding="utf-8"),
                     (d / "reply.txt").read_text(encoding="utf-8"),
                 ])
+            # Reload judge/audit records from turn results
+            result_path = d / "result.json"
+            if result_path.exists():
+                try:
+                    r = json.loads(result_path.read_text(encoding="utf-8"))
+                    j = r.get("judge")
+                    if j and "error" not in j:
+                        j["turn"] = r.get("turn", t)
+                        soak.judge_records.append(j)
+                    a = r.get("audit")
+                    if isinstance(a, list):
+                        for av in a:
+                            if isinstance(av, dict) and "error" not in av:
+                                av["turn"] = r.get("turn", t)
+                                soak.audit_records.append(av)
+                except Exception:
+                    pass
         plan_path = run_dir / "plan.json"
         if plan_path.exists():
             try:
                 soak.plan = json.loads(plan_path.read_text(encoding="utf-8"))
             except Exception:
                 soak.plan = {}
-        print(f"[soak] resumed {len(soak.history)} prior exchanges")
+        print(f"[soak] resumed {len(soak.history)} prior exchanges "
+              f"({len(soak.judge_records)} judge records, {len(soak.audit_records)} audit records)")
         soak.backfill_post_turn_events(resume_from)
 
     # graceful stop
