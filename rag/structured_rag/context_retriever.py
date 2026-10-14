@@ -157,7 +157,12 @@ class StoryContextRetriever:
         self.use_llm_for_speakers = True  # Toggle: True to always use LLM, False to use regex/spaCy
         characters_map = self.characters.get("entries", self.characters)
         groups_map = self.groups.get("entries", self.groups)
-        self.chunker = MessageChunker(history_path, characters_map, groups_map, self.elements, self.events, self.current_scene, summarizer=summarizer, use_llm_for_speakers=self.use_llm_for_speakers)
+        try:
+            self.chunker = MessageChunker(history_path, characters_map, groups_map, self.elements, self.events, self.current_scene, summarizer=summarizer, use_llm_for_speakers=self.use_llm_for_speakers)
+        except Exception as e:
+            print(f"[RAG] MessageChunker unavailable ({e.__class__.__name__}): {e}")
+            print("[RAG] RAG similarity search disabled; entity graph traversal still active.")
+            self.chunker = self._build_docstore_shim(history_path)
 
         # Create character name patterns for recognition (from both JSON and graph)
         self.character_patterns = self._create_character_patterns()
@@ -165,6 +170,54 @@ class StoryContextRetriever:
         self.element_patterns = self._create_element_patterns()
 
         self.rag_anchor_count = int(rag_anchor_count) if rag_anchor_count else _RAG_ANCHOR_COUNT_DEFAULT
+
+    @staticmethod
+    def _build_docstore_shim(history_path: PathLike):
+        """Build a minimal chunker shim that exposes index.docstore.docs.
+
+        When MessageChunker cannot be constructed (e.g. llama_index import
+        deadlock on WSL), DSS rolling summaries are still available from the
+        persisted docstore.json. This shim provides just enough interface for
+        ``_load_summary_nodes`` to read them.
+        """
+        docstore_path = Path(history_path) / "message_index" / "docstore.json"
+        if not docstore_path.exists():
+            return None
+
+        class _ShimNode:
+            def __init__(self, data: dict):
+                self.metadata = data.get("metadata", {})
+                self.text = data.get("text", "")
+
+        class _ShimDocstore:
+            def __init__(self, docs: dict):
+                self.docs = docs
+
+        class _ShimIndex:
+            def __init__(self, docstore):
+                self.docstore = docstore
+
+        class _ShimChunker:
+            def __init__(self, index):
+                self.index = index
+
+        try:
+            with open(docstore_path) as f:
+                raw = jsonc.load(f)
+            data_map = raw.get("docstore/data", {})
+            docs = {}
+            for node_id, entry in data_map.items():
+                # Each entry is {"__data__": {text, metadata, ...}, "__type__": "1"}
+                node_data = entry.get("__data__", {}) if isinstance(entry, dict) else {}
+                text = node_data.get("text", "")
+                meta = dict(node_data.get("metadata", {}))
+                docs[node_id] = _ShimNode({"metadata": meta, "text": text})
+            if not docs:
+                return None
+            return _ShimChunker(_ShimIndex(_ShimDocstore(docs)))
+        except Exception as e:
+            print(f"[RAG] docstore shim failed: {e}")
+            return None
 
     def _create_character_patterns(self) -> dict[str, re.Pattern]:
         """Create regex patterns for character name recognition."""
@@ -470,6 +523,9 @@ class StoryContextRetriever:
         """Retrieve relevant message chunks based on scene or context."""
         messages = []
 
+        if self.chunker is None:
+            return messages
+
         # Get message indices from current scene
         current_scene = self.get_current_scene()
         if current_scene and "messages" in current_scene:
@@ -708,6 +764,8 @@ class StoryContextRetriever:
         Returns:
             tuple of (messages, metadata)
         """
+        if self.chunker is None:
+            return [], []
         try:
             candidate_n = max(n_results * 6, 30)
             results = self.chunker.query_similar(query, n_results=candidate_n)
@@ -961,9 +1019,19 @@ class StoryContextRetriever:
         field_map = self.entity_graph.get_schema_relationship_map()
         if not field_map:
             field_map = {
-                "character": {"relationships": "character", "group_status": "group", "milestones": "event"},
-                "group": {"characters": "character", "relationships": "group", "events": "event"},
-                "event": {"participants": "character"},
+                "character": {
+                    "relationships": [{"target_type": "character", "direction": "both"}],
+                    "group_status": [{"target_type": "group", "direction": "outgoing"}],
+                    "milestones": [{"target_type": "event", "direction": "outgoing"}],
+                },
+                "group": {
+                    "characters": [{"target_type": "character", "direction": "outgoing"}],
+                    "relationships": [{"target_type": "group", "direction": "both"}],
+                },
+                "element": {
+                    "relationships": [{"target_type": "character", "direction": "both"}],
+                    "events": [{"target_type": "event", "direction": "outgoing"}],
+                },
             }
 
         graph_initial: dict[str, set[str]] = {}
@@ -1051,24 +1119,26 @@ class StoryContextRetriever:
             for seed_id, seed_rel in new_seeds.items():
                 seed_type = seed_id.split(":")[0]
                 seed_name = seed_id.split(":", 1)[1]
-                for target_type in field_map.get(seed_type, {}).values():
-                    nbrs = self.entity_graph.get_neighbors_decayed(
-                        seed_name, seed_type,
-                        source_relevance=seed_rel,
-                        target_type=target_type,
-                        decay_config=decay_config,
-                        direction="outgoing",
-                    )
-                    for nbr in nbrs:
-                        nbr_name = nbr["name"]
-                        edge_imp = nbr["importance"]
-                        if edge_imp < decay_config.re_traverse_min_importance:
-                            continue
-                        if nbr_name not in entity_relevance.get(target_type, {}):
-                            if target_type not in entity_relevance:
-                                entity_relevance[target_type] = {}
-                            path_min = min(seed_rel, float(edge_imp))
-                            entity_relevance[target_type][nbr_name] = path_min
+                for entries in field_map.get(seed_type, {}).values():
+                    for entry in entries:
+                        target_type = entry["target_type"]
+                        nbrs = self.entity_graph.get_neighbors_decayed(
+                            seed_name, seed_type,
+                            source_relevance=seed_rel,
+                            target_type=target_type,
+                            decay_config=decay_config,
+                            direction=entry["direction"],
+                        )
+                        for nbr in nbrs:
+                            nbr_name = nbr["name"]
+                            edge_imp = nbr["importance"]
+                            if edge_imp < decay_config.re_traverse_min_importance:
+                                continue
+                            if nbr_name not in entity_relevance.get(target_type, {}):
+                                if target_type not in entity_relevance:
+                                    entity_relevance[target_type] = {}
+                                path_min = min(seed_rel, float(edge_imp))
+                                entity_relevance[target_type][nbr_name] = path_min
 
             # Note: _apply_convergence here uses the original path_records from Pass 1,
             # which don't include paths discovered during re-traversal. This means

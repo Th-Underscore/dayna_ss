@@ -216,7 +216,7 @@ class EntityGraph:
     def _compute_source_fingerprint(self) -> dict:
         """Compute fingerprint of source files based on modification times."""
         fingerprint = {}
-        source_files = ["characters.json", "groups.json", "events.json", "arcs.json"]
+        source_files = ["characters.json", "groups.json", "elements.json", "events.json", "arcs.json"]
 
         for filename in source_files:
             file_path = self.history_path / filename
@@ -356,6 +356,7 @@ class EntityGraph:
         subject_mapping = {
             "characters": ("character", "characters.json"),
             "groups": ("group", "groups.json"),
+            "elements": ("element", "elements.json"),
             "events": ("event", "events.json"),
             "arcs": ("arc", "arcs.json"),
         }
@@ -446,8 +447,15 @@ class EntityGraph:
         bidirectional: bool,
         field_name: str = ""
     ):
-        """Process a dictionary of relationships (target -> list of relationship objects)."""
+        """Process a dictionary of relationships (target -> list of relationship objects).
+
+        The value under each target may be a single relationship object (a dict with a
+        ``relation`` key, per the ElementRelationships dataclass schema) or a list of them
+        (per the CharacterRelationships alias schema). Normalize to a list so both shapes work.
+        """
         for target_name, rel_list in rel_dict.items():
+            if isinstance(rel_list, dict):
+                rel_list = [rel_list]
             if not isinstance(rel_list, list):
                 continue
 
@@ -460,11 +468,11 @@ class EntityGraph:
                 # Extract importance data
                 importance_data = rel.get("importance", {})
                 if isinstance(importance_data, dict):
-                    importance = importance_data.get("score", 0)
+                    importance = self._coerce_importance(importance_data.get("score", 0))
                     importance_reason = importance_data.get("reason", "")
                     faction = importance_data.get("faction", "neutral")
                 else:
-                    importance = importance_data if isinstance(importance_data, int) else 0
+                    importance = self._coerce_importance(importance_data)
                     importance_reason = ""
                     faction = "neutral"
 
@@ -516,11 +524,11 @@ class EntityGraph:
                 target_name = rel_item.get("title", rel_item.get("name", ""))
                 importance_data = rel_item.get("importance", {})
                 if isinstance(importance_data, dict):
-                    importance = importance_data.get("score", 0)
+                    importance = self._coerce_importance(importance_data.get("score", 0))
                     importance_reason = importance_data.get("reason", "")
                     faction = importance_data.get("faction", "neutral")
                 else:
-                    importance = importance_data if isinstance(importance_data, int) else 0
+                    importance = self._coerce_importance(importance_data)
                     importance_reason = ""
                     faction = "neutral"
                 scenes = rel_item.get("scenes", [])
@@ -548,6 +556,23 @@ class EntityGraph:
                 scenes=scenes
             )
             self.relationships.append(relationship)
+
+    @staticmethod
+    def _coerce_importance(value) -> int:
+        """Coerce a raw importance score to int. The schema declares Importance.score
+        as int, but LLMs occasionally emit a quoted numeric string; coerce at the
+        parsing boundary so graph arithmetic (decay, averages) never meets a str."""
+        # TODO: Aggregate errors and fix them via LLM
+        if isinstance(value, bool):
+            return 0
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(float(value.strip()))
+            except (ValueError, AttributeError):
+                return 0
+        return 0
 
     @staticmethod
     def _singularize(name: str) -> str:
@@ -1491,7 +1516,7 @@ class EntityGraph:
     def traverse_graph(
         self,
         initial_entities: dict[str, set[str]],
-        field_map: dict[str, dict[str, str]] | None = None,
+        field_map: dict[str, dict[str, list[dict]]] | None = None,
         min_importance: int = 75,
         max_depth: int = 10,
     ) -> dict[str, set[str]]:
@@ -1500,7 +1525,7 @@ class EntityGraph:
         Args:
             initial_entities: Dict of entity_type -> set of entity names
                 e.g., {"character": {"John", "Amy"}, "group": {"Rebel Force"}}
-            field_map: Optional relationship map (source_type -> {field_name: target_type})
+            field_map: Optional relationship map (source_type -> {field_name: [{target_type, direction}]})
                 If None, derived from schema_classes
             min_importance: Minimum importance score for filtering
             max_depth: Maximum traversal depth
@@ -1513,6 +1538,10 @@ class EntityGraph:
 
         # Initialize relevant with all entity types from field_map and initial_entities
         all_entity_types = set(field_map.keys()) | set(initial_entities.keys())
+        for _fc in field_map.values():
+            for _entries in _fc.values():
+                for _entry in _entries:
+                    all_entity_types.add(_entry["target_type"])
         relevant: dict[str, set[str]] = {etype: set() for etype in all_entity_types}
 
         for etype, names in initial_entities.items():
@@ -1537,25 +1566,27 @@ class EntityGraph:
                         continue
                     visited[source_type].add(source_name)
 
-                    for field_name, target_type in field_config.items():
-                        neighbors = self.get_neighbors(
-                            source_name, source_type,
-                            target_type=target_type,
-                            field_name=field_name if field_name != "_self" else None,
-                            min_importance=min_importance,
-                            direction="outgoing"
-                        )
+                    for field_name, entries in field_config.items():
+                        for entry in entries:
+                            target_type = entry["target_type"]
+                            neighbors = self.get_neighbors(
+                                source_name, source_type,
+                                target_type=target_type,
+                                field_name=field_name if field_name != "_self" else None,
+                                min_importance=min_importance,
+                                direction=entry["direction"],
+                            )
 
-                        for neighbor in neighbors:
-                            # Ensure target_type exists in relevant dict
-                            if target_type not in relevant:
-                                relevant[target_type] = set()
-                            if target_type not in visited:
-                                visited[target_type] = set()
+                            for neighbor in neighbors:
+                                # Ensure target_type exists in relevant dict
+                                if target_type not in relevant:
+                                    relevant[target_type] = set()
+                                if target_type not in visited:
+                                    visited[target_type] = set()
 
-                            if neighbor not in relevant[target_type]:
-                                relevant[target_type].add(neighbor)
-                                new_entities = True
+                                if neighbor not in relevant[target_type]:
+                                    relevant[target_type].add(neighbor)
+                                    new_entities = True
 
             if not new_entities and depth > 0:
                 break
@@ -1566,7 +1597,7 @@ class EntityGraph:
         self,
         initial_entities: dict[str, set[str]],
         initial_relevance: dict[str, float] | None = None,
-        field_map: dict[str, dict[str, str]] | None = None,
+        field_map: dict[str, dict[str, list[dict]]] | None = None,
         decay_config: 'DecayConfig | None' = None,
     ) -> tuple[dict[str, dict[str, float]], dict[str, PathRecord]]:
         if decay_config is None:
@@ -1576,6 +1607,10 @@ class EntityGraph:
             field_map = self.get_schema_relationship_map()
 
         all_entity_types = set(field_map.keys()) | set(initial_entities.keys())
+        for _fc in field_map.values():
+            for _entries in _fc.values():
+                for _entry in _entries:
+                    all_entity_types.add(_entry["target_type"])
         max_depth = decay_config.max_depth
         min_importance = decay_config.broad_threshold
 
@@ -1604,15 +1639,17 @@ class EntityGraph:
                         continue
                     visited[source_type].add(source_name)
 
-                    for field_name, target_type in field_config.items():
-                        neighbors = self.get_neighbors_decayed(
-                            source_name, source_type,
-                            target_type=target_type,
-                            field_name=field_name if field_name != "_self" else None,
-                            min_importance=min_importance,
-                            decay_config=decay_config,
-                            direction="outgoing",
-                        )
+                    for field_name, entries in field_config.items():
+                        for entry in entries:
+                            target_type = entry["target_type"]
+                            neighbors = self.get_neighbors_decayed(
+                                source_name, source_type,
+                                target_type=target_type,
+                                field_name=field_name if field_name != "_self" else None,
+                                min_importance=min_importance,
+                                decay_config=decay_config,
+                                direction=entry["direction"],
+                            )
 
                         for nbr in neighbors:
                             nbr_name = nbr["name"]
@@ -1720,22 +1757,50 @@ class EntityGraph:
 
         return scoring, path_records
 
-    def get_schema_relationship_map(self) -> dict[str, dict[str, str]]:
+    def get_schema_relationship_map(self) -> dict[str, dict[str, list[dict]]]:
         """Load relationship map from schema_classes.
 
         Returns:
-            Dict of source_type -> {field_name: target_type}
-            e.g., {"character": {"relationships": "character", "group_status": "group", ...}}
+            Dict of source_type -> {field_name: [{target_type, direction}, ...]}
+
+        Each field's value is a list of (target_type, direction) entries. The
+        natural outgoing edge is always present. When a relationship field is
+        declared with ``traversal_direction: "both"`` in the schema, a reverse
+        entry is added on the target type so the reverse edge can be walked
+        (e.g. an element -> character relationship also lets a character reach
+        the elements that reference it).
         """
-        field_map: dict[str, dict[str, str]] = {}
+        raw: dict[str, dict[str, list[dict]]] = {}
+
+        def _add(source_type: str, field_name: str, target_type: str, direction: str):
+            raw.setdefault(source_type, {}).setdefault(field_name, []).append(
+                {"target_type": target_type, "direction": direction}
+            )
 
         for schema_name, schema_class in self.schema_classes.items():
             source_type = self._singularize(schema_name)
-            rel_fields = schema_class.get_relationship_fields()
-            field_map[source_type] = {}
-
-            for field_name, config in rel_fields.items():
+            for field_name, config in schema_class.get_relationship_fields().items():
                 target_type = self._singularize(config.get("target_type", "unknown"))
-                field_map[source_type][field_name] = target_type
+                _add(source_type, field_name, target_type, "outgoing")
+                if config.get("traversal_direction") == "both":
+                    # Reverse reachability: the target type can walk back to the
+                    # source type along this field.
+                    _add(target_type, field_name, source_type, "incoming")
 
-        return field_map
+        # Merge complementary outgoing+incoming entries that share a target into a
+        # single "both" entry (e.g. a symmetric character <-> character tie).
+        for fields in raw.values():
+            for field_name, entries in fields.items():
+                merged: dict[str, str] = {}
+                for entry in entries:
+                    prev = merged.get(entry["target_type"])
+                    if prev is None:
+                        merged[entry["target_type"]] = entry["direction"]
+                    elif {prev, entry["direction"]} == {"outgoing", "incoming"}:
+                        merged[entry["target_type"]] = "both"
+                fields[field_name] = [
+                    {"target_type": tt, "direction": d}
+                    for tt, d in merged.items()
+                ]
+
+        return raw
