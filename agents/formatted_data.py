@@ -123,6 +123,7 @@ class FormattedData:
         context_cache: SummarizationContextCache | None = None,
         all_subjects_data: dict | None = None,
         extra_context: dict | None = None,
+        schema_type: str | None = None,
     ):
         """Initialize and process data for LLM formatting.
 
@@ -165,20 +166,25 @@ class FormattedData:
 
         if self.parser:
             # TODO: Make dynamic
+            # schema_type is the retrieval attribute name (from _context_order
+            # "attr" field); used for schema-hint lookup so that template
+            # variants (e.g. current_scene2) resolve the same schema class
+            # as their data source (current_scene).
+            st = schema_type or data_type
             actual_data_schema_hint = None
-            if data_type == "current_scene":
+            if st == "current_scene":
                 actual_data_schema_hint = self.parser.get_subject_class("current_scene")
-            elif data_type == "character_list" or data_type == "characters":
+            elif st == "character_list" or st == "characters":
                 actual_data_schema_hint = self.parser.get_subject_class("characters")
-            elif data_type == "groups":
+            elif st == "groups":
                 actual_data_schema_hint = self.parser.get_subject_class("groups")
-            elif data_type == "events":
+            elif st == "events":
                 actual_data_schema_hint = self.parser.get_subject_class("events")
-            elif data_type == "scene" or data_type == "event":
+            elif st == "scene" or st == "event":
                 actual_data_schema_hint = self.parser.definitions.get("StoryEvent")
-            elif data_type == "general_info":
+            elif st == "general_info":
                 actual_data_schema_hint = self.parser.get_subject_class("general_info")
-            elif not self.parser.get_subject_class(data_type):
+            elif not self.parser.get_subject_class(st):
                 # Render targets backed by an ALIAS definition (chapters ->
                 # Chapters, arcs -> Arcs): hand the expander the alias class so
                 # the list shape survives (list-iterating templates must see

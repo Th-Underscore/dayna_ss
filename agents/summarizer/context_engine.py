@@ -285,18 +285,10 @@ class ContextEngineMixin:
 
         session_id = str(self.last.history_path.resolve()) if self.last and self.last.history_path else ""
         context_order = FormattedData.get_context_order(session_id=session_id)
-        context_attr_map = {
-            "general_info": "general_info",
-            "current_scene": "current_scene",
-            "character_list": "characters",
-            "characters": "characters",
-            "groups": "groups",
-            "elements": "elements",
-            "events": "events",
-            "chapters": "chapters",
-            "arcs": "arcs",
-            "lines": "messages",
-        }
+        # attr is read per-item from _context_order entries; defaults to the
+        # type name itself. Only entries where the retrieval attribute differs
+        # from the template type (e.g. character_list→characters) need an
+        # explicit "attr" field in the _context_order JSON.
 
         # Mode B (rolling + inline/system retrieval): the four header blocks
         # ([CONTEXT]/[GENERAL_INFO]/[CURRENT_SCENE]/[OTHER RETRIEVED SUBJECTS]) form
@@ -325,7 +317,7 @@ class ContextEngineMixin:
             to_context = item.get("to_context", False)
             no_prompt = item.get("no_prompt", False)
 
-            attr_name = context_attr_map.get(data_type)
+            attr_name = item.get("attr", data_type)
             data = getattr(retrieval_context, attr_name, None) if attr_name else None
 
             if no_prompt:
@@ -356,7 +348,7 @@ class ContextEngineMixin:
                 formatted = FormattedData(lines_data, data_type, parser=None, context_cache=self.last, extra_context=extra_context).st
             else:
                 extra_context = {"metadata": messages_metadata, "_stale_entities": stale_entities}
-                formatted = FormattedData(data, data_type, self.last.schema_parser, context_cache=self.last, extra_context=extra_context).st
+                formatted = FormattedData(data, data_type, self.last.schema_parser, context_cache=self.last, extra_context=extra_context, schema_type=attr_name).st
 
             # Empty subjects render as a bare "<EMPTY>" placeholder — sending that
             # verbatim into the prompt is noise (and once anchored a 60K-char
@@ -399,7 +391,7 @@ class ContextEngineMixin:
                 # scenes), sticky-locked until the next scene turn) as a single
                 # pair ahead of the raw recent pairs, oldest first.
                 try:
-                    retriever = self.last.context[1] if (self.last and self.last.context and len(self.last.context) > 1) else None
+                    retriever = self.last.context[1] if (self.last and self.last.context and len(self.last.context) > 1) else context_retriever
                     summaries = self._load_summary_nodes(getattr(retriever, "chunker", None))
                     if summaries:
                         bounds = self._collect_scene_boundaries(retrieval_context)
@@ -609,7 +601,7 @@ class ContextEngineMixin:
         last = getattr(self, "last", None)
         if not last or (history_path and history_path != last.history_path):
             # Point format templates loader to session-local path
-            FormattedData.set_session_templates_path(str(history_path), history_path / "format_templates.json")
+            FormattedData.set_session_templates_path(str(history_path.resolve()), history_path / "format_templates.json")
             custom_state = copy.deepcopy(state)
             # Initialize schema parser first to get schema classes for entity graph
             schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
@@ -619,6 +611,7 @@ class ContextEngineMixin:
             schema_classes = {
                 "Characters": schema_parser.definitions.get("Characters"),
                 "Groups": schema_parser.definitions.get("Groups"),
+                "Elements": schema_parser.definitions.get("Elements"),
                 "Events": schema_parser.definitions.get("Events"),
                 "Arcs": schema_parser.definitions.get("Arcs"),
             }
