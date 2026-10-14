@@ -620,7 +620,9 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
                         setattr(effective_child_schema, attr_name, parent_template_value)
                         effective_child_schema.defaults[attr_name] = parent_template_value
         else:
-            effective_child_schema.defaults.update(parent_schema_class.defaults)
+            for k, v in parent_schema_class.defaults.items():
+                if k not in effective_child_schema.defaults:
+                    effective_child_schema.defaults[k] = v
 
         return effective_child_schema
 

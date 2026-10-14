@@ -100,7 +100,6 @@ class SummarizationContextCache:
 
 
 
-
 class _LockedPhaseManager:
     """One shared PhaseManager with every mutating call serialized under one RLock.
 
@@ -398,12 +397,21 @@ class Summarizer(LLMClientMixin, InstructionGeneratorMixin, ContextEngineMixin, 
             pm.start_phase("scene_detection", "Scene Transition Detection")
             self.log_activity("Scene Detection", "Checking for scene transition...", "info")
 
-            # Hard message-budget split: if the current scene part has run long
-            # enough (max_scene_part_messages), force a scene boundary so the
-            # on_new_scene triggers (characters add_new, scene archive, etc.)
-            # fire on a regular cadence instead of only on natural transitions.
+            # Scene cadence (Option B): LLM transition check is the primary
+            # trigger; turn-count bounds from StoryEvents.defaults provide the
+            # cooldown floor and hard cap. Explicit config (in messages) overrides
+            # schema; 1 turn = 2 messages.
+            se_defaults = {}
+            if self.last and self.last.schema_parser:
+                _se_def = self.last.schema_parser.definitions.get("StoryEvents")
+                if _se_def and hasattr(_se_def, "defaults"):
+                    se_defaults = _se_def.defaults
             max_part_msgs = int(self.config.get("max_scene_part_messages", 0) or 0)
+            if not max_part_msgs:
+                max_part_msgs = int(se_defaults.get("max_turns_before_required", 6)) * 2
             min_part_msgs = int(self.config.get("min_scene_part_messages", 0) or 0)
+            if not min_part_msgs:
+                min_part_msgs = int(se_defaults.get("suggested_min_turns", 2)) * 2
             cs_data = all_subjects_data.get("current_scene") or {}
             part_start_msg = int(cs_data.get("_scene_start_message") or 0)
             msgs_in_part = (len(history) * 2) - part_start_msg

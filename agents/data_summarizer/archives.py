@@ -74,6 +74,11 @@ if False:  # forward refs only
 # and templates, only the gate guardrails move.
 UNIT_CADENCE_PROFILES: dict[str, dict[str, dict[str, int]]] = {
     "compressed": {
+        "scenes": {
+            "suggested_min_turns": 2,
+            "suggested_max_turns": 4,
+            "max_turns_before_required": 6,
+        },
         "chapters": {
             "suggested_min_scenes": 4,
             "suggested_max_scenes": 8,
@@ -86,6 +91,11 @@ UNIT_CADENCE_PROFILES: dict[str, dict[str, dict[str, int]]] = {
         },
     },
     "campaign": {
+        "scenes": {
+            "suggested_min_turns": 4,
+            "suggested_max_turns": 8,
+            "max_turns_before_required": 12,
+        },
         "chapters": {
             "suggested_min_scenes": 15,
             "suggested_max_scenes": 40,
@@ -388,9 +398,9 @@ class DSArchivesMixin:
                 history_path=self.history_path,
                 stopping_strings=["YES", "NO"],
                 match_prefix_only=True,
-                                phase_id='chapters',
-                    step_id='check_archive',
-)
+                phase_id='chapters',
+                step_id='check_archive',
+            )
 
             if runtime.stop_everything:
                 return
