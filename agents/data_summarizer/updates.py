@@ -369,7 +369,7 @@ class DSUpdatesMixin:
             return True
 
         # --- Step 3: Parse and Apply ---
-        return self._apply_branch_updates(branch_name, data, llm_update_response_text, phase_id, pm)
+        return self._apply_branch_updates(branch_name, data, llm_update_response_text, phase_id, pm, schema_class)
 
     def _branch_update_only(
         self,
@@ -414,7 +414,7 @@ class DSUpdatesMixin:
             pm.done_step(phase_id, "apply_updates", "No updates needed")
             print(f"{_INPUT}No updates needed for '{branch_name}' (update-only).{_RESET}")
             return False
-        return self._apply_branch_updates(branch_name, data, llm_update_response_text, phase_id, pm)
+        return self._apply_branch_updates(branch_name, data, llm_update_response_text, phase_id, pm, schema_class)
 
     def _apply_branch_updates(
         self,
@@ -423,6 +423,7 @@ class DSUpdatesMixin:
         llm_update_response_text: str,
         phase_id: str,
         pm,
+        schema_class=None,
     ) -> bool:
         """Parse and apply a branch update response (path/value list)."""
         parsed_updates = self._parse_llm_field_updates(llm_update_response_text, branch_name)
@@ -435,6 +436,12 @@ class DSUpdatesMixin:
                 path_str = update_item["path"]
                 value = update_item["value"]
 
+                # Strip branch-name prefix: the LLM sometimes includes the full
+                # branch path (e.g. "events.beats.X") when the path should be
+                # relative to the branch data (i.e. just "X").
+                if "." in branch_name and path_str.startswith(branch_name + "."):
+                    path_str = path_str[len(branch_name) + 1:]
+
                 # Convert path string to key list (e.g. "status.0.name" -> ["status", 0, "name"])
                 keyList_relative_to_branch = split_keys_to_list(path_str)
 
@@ -443,6 +450,32 @@ class DSUpdatesMixin:
                 # ("Mr" + "Peters") and nickname/alias references ("The Judge") land
                 # on the real key instead of creating stray nested dicts.
                 keyList_relative_to_branch = _resolve_path_keys(data, keyList_relative_to_branch)
+
+                # Guard: reject updates whose parent path doesn't resolve to an
+                # existing container. Without this, recursive_set silently creates
+                # phantom nesting (e.g. data["events"]["beats"][...]).
+                if len(keyList_relative_to_branch) > 1:
+                    _parent = recursive_get(data, keyList_relative_to_branch[:-1])
+                    if _parent is None:
+                        print(f"{_ERROR}[{branch_name}] REJECTED update (parent path missing): {path_str}{_RESET}")
+                        continue
+
+                # Schema conformity: validate that the field-level segment of the
+                # path is a known schema field. For dict-of-entries branches the
+                # first segment is an entry name (not a field), so we validate the
+                # second segment. For single-entry branches the first segment IS
+                # the field. Underscore-prefixed keys are always allowed.
+                if schema_class is not None and len(keyList_relative_to_branch) > 1:
+                    _valid_fields = self._get_valid_schema_fields(schema_class)
+                    if _valid_fields:
+                        _first = keyList_relative_to_branch[0]
+                        if isinstance(_first, str) and not _first.startswith('_') and _first not in _valid_fields:
+                            # First segment is not a known field → entry name;
+                            # validate the next segment against the schema.
+                            _field_key = keyList_relative_to_branch[1]
+                            if isinstance(_field_key, str) and not _field_key.startswith('_') and _field_key not in _valid_fields:
+                                print(f"{_ERROR}[{branch_name}] REJECTED update (invalid field '{_field_key}'): {path_str}{_RESET}")
+                                continue
 
                 # H3 (referent-resolution gate): symmetric VALUE-side retarget. The
                 # path above is already canonicalized; the value (relationship
@@ -457,6 +490,12 @@ class DSUpdatesMixin:
                 try:
                     old_value = recursive_get(data, keyList_relative_to_branch)
                     print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
+                    # DEBUG: log existing keys at the target depth before set
+                    if keyList_relative_to_branch:
+                        _parent_keys = keyList_relative_to_branch[:-1]
+                        _target_dict = recursive_get(data, _parent_keys) if _parent_keys else data
+                        if isinstance(_target_dict, dict):
+                            print(f"{_DEBUG}[branch_update] SET path={path_str} target_keys={list(_target_dict.keys())} branch={branch_name}{_RESET}")
                     recursive_set(data, keyList_relative_to_branch, value)  # Modifies 'data' in place
                     # Null hygiene: list-typed targets must never carry explicit
                     # null/empty/None-string items minted by partial LLM updates
@@ -483,6 +522,27 @@ class DSUpdatesMixin:
             print(f"{_GRAY}No specific field updates applied to '{branch_name}' from branch query response.{_RESET}")
 
         return True
+
+    def _get_valid_schema_fields(self, schema_class) -> set[str]:
+        """Extract valid field names from a ParsedSchemaClass.
+
+        Resolves through alias types to the aliased dataclass. Returns an empty
+        set if no fields can be determined.
+        """
+        try:
+            cls = schema_class
+            # Resolve through alias wrappers (e.g. StoryEvents -> StoryEvent)
+            while cls is not None and cls.definition_type == "alias":
+                inner = cls._field.type if cls._field else None
+                if isinstance(inner, type(cls)):
+                    cls = inner
+                else:
+                    return set()  # alias to a non-class type; no fields to check
+            if cls is not None and cls.definition_type == "dataclass" and cls._fields:
+                return set(cls._fields.keys())
+        except Exception:
+            pass
+        return set()
 
     def _generate_field_update(
         self,
