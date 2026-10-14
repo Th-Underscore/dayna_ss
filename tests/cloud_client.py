@@ -180,10 +180,62 @@ def resolve_model_id(base_url: str, api_key: str) -> str:
         return ""
 
 
+def _resolve_router_key(model: str) -> str:
+    """For the model router proxy (localhost:5007), find the correct upstream
+    API key based on the model's provider prefix (e.g. 'mistral/' -> mistralai key).
+    
+    Checks ~/.local/share/opencode/auth.json first, then ~/.pi/agent/auth.json.
+    Returns 'not-needed' if no matching key is found.
+    """
+    if not model or "/" not in model:
+        return "not-needed"
+    provider = model.split("/")[0].strip()
+    # Provider name to auth.json key mapping
+    provider_key_map = {
+        "mistral": "mistralai",
+        "openrouter": "openrouter",
+        "opencode": "opencode",
+        "opencode-go": "opencode-go",
+        "opencode-zen": "opencode-zen",
+        "openai": "openai",
+        "anthropic": "anthropic",
+        "gemini": "gemini",
+        "google": "gemini",
+    }
+    auth_name = provider_key_map.get(provider, provider)
+    # Check ~/.local/share/opencode/auth.json
+    oc_auth_path = Path.home() / ".local" / "share" / "opencode" / "auth.json"
+    if oc_auth_path.exists():
+        try:
+            auth = json.loads(oc_auth_path.read_text(encoding="utf-8"))
+            entry = auth.get(auth_name)
+            if isinstance(entry, dict):
+                entry = entry.get("key", "")
+            if isinstance(entry, str) and entry.strip():
+                return entry
+        except Exception:
+            pass
+    # Check ~/.pi/agent/auth.json
+    pi_auth_path = Path.home() / ".pi" / "agent" / "auth.json"
+    if pi_auth_path.exists():
+        try:
+            auth = json.loads(pi_auth_path.read_text(encoding="utf-8"))
+            entry = auth.get(auth_name)
+            if isinstance(entry, dict):
+                entry = entry.get("key", "")
+            if isinstance(entry, str) and entry.strip():
+                return entry
+        except Exception:
+            pass
+    # Fallback: any available key
+    return resolve_api_key()
+
+
 def resolve_api_key_for_endpoint(endpoint: str, provider: str | None = None) -> str:
     """API key matching a specific endpoint (zen/go must NOT get the OpenRouter
     key — that mismatch was the 401 cause when the legacy endpoint retired)."""
     if is_local_endpoint(endpoint):
+        # If endpoint is the model router (localhost:5007), resolve key from model prefix
         return resolve_local_api_key(provider)
     if endpoint == ZEN_GO_ENDPOINT:
         key = os.environ.get("OPENCODE_GO_API_KEY", "").strip()
@@ -224,6 +276,7 @@ class CloudModel:
         temperature: float = 0.8,
         max_retries: int = 4,
         base_delay: float = 90.0,
+        fallback_cooldown: float = 300.0,
         timeout: int = 120,
         thinking: bool = False,
         reasoning_effort: str | None = None,
@@ -231,6 +284,7 @@ class CloudModel:
         max_retry_budget: int = 32768,
         max_empty_retries: int = 3,
         empty_cooldown: float = 300.0,
+        request_interval: float = 5.0,
         status_dir: str | None = None,
         role: str = "cloud",
         # Sampler passthrough (all optional: None = not sent, so hosted providers
@@ -253,9 +307,21 @@ class CloudModel:
             endpoint = endpoint_for_model(model)
         self.endpoint = normalize_endpoint(endpoint)
         if api_key is None:
-            api_key = resolve_api_key_for_endpoint(self.endpoint, provider)
+            router_host = "127.0.0.1:5007" in self.endpoint or "localhost:5007" in self.endpoint
+            if router_host:
+                api_key = _resolve_router_key(model)
+            else:
+                api_key = resolve_api_key_for_endpoint(self.endpoint, provider)
         self.api_key = api_key
-        self.model = model
+        # Fallback support: model may be "primary,fallback1,fallback2" (same
+        # endpoint, different provider keys in the router). On 429/5xx the
+        # client rotates to the next backend and sets a cooldown on the failed
+        # one. self.model stays the primary (first) for logging/accounting.
+        self.backends: list[str] = [m.strip() for m in model.split(",") if m.strip()]
+        self.model = self.backends[0] if self.backends else model
+        self._backend_idx = 0
+        self._backend_cooldowns: dict[str, float] = {}
+        self.fallback_cooldown = fallback_cooldown
         self.max_tokens = max_tokens
         self.temperature = temperature
         self.max_retries = max_retries
@@ -267,6 +333,7 @@ class CloudModel:
         self.max_retry_budget = max_retry_budget
         self.max_empty_retries = max_empty_retries
         self.empty_cooldown = empty_cooldown
+        self.request_interval = request_interval
         self.top_p = top_p
         self.top_k = top_k
         self.min_p = min_p
@@ -410,6 +477,7 @@ class CloudModel:
                     reasoning_parts.append(r)
                 if choices[0].get("finish_reason"):
                     finish_reason = choices[0]["finish_reason"]
+                    break
                 elapsed = time.time() - started
                 n_content = sum(len(p) for p in content_parts)
                 n_reason = sum(len(p) for p in reasoning_parts)
@@ -443,14 +511,75 @@ class CloudModel:
                              "total_tokens": est}
         return data
 
+    def _select_backend(self) -> str:
+        """Pick the best available backend: prefer the primary (index 0),
+        then the next non-cooled-down backend. Returns the model string."""
+        now = time.time()
+        # Try primary first
+        if self._backend_cooldowns.get(self.backends[0], 0) <= now:
+            self._backend_idx = 0
+            return self.backends[0]
+        # Otherwise find the first non-cooled-down backend
+        for i, b in enumerate(self.backends):
+            if self._backend_cooldowns.get(b, 0) <= now:
+                self._backend_idx = i
+                return b
+        # All in cooldown — pick the one with the earliest expiry
+        self._backend_idx = min(
+            range(len(self.backends)),
+            key=lambda i: self._backend_cooldowns.get(self.backends[i], 0)
+        )
+        return self.backends[self._backend_idx]
+
+    def _rotate_backend(self, failed: str, code: int) -> str | None:
+        """Set a cooldown on the failed backend and rotate to the next.
+        Returns the new backend string, or None if no fallback is available."""
+        if len(self.backends) < 2:
+            return None
+        now = time.time()
+        self._backend_cooldowns[failed] = now + self.fallback_cooldown
+        # Find the next available backend (not in cooldown)
+        for i, b in enumerate(self.backends):
+            if b == failed:
+                continue
+            if self._backend_cooldowns.get(b, 0) <= now:
+                self._backend_idx = i
+                return b
+        # All in cooldown — pick the one with the earliest expiry (excluding failed)
+        candidates = [(self._backend_cooldowns.get(b, 0), i, b)
+                      for i, b in enumerate(self.backends) if b != failed]
+        candidates.sort()
+        self._backend_idx = candidates[0][1]
+        return candidates[0][2]
+
     def _retry_post(self, payload: dict) -> dict:
         post = self._post_stream if self.status_dir else self._post
         delay = self.base_delay
         for attempt in range(self.max_retries + 1):
+            # Select backend (handles cooldown rotation)
+            active_model = self._select_backend()
+            payload["model"] = active_model
             try:
                 return post(payload)
             except urllib.error.HTTPError as e:
                 if e.code in (429,) or e.code >= 500:
+                    # Try to rotate to a fallback backend
+                    new_backend = self._rotate_backend(active_model, e.code)
+                    if new_backend is not None:
+                        self._heartbeat(
+                            f"{self.role}: HTTP {e.code} on {active_model}; "
+                            f"rotating to {new_backend} "
+                            f"(cooldown {self.fallback_cooldown:.0f}s)")
+                        self._progress_write({"role": self.role, "model": active_model,
+                                              "phase": "backoff", "force": True,
+                                              "note": f"HTTP {e.code}; rotating to {new_backend}"})
+                        # First rotation is instant (fast path: primary limited,
+                        # fallback healthy). Repeated rotations mean both are
+                        # limited — breathe so we don't hammer in a tight loop.
+                        if attempt >= 1:
+                            time.sleep(min(delay, 15.0))
+                        continue  # immediately retry with the new backend
+                    # No fallback: exponential backoff (original behavior)
                     if attempt >= self.max_retries:
                         raise CloudError(f"HTTP {e.code} after {self.max_retries} retries: {e}") from e
                     self._progress_write({"role": self.role, "model": self.model,
@@ -491,7 +620,7 @@ class CloudModel:
             raise CloudError("no API key: set OPENROUTER_API_KEY or the auth.json 'openrouter' entry")
         budget = max_tokens or self.max_tokens
         payload: dict[str, Any] = {
-            "model": self.model,
+            "model": self.backends[0] if self.backends else self.model,
             "messages": messages,
             "max_tokens": budget,
             "temperature": self.temperature if temperature is None else temperature,
@@ -519,6 +648,8 @@ class CloudModel:
         payload.update(self._sampler_passthrough)
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
+        if self.request_interval > 0:
+            time.sleep(self.request_interval)
         try:
             data = self._retry_post(payload)
         except CloudError as e:
