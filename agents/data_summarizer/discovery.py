@@ -265,6 +265,13 @@ class DSDiscoveryMixin:
                         f"was empty after parsing: {llm_entry_response[:200]}{_RESET}"
                     )
                     continue
+                # Unwrap if the LLM wrapped the entry in a parent object
+                # keyed by the branch name (e.g. {"events": {...}}).
+                if len(new_entry_data) == 1:
+                    wrapper_key = next(iter(new_entry_data))
+                    if wrapper_key in (branch_name, branch_name.split(".")[-1]) and isinstance(new_entry_data[wrapper_key], dict):
+                        print(f"{_DEBUG}Unwrapping parent key '{wrapper_key}' from new entry '{entry_name}'.{_RESET}")
+                        new_entry_data = new_entry_data[wrapper_key]
                 if _is_schema_echo(new_entry_data):
                     last_error = "the response reproduced this prompt's schema instead of describing the entry"
                     print(
@@ -293,6 +300,7 @@ class DSDiscoveryMixin:
                     if isinstance(expanded_data, list) and expanded_data is not data:
                         expanded_data.append(new_entry_data)
                 else:
+                    print(f"{_DEBUG}[add_new] SET data['{entry_name}'] branch={branch_name} existing_keys={list(data.keys())}{_RESET}")
                     data[entry_name] = new_entry_data
                     expanded_data: dict = recursive_get(formatted_data.data, keys, default=None)
                     expanded_data[entry_name] = new_entry_data
