@@ -230,7 +230,7 @@ class MessageChunker:
         for event_list_key in [
             "past",
             "scenes",
-            "events",
+            "beats",
         ]:  # Iterate through different event categories
             for event_item in events_data.get(event_list_key, []):
                 if isinstance(event_item, dict) and "name" in event_item:

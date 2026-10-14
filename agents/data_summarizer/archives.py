@@ -305,7 +305,7 @@ class DSArchivesMixin:
         # Skip reserved field-name keys: a misdirected add_new can nest a
         # whole {"scenes": {...}} wrapper under a key like 'events', which
         # would inflate the span math by one phantom scene.
-        _RESERVED_SCENE_KEYS = {"events", "past", "chapters", "arcs"}
+        _RESERVED_SCENE_KEYS = {"beats", "past", "chapters", "arcs"}
         scene_names = [k for k in scenes.keys() if k not in _RESERVED_SCENE_KEYS]
         total_scenes = len(scene_names)
         raw_chapters = _entries_as_list(events_data.get("chapters"))

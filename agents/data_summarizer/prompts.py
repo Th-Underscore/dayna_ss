@@ -336,7 +336,7 @@ class DSPromptsMixin:
         if not isinstance(events, dict):
             return "(no events recorded yet)"
         sections = []
-        for key in ("past", "scenes", "events", "chapters"):
+        for key in ("past", "scenes", "beats", "chapters"):
             d = events.get(key)
             if not isinstance(d, dict) or not d:
                 continue
