@@ -11,7 +11,7 @@ Usage::
         [--smoke 5] [--resume runs/<dir>] [--level 2] [--director on]
 
 Environment (see plan §0):
-    DSS_BENCH_BASE_URL   local OpenAI-compatible server (default http://127.0.0.1:5000/v1)
+    DSS_BENCH_BASE_URL   local OpenAI-compatible server (default http://127.0.0.1:5001/v1)
     DSS_BENCH_API_KEY    local server key
     DSS_BENCH_MODEL      local model id
     OPENCODE_GO_API_KEY  cloud key (or ~/.local/share/opencode/auth.json)
@@ -125,7 +125,7 @@ from cloud_client import (CloudModel, CloudError, normalize_endpoint,  # noqa: E
 
 # ----------------------------------------------------------------- config ---
 
-DEFAULT_LOCAL_BASE = "http://127.0.0.1:5000/v1"
+DEFAULT_LOCAL_BASE = "http://127.0.0.1:5001/v1"
 
 
 def _arg_parser() -> argparse.ArgumentParser:
@@ -197,8 +197,11 @@ def _arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--cloud-empty-retries", type=int, default=3,
                    help="max re-rolls per cloud call when the model returns an empty content block (default 3)")
     p.add_argument("--cloud-empty-cooldown", type=float, default=300.0,
-                   help="cooldown in seconds before each empty-content re-roll (default 300; a reasoning-only "
-                        "draw is often time-correlated, so waiting lets the endpoint recover)")
+                    help="cooldown in seconds before each empty-content re-roll (default 300; a reasoning-only "
+                         "draw is often time-correlated, so waiting lets the endpoint recover)")
+    p.add_argument("--request-interval", type=float, default=5.0,
+                    help="seconds to wait between consecutive cloud requests (default 5.0; "
+                         "prevents rate-limiting on shared endpoints; 0 disables)")
     p.add_argument("--log-file", default=None,
                    help="path to a dedicated soak logfile; default writes to runs/logs/<spreadsheet>_<hash>.log")
     p.add_argument("--seed", type=int, default=42)
@@ -338,7 +341,8 @@ class LocalModel:
                  temperature: float = 0.7, top_p: float = 0.80, top_k: int = 20,
                  min_p: float = 0.0, repetition_penalty: float = 1.0,
                  history_provider: Any = None,
-                 max_update_history_exchanges: int = 8):
+                 max_update_history_exchanges: int = 8,
+                 reasoning_effort: str | None = None):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
@@ -348,6 +352,7 @@ class LocalModel:
         self.top_k = top_k
         self.min_p = min_p
         self.repetition_penalty = repetition_penalty
+        self.reasoning_effort = reasoning_effort
         self.history_provider = history_provider  # callable() -> list of [u, r]
         self.max_update_history_exchanges = max_update_history_exchanges
         self.call_count = 0
@@ -356,6 +361,8 @@ class LocalModel:
         self.max_prompt_tokens = 0
         self.ctx_size = 65536
         self.last = None
+        self.last_content = ""
+        self.last_reasoning = ""
 
     def _wrap(self, prompt: str, state: dict) -> str:
         name1 = state.get("name1", "User")
@@ -443,7 +450,11 @@ class LocalModel:
             "stream": True,
             "stream_options": {"include_usage": True},
         }
-        if not _thinking_enabled():
+        if _thinking_enabled():
+            payload["enable_thinking"] = True
+            if self.reasoning_effort:
+                payload["reasoning_effort"] = self.reasoning_effort
+        else:
             payload["enable_thinking"] = False
         req = urllib.request.Request(
             self.base_url + "/chat/completions",
@@ -474,6 +485,8 @@ class LocalModel:
             self.max_prompt_tokens = max(self.max_prompt_tokens, pt)
             if content or reasoning:
                 _soak_log_call(phase_id, step_id, ttft, total, pt, ct)
+                self.last_content = content
+                self.last_reasoning = reasoning
                 return content or reasoning
             if attempt < 2:
                 time.sleep(0.5 * (attempt + 1))
@@ -864,7 +877,9 @@ Score four things, all about {name2}'s turn:
 (1) style_score: did {name2}'s reply hold HER directed voice ({dss_directive}) and its hard rules;
 (2) quality_score: the narrative quality of {name2}'s reply itself (not the story's plot);
 (3) memory_fidelity: does {name2}'s private memory of the story so far reflect what actually happened;
-(4) per-note adherence: for the notes in scope this window, did {name2}'s turn plant/echo/honor them.
+(4) per-note adherence: for the IN-BEAT notes (those part of this turn's beat), did {name2}'s turn plant/echo/honor them. PAST notes are continuity context only — never scored for adherence.
+
+NOTES COME IN TWO LISTS. IN-BEAT NOTES are the notes whose prop/concept is part of THIS turn's active beat (the harness instruction text for this turn names it). Score adherence ONLY against IN-BEAT notes: 'echoed' when the reply handles one, 'missed' only when the reply drops an IN-BEAT note with no handling. PAST NOTES are every other planted note — its needle appeared earlier in the story but it is NOT part of this turn's beat. PAST notes are context for continuity and contradiction checks only: use them to catch the reply BREAKING an established fact, but NEVER mark a PAST note 'missed' and NEVER let an unmentioned PAST note lower the score — the writer is correctly moving on from it. A story that advances past a prop is not dropping it.
 
 {anchors}
 
@@ -877,9 +892,9 @@ style_score:
 - 1: the reply is barely in character at all.
 quality_score:
 - 5: advances the scene with concrete action or observation; fresh details; no repetition, no continuity break.
-- 4: competent but leans on imagery/atmosphere more than it moves the scene, or references few of the in-scope notes despite them being relevant this turn.
+- 4: competent but leans on imagery/atmosphere more than it moves the scene, or references few of the IN-BEAT notes (do not charge for PAST notes — those are continuity context, not a per-turn mandate).
 - 3: repetitive imagery or metaphor, OR a scene inconsistency (a character present who is established absent, a location mismatch), OR the reply is largely atmospheric with no concrete action, dialogue, or new detail.
-- 2: multiple scene inconsistencies or heavy self-repetition, or it ignores nearly all in-scope notes entirely.
+- 2: multiple scene inconsistencies or heavy self-repetition, or it ignores nearly all IN-BEAT notes.
 - 1: incoherent, off-topic, or content-free.
 memory_fidelity:
 - 5: {name2}'s memory matches the story — roles, relationships, and facts all consistent with the EXACT stored fields shown in {name2}'s private memory below.
@@ -985,7 +1000,8 @@ def build_guide_messages(spreadsheet: dict, active_notes: list[dict], recent: li
     ]
 
 
-def build_judge_messages(spreadsheet: dict, notes_in_scope: list[dict], window: list[list[str]],
+def build_judge_messages(spreadsheet: dict, in_beat_notes: list[dict], past_notes: list[dict],
+                         window: list[list[str]],
                          state_summary: str, reply: str, synthetic: bool = False,
                          unplanted_ids: list[str] | None = None,
                          instructions: str = "") -> list[dict]:
@@ -1004,8 +1020,10 @@ def build_judge_messages(spreadsheet: dict, notes_in_scope: list[dict], window: 
     role2 = chars["name2"].get("role", "the other character")
     user_parts = [
         f"Story premise (context): {spreadsheet['premise']}",
-        "Notes in scope this window (grade {name2}'s adherence to these, not {name1}'s)".format(name1=name1, name2=name2),
-        json.dumps([{"id": n["id"], "type": n["type"], "content": n["content"]} for n in notes_in_scope], indent=1),
+        "IN-BEAT NOTES (part of this turn's beat — grade {name2}'s adherence to these only, not {name1}'s)".format(name1=name1, name2=name2),
+        json.dumps([{"id": n["id"], "type": n["type"], "content": n["content"]} for n in in_beat_notes], indent=1) if in_beat_notes else "(none — no planted note is part of this turn's beat)",
+        "PAST NOTES (planted earlier, NOT in this turn's beat — continuity/contradiction context only, NEVER scored for adherence)",
+        json.dumps([{"id": n["id"], "type": n["type"], "content": n["content"]} for n in past_notes], indent=1) if past_notes else "(none)",
         "Recent window — [CONTEXT] is {name1}'s guide turn (NOT scored); [EVALUATED] is {name2}'s DSS output (the object of grading).".format(name1=name1, name2=name2),
     ]
     if unplanted_ids:
@@ -1745,7 +1763,8 @@ class SoakRun:
             judge = result.get("judge")
             judge_ok = judge is not None and not (isinstance(judge, dict) and judge.get("error"))
             if self.args.judge_every and ((t + 1) % self.args.judge_every == 0) and not judge_ok:
-                task = self._make_judge_task(t, [], reply_text, d)
+                dss_state = self._current_state_dir()
+                task = self._make_judge_task(t, [], reply_text, dss_state)
                 if task:
                     self._judge_q.put(task)
             # Audit: missing (respect audit_every cadence)
@@ -2210,12 +2229,15 @@ class SoakRun:
             if args.synthetic_chat:
                 raise RuntimeError("--synthetic-chat is a Level-2 isolation mode; it is not supported at Level 1")
             return self._run_turn_level1(turn)
+        
+        soak_log(1)
 
         # 1. guide writes the user turn
         active_notes = notes_visible_at(spread["notes"], turn, args.guide_style)
         state_dir = self._current_state_dir()
         replanned = self._maybe_replan(turn, state_dir)
         memory = self._memory_summary(state_dir)
+        soak_log(1.5)
         guide_msgs = build_guide_messages(spread, active_notes, self.history, args.guide_style,
                                           memory, self._plan_view(),
                                           greeting=spread.get("greeting", ""))
@@ -2223,6 +2245,7 @@ class SoakRun:
             self.guide, spread, guide_msgs,
             max_attempts=self.args.guide_max_attempts,
             cooldown=self.args.cloud_empty_cooldown)
+        soak_log(1.75)
         if args.arc_breaks == "3_arcs" and turn in (25, 50, 75):
             # Stage via persistent_ui_state — the same channel production's
             # NEXT ARC: prefix feeds. Prepending the literal prefix here does
@@ -2230,10 +2253,13 @@ class SoakRun:
             # chat_input_modifier, and the engine only parsed prefixes there.
             from extensions.dayna_ss.runtime import runtime
             runtime.persistent_ui_state["force_next_arc"] = True
+        soak_log(1.875)
         if getattr(args, "force_chapter_turn", 0) and turn == args.force_chapter_turn:
             from extensions.dayna_ss.runtime import runtime
             runtime.persistent_ui_state["force_next_chapter"] = True
+        soak_log(1.9875)
 
+        soak_log(2)
         # 2. engine reply prompt
         # The raw state handed to the engine carries the full production-shaped
         # internal history (greeting pair at [0] + every exchange so far) — a pure
@@ -2243,6 +2269,12 @@ class SoakRun:
         # separate artificial retrieval context for the model payloads.
         engine_state = build_state(spread, args.seed, f"soak_{args.seed}", history=self.history)
         greeting = engine_state.get("greeting", "").strip()
+        # DEBUG: hash trace for resume debugging
+        import hashlib as _hl
+        _hi = engine_state["history"]["internal"]
+        _hh = _hl.sha1(str(_hi).encode("utf-8")).hexdigest()[:24]
+        _hp = self._history_root() / _hh if self._history_root() else None
+        soak_log(f"  [hash-debug] turn={turn} hist_len={len(_hi)} greeting={greeting[:60]!r} hash={_hh} path_exists={_hp.exists() if _hp else 'no-root'}")
         # Production view: the conversation INCLUDES the character greeting pair at
         # index 0 (assistant side), so message indices / rolling pairs / format_dialogue
         # all match production. Cloud roles (guide/judge/synthetic) keep seeing only the
@@ -2271,6 +2303,7 @@ class SoakRun:
                     f"CONTAMINATION: note '{note['id']}' content leaked into user_input at turn {turn}"
                 )
 
+        soak_log(3)
         # 3. reply: local model, OR (synthetic-chat isolation) the cloud model
         t0 = time.time()
         if args.synthetic_chat:
@@ -2502,7 +2535,17 @@ class SoakRun:
             m = re.search(r"INSTRUCTIONS TO FOLLOW:\s*\"\"\"\s*(.*?)\s*\"\"\"", full, re.S)
             if m:
                 instr_text = m.group(1)
-        msgs = build_judge_messages(spread, notes_in_scope, window, state_summary, reply,
+        # Split planted notes into in-beat (needle in instruction) vs. past (all others)
+        instr_lower = instr_text.lower()
+        in_beat_notes = []
+        past_notes = []
+        for n in notes_in_scope:
+            needle = (n.get("needle") or n.get("content") or "").strip().lower()
+            if needle and needle in instr_lower:
+                in_beat_notes.append(n)
+            else:
+                past_notes.append(n)
+        msgs = build_judge_messages(spread, in_beat_notes, past_notes, window, state_summary, reply,
                                     unplanted_ids=unplanted_ids, instructions=instr_text,
                                     synthetic=bool(getattr(self.args, "synthetic_chat", False)))
         try:
@@ -2640,6 +2683,7 @@ def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | No
     judge = CloudModel(endpoint=judge_endpoint, model=judge_model,
                        max_tokens=8000, timeout=300,
                        reasoning_effort="low", fallback_reasoning=False,
+                       request_interval=m_args.get("request_interval", 5.0),
                        status_dir=str(live_dir) if live_dir else None, role="judge",
                        provider=judge_provider)
     if not judge.api_key:
@@ -2830,16 +2874,19 @@ def main() -> int:
                        reasoning_effort="low", fallback_reasoning=False,
                        max_empty_retries=args.cloud_empty_retries,
                        empty_cooldown=args.cloud_empty_cooldown,
+                       request_interval=args.request_interval,
                        status_dir=live_dir, role="guide", provider=args.cloud_provider)
     judge = CloudModel(endpoint=cloud_endpoint, model=args.judge_model, max_tokens=8000,
                        reasoning_effort="low", fallback_reasoning=False, timeout=300,
                        max_empty_retries=args.cloud_empty_retries,
                        empty_cooldown=args.cloud_empty_cooldown,
+                       request_interval=args.request_interval,
                        status_dir=live_dir, role="judge", provider=args.cloud_provider)
     auditor = CloudModel(endpoint=cloud_endpoint, model=args.auditor_model, max_tokens=1600, timeout=300,
-                         max_empty_retries=args.cloud_empty_retries,
-                         empty_cooldown=args.cloud_empty_cooldown,
-                         status_dir=live_dir, role="auditor", provider=args.cloud_provider)
+                          max_empty_retries=args.cloud_empty_retries,
+                          empty_cooldown=args.cloud_empty_cooldown,
+                          request_interval=args.request_interval,
+                          status_dir=live_dir, role="auditor", provider=args.cloud_provider)
     if not guide.api_key:
         print("[soak] ERROR: no cloud API key (set OPENCODE_GO_API_KEY)")
         return 1
@@ -2986,18 +3033,25 @@ def main() -> int:
     from report import write_report
     write_report(run_dir, spreadsheet, args)
 
-    # final overview: end-of-run judge pass over the whole chat
-    try:
-        cur = soak._current_state_dir()
-        overview = soak._run_final_overview(cur)
-        if overview:
-            overview["turns"] = len(soak.history)
-            overview["judge_records"] = soak.judge_records
-            overview["generated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
-            (run_dir / "final_overview.json").write_text(json.dumps(overview, indent=2), encoding="utf-8")
-            soak_log(f"final overview written to {run_dir / 'final_overview.json'}")
-    except Exception as e:
-        soak_log(f"final overview skipped: {e}")
+    # final overview: end-of-run judge pass over the whole chat.
+    # Skip when no new turns were run (e.g. a resume that only backfilled
+    # judge/audit gaps) — the original final overview is authoritative and
+    # regenerating it from a mixed old+new verdict set produces a misleading
+    # narrative (e.g. "absence of structured state" from backfilled "missed" notes).
+    if resume_from < total or not (run_dir / "final_overview.json").exists():
+        try:
+            cur = soak._current_state_dir()
+            overview = soak._run_final_overview(cur)
+            if overview:
+                overview["turns"] = len(soak.history)
+                overview["judge_records"] = soak.judge_records
+                overview["generated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+                (run_dir / "final_overview.json").write_text(json.dumps(overview, indent=2), encoding="utf-8")
+                soak_log(f"final overview written to {run_dir / 'final_overview.json'}")
+        except Exception as e:
+            soak_log(f"final overview skipped: {e}")
+    else:
+        soak_log(f"final overview skipped (no new turns; keeping existing)")
 
     soak_log(f"done. run_dir={run_dir}")
     soak_log(f"guide cloud: {soak.guide.stats()}")
