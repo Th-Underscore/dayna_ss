@@ -381,6 +381,26 @@ class InstructionGeneratorMixin:
                              f"End the reply with {name2} performing a concrete action of her own \u2014 never end with a sentence that hands the next move to {name1} ('leaving the next move', 'step back to let'). Never narrate the reply's own construction (no 'she advanced the scene', 'her response remained', 'she avoided declaring', 'as a prop to emphasize') \u2014 perform the action directly.{own_replies_block}\n\n"
                             f'REMEMBER: You are "{name2}" replying to "{name1}". Narrate {name2} in the THIRD PERSON from outside — never from {name2}\'s own "I" (no "I", "my", "me") — and do not repeat or re-speak {name1}\'s lines.'
                         )
+                    # Highlight relevant entities from the retrieval context so the
+                    # model knows which stored details are most salient for THIS scene.
+                    if kwargs.get("highlight_relevant", False) and retrieval_ctx:
+                        rel = retrieval_ctx.relevant_entities or {}
+                        if rel:
+                            scored: list[tuple[float, str, str]] = []
+                            for etype, name_score in rel.items():
+                                for name, score in name_score.items():
+                                    scored.append((score, etype, name))
+                            scored.sort(key=lambda x: x[0], reverse=True)
+                            top = scored[: kwargs.get("highlight_relevant_top_n", 10)]
+                            lines = [f"  - {name} ({etype}, score {score:.1f})" for score, etype, name in top]
+                            highlight_block = (
+                                "\nRELEVANT ENTITIES FOR THIS SCENE (prioritize weaving these in where they fit naturally):\n"
+                                + "\n".join(lines)
+                                + "\n"
+                            )
+                            instr_prompt = instr_prompt.rstrip() + "\n" + highlight_block
+                            print(f"{_HILITE}highlight_relevant{_RESET}: injected {len(top)} entities")
+
                     encoded_instr_prompt = (
                         runtime.encode(instr_prompt, add_bos_token=True) if do_enc(model) else instr_prompt
                     )
