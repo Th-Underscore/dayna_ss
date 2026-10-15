@@ -2,19 +2,9 @@
 
 ---
 
-## Realtime UI (v0.1.0)
+## User notes
 
-- [x] SSE server for real-time UI updates
-- [x] PhaseManager for progress tracking
-- [x] Streaming UI panel with collapsible phases
-- [ ] **BUG FIX: Buffer-length polling stops when ring buffer fills** (sse_server.py:171)
-- [ ] Improve error handling for child phases in _update_recursive
-
-## Schema editor UI (v0.2.0)
-
----
-
-## IMMEDIATE TODO
+### IMMEDIATE TODO
 
 - [x] Handle start of chat
     - [x] Create subjects off of schema
@@ -56,7 +46,7 @@
 
 <br>
 
-## Current TODO
+### Current TODO
 
 - [ ] Add general info
     - [x] Always have original state\['context'\] in custom\_state\['context'\]
@@ -172,10 +162,14 @@
 - [ ] Only perform initial population after first scene?
 - [x] Execute DataSummarizer in parallel - stopping if interrupted - only truncating/updating RetrievalContext after a _full_ run (max_subject_workers, schema-order reassembly)
 - [ ] Let DSS run constantly (Historian), giving long windows to summarize
+- [ ] recurring/ongoing events + planned (future) events?
+- [ ] start DataSummarizer with to run prefill in parallel (cache warm)
 
-<br>
+---
 
-## Scale & aggregation units
+## Auto-Generated Notes
+
+### Scale & aggregation units
 
 - [ ] Cadence profiles — config-driven chapter/arc bounds; `compressed` (current 4-8 scenes/10 hard, 3-6 chapters/12 hard) vs `campaign` (~15-40 scenes/chapter, ~8-24 chapters/arc); schema defaults stay compressed
 - [ ] Canon synopsis subject — ~300-token narrative digest written at chapter archival
@@ -184,8 +178,16 @@
 - [ ] Campaign-scale spreadsheets + chained-session pilot (Tier 3 test ladder)
 - [ ] Arc `_active`/`_resolved` flags with render-first ordering for open threads
 
-## Memory quality
+### Memory quality
 
+- [ ] **String importance scores** — LLM occasionally emits `Importance.score` as a quoted string (`"25"`) instead of a bare int. Schema (`subjects_schema.json` → `definitions.Importance.score`) declares `int` and the placeholder even says "in the real JSON this is an integer, not a string", so it's a model schema-violation, not a harness bug. Observed 3/74 elements in greek_mythology turn 141 (`loose rock`, `wool blanket`, `blue-green glazed clay tile`), plus a few relationship-level scores. Affects the graph traversal's `edge.importance` float math. Per rule #278 the fix belongs at the prompt/schema step (stricter few-shot element example with bare-int `score`) or a parse-boundary coercion — NOT scattered downstream.
+- [ ] **Entity-graph relevance is SPLIT: strong for characters/events, degenerate for elements** — traced end-to-end on greek_mythology turn 141 (`tests/compare_relevance.py`), a Leander-focused obsidian/papyrus scene. (Corrected 2026-09: I initially read a 3-node early-turn graph via `find` and wrongly concluded a "2-node degenerate" graph. Turn 141's real graph, resolved via `result.json → history_path`, is 19 nodes / 39 relationships, and the traversal is healthy on the character/event side.)
+  - **Character/event side WORKS — real structural signal.** Seeding from the in-scene character (Leander) over the 19-node/39-rel graph, edge-weighted decay (pruned @ `final_threshold`≥75) reaches `Calliope` (80.0) as the only other character above threshold, plus 17 events (75–98: Descent into the Caldera 98, Ignition of the Forge 98, Offering Accepted by the Shadow 98, …). So the graph genuinely propagates structure for characters + events; it is NOT degenerate. (Note: the seed Leander itself doesn't appear in the pruned char dict — worth confirming it's added separately downstream, not lost.)
+  - **Elements are the real defect — circular substring flood.** Elements don't participate in graph traversal at all. `_get_relevant_elements()` retrieves by plain substring `re.search(element_name, context)` over the ~73K-token context that was *built from those same elements* — circular, so it returns ALL 74 elements every turn. Net: the graph marks 92/76 entities "relevant" this turn (1 Calliope + 17 events + all 74 elements) → over the labeled subset, precision 48%, recall 92%, near-zero element discrimination. The element side floods the prompt and offers no ranking.
+  - **Cross-encoder is the best element signal, moderate resolution.** CE (ms-marco-MiniLM-L6-v2, CPU, ~3s/76) scored each rendered entity (via the production `FormattedData` template pipeline) against the current user narration. Spearman +0.474 vs hand-labels, top-10 precision 50%. Direction is right (dark water #1, papyrus #2, deep water #3, Leander #4, sulfur #8; wool blanket #74, thatched roof #71, borrowed sword #75 sink to the bottom) but off-scene village items sit in a noisy middle. Scores are raw MiniLM logits — only the rank is meaningful. The reply's own focus objects (chisel #50, obsidian #52, hammer #32) rank mid/low because the CE target is narration-only; they'd need a window that includes the last replies.
+  - **LLM over-scores importance on generic entities.** The clearly-relevant scene objects (papyrus, chisel, obsidian, sulfur, dark water) all carry mid-range scores, while campaign-structural items the LLM deemed "important" (smithy #57, borrowed sword #75, market square #60 — absent from this scene) score comparably in importance. Confirms the importance rubric measures long-term standing and is a weak proxy for per-turn relevance. See #196.
+  - **Verdict: graph and CE are COMPLEMENTARY, not in conflict.** Graph = strongest character/event structural signal (real traversal). CE = strongest element-ranking signal (graph is blind to elements). Neither alone ranks the full 76-entity field.
+  - **Next step:** fix the circular element path — replace the substring flood with CE scoring over recent messages (narration + last replies), appended as a reminder, so elements get a ranked signal the graph can't provide. CE is the candidate second-pass element reranker; the graph already handles characters/events. See classifier-research findings (favors local cross-encoder reranking over JEV).
 - [ ] Uncertainty-preservation directives in character templates — record claims as claims; never resolve identities/aliases the story holds open
 - [ ] Discovery similarity guard — mpnet cosine on add_new candidates (>~0.85 → merge instead of create)
 - [ ] Background merge/consolidation pass for duplicate entities (buyer/vendor class)
@@ -193,18 +195,27 @@
 - [ ] Rolling-overview findings → instruction-generation feedback loop
 - [ ] Entry-selection overlap rule — entities mentioned in the latest exchange always whitelisted for revision
 
-## Epistemics
+### Epistemics
 
 - [ ] Secrets subject — normalized rows {summary, stance: knows|suspects|believes_falsely|unaware|hiding, owner, target?, about?, status, importance}
 - [ ] Deception maintenance — reveals flip status/stance on a single small branch under mark_field
 - [ ] POV injection — group rows by stance over owner ∈ current_scene.now.who
 
-## Steering & planning
+### Steering & planning
 
 - [ ] `[[...]]` inline steering directives — strip from prose; inject into instruction generation + summarization; guide-side usage for beat-steering
 - [ ] Engine-native planning/"spreadsheet" system — PARKED until good 100-turn results
 
-## Production reliability
+### Usage models
+
+Two operating modes for DSS in the stack. Spreadsheet design, eval metrics, and optimization priorities differ between them:
+
+1. **User-driven, DSS supplementary** (current soak setup): the cloud model (guide/judge/auditor) is the primary narrative driver; DSS maintains structured state (characters, events, elements) that feeds context back to the writer. Spreadsheets define the world; the cloud model tells the story. Retention metrics matter most here — DSS must not lose details the writer needs.
+2. **DSS-driven, user-supplementary** (AI-driven video games, long-horizon roleplay): DSS is the primary driver — it tracks the world state, determines what's relevant, and shapes the narrative direction. The user gives sparse directional input and may diverge from the original spreadsheet. Here the spreadsheet is a seed, not a script. DSS must be able to extrapolate: track character abilities, team dynamics, and emergent story threads without explicit per-beat direction. Spreadsheets need richer character ability/role definitions to support this.
+
+Open: how to structure spreadsheets to serve both modes (e.g. ability/role fields that are optional in mode 1 but load-bearing in mode 2). The `sci_fi_heist` spreadsheet is light on explicit ability tracking — characters have role descriptions but no structured "can do X" fields that DSS would track and escalate over time.
+
+### Production reliability
 
 - [ ] Handle `_continue` — debug how TGWUI passes `_continue`, `user_input`, and `state["history"]` during "Continue"
 - [ ] Handle message edits — detect changes, re-summarize only affected fields (pairs with the change-diff persistence item above)
@@ -215,13 +226,13 @@
 - [ ] Fix banned_prefixes str/list parse edge case (script.py)
 - [ ] Cache current_scene "now" — skip summarization when unchanged
 
-## Model slate
+### Model slate
 
 - [ ] Magnum-v4-12B live test (Mistral alias patch applied)
 - [ ] Gemma4 via llama.cpp or C++ port (docs/plans/lmdeploy_gemma4_pr_plan.md)
 - [ ] Small-model JSON compliance sweep → decide tagged-text fallback profile
 
-## Tooling & UI extras
+### Tooling & UI extras
 
 - [ ] Dry-run turns — compute updates, stream over SSE, approve/discard before commit
 - [ ] Context telemetry — per-block token counts over the SSE channel
