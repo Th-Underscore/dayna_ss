@@ -335,41 +335,17 @@ class DSUpdatesMixin:
         pm.update_step(phase_id, "query_changes", "Changes detected, requesting details...")
         pm.start_step(phase_id, "apply_updates", "Applying updates...")
 
-        # --- Step 2: Request List of Changes ---
+        # --- Step 2+3: Request and Apply (with validation retry) ---
         # Simulate a conversation history so the LLM knows it just said "YES"
         temp_state = copy.deepcopy(current_custom_state)
         temp_state["history"]["internal"].append([branch_query_full_prompt, llm_response_text])
 
-        branch_update_prompt = self._create_update_prompt(
-            item_name=branch_name,
-            field_name="",
-            formatted_data=formatted_data,
-            prompt_template_str=update_template,
-            target_schema_or_type=schema_class,
-            keys=keys,
-        )
-
         print(f"{_INPUT}Query for '{branch_name}' suggests changes. Requesting field updates list...{_RESET}")
 
-        branch_update_list_full_prompt = branch_update_prompt + self._context_restatement(formatted_data, branch_name, keys)
-
-        update_stopping_strings = ["NO", "END"]
-
-        llm_update_response_text, _ = self.summarizer.generate_with_sse(
-            prompt=branch_update_list_full_prompt,
-            state=temp_state,  # Use the temp state with history
-            phase_id=phase_id,
-            step_id="apply_updates",
-            history_path=self.history_path,
-            stopping_strings=update_stopping_strings,
-            match_prefix_only=True,
+        return self._generate_branch_updates_with_retry(
+            branch_name, data, formatted_data, update_template, schema_class, keys, phase_id, pm,
+            state=temp_state,
         )
-
-        if runtime.stop_everything:
-            return True
-
-        # --- Step 3: Parse and Apply ---
-        return self._apply_branch_updates(branch_name, data, llm_update_response_text, phase_id, pm, schema_class)
 
     def _branch_update_only(
         self,
@@ -384,144 +360,11 @@ class DSUpdatesMixin:
     ) -> bool:
         """Update-only branch pass (config['skip_query']): run the self-detecting
         branch update template directly, without the pre-query pre-filter."""
-        branch_update_prompt = self._create_update_prompt(
-            item_name=branch_name,
-            field_name="",
-            formatted_data=formatted_data,
-            prompt_template_str=update_template,
-            target_schema_or_type=schema_class,
-            keys=keys,
-        )
-        if not branch_update_prompt:
-            return True
         print(f"{_GRAY}Update-only: checking '{branch_name}' for updates.{_RESET}")
         pm.start_step(phase_id, "apply_updates", "Applying updates...")
-        branch_update_list_full_prompt = branch_update_prompt + self._context_restatement(formatted_data, branch_name, keys)
-        llm_update_response_text, _ = self.summarizer.generate_with_sse(
-            prompt=branch_update_list_full_prompt,
-            state=self.custom_state or {},
-            phase_id=phase_id,
-            step_id="apply_updates",
-            history_path=self.history_path,
-            stopping_strings=["NO", "END"],
-            match_prefix_only=True,
+        return self._generate_branch_updates_with_retry(
+            branch_name, data, formatted_data, update_template, schema_class, keys, phase_id, pm
         )
-        if runtime.stop_everything:
-            return True
-        llm_update_response_text = strip_thinking(llm_update_response_text).strip()
-        neg = llm_update_response_text.upper().strip().rstrip(".!")
-        if not llm_update_response_text or neg.startswith("NO") or "NO_UPDATES_REQUIRED" in neg:
-            pm.done_step(phase_id, "apply_updates", "No updates needed")
-            print(f"{_INPUT}No updates needed for '{branch_name}' (update-only).{_RESET}")
-            return False
-        return self._apply_branch_updates(branch_name, data, llm_update_response_text, phase_id, pm, schema_class)
-
-    def _apply_branch_updates(
-        self,
-        branch_name: str,
-        data: dict,
-        llm_update_response_text: str,
-        phase_id: str,
-        pm,
-        schema_class=None,
-    ) -> bool:
-        """Parse and apply a branch update response (path/value list)."""
-        parsed_updates = self._parse_llm_field_updates(llm_update_response_text, branch_name)
-
-        if parsed_updates:
-            print(f"{_INPUT}Applying {len(parsed_updates)} field update(s) to '{branch_name}'...{_RESET}")
-            pm.update_step(phase_id, "apply_updates", f"Applying {len(parsed_updates)} update(s)...")
-            formatted_updates = []
-            for update_item in parsed_updates:
-                path_str = update_item["path"]
-                value = update_item["value"]
-
-                # Strip branch-name prefix: the LLM sometimes includes the full
-                # branch path (e.g. "events.beats.X") when the path should be
-                # relative to the branch data (i.e. just "X").
-                if "." in branch_name and path_str.startswith(branch_name + "."):
-                    path_str = path_str[len(branch_name) + 1:]
-
-                # Convert path string to key list (e.g. "status.0.name" -> ["status", 0, "name"])
-                keyList_relative_to_branch = split_keys_to_list(path_str)
-
-                # Canonicalize: exact/dot-join/normalized/alias resolution against
-                # the live structure, so dotted names written without [brackets]
-                # ("Mr" + "Peters") and nickname/alias references ("The Judge") land
-                # on the real key instead of creating stray nested dicts.
-                keyList_relative_to_branch = _resolve_path_keys(data, keyList_relative_to_branch)
-
-                # Guard: reject updates whose parent path doesn't resolve to an
-                # existing container. Without this, recursive_set silently creates
-                # phantom nesting (e.g. data["events"]["beats"][...]).
-                if len(keyList_relative_to_branch) > 1:
-                    _parent = recursive_get(data, keyList_relative_to_branch[:-1])
-                    if _parent is None:
-                        print(f"{_ERROR}[{branch_name}] REJECTED update (parent path missing): {path_str}{_RESET}")
-                        continue
-
-                # Schema conformity: validate that the field-level segment of the
-                # path is a known schema field. For dict-of-entries branches the
-                # first segment is an entry name (not a field), so we validate the
-                # second segment. For single-entry branches the first segment IS
-                # the field. Underscore-prefixed keys are always allowed.
-                if schema_class is not None and len(keyList_relative_to_branch) > 1:
-                    _valid_fields = self._get_valid_schema_fields(schema_class)
-                    if _valid_fields:
-                        _first = keyList_relative_to_branch[0]
-                        if isinstance(_first, str) and not _first.startswith('_') and _first not in _valid_fields:
-                            # First segment is not a known field → entry name;
-                            # validate the next segment against the schema.
-                            _field_key = keyList_relative_to_branch[1]
-                            if isinstance(_field_key, str) and not _field_key.startswith('_') and _field_key not in _valid_fields:
-                                print(f"{_ERROR}[{branch_name}] REJECTED update (invalid field '{_field_key}'): {path_str}{_RESET}")
-                                continue
-
-                # H3 (referent-resolution gate): symmetric VALUE-side retarget. The
-                # path above is already canonicalized; the value (relationship
-                # partner keys, row keys, alias entries) was not. Re-address any
-                # dangling referent (a lookalike key that would mint a stray sibling
-                # or dangling edge) onto its canonical same-branch node. Fires only on
-                # a DISTINCT collision and is a guaranteed no-op otherwise, so
-                # legitimate shared/undercover identities (one canonical key) and
-                # cross-branch referents are never rewritten.
-                value = _retarget_value(value, data)
-
-                try:
-                    old_value = recursive_get(data, keyList_relative_to_branch)
-                    print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
-                    # DEBUG: log existing keys at the target depth before set
-                    if keyList_relative_to_branch:
-                        _parent_keys = keyList_relative_to_branch[:-1]
-                        _target_dict = recursive_get(data, _parent_keys) if _parent_keys else data
-                        if isinstance(_target_dict, dict):
-                            print(f"{_DEBUG}[branch_update] SET path={path_str} target_keys={list(_target_dict.keys())} branch={branch_name}{_RESET}")
-                    recursive_set(data, keyList_relative_to_branch, value)  # Modifies 'data' in place
-                    # Null hygiene: list-typed targets must never carry explicit
-                    # null/empty/None-string items minted by partial LLM updates
-                    # (the biography-null leak). Filtering is shape-only and
-                    # type-agnostic — no per-field keys involved.
-                    stored = recursive_get(data, keyList_relative_to_branch)
-                    if isinstance(stored, list):
-                        cleaned_list = [
-                            v for v in stored
-                            if v is not None and v != "" and str(v).strip().lower() not in ("null", "none")
-                        ]
-                        if len(cleaned_list) != len(stored):
-                            recursive_set(data, keyList_relative_to_branch, cleaned_list)
-                            print(f"{_GRAY}[{branch_name}] Null scrub on {path_str}: "
-                                  f"{len(stored)} -> {len(cleaned_list)} items{_RESET}")
-                            value = cleaned_list
-                    print(f"{_GRAY}[{branch_name}] Applied update: {path_str} = {json.dumps(value, indent=None)}{_RESET}")
-                    formatted_updates.append({"path": path_str, "value": value, "old_value": old_value})
-                except Exception as e:
-                    print(f"{_ERROR}[{branch_name}] Failed to apply update {path_str} = {repr(value)}: {e}{_RESET}")
-            pm.done_step(phase_id, "apply_updates", f"Applied {len(parsed_updates)} update(s)", {"updates": formatted_updates, "raw_json": json.dumps(parsed_updates, indent=2)})
-        else:
-            pm.done_step(phase_id, "apply_updates", "No updates to apply")
-            print(f"{_GRAY}No specific field updates applied to '{branch_name}' from branch query response.{_RESET}")
-
-        return True
 
     def _get_valid_schema_fields(self, schema_class) -> set[str]:
         """Extract valid field names from a ParsedSchemaClass.
@@ -543,6 +386,185 @@ class DSUpdatesMixin:
         except Exception:
             pass
         return set()
+
+    def _validate_branch_updates(
+        self,
+        branch_name: str,
+        data: dict,
+        llm_response_text: str,
+        schema_class=None,
+    ) -> tuple[list[dict], list[str]]:
+        """Parse and validate LLM branch-update paths without applying them.
+
+        Returns (valid_updates, error_messages) where each valid update is
+        {"path": str, "value": Any, "keyList": list} and each error message
+        is a human-readable string suitable for retry feedback.
+        """
+        parsed_updates = self._parse_llm_field_updates(llm_response_text, branch_name)
+        if not parsed_updates:
+            # Distinguish "LLM said no updates needed" from "response was unparseable"
+            if _is_negative_verdict(llm_response_text):
+                return [], []
+            return [], ["response contained no parseable updates"]
+
+        valid_updates = []
+        errors = []
+        for update_item in parsed_updates:
+            path_str = update_item["path"]
+            value = update_item["value"]
+
+            # Layer 1: strip branch-name prefix
+            if "." in branch_name and path_str.startswith(branch_name + "."):
+                path_str = path_str[len(branch_name) + 1:]
+
+            keyList = split_keys_to_list(path_str)
+            keyList = _resolve_path_keys(data, keyList)
+
+            # Layer 2: parent existence
+            if len(keyList) > 1:
+                _parent = recursive_get(data, keyList[:-1])
+                if _parent is None:
+                    errors.append(f"path '{path_str}': parent path does not exist")
+                    continue
+
+            # Layer 3: schema conformity
+            if schema_class is not None and len(keyList) > 1:
+                _valid_fields = self._get_valid_schema_fields(schema_class)
+                if _valid_fields:
+                    _first = keyList[0]
+                    if isinstance(_first, str) and not _first.startswith('_') and _first not in _valid_fields:
+                        _field_key = keyList[1]
+                        if isinstance(_field_key, str) and not _field_key.startswith('_') and _field_key not in _valid_fields:
+                            errors.append(f"path '{path_str}': '{_field_key}' is not a valid field")
+                            continue
+
+            valid_updates.append({"path": path_str, "value": value, "keyList": keyList})
+
+        return valid_updates, errors
+
+    def _apply_validated_updates(
+        self,
+        branch_name: str,
+        data: dict,
+        valid_updates: list[dict],
+        phase_id: str,
+        pm,
+    ) -> bool:
+        """Apply pre-validated branch updates (recursive_set + null hygiene)."""
+        formatted_updates = []
+        for update in valid_updates:
+            path_str = update["path"]
+            value = update["value"]
+            keyList = update["keyList"]
+            # H3 (referent-resolution gate): retarget dangling referents in the
+            # value onto their canonical same-branch node.
+            value = _retarget_value(value, data)
+            try:
+                old_value = recursive_get(data, keyList)
+                print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
+                recursive_set(data, keyList, value)
+                # Null hygiene
+                stored = recursive_get(data, keyList)
+                if isinstance(stored, list):
+                    cleaned_list = [
+                        v for v in stored
+                        if v is not None and v != "" and str(v).strip().lower() not in ("null", "none")
+                    ]
+                    if len(cleaned_list) != len(stored):
+                        recursive_set(data, keyList, cleaned_list)
+                formatted_updates.append({"path": path_str, "value": value, "old_value": old_value})
+            except Exception as e:
+                print(f"{_ERROR}[{branch_name}] Failed to apply update {path_str} = {repr(value)}: {e}{_RESET}")
+        if formatted_updates:
+            pm.done_step(phase_id, "apply_updates", f"Applied {len(formatted_updates)} update(s)", {"updates": formatted_updates})
+        else:
+            pm.done_step(phase_id, "apply_updates", "No updates to apply")
+        return True
+
+    def _generate_branch_updates_with_retry(
+        self,
+        branch_name: str,
+        data: dict,
+        formatted_data: FormattedData,
+        update_template: str,
+        schema_class: ParsedSchemaClass,
+        keys: list,
+        phase_id: str,
+        pm,
+        state: dict | None = None,
+        max_retries: int = 2,
+    ) -> bool:
+        """Generate branch updates from the LLM with validation retry.
+
+        Builds the prompt, calls the LLM, validates the parsed paths, and
+        retries (up to max_retries) with error feedback if validation fails.
+        Applies whatever valid updates remain after the final attempt.
+        """
+        current_custom_state = state if state is not None else (self.custom_state or {})
+
+        base_prompt = self._create_update_prompt(
+            item_name=branch_name,
+            field_name="",
+            formatted_data=formatted_data,
+            prompt_template_str=update_template,
+            target_schema_or_type=schema_class,
+            keys=keys,
+        )
+        if not base_prompt:
+            return True
+
+        full_prompt = base_prompt + self._context_restatement(formatted_data, branch_name, keys)
+        stopping_strings = ["NO", "END"]
+
+        llm_response_text = ""
+        valid_updates: list[dict] = []
+        errors: list[str] = []
+
+        for attempt in range(max_retries + 1):
+            if attempt > 0:
+                # Append validation feedback from the previous attempt
+                feedback = "\n\nYour previous response had the following problems:\n"
+                for err in errors:
+                    feedback += f"- {err}\n"
+                feedback += "\nPlease respond again with corrected paths only. Use NO_UPDATES_REQUIRED if there are no valid updates."
+                effective_prompt = full_prompt + feedback
+                pm.warn_step(phase_id, "apply_updates", f"Retry {attempt}/{max_retries}: {len(errors)} validation error(s)")
+            else:
+                effective_prompt = full_prompt
+                pm.update_step(phase_id, "apply_updates", "Requesting field updates...")
+
+            llm_response_text, _ = self.summarizer.generate_with_sse(
+                prompt=effective_prompt,
+                state=current_custom_state,
+                phase_id=phase_id,
+                step_id="apply_updates",
+                history_path=self.history_path,
+                stopping_strings=stopping_strings,
+                match_prefix_only=True,
+            )
+
+            if runtime.stop_everything:
+                return True
+
+            # Validate
+            valid_updates, errors = self._validate_branch_updates(
+                branch_name, data, llm_response_text, schema_class
+            )
+
+            if not errors:
+                break  # All paths valid, no retry needed
+
+            print(f"{_WARNING}[{branch_name}] {len(errors)} path(s) failed validation (attempt {attempt + 1}/{max_retries + 1}):{_RESET}")
+            for err in errors:
+                print(f"{_WARNING}  {err}{_RESET}")
+
+        # Apply whatever valid updates we have (fail-safe: partial is better than none)
+        if valid_updates:
+            return self._apply_validated_updates(branch_name, data, valid_updates, phase_id, pm)
+        else:
+            pm.done_step(phase_id, "apply_updates", "No valid updates after all attempts")
+            print(f"{_GRAY}No valid updates to apply for '{branch_name}'.{_RESET}")
+            return True
 
     def _generate_field_update(
         self,
