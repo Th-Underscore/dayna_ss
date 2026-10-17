@@ -134,7 +134,8 @@ def _arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--turns", type=int, default=100, help="total turns (default 100)")
     p.add_argument("--guide-style", choices=["explicit", "implicit"], default="implicit")
     p.add_argument("--specificity-profile", choices=["loose", "mixed", "exact"], default=None)
-    p.add_argument("--director", choices=["on", "off"], default="on")
+    p.add_argument("--director", choices=["on", "off"], default=None,
+                    help="force do_instr on/off (default: use dss_config.json)")
     p.add_argument("--arc-breaks", choices=["none", "3_arcs"], default="none")
     p.add_argument("--judge-every", type=int, default=10, help="judge cadence (default 10)")
     p.add_argument("--plan-every", type=int, default=5,
@@ -209,7 +210,7 @@ def _arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--cloud-endpoint", default=None, help="common self-hosted OpenAI-compatible base URL for all cloud models (e.g. http://localhost:9931). Overrides default cloud endpoint.")
     p.add_argument("--cloud-provider", default=None, help="auth.json entry name to use as the API key for --cloud-endpoint (e.g. 'llama' or 'textgen'). When omitted, resolve_local_api_key() picks from its default order.")
     p.add_argument("--judge-window", type=int, default=12, help="exchanges shown to the judge")
-    p.add_argument("--max-update-history", type=int, default=8,
+    p.add_argument("--max-update-history", type=int, default=0,
                    help="max engine internal-history exchanges sent per DataSummarizer call (0 = unlimited); "
                         "composes with the rolling window as sent = history[-min(rolling_window, this):]")
     p.add_argument("--temperature", type=float, default=0.7,
@@ -341,7 +342,7 @@ class LocalModel:
                  temperature: float = 0.7, top_p: float = 0.80, top_k: int = 20,
                  min_p: float = 0.0, repetition_penalty: float = 1.0,
                  history_provider: Any = None,
-                 max_update_history_exchanges: int = 8,
+                  max_update_history_exchanges: int = 0,
                  reasoning_effort: str | None = None):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
@@ -2284,8 +2285,9 @@ class SoakRun:
         ]
         t0 = time.time()
         soak_log("  engine: building instruction prompt (retrieval + cache warm) ...")
+        _instr_kwargs = {"do_instr": args.director == "on"} if args.director is not None else {}
         instr_prompt, custom_state, history_path, ts = self.summarizer.generate_instr_prompt(
-            user_input, engine_state, history_internal, do_instr=(args.director == "on")
+            user_input, engine_state, history_internal, **_instr_kwargs
         )
         soak_log(f"  engine: instr prompt built in {_elapsed(t0)}")
         self._seed_general_info_style(history_path)
