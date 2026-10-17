@@ -194,9 +194,12 @@ class InstructionGeneratorMixin:
                     else:
                         try:
                             if model is not None:
-                                print(f"{_SUCCESS}State set{_RESET}")
+                                 print(f"{_SUCCESS}State set{_RESET}")
+                                 _do_instr = kwargs.get("do_instr", self.config.get("do_instr", False))
+                                 _reply_params = self.config.get("custom_reply_parameters", {})
+                                 print(f"{_HILITE}Reply config: do_instr={_do_instr}, reply_params={_reply_params if _reply_params else 'none'}{_RESET}")
 
-                                if kwargs.get("do_instr", False):
+                                 if _do_instr:
                                     # Ground the plan in the LIVE scene (authoritative,
                                     # current) rather than the stable top of the subject
                                     # block — the source of the prop-recycling loop.
@@ -239,6 +242,11 @@ class InstructionGeneratorMixin:
                                         f"REMEMBER: Your entire output must ONLY consist of the instructional paragraphs, adhering strictly to the no-bolding, no-titles format. No extra text, greetings, or sign-offs."
                                     )
 
+                                    # Merge instr-prompt-specific LLM params into
+                                    # custom_state so prepare_payload picks them up.
+                                    _instr_params = self.config.get("custom_instr_prompt_parameters", {})
+                                    if _instr_params:
+                                        custom_state.update(_instr_params)
                                     instr, status = self.generate_with_sse(
                                         prompt=prompt,
                                         state=custom_state,
@@ -344,7 +352,7 @@ class InstructionGeneratorMixin:
                         f'adopt its voice or perspective, and do not quote or re-use its words. You are {name2}. '
                         f'Write a fresh reply strictly in {name2}\'s own voice per the Writing Style directive below.]\n'
                     )
-                    if kwargs.get("do_instr", False):
+                    if kwargs.get("do_instr", self.config.get("do_instr", False)):
                         full_instr = (
                             instr
                             + "\n\n[STEERING NOTES: These directives are private off-stage guidance for you as the AUTHOR of "
@@ -379,7 +387,7 @@ class InstructionGeneratorMixin:
                             f"Draw naturally on the characters, items, and past events established in your system context (General Info, Current Scene, Characters, Events sections); reference them concretely where they fit rather than leaving remembered details unused.\n"
                              f"Do not let the reply be purely atmospheric or observational \u2014 include concrete action, dialogue, or a specific new detail. Do not declare the mystery resolved, name a culprit, or treat a suspicion as fact until the story has revealed it. Do not repeat imagery or a closing sentence/ending gesture you have already used in earlier replies.\n"
                              f"End the reply with {name2} performing a concrete action of her own \u2014 never end with a sentence that hands the next move to {name1} ('leaving the next move', 'step back to let'). Never narrate the reply's own construction (no 'she advanced the scene', 'her response remained', 'she avoided declaring', 'as a prop to emphasize') \u2014 perform the action directly.{own_replies_block}\n\n"
-                            f'REMEMBER: You are "{name2}" replying to "{name1}". Narrate {name2} in the THIRD PERSON from outside — never from {name2}\'s own "I" (no "I", "my", "me") — and do not repeat or re-speak {name1}\'s lines.'
+                             f'REMEMBER: You are "{name2}" replying to "{name1}". Narrate {name2} from outside — do not repeat or re-speak {name1}\'s lines. Use the POV and tense specified in the Writing Style directive above.'
                         )
                     # Highlight relevant entities from the retrieval context so the
                     # model knows which stored details are most salient for THIS scene.
@@ -432,6 +440,12 @@ class InstructionGeneratorMixin:
 
                     print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
                     self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")
+                    # Merge reply-specific LLM params (e.g. enable_thinking) into
+                    # custom_state so they flow into the reply call only, not the
+                    # instruction-generation call above.
+                    _reply_params = self.config.get("custom_reply_parameters", {})
+                    if _reply_params:
+                        custom_state.update(_reply_params)
                     return (
                         encoded_instr_prompt,
                         custom_state,

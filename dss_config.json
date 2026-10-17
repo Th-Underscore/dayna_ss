@@ -1,3 +1,9 @@
 {
-  "max_subject_workers": 3
+  "max_subject_workers": 3,
+  "do_instr": false,
+  "custom_reply_parameters": {
+    "enable_thinking": true,
+    "reasoning_effort": "low"
+  },
+  "custom_instr_prompt_parameters": {}
 }
