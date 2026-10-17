@@ -301,7 +301,7 @@ def _merge_cloud_usage(r: dict) -> dict:
         sub = r.get(key)
         if isinstance(sub, dict):
             for field in ("calls", "prompt_tokens", "completion_tokens", "total_tokens"):
-                cu[field] = cu.get(field, 0) + sub.get(field, 0)
+                cu[field] = (cu.get(field) or 0) + (sub.get(field) or 0)
     return cu
 
 
