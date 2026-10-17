@@ -238,6 +238,7 @@ class DSTraversalMixin:
                         whitelist = self._entry_whitelists.get(item_name_prefix)
                         new_this_pass = self._new_entry_names.get(item_name_prefix, set())
                         for key, val_data in data.items():
+                            print(f"{_DEBUG}[traverse_3a] branch={item_name_prefix} key='{key}' (total {len(data)} keys){_RESET}")
                             # Heal array-wrapped class instances BEFORE the
                             # whitelist check so a model-written [{...}] shape
                             # is repaired (and saved healed) rather than

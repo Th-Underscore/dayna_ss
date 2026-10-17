@@ -9,6 +9,7 @@ _runs
 .ref
 
 *.code-workspace
+pi-warden.md
 
 *.bat
 *.ps1
