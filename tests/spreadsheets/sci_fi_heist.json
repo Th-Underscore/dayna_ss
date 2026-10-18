@@ -8,12 +8,14 @@
     "name1": {
       "name": "Sable",
       "role": "crew leader (guide narrates these turns in the third person as a detached story master)",
-      "description": "A grifter who's pulled one too many jobs; sharp, paranoid, allergic to sentiment."
+      "description": "A grifter who's pulled one too many jobs; sharp, paranoid, allergic to sentiment.",
+      "attributes": ["Social engineering: improvises access, forges credentials on the fly, reads people fast"]
     },
     "name2": {
       "name": "Dex",
       "role": "systems engineer (DSS writes these turns)",
-      "description": "A systems engineer with a forged identity, calm under pressure, keeps secrets about the city's memory grid."
+      "description": "A systems engineer with a forged identity, calm under pressure, keeps secrets about the city's memory grid.",
+      "attributes": ["Grid architecture: designed the city's memory grid (as Calloway), knows its backdoors and kill switches"]
     }
   },
   "writing_style": {
