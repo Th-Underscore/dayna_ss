@@ -113,6 +113,45 @@ All deliverables go to `tests/docs/`:
 
 Where `<run_id>` = `<spreadsheet>__<hash>` (e.g. `scifi_heist_c05349c6`).
 
+## Mid-Run Reviews
+
+Checks to perform at natural pause points (reboot, timeout kill, user-initiated stop) to verify the run is healthy before resuming.
+
+### Data structure integrity
+
+- **`events.json` top-level keys** — must be exactly `['past', 'scenes', 'chapters', 'beats']`. Any other key (especially `'events'`) indicates the LLM echoed the branch name as a parent wrapper (the bug the prompt fixes target).
+- **No phantom nesting** — no entry should contain a nested object with the same name as its parent key.
+
+### Entity population
+
+- **Characters** — count and per-character populated field count. Expect 5+ named characters from the spreadsheet, each with 7+ populated fields (description, biography, traits, attributes, voice, quirks, fears, preferences, importance, etc.).
+- **Elements** — total count. Track growth across checkpoints (e.g. 72 at turn 20 → 123 at turn 188 is ~0.3/turn). Flag if growth stalls (possible LLM stopping from creating new elements) or spikes (possible duplicate creation).
+- **Groups** — count. Usually small (1-6).
+- **Beats/Scenes/Chapters/Past** — counts in `events.json`. Beats should grow monotonically. Scenes should be in a small window (3-7 active). Chapters increment at archival boundaries. Past accumulates archived chapters.
+
+### Narrative coherence
+
+- **Rolling overviews** — `rolling_overview_NNN.json` at the run root (every `--overview-every` turns). Check the latest: `overall_score`, `trajectory` (should be `stable` or `improving`), `verdict`, `memory_fidelity`. A declining trajectory or dropping score across consecutive overviews is a warning.
+- **Synopsis** — `general_info.json` → `synopsis`. Should grow and stay coherent. Check length and that it references recent story developments, not just the opening.
+- **Current scene** — `current_scene.json`. Scene number should be monotonically increasing. `now.who` should list characters that exist in `characters.json`.
+
+### Judge/audit health
+
+- **Judge scores** — from `result.json` → `judge` field (only present on judged turns, every `--judge-every` turns). Track `style_score`, `quality_score`, `memory_fidelity`. Flag: any score < 4.0, a declining trend, or a spike in low scores.
+- **Cloud call counts** — sum `cloud_usage` + `judge_usage` + `auditor_usage` across all `result.json` files. All three should be non-zero. If judge or auditor calls are 0, the background workers may not be running.
+
+### Error check
+
+- **Log file** — grep for `Traceback`, `FAILED`, `Error` in the run log. A few HTTP 502s from the cloud endpoint are normal (transient). Repeated failures or `TypeError`/`AttributeError` tracebacks indicate code bugs.
+
+### Resume readiness
+
+Before re-launching after a mid-run stop:
+1. Confirm the last turn's `result.json` is complete (has `reply`, `judge` if expected, `cloud_usage`).
+2. Confirm no partial state snapshot (all JSON files parse cleanly).
+3. Remove any temporary tasks from the launch script (e.g. parallel quantization jobs).
+4. Re-launch via `gpu-quiesce`.
+
 ## Lessons Learned
 
 1. **Subagents time out on large log files** if they try to read them into context.
