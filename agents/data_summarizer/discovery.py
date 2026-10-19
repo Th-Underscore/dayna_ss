@@ -316,6 +316,126 @@ class DSDiscoveryMixin:
         recursive_set(formatted_data.data, keys, data)
         return data
 
+    def _archive_scene_from_current_scene(
+        self,
+        branch_name: str,
+        data: dict,
+        formatted_data: FormattedData,
+        branch_schema_class: ParsedSchemaClass,
+        keys: list,
+    ) -> dict:
+        """Archive the completed scene into a scenes branch.
+
+        Programmatic first pass: render the schema's `scene_archive_template`
+        (Jinja2) against the current_scene data to build a pre-filled
+        StoryEvent. LLM second pass: the entry is passed as `{{ temp_data }}`
+        in the prompt; the LLM names it and fills empty fields.
+        """
+        current_scene = self.all_subjects_data.get("current_scene", {})
+        if not current_scene:
+            print(f"{_WARNING}_archive_scene: no current_scene data; skipping.{_RESET}")
+            return data
+
+        # Build participants dict from current_scene.now.who.characters (list -> dict by name)
+        who = current_scene.get("now", {}).get("who", {})
+        chars = who.get("characters", [])
+        participants: dict[str, dict] = {}
+        for c in chars:
+            name = c.get("name", "")
+            if name and name not in participants:
+                participants[name] = {"importance": {"score": 50, "reason": "", "faction": "positive"}}
+
+        # Render the programmatic base entry
+        archive_tpl = (branch_schema_class.defaults or {}).get("scene_archive_template")
+        if not archive_tpl:
+            print(f"{_WARNING}_archive_scene: no scene_archive_template in schema; skipping.{_RESET}")
+            return data
+
+        temp_data_str = format_str_or_jinja(archive_tpl, current_scene=current_scene, participants=participants)
+        try:
+            temp_data = json.loads(temp_data_str)
+        except json.JSONDecodeError as e:
+            print(f"{_WARNING}_archive_scene: rendered template is not valid JSON: {e}. Skipping.{_RESET}")
+            return data
+
+        # Derive the entry key from the programmatic name (will be overwritten by LLM)
+        programmatic_name = temp_data.get("name", f"Scene {current_scene.get('_scene_number', '?')}")
+
+        # Build the LLM refine prompt using the schema's new_entry_prompt_template
+        new_entry_template = (branch_schema_class.defaults or {}).get("new_entry_prompt_template")
+        if not new_entry_template:
+            print(f"{_WARNING}_archive_scene: no new_entry_prompt_template; storing programmatic entry as-is.{_RESET}")
+            data[programmatic_name] = temp_data
+            recursive_set(formatted_data.data, keys, data)
+            return data
+
+        # Resolve schema snippet and example for the prompt
+        value_schema_class = None
+        if branch_schema_class.definition_type == "alias":
+            wrapped = branch_schema_class._field.type
+            if hasattr(wrapped, "__origin__") and wrapped.__origin__ is dict:
+                value_schema_class = wrapped.__args__[1] if wrapped.__args__ else None
+
+        refine_prompt = self._create_update_prompt(
+            item_name=branch_name,
+            field_name="",
+            formatted_data=formatted_data,
+            prompt_template_str=new_entry_template,
+            target_schema_or_type=value_schema_class or branch_schema_class,
+            entry_name=programmatic_name,
+            keys=keys,
+            temp_data=temp_data_str,
+        )
+
+        # Single LLM call to refine
+        llm_response, _ = self.summarizer.generate_using_tgwui(
+            prompt=refine_prompt,
+            state=self.custom_state or {},
+            history_path=self.history_path,
+            phase_id=str(branch_name).lower().replace(" ", "_"),
+            step_id="archive_scene",
+        )
+        if runtime.stop_everything:
+            # Fail-open: store the programmatic entry
+            data[programmatic_name] = temp_data
+            recursive_set(formatted_data.data, keys, data)
+            return data
+
+        stripped = strip_response(llm_response)
+        try:
+            refined = _tolerant_json_loads(stripped)
+        except json.JSONDecodeError:
+            print(f"{_WARNING}_archive_scene: LLM response not valid JSON; storing programmatic entry.{_RESET}")
+            refined = temp_data
+
+        if not isinstance(refined, dict) or not refined:
+            refined = temp_data
+
+        # Unwrap if LLM wrapped in parent key
+        if len(refined) == 1:
+            wk = next(iter(refined))
+            if wk in (branch_name, branch_name.split(".")[-1]) and isinstance(refined[wk], dict):
+                refined = refined[wk]
+
+        # Derive final key from the LLM's name
+        final_name = refined.get("name", programmatic_name)
+        if not final_name or final_name.startswith("SCENE #"):
+            final_name = programmatic_name
+
+        # Stamp message node
+        current_message_node = self._resolve_current_message_node()
+        if "start" in refined and isinstance(refined["start"], dict):
+            refined["start"]["_message_node"] = current_message_node
+
+        data[final_name] = refined
+        expanded_data = recursive_get(formatted_data.data, keys, default=None)
+        if isinstance(expanded_data, dict):
+            expanded_data[final_name] = refined
+        recursive_set(formatted_data.data, keys, data)
+        self._new_entry_names.setdefault(branch_name, set()).add(final_name)
+        print(f"{_SUCCESS}Archived scene '{final_name}' to '{branch_name}'.{_RESET}")
+        return data
+
     def _select_entries_to_update(
         self,
         branch_name: str,

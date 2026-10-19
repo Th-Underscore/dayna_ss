@@ -281,17 +281,30 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
             if target_schema_class.definition_type == "alias":
                 field_origin = getattr(target_schema_class._field.type, "__origin__", None)
                 if field_origin in (dict, list):
-                    new_query_template = config.get("new_entry_query_prompt_template") if config else None
-                    new_entry_template = config.get("new_entry_prompt_template") if config else None
-                    self._detect_and_add_new_entries_to_branch(
-                        branch_name=branch_name,
-                        data=data,
-                        formatted_data=unexpanded_formatted_data,
-                        branch_schema_class=target_schema_class,
-                        new_query_template=new_query_template,
-                        new_entry_template=new_entry_template,
-                        keys=keys
-                    )
+                    # Schema-driven: if the branch defines a scene_archive_template,
+                    # use the programmatic archive path (pre-fill from current_scene,
+                    # LLM refines name + empty fields).
+                    archive_tpl = (target_schema_class.defaults or {}).get("scene_archive_template")
+                    if archive_tpl:
+                        self._archive_scene_from_current_scene(
+                            branch_name=branch_name,
+                            data=data,
+                            formatted_data=unexpanded_formatted_data,
+                            branch_schema_class=target_schema_class,
+                            keys=keys,
+                        )
+                    else:
+                        new_query_template = config.get("new_entry_query_prompt_template") if config else None
+                        new_entry_template = config.get("new_entry_prompt_template") if config else None
+                        self._detect_and_add_new_entries_to_branch(
+                            branch_name=branch_name,
+                            data=data,
+                            formatted_data=unexpanded_formatted_data,
+                            branch_schema_class=target_schema_class,
+                            new_query_template=new_query_template,
+                            new_entry_template=new_entry_template,
+                            keys=keys
+                        )
             pm.done_step(phase_id, action_name)
 
         elif action == Action.PERFORM_GATE_CHECK:
@@ -618,8 +631,7 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
                         effective_child_schema.defaults[attr_name] = parent_template_value
         else:
             for k, v in parent_schema_class.defaults.items():
-                if k not in effective_child_schema.defaults:
-                    effective_child_schema.defaults[k] = v
+                effective_child_schema.defaults[k] = v
 
         return effective_child_schema
 
