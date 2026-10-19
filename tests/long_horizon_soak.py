@@ -2057,7 +2057,7 @@ class SoakRun:
             return "(no structured memory yet)"
         parts = []
 
-        def compact_entries(data: dict, per_entry: int = 160, max_total: int = 2800) -> str:
+        def compact_entries(data: dict, per_entry: int = 50000, max_total: int = 200000) -> str:
             entries = data.get("entries", data) if isinstance(data, dict) else {}
             if not isinstance(entries, dict) or not entries:
                 return ""
@@ -2094,7 +2094,7 @@ class SoakRun:
                     if not data:
                         parts.append(f"== {fname.replace('.json', '')} == (EMPTY — nothing saved)")
                     else:
-                        parts.append(f"== {fname.replace('.json', '')} ==\n" + json.dumps(data, ensure_ascii=False)[:1500])
+                        parts.append(f"== {fname.replace('.json', '')} ==\n" + json.dumps(data, ensure_ascii=False)[:50000])
                 except Exception:
                     continue
 
@@ -2103,7 +2103,7 @@ class SoakRun:
             if p.exists():
                 try:
                     data = json.loads(p.read_text(encoding="utf-8"))
-                    parts.append(f"== {fname} ==\n" + json.dumps(data, indent=1)[:1500])
+                    parts.append(f"== {fname} ==\n" + json.dumps(data, indent=1)[:50000])
                 except Exception:
                     continue
         return "\n".join(parts) if parts else "(no structured memory yet)"
@@ -2661,7 +2661,7 @@ def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | No
             if p.exists():
                 try:
                     data = json.loads(p.read_text(encoding="utf-8"))
-                    parts.append(f"== {fname} ==\n" + json.dumps(data, indent=1)[:1500])
+                    parts.append(f"== {fname} ==\n" + json.dumps(data, indent=1)[:50000])
                 except Exception:
                     continue
         chars_p = snap / "characters.json"
