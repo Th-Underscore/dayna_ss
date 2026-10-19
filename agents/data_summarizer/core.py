@@ -281,12 +281,14 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
             if target_schema_class.definition_type == "alias":
                 field_origin = getattr(target_schema_class._field.type, "__origin__", None)
                 if field_origin in (dict, list):
-                    # Schema-driven: if the branch defines a scene_archive_template,
-                    # use the programmatic archive path (pre-fill from current_scene,
-                    # LLM refines name + empty fields).
-                    archive_tpl = (target_schema_class.defaults or {}).get("scene_archive_template")
+                    # Schema-driven: if the branch defines a *_archive_template,
+                    # use the programmatic archive path (pre-fill from known state,
+                    # LLM refines name + narrative fields).
+                    archive_tpl = (target_schema_class.defaults or {}).get(
+                        f"{branch_name.lower()}_archive_template"
+                    )
                     if archive_tpl:
-                        self._archive_scene_from_current_scene(
+                        self._archive_boundary_entry(
                             branch_name=branch_name,
                             data=data,
                             formatted_data=unexpanded_formatted_data,

@@ -316,7 +316,7 @@ class DSDiscoveryMixin:
         recursive_set(formatted_data.data, keys, data)
         return data
 
-    def _archive_scene_from_current_scene(
+    def _archive_boundary_entry(
         self,
         branch_name: str,
         data: dict,
@@ -324,47 +324,50 @@ class DSDiscoveryMixin:
         branch_schema_class: ParsedSchemaClass,
         keys: list,
     ) -> dict:
-        """Archive the completed scene into a scenes branch.
+        """Archive a completed narrative boundary (scene, chapter, or arc).
 
-        Programmatic first pass: render the schema's `scene_archive_template`
-        (Jinja2) against the current_scene data to build a pre-filled
-        StoryEvent. LLM second pass: the entry is passed as `{{ temp_data }}`
-        in the prompt; the LLM names it and fills empty fields.
+        Programmatic first pass: render the schema's `*_archive_template`
+        (Jinja2) against known state to build a pre-filled entry. LLM second
+        pass: the entry is passed as `{{ temp_data }}` in the prompt; the LLM
+        names it and fills narrative fields.
         """
         current_scene = self.all_subjects_data.get("current_scene", {})
         if not current_scene:
-            print(f"{_WARNING}_archive_scene: no current_scene data; skipping.{_RESET}")
+            print(f"{_WARNING}_archive_boundary: no current_scene data; skipping.{_RESET}")
             return data
 
-        # Build participants dict from current_scene.now.who.characters (list -> dict by name)
-        who = current_scene.get("now", {}).get("who", {})
-        chars = who.get("characters", [])
-        participants: dict[str, dict] = {}
-        for c in chars:
-            name = c.get("name", "")
-            if name and name not in participants:
-                participants[name] = {"importance": {"score": 50, "reason": "", "faction": "positive"}}
+        # Per-branch template key and entry key field
+        branch_key = branch_name.lower()
+        archive_tpl_key = f"{branch_key}_archive_template"
+        key_field = "name" if branch_key == "scenes" else "title"
+        placeholder_prefix = {"scenes": "SCENE #", "chapters": "CHAPTER #", "arcs": "ARC #"}.get(branch_key, "")
+
+        # Compute programmatic template variables
+        template_vars = self._get_archive_template_vars(branch_key, current_scene)
+        if template_vars is None:
+            print(f"{_WARNING}_archive_boundary: cannot compute vars for '{branch_name}'; skipping.{_RESET}")
+            return data
 
         # Render the programmatic base entry
-        archive_tpl = (branch_schema_class.defaults or {}).get("scene_archive_template")
+        archive_tpl = (branch_schema_class.defaults or {}).get(archive_tpl_key)
         if not archive_tpl:
-            print(f"{_WARNING}_archive_scene: no scene_archive_template in schema; skipping.{_RESET}")
+            print(f"{_WARNING}_archive_boundary: no {archive_tpl_key} in schema; skipping.{_RESET}")
             return data
 
-        temp_data_str = format_str_or_jinja(archive_tpl, current_scene=current_scene, participants=participants)
+        temp_data_str = format_str_or_jinja(archive_tpl, **template_vars)
         try:
             temp_data = json.loads(temp_data_str)
         except json.JSONDecodeError as e:
-            print(f"{_WARNING}_archive_scene: rendered template is not valid JSON: {e}. Skipping.{_RESET}")
+            print(f"{_WARNING}_archive_boundary: rendered template is not valid JSON: {e}. Skipping.{_RESET}")
             return data
 
         # Derive the entry key from the programmatic name (will be overwritten by LLM)
-        programmatic_name = temp_data.get("name", f"Scene {current_scene.get('_scene_number', '?')}")
+        programmatic_name = temp_data.get(key_field, f"{branch_name.title()} ?")
 
         # Build the LLM refine prompt using the schema's new_entry_prompt_template
         new_entry_template = (branch_schema_class.defaults or {}).get("new_entry_prompt_template")
         if not new_entry_template:
-            print(f"{_WARNING}_archive_scene: no new_entry_prompt_template; storing programmatic entry as-is.{_RESET}")
+            print(f"{_WARNING}_archive_boundary: no new_entry_prompt_template; storing programmatic entry as-is.{_RESET}")
             data[programmatic_name] = temp_data
             recursive_set(formatted_data.data, keys, data)
             return data
@@ -393,7 +396,7 @@ class DSDiscoveryMixin:
             state=self.custom_state or {},
             history_path=self.history_path,
             phase_id=str(branch_name).lower().replace(" ", "_"),
-            step_id="archive_scene",
+            step_id=f"archive_{branch_key}",
         )
         if runtime.stop_everything:
             # Fail-open: store the programmatic entry
@@ -405,7 +408,7 @@ class DSDiscoveryMixin:
         try:
             refined = _tolerant_json_loads(stripped)
         except json.JSONDecodeError:
-            print(f"{_WARNING}_archive_scene: LLM response not valid JSON; storing programmatic entry.{_RESET}")
+            print(f"{_WARNING}_archive_boundary: LLM response not valid JSON; storing programmatic entry.{_RESET}")
             refined = temp_data
 
         if not isinstance(refined, dict) or not refined:
@@ -417,15 +420,16 @@ class DSDiscoveryMixin:
             if wk in (branch_name, branch_name.split(".")[-1]) and isinstance(refined[wk], dict):
                 refined = refined[wk]
 
-        # Derive final key from the LLM's name
-        final_name = refined.get("name", programmatic_name)
-        if not final_name or final_name.startswith("SCENE #"):
+        # Derive final key from the LLM's name/title
+        final_name = refined.get(key_field, programmatic_name)
+        if not final_name or (placeholder_prefix and final_name.startswith(placeholder_prefix)):
             final_name = programmatic_name
 
-        # Stamp message node
-        current_message_node = self._resolve_current_message_node()
-        if "start" in refined and isinstance(refined["start"], dict):
-            refined["start"]["_message_node"] = current_message_node
+        # Stamp message node (scenes only)
+        if branch_key == "scenes":
+            current_message_node = self._resolve_current_message_node()
+            if "start" in refined and isinstance(refined["start"], dict):
+                refined["start"]["_message_node"] = current_message_node
 
         data[final_name] = refined
         expanded_data = recursive_get(formatted_data.data, keys, default=None)
@@ -433,8 +437,58 @@ class DSDiscoveryMixin:
             expanded_data[final_name] = refined
         recursive_set(formatted_data.data, keys, data)
         self._new_entry_names.setdefault(branch_name, set()).add(final_name)
-        print(f"{_SUCCESS}Archived scene '{final_name}' to '{branch_name}'.{_RESET}")
+        print(f"{_SUCCESS}Archived {branch_key[:-1] if branch_key != 'scenes' else 'scene'} '{final_name}' to '{branch_name}'.{_RESET}")
         return data
+
+    def _get_archive_template_vars(self, branch_key: str, current_scene: dict) -> dict | None:
+        """Compute the Jinja template variables for programmatic boundary archival."""
+        if branch_key == "scenes":
+            who = current_scene.get("now", {}).get("who", {})
+            chars = who.get("characters", [])
+            participants: dict[str, dict] = {}
+            for c in chars:
+                name = c.get("name", "")
+                if name and name not in participants:
+                    participants[name] = {"importance": {"score": 50, "reason": "", "faction": "positive"}}
+            return {"current_scene": current_scene, "participants": participants}
+
+        elif branch_key == "chapters":
+            events_data = self.all_subjects_data.get("events", {})
+            chapters_list = _entries_as_list(events_data.get("chapters")) if events_data else []
+            # Starting scene: last chapter's ending_scene + 1, or 1 if none
+            if chapters_list:
+                last = chapters_list[-1] if isinstance(chapters_list[-1], dict) else {}
+                last_ending = _safe_int(last.get("ending_scene"))
+                starting_scene = (last_ending + 1) if last_ending else 1
+            else:
+                starting_scene = 1
+            ending_scene = _safe_int(current_scene.get("_scene_number", 1))
+            scene_span = list(range(starting_scene, ending_scene + 1))
+            return {"current_scene": current_scene, "starting_scene": starting_scene, "scene_span": scene_span}
+
+        elif branch_key == "arcs":
+            events_data = self.all_subjects_data.get("events", {})
+            chapters_list = _entries_as_list(events_data.get("chapters")) if events_data else []
+            # Starting chapter: last arc's ending_chapter + 1, or 1 if none
+            arcs_data = self.all_subjects_data.get("arcs", {})
+            if isinstance(arcs_data, dict) and arcs_data:
+                last_arc = max(
+                    (a for a in arcs_data.values() if isinstance(a, dict)),
+                    key=lambda a: _safe_int(a.get("ending_chapter")),
+                    default=None,
+                )
+                if last_arc is not None:
+                    last_ending_ch = _safe_int(last_arc.get("ending_chapter"))
+                    starting_chapter = (last_ending_ch + 1) if last_ending_ch else 1
+                else:
+                    starting_chapter = 1
+            else:
+                starting_chapter = 1
+            ending_chapter = _safe_int(current_scene.get("_chapter_number", 1))
+            chapter_span = list(range(starting_chapter, ending_chapter + 1))
+            return {"current_scene": current_scene, "starting_chapter": starting_chapter, "chapter_span": chapter_span}
+
+        return None
 
     def _select_entries_to_update(
         self,

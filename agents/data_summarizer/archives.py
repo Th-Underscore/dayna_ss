@@ -435,41 +435,61 @@ class DSArchivesMixin:
 
         print(f"{_SUCCESS}Archiving chapter {current_chapter_number} and creating new one.{_RESET}")
 
-        # Generate chapter data
+        # Programmatic first pass: render chapter_archive_template to build
+        # a pre-filled Chapter. LLM second pass: refine title/summary/key_changes.
         chapter_title = f"Chapter {current_chapter_number}"
-        chapter_generation_prompt = f"""Based on all the scenes in the current chapter, generate the full data for the chapter named '{chapter_title}'.
+        _ch_list = _entries_as_list(events_data.get("chapters"))
+        _last_ch_end = 0
+        for _ch in reversed(_ch_list):
+            if isinstance(_ch, dict):
+                _v = _ch.get("ending_scene")
+                if isinstance(_v, int) and not isinstance(_v, bool) and _v > _last_ch_end:
+                    _last_ch_end = _v
+                break
+        _start_scene = (_last_ch_end + 1) if _last_ch_end else 1
+        _scene_span = list(range(_start_scene, total_scenes + 1))
+
+        _ch_defaults = chapters_schema.defaults if (chapters_schema and hasattr(chapters_schema, 'defaults')) else {}
+        _ch_archive_tpl = _ch_defaults.get("chapter_archive_template")
+        if _ch_archive_tpl:
+            _ch_temp_data = render_jinja_template(
+                _ch_archive_tpl,
+                current_scene=current_scene_data,
+                starting_scene=_start_scene,
+                scene_span=_scene_span,
+            )
+        else:
+            _ch_temp_data = json.dumps({
+                "title": chapter_title,
+                "starting_scene": _start_scene,
+                "ending_scene": total_scenes,
+                "scenes": _scene_span,
+                "summary": "",
+                "key_changes": [],
+                "status": "concluded",
+            }, indent=2)
+
+        _ch_refine_tpl = _ch_defaults.get("new_entry_prompt_template")
+        if _ch_refine_tpl:
+            chapter_generation_prompt = render_jinja_template(
+                _ch_refine_tpl,
+                temp_data=_ch_temp_data,
+            )
+        else:
+            chapter_generation_prompt = (
+                f"Here is the pre-filled chapter data:\n"
+                f"```jsonc\n{_ch_temp_data}\n```\n"
+                f"Edit the title and fill in summary and key_changes. "
+                f"Leave structural fields unchanged.\n"
+                f"Respond with ONLY the JSON object."
+            )
+
+        # Append scene inventory as context
+        chapter_generation_prompt += f"""
 
 Scenes in this chapter ({len(scene_names[span_start:])}):
-{chapter_scenes_block}
+{chapter_scenes_block}"""
 
-Most recent Scene: "{recent_scene_name}"
-Summary: {recent_scene_summary}
-
-Characters involved:
-{json.dumps(current_scene_data.get("now", {}).get("who", {}).get("characters", []), indent=2) if current_scene_data.get("now", {}).get("who", {}).get("characters") else "No characters available"}
-
-Generate chapter data that includes:
-- A title (you can rename from "Chapter {current_chapter_number}" to something more evocative)
-- A concise summary of what happened in this chapter
-- Key changes that occurred, each with a description and the scene where it occurred
-
-Schema for Chapter:
-{{
-  "title": "str",
-  "starting_scene": "int (scene index where this chapter began, starting from 1)",
-  "ending_scene": "int (scene index where this chapter concluded)",
-  "scenes": "list[int] (list of scene indices in this chapter)",
-  "summary": "str",
-  "key_changes": [
-    {{
-      "description": "str (what changed)",
-      "scene": "str (scene name where this occurred)"
-    }}
-  ],
-  "status": "str ('active', 'concluded', or 'suspended')"
-}}
-
-Respond with ONLY the JSON object for this chapter."""
 
         chapter_response, _ = self.summarizer.generate_using_tgwui(
             prompt=chapter_generation_prompt,
@@ -690,37 +710,64 @@ Respond with ONLY the JSON object for this chapter."""
 
         print(f"{_SUCCESS}Archiving arc {current_arc_number} and creating new one.{_RESET}")
 
-        # Generate arc data
+        # Programmatic first pass: render arc_archive_template to build
+        # a pre-filled Arc. LLM second pass: refine title/summary/narrative fields.
         arc_title = f"Arc {current_arc_number}"
-        arc_generation_prompt = f"""Based on all the chapters in the current arc, generate the full data for the arc named '{arc_title}'.
+        _last_arc_end = 0
+        for _ar in reversed(arcs_list):
+            if isinstance(_ar, dict):
+                _v = _ar.get("ending_chapter")
+                if isinstance(_v, int) and not isinstance(_v, bool) and _v > _last_arc_end:
+                    _last_arc_end = _v
+                break
+        _start_ch = (_last_arc_end + 1) if _last_arc_end else 1
+        _end_ch = current_chapter_number
+        _chapter_span = list(range(_start_ch, _end_ch + 1))
 
-Recent Chapter: "{recent_chapter_name}"
-Summary: {recent_chapter_summary}
+        _ar_defaults = arcs_schema.defaults if (arcs_schema and hasattr(arcs_schema, 'defaults')) else {}
+        _ar_archive_tpl = _ar_defaults.get("arc_archive_template")
+        if _ar_archive_tpl:
+            _ar_temp_data = render_jinja_template(
+                _ar_archive_tpl,
+                current_scene=current_scene_data,
+                starting_chapter=_start_ch,
+                chapter_span=_chapter_span,
+            )
+        else:
+            _ar_temp_data = json.dumps({
+                "title": arc_title,
+                "starting_chapter": _start_ch,
+                "ending_chapter": _end_ch,
+                "chapters": _chapter_span,
+                "summary": "",
+                "character_arcs": "",
+                "relationship_shifts": "",
+                "plot_threads": [],
+                "status": "concluded",
+            }, indent=2)
+
+        _ar_refine_tpl = _ar_defaults.get("new_entry_prompt_template")
+        if _ar_refine_tpl:
+            arc_generation_prompt = render_jinja_template(
+                _ar_refine_tpl,
+                temp_data=_ar_temp_data,
+            )
+        else:
+            arc_generation_prompt = (
+                f"Here is the pre-filled arc data:\n"
+                f"```jsonc\n{_ar_temp_data}\n```\n"
+                f"Edit the title and fill in summary, character_arcs, "
+                f"relationship_shifts, and plot_threads. "
+                f"Leave structural fields unchanged.\n"
+                f"Respond with ONLY the JSON object."
+            )
+
+        # Append chapter inventory as context
+        arc_generation_prompt += f"""
 
 Chapters in this arc:
-{json.dumps(chapters, indent=2) if chapters else "No chapters available"}
+{chapters_digest}"""
 
-Generate arc data that includes:
-- A title (you can rename from "Arc {current_arc_number}" to something more evocative)
-- A concise summary of what happened in this arc
-- Character arc progressions and key relationship shifts
-- Plot threads introduced or resolved
-- Status: 'active', 'concluded', or 'suspended'
-
-Schema for Arc:
-{{
-  "title": "str",
-  "starting_chapter": "int (chapter index where this arc began, starting from 1)",
-  "ending_chapter": "int (chapter index where this arc concluded)",
-  "chapters": "list[int] (list of chapter indices in this arc)",
-  "summary": "str",
-  "character_arcs": "str (how characters changed)",
-  "relationship_shifts": "str (how relationships evolved)",
-  "plot_threads": ["str (plot threads in this arc)"],
-  "status": "str ('active', 'concluded', or 'suspended')"
-}}
-
-Respond with ONLY the JSON object for this arc."""
 
         arc_response, _ = self.summarizer.generate_using_tgwui(
             prompt=arc_generation_prompt,
