@@ -287,6 +287,32 @@ class Sampler(threading.Thread):
 # --------------------------------------------------------------------------- #
 
 
+ENTRY_FILES = {"characters.json", "groups.json", "elements.json"}
+EVENT_CONTAINERS = ("past", "scenes", "chapters", "beats")
+
+
+def state_counts(name: str, data) -> tuple[int | None, str]:
+    """(entries, breakdown) for a state snapshot file, following the subject
+    schema: characters/groups/elements wrap a name->entry dict in "entries";
+    events.json aggregates its containers (past, scenes, chapters, beats, ...);
+    arcs.json is a flat title->arc dict. Other files (current_scene,
+    general_info, format_templates, subjects_schema) are single records rather
+    than collections, so they report a field count instead of entries."""
+    size = lambda v: len(v) if isinstance(v, (dict, list)) else 0
+    if not isinstance(data, (dict, list)):
+        return None, "unreadable"
+    if isinstance(data, dict):
+        if name in ENTRY_FILES:
+            return size(data.get("entries")), ""
+        if name == "events.json":
+            keys = [k for k in EVENT_CONTAINERS if k in data] + [k for k in data if k not in EVENT_CONTAINERS]
+            parts = {k: size(data[k]) for k in keys if isinstance(data[k], (dict, list))}
+            return sum(parts.values()), " · ".join(f"{k} {n}" for k, n in parts.items())
+        if name == "arcs.json":
+            return len(data), ""
+    return None, f"{len(data)} fields"
+
+
 def read_scene(turn_dir: Path):
     data = read_json(turn_dir / "state_snapshot" / "current_scene.json")
     if not isinstance(data, dict):
@@ -679,10 +705,10 @@ class Run:
         snap = d / "state_snapshot"
         if snap.is_dir():
             for f in sorted(snap.glob("*.json")):
-                data = read_json(f)
-                state.append([f.name, len(data) if isinstance(data, dict) else 1])
+                entries, detail = state_counts(f.name, read_json(f))
+                state.append([f.name, entries, detail])
         if (d / "context.txt").is_file():
-            state.append(["context.txt", "text"])
+            state.append(["context.txt", None, f"text, {(d / 'context.txt').stat().st_size / 1024:.1f} KB"])
 
         return {
             "turn": n,
@@ -1267,7 +1293,7 @@ function renderDetail(d) {
         const r = await fetch(`${API}/runs/${enc(S.run)}/turns/${d.turn}/file/${enc(sel.value)}`);
         view.replaceChildren(pre(r.ok ? await r.text() : 'file not found'));
       } }, h('option', { value: '' }, '(choose a file to view)'), stateFiles.map(f => h('option', { value: f }, f)));
-      out.append(table(['file', 'entries'], d.state), h('div', { style: 'margin:8px 0' }, sel), view);
+      out.append(table(['file', 'entries', 'breakdown'], d.state), h('div', { style: 'margin:8px 0' }, sel), view);
       return out;
     }).el,
   ];
