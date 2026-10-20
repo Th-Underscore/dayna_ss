@@ -633,6 +633,17 @@ Scenes in this chapter ({len(scene_names[span_start:])}):
             print(f"{_GRAY}Arc has {chapters_in_arc} chapters (min suggested: {suggested_min}). Skipping arc check.{_RESET}")
             return
 
+        # Compact digest of the chapters inside the current arc span.
+        # Computed before the force/gate branch so both paths can use it.
+        arc_span_start = max(0, total_chapters - chapters_in_arc)
+        arc_span_lines = []
+        for idx, ch_entry in enumerate(chapters[arc_span_start:], start=arc_span_start + 1):
+            if isinstance(ch_entry, dict):
+                title = str(ch_entry.get("title", f"Chapter {idx}"))[:80]
+                summary = str(ch_entry.get("summary", ""))[:160]
+                arc_span_lines.append(f"Chapter {idx}: {title} - {summary}")
+        chapters_digest = "\n".join(arc_span_lines) if arc_span_lines else "(no archived chapters yet)"
+
         if force_arc:
             should_archive = True
             print(f"{_BOLD}Forcing arc transition.{_RESET}")
@@ -640,16 +651,6 @@ Scenes in this chapter ({len(scene_names[span_start:])}):
             # Use the schema template
             chapter_in_arc = chapters_in_arc
             scenes_count = len(events_data.get("scenes", {}))
-
-            # Compact digest of the chapters inside the current arc span.
-            arc_span_start = max(0, total_chapters - chapters_in_arc)
-            arc_span_lines = []
-            for idx, ch_entry in enumerate(chapters[arc_span_start:], start=arc_span_start + 1):
-                if isinstance(ch_entry, dict):
-                    title = str(ch_entry.get("title", f"Chapter {idx}"))[:80]
-                    summary = str(ch_entry.get("summary", ""))[:160]
-                    arc_span_lines.append(f"Chapter {idx}: {title} - {summary}")
-            chapters_digest = "\n".join(arc_span_lines) if arc_span_lines else "(no archived chapters yet)"
 
             gate_prompt = render_jinja_template(
                 gate_check_prompt,
