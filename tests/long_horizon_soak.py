@@ -1449,6 +1449,14 @@ def build_state(spreadsheet: dict, seed: int, unique_id: str, history: list | No
     ws = spreadsheet["writing_style"]
     taboos = "\n".join(f"- {t}" for t in ws.get("taboos", [])) or "- none"
     n1, n2 = chars["name1"], chars["name2"]
+    def _char_block(c: dict) -> str:
+        parts = []
+        for k, v in c.items():
+            if isinstance(v, list):
+                v = '; '.join(v)
+            parts.append(f"{str(k).title()}: {v}")
+        return "\n".join(parts)
+
     context = (
         f"Premise: {spreadsheet['premise']}\n"
         f"Setting: {spreadsheet['setting']}\n"
@@ -1457,8 +1465,7 @@ def build_state(spreadsheet: dict, seed: int, unique_id: str, history: list | No
         f"{n2.get('role', 'the protagonist')} (the protagonist being roleplayed).\n"
         f"Your voice ({n2['name']}, DSS turns): {ws['dss_directive']}\n"
         f"Taboos: {taboos}\n"
-        f"Characters:\n- {n1['name']}: {n1.get('description', n1.get('role', ''))}\n"
-        f"- {n2['name']}: {n2.get('description', n2.get('role', ''))}"
+        f"Characters:\n{_char_block(n1)}\n{_char_block(n2)}"
     )
     greeting = spreadsheet.get("greeting", "").strip()
     if not greeting:
