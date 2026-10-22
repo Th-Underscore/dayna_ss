@@ -63,7 +63,7 @@ if False:  # forward refs only
     from .core import DataSummarizer
 
 
-ADD_NEW_MAX_TOTAL_ENTRIES = 120
+ADD_NEW_MAX_TOTAL_ENTRIES = 1000
 
 
 class DSDiscoveryMixin:
@@ -133,7 +133,7 @@ class DSDiscoveryMixin:
 
         if runtime.stop_everything:
             return
-        stripped_response = strip_response(llm_query_response)
+        stripped_response = strip_response(llm_query_response).strip()
         if (stop_reason and stop_reason in query_stopping_strings) or stripped_response in query_stopping_strings:
             print(f"{_GRAY}LLM indicates no new entries for '{branch_name}'.{_RESET}")
             return
