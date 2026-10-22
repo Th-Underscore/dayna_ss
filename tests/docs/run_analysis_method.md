@@ -1,6 +1,6 @@
 # Soak Run Analysis Method
 
-How to analyze a completed long-horizon soak run. Replicable for any run.
+How to analyze a completed long-horizon soak run. Replicable for any run.Alr
 
 ## Inputs
 
@@ -122,12 +122,14 @@ Checks to perform at natural pause points (reboot, timeout kill, user-initiated 
 - **`events.json` top-level keys** — must be exactly `['past', 'scenes', 'chapters', 'beats']`. Any other key (especially `'events'`) indicates the LLM echoed the branch name as a parent wrapper (the bug the prompt fixes target).
 - **No phantom nesting** — no entry should contain a nested object with the same name as its parent key.
 
-### Entity population
+### Subject population
 
 - **Characters** — count and per-character populated field count. Expect 5+ named characters from the spreadsheet, each with 7+ populated fields (description, biography, traits, attributes, voice, quirks, fears, preferences, importance, etc.).
 - **Elements** — total count. Track growth across checkpoints (e.g. 72 at turn 20 → 123 at turn 188 is ~0.3/turn). Flag if growth stalls (possible LLM stopping from creating new elements) or spikes (possible duplicate creation).
 - **Groups** — count. Usually small (1-6).
 - **Beats/Scenes/Chapters/Past** — counts in `events.json`. Beats should grow monotonically. Scenes should be in a small window (3-7 active). Chapters increment at archival boundaries. Past accumulates archived chapters.
+- **Chapters** — counts in `events.json`. They should correlate 1-to-1 with chapter turns.
+- **Arcs** — counts in `arcs.json`. They should correlate 1-to-1 with arc turns.
 
 ### Narrative coherence
 
@@ -152,17 +154,59 @@ Before re-launching after a mid-run stop:
 3. Remove any temporary tasks from the launch script (e.g. parallel quantization jobs).
 4. Re-launch via `gpu-quiesce`.
 
+## Temporary Checks
+
+Ephemeral, run-specific checks tied to what a particular run is testing. Unlike the
+mid-run review (general health) or the 3-axis subagent analysis (general quality),
+these verify a specific feature landed correctly. Remove the section once the run attains
+excellent quality for this standard.
+
+### Character attribute population (spreadsheet → initial population + gap-check updates)
+
+- **Initial population seeded from spreadsheet** — `characters.json` at turn 0 should
+  have `attributes` populated for Sable ("Social engineering:...") and Dex ("Grid
+  architecture:..."). This verifies `build_state()` passes full character fields to
+  the LLM during initial population.
+- **Gap-check in branch updates** — characters introduced later (Ijo, Rell, Kael, Pox,
+  Fen) should have `attributes` populated by the time they appear in multiple scenes.
+  The gap-check sentence in `branch_update_prompt_template` should cause the LLM to
+  fill empty `attributes`/`biography`/`voice` fields from story context.
+- **No "N/A" placeholders persisting** — by turn 30+, no character should still have
+  `"N/A"` in biography, voice, or attributes.
+
+### Chapter archival (programmatic + LLM refine)
+
+- **1:1 chapter logging**
+- **LLM refined titles** — no entry should still have `"title": "CHAPTER #N"`.
+  All titles should be narrative.
+- **Scene span correctness** — `starting_scene` / `ending_scene` / `scenes[]` should
+  be consecutive integers with no gaps. `scenes[0] == starting_scene`,
+  `scenes[-1] == ending_scene`.
+- **Narrative fields filled** — `summary` non-empty, `key_changes` non-empty.
+- **No overlap between chapters** — chapter N+1's `starting_scene` == chapter N's
+  `ending_scene` + 1.
+
+### Arc archival (programmatic + LLM refine, no force)
+
+- **1:1 arc logging**
+- **LLM refined titles** — no entry should still have `"title": "ARC #N"`.
+- **Chapter span correctness** — `starting_chapter` / `ending_chapter` /
+  `chapters[]` should be consecutive integers.
+- **Narrative fields filled** — `summary` non-empty, `character_arcs` / `relationship_shifts`
+  non-empty, `plot_threads` non-empty.
+
 ## Lessons Learned
 
-1. **Subagents time out on large log files** if they try to read them into context.
+1. **Check the most recent run directory**. Don't assume what you have in memory is the actual latest run - always do a quick check on the actual run directories first. Hashes aren't sorted either.
+2. **Subagents time out on large log files** if they try to read them into context.
    The Python-script approach is mandatory, not optional.
-2. **`live_mode_*.json` files are overwritten each run.** Only the last run's JSON
+3. **`live_mode_*.json` files are overwritten each run.** Only the last run's JSON
    survives. For multi-turn analysis, the log file is the durable record.
-3. **Log files truncate replies at ~303 chars.** Full replies are in `turn_NNN/reply.txt`.
-4. **The `total=Xs` field in local-call lines includes non-GPU overhead.** The sum
+4. **Log files truncate replies at ~303 chars.** Full replies are in `turn_NNN/reply.txt`.
+5. **The `total=Xs` field in local-call lines includes non-GPU overhead.** The sum
    of call durations exceeds wall time by ~86%. Use per-turn wall time as ground truth.
-5. **Write the interim doc before dispatching subagents.** It gives them context
+6. **Write the interim doc before dispatching subagents.** It gives them context
    and gives the user an early read while the subagents run.
-6. **Check the schema files, not just the plan docs.** The optimization plan claimed
+7. **Check the schema files, not just the plan docs.** The optimization plan claimed
    a fix was "applied and verified" but it was never actually in the schema files.
    Always verify against the actual files the run uses.
