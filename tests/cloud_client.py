@@ -150,7 +150,7 @@ def resolve_local_api_key(provider: str | None = None) -> str:
         try:
             auth = json.loads(auth_path.read_text(encoding="utf-8"))
             names = [provider] if provider else []
-            names += ["llama", "localhost", "tgw", "text-generation-webui"]
+            names += ["textgen", "llama", "localhost", "tgw", "text-generation-webui"]
             for name in names:
                 if not name:
                     continue
