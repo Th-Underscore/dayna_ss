@@ -179,6 +179,8 @@ def _arg_parser() -> argparse.ArgumentParser:
                         "3=hybrid (see schema_types_and_test_matrix.md)")
     p.add_argument("--schema", default=None,
                    help="explicit subjects_schema.json path (overrides --schema-type resolution)")
+    p.add_argument("--no-schema-descriptions", action="store_true",
+                   help="strip field descriptions from generated JSON schemas in DSS prompts (saves ~50% schema tokens)")
     p.add_argument("--synthetic-chat", action="store_true",
                    help="ISOLATION MODE: the cloud model writes BOTH sides of the conversation; "
                         "DSS runs only the DataSummarizer (no local reply generation). Isolates "
@@ -2397,7 +2399,7 @@ class SoakRun:
         spread = self.spreadsheet
         state_dir = self._current_state_dir()
         schema_path = self.run_dir / "sandbox" / "user_data" / "example" / "subjects_schema.json"
-        schema_parser = SchemaParser(schema_path)
+        schema_parser = SchemaParser(schema_path, include_descriptions=not self.args.no_schema_descriptions)
 
         # guide writes the turn
         active_notes = notes_visible_at(spread["notes"], turn, self.args.guide_style)

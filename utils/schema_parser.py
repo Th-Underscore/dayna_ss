@@ -476,7 +476,7 @@ class ParsedSchemaClass:
 class SchemaParser:
     """Loads and parses the subjects JSON schema."""
 
-    def __init__(self, schema_path: str | Path):
+    def __init__(self, schema_path: str | Path, include_descriptions: bool = True):
         self.schema_path = Path(schema_path)
         self.schema = self._load_schema()
         self.definitions: dict[str, ParsedSchemaClass] = {}
@@ -484,6 +484,7 @@ class SchemaParser:
         self.subject_routing: dict[str, str] = {}
         self.relative_relevant_json_schemas: dict[Any, dict[str, dict]] = {}
         self.example_jsons: dict[Any, Any] = {}
+        self.include_descriptions = include_descriptions
         self._parse_definitions()
         self._parse_subjects()
 
@@ -699,6 +700,37 @@ class SchemaParser:
     def get_subject_classes(self) -> dict[str, type | ParsedSchemaClass]:
         return self.subjects
 
+    def _strip_descriptions(self, schema: dict) -> dict:
+        """Recursively remove 'description' keys from a JSON schema dict."""
+        if not isinstance(schema, dict):
+            return schema
+        if "description" in schema:
+            del schema["description"]
+        # properties: map of field-name -> field-schema
+        if "properties" in schema:
+            props = schema["properties"]
+            if isinstance(props, dict):
+                for prop in props.values():
+                    self._strip_descriptions(prop)
+        # definitions: map of name -> schema
+        if "definitions" in schema:
+            defs = schema["definitions"]
+            if isinstance(defs, dict):
+                for d in defs.values():
+                    self._strip_descriptions(d)
+        # items: single schema
+        if "items" in schema and isinstance(schema["items"], dict):
+            self._strip_descriptions(schema["items"])
+        # additionalProperties: single schema
+        if "additionalProperties" in schema and isinstance(schema["additionalProperties"], dict):
+            self._strip_descriptions(schema["additionalProperties"])
+        # anyOf/oneOf/allOf: list of schemas
+        for key in ("anyOf", "oneOf", "allOf"):
+            if key in schema:
+                for item in schema[key]:
+                    self._strip_descriptions(item)
+        return schema
+
     def get_relevant_json_schema_definitions(self, root_schema_or_type_hint: ParsedSchemaClass | type | str) -> dict:
         """
         Generates a JSON schema for the given root type (which can be a class name,
@@ -758,9 +790,18 @@ class SchemaParser:
         # No definitions needed
         if self._is_primitive_schema(main_schema):
             primitive_description = self._get_primitive_type_description(main_schema)
+            if not self.include_descriptions:
+                self._strip_descriptions(primitive_description)
             json_schema = {"main_schema": primitive_description, "definitions": {}}
-            self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema
+            if self.include_descriptions:
+                self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema
             return json_schema
+
+        if not self.include_descriptions:
+            self._strip_descriptions(main_schema)
+            for d in relevant_definitions.values():
+                self._strip_descriptions(d)
+            return {"main_schema": main_schema, "definitions": relevant_definitions}
 
         json_schema = {"main_schema": main_schema, "definitions": relevant_definitions}
         self.relative_relevant_json_schemas[root_schema_or_type_hint] = json_schema

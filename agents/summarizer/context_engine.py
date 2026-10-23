@@ -473,7 +473,7 @@ class ContextEngineMixin:
                 "subjects_schema", "user_data/example/subjects_schema.json"
             )
             GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH = runtime.extension_dir / "user_data" / "example" / "format_templates.json"
-            GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH)
+            GLOBAL_SCHEMA_PARSER = SchemaParser(GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH, include_descriptions=self.config.get("include_schema_descriptions", True))
 
             print(f"{_BOLD}Fresh chat detected. Initializing...{_RESET}")
 
@@ -542,7 +542,7 @@ class ContextEngineMixin:
                 shutil.copy(GLOBAL_FORMAT_TEMPLATES_TEMPLATE_PATH, format_templates_cache_path)
 
                 try:
-                    initial_schema_parser = SchemaParser(schema_cache_path)
+                    initial_schema_parser = SchemaParser(schema_cache_path, include_descriptions=self.config.get("include_schema_descriptions", True))
                 except Exception as e:
                     print(f"{_ERROR}Failed to load SchemaParser for initial_world_data_path: {e}{_RESET}")
                     raise
@@ -604,7 +604,7 @@ class ContextEngineMixin:
             FormattedData.set_session_templates_path(str(history_path.resolve()), history_path / "format_templates.json")
             custom_state = copy.deepcopy(state)
             # Initialize schema parser first to get schema classes for entity graph
-            schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json")
+            schema_parser = initial_schema_parser or SchemaParser(history_path / "subjects_schema.json", include_descriptions=self.config.get("include_schema_descriptions", True))
             print(f"{_SUCCESS}Summarizer.schema_parser loaded for {history_path}{_RESET}")
 
             # Get schema classes for subjects (Characters, Groups, etc.) to pass to EntityGraph
