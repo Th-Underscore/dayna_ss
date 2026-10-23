@@ -365,7 +365,7 @@
         "location_placeholder": "The general location or area of operation for the group in the context of the scene."
       },
       "triggers": {
-        "always": [
+        "on_new_scene": [
           "perform_update"
         ]
       }
@@ -381,7 +381,7 @@
         "location_placeholder": "The last known location of the element within the scene."
       },
       "triggers": {
-        "always": [
+        "on_new_scene": [
           "perform_update"
         ]
       }
@@ -420,7 +420,7 @@
         "specific_time_placeholder": "A precise time for the scene, if applicable (e.g., '05:30', '14:32')."
       },
       "triggers": {
-        "always": [
+        "on_new_scene": [
           "perform_update"
         ]
       }
@@ -437,7 +437,7 @@
         "update_prompt_template": "Based on the latest exchange, is the reason below inaccurate or incomplete?\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\nIf yes, respond with the updated reason.\nIf no, respond \"UNCHANGED\".\nIf unsure, respond \"UNCHANGED\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged reason.\n\nCurrent reason:\n\"\"\"{{ value }}\n\"\"\"\n\nReason to review: '{{ item_name }}' (field '{{ field_name }}')"
       },
       "triggers": {
-        "always": [
+        "on_new_scene": [
           "add_new",
           "perform_update"
         ]
@@ -649,10 +649,8 @@
         "update_prompt_template": "Based on the latest chapter, update the arc below.\n\nHas this arc concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON.\n\nArc to update: '{{ branch_name }}'\n\nArc Data:\n{{ value }}"
       },
       "triggers": {
-        "always": [
-          "query_branch_for_changes"
-        ],
         "on_new_scene": [
+          "perform_gate_check",
           "perform_update"
         ]
       }
@@ -705,10 +703,8 @@
         "update_prompt_template": "Based on the latest scene, update the chapter below.\n\nHas this chapter concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON.\n\nChapter to update: '{{ branch_name }}'\n\nChapter Data:\n{{ value }}"
       },
       "triggers": {
-        "always": [
-          "query_branch_for_changes"
-        ],
         "on_new_scene": [
+          "perform_gate_check",
           "perform_update"
         ]
       }
@@ -757,7 +753,7 @@
         "importance_update_prompt_template": "Review the importance score for this objective.\n\nCurrent importance: {{ value.importance.score if value.importance is mapping else value.importance }}, Faction {{ value.importance.faction if value.importance is mapping else 'neutral' }} - {{ value.importance.reason if value.importance is mapping else 'No reason given' }}\n\nScore 0-100 per the universal Importance Scale in your system context (SALIENCE x WEIGHT; long-term standing, not a single scene's urgency).\n\nBased on the latest exchange, has the significance of this objective changed?\n\nIf YES, provide the updated importance score (0-100), reason, and faction.\nExample of expected output if updates are needed for '{{ branch_name }}':\n[\n  {\"path\": \"importance\", \"value\": {\"score\": 80, \"reason\": \"Revised reason\", \"faction\": \"positive\"}}\n]\n\nIf NO, respond with NO_UPDATES_REQUIRED."
       },
       "triggers": {
-        "always": [
+        "on_new_scene": [
           "perform_gate_check",
           "query_branch_for_changes",
           {
@@ -799,11 +795,12 @@
         "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
       },
       "triggers": {
-        "always": [
+        "on_new_scene": [
           {
             "action": "query_branch_for_changes",
             "skip_query": true
-          }
+          },
+          "perform_update"
         ]
       }
     },
@@ -875,11 +872,9 @@
         "select_entries_min_size": 4
       },
       "triggers": {
-        "always": [
-          "add_new",
-          "perform_gate_check"
-        ],
         "on_new_scene": [
+          "add_new",
+          "perform_gate_check",
           "select_entries_to_update"
         ]
       }
