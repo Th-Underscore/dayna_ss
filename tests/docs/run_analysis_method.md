@@ -161,39 +161,48 @@ mid-run review (general health) or the 3-axis subagent analysis (general quality
 these verify a specific feature landed correctly. Remove the section once the run attains
 excellent quality for this standard.
 
-### Character attribute population (spreadsheet → initial population + gap-check updates)
+### Trigger reorg + no-schema-descriptions performance (s522)
 
-- **Initial population seeded from spreadsheet** — `characters.json` at turn 0 should
-  have `attributes` populated for Sable ("Social engineering:...") and Dex ("Grid
-  architecture:..."). This verifies `build_state()` passes full character fields to
-  the LLM during initial population.
-- **Gap-check in branch updates** — characters introduced later (Ijo, Rell, Kael, Pox,
-  Fen) should have `attributes` populated by the time they appear in multiple scenes.
-  The gap-check sentence in `branch_update_prompt_template` should cause the LLM to
-  fill empty `attributes`/`biography`/`voice` fields from story context.
-- **No "N/A" placeholders persisting** — by turn 30+, no character should still have
-  `"N/A"` in biography, voice, or attributes.
+This run tests the trigger reorg (non-scene turns: 13-14 → 2 `always` calls) and
+`--no-schema-descriptions` (55% schema token reduction). Verify:
 
-### Chapter archival (programmatic + LLM refine)
+- **Non-scene turn call count** — should be ~2-5 local calls (down from 17-20).
+  Parse the log for per-turn local-call counts on non-scene turns.
+- **Non-scene turn wall time** — should be ~15-35s (down from ~90-110s).
+- **Scene turn wall time** — expect modest improvement (~25-30% from schema reduction),
+  still dominated by call count.
+- **No parse errors** — the slim schema (no descriptions) should not cause the LLM
+  to produce malformed JSON. Check for `Failed to parse` / `Failed to extract` in log.
 
-- **1:1 chapter logging**
-- **LLM refined titles** — no entry should still have `"title": "CHAPTER #N"`.
-  All titles should be narrative.
-- **Scene span correctness** — `starting_scene` / `ending_scene` / `scenes[]` should
-  be consecutive integers with no gaps. `scenes[0] == starting_scene`,
-  `scenes[-1] == ending_scene`.
-- **Narrative fields filled** — `summary` non-empty, `key_changes` non-empty.
-- **No overlap between chapters** — chapter N+1's `starting_scene` == chapter N's
-  `ending_scene` + 1.
+### Call timing comparison (s522 vs s521)
 
-### Arc archival (programmatic + LLM refine, no force)
+- **Per-turn timing via `parse_timing.py`** — compare s522 (trigger reorg + slim schema)
+  against s521 baseline (17-20 calls/turn, 86-108s non-scene).
+- **Per-category breakdown** — DSS calls should show reduced input tokens (slim schema)
+  and reduced call count (trigger reorg).
+- **Prefill vs decode split** — confirm prefix caching is still effective (effective
+  prefill rate should be ~2-3K tok/s with LCP).
 
-- **1:1 arc logging**
-- **LLM refined titles** — no entry should still have `"title": "ARC #N"`.
-- **Chapter span correctness** — `starting_chapter` / `ending_chapter` /
-  `chapters[]` should be consecutive integers.
-- **Narrative fields filled** — `summary` non-empty, `character_arcs` / `relationship_shifts`
-  non-empty, `plot_threads` non-empty.
+### Chapter + arc archival (1:1 turns vs logging)
+
+- **1:1 chapter logging** — chapter count in `events.json` should match the number of
+  distinct chapter-boundary turns observed in the log. Each chapter archival event
+  should produce exactly one entry.
+- **1:1 arc logging** — same for arcs. Arc count should match arc-boundary turns.
+- **LLM refined titles** — no entry should still have `"title": "CHAPTER #N"` or
+  `"title": "ARC #N"`.
+- **Scene/chapter span correctness** — consecutive integers, no gaps or overlaps.
+- **Narrative fields filled** — `summary`, `key_changes`, `character_arcs` non-empty.
+
+### Data comparison vs s521 (f42ea382)
+
+- **Character count and field population** — compare per-character populated field
+  counts. The gap-check + build_state fixes should maintain the improvement from s521.
+- **Element count growth rate** — compare elements/turn between the two runs.
+  Expect similar or slightly lower (trigger reorg gates element discovery to scene turns).
+- **Events structure** — `past` should remain clean (no in-story beats leaking in,
+  per the PastEvents discovery prompt fix).
+- **Judge scores** — style/quality/memory should remain at s521 levels (4.9/4.8/5.0).
 
 ## Lessons Learned
 
