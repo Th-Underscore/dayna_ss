@@ -646,12 +646,13 @@
         "relationship_shifts_placeholder": "How have relationships between characters shifted during this arc?",
         "plot_threads_placeholder": "What plot threads or mysteries are associated with this arc?",
         "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
-        "update_prompt_template": "Based on the latest chapter, update the arc below.\n\nHas this arc concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON.\n\nArc to update: '{{ branch_name }}'\n\nArc Data:\n{{ value }}"
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any changes to this arc (status, summary, character_arcs, relationship_shifts, plot_threads)? Respond with only 'NO' or 'UNCHANGED' if this arc is up-to-date. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the arc entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices for list items (e.g., 'plot_threads.0') and key names for dict fields.\n\nPATH SCOPE — All paths you emit are RELATIVE to the entry identified below. Do NOT include the entry name as a path prefix. The first segment of your path must be a top-level key WITHIN the entry.\nPATH TYPES — Scalar fields (str, int) use the bare field name. List fields use numeric indices (e.g., 'chapters.2').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"status\", \"value\": \"concluded\"},\n  {\"path\": \"summary\", \"value\": \"Updated summary text\"},\n  {\"path\": \"character_arcs\", \"value\": \"Updated character arc notes\"},\n  {\"path\": \"plot_threads.0\", \"value\": \"Resolved mystery thread\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nEntry to review: '{{ branch_name }}'\n\nCurrent entry state:\n```json\n{{ value }}\n```"
       },
       "triggers": {
         "on_new_scene": [
           "perform_gate_check",
-          "perform_update"
+          "query_branch_for_changes"
         ]
       }
     },
@@ -700,12 +701,13 @@
         "summary_placeholder": "A concise summary of what happened in this chapter - the core narrative beats and progression.",
         "key_changes_placeholder": "A list of significant changes, each with a description and the scene where it occurred.",
         "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
-        "update_prompt_template": "Based on the latest scene, update the chapter below.\n\nHas this chapter concluded, evolved, or remained static? Respond with 'UNCHANGED' or provide the updated JSON.\n\nChapter to update: '{{ branch_name }}'\n\nChapter Data:\n{{ value }}"
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any changes to this chapter (status, summary, key_changes, scenes)? Respond with only 'NO' or 'UNCHANGED' if this chapter is up-to-date. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the chapter entry below.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices for list items (e.g., 'key_changes.0.description') and key names for dict fields.\n\nPATH SCOPE — All paths you emit are RELATIVE to the entry identified below. Do NOT include the entry name as a path prefix. The first segment of your path must be a top-level key WITHIN the entry.\nPATH TYPES — Scalar fields (str, int) use the bare field name. List fields use numeric indices (e.g., 'scenes.3'). List-of-dict fields use index + key (e.g., 'key_changes.0.description').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"status\", \"value\": \"concluded\"},\n  {\"path\": \"summary\", \"value\": \"Updated summary text\"},\n  {\"path\": \"scenes\", \"value\": [1, 2, 3, 4, 5]},\n  {\"path\": \"key_changes\", \"value\": [{\"description\": \"New change\", \"scene\": \"Scene Name\"}]}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nEntry to review: '{{ branch_name }}'\n\nCurrent entry state:\n```json\n{{ value }}\n```"
       },
       "triggers": {
         "on_new_scene": [
           "perform_gate_check",
-          "perform_update"
+          "query_branch_for_changes"
         ]
       }
     },
@@ -799,8 +801,7 @@
           {
             "action": "query_branch_for_changes",
             "skip_query": true
-          },
-          "perform_update"
+          }
         ]
       }
     },
