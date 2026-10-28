@@ -1542,11 +1542,12 @@ class StoryContextRetriever:
             print(f"{_DEBUG}scene_elements to look up: {scene_elements}{_RESET}")
             print(f"{_DEBUG}self.characters keys: {list(self.characters.keys()) if self.characters else 'empty'}{_RESET}")
 
-            initial_entities = {"Character": set(scene_characters)}
+            initial_entities = {"Character": set(scene_characters), "Element": set(scene_elements)}
             all_data = {
                 "Character": self.characters,
                 "Group": self.groups,
                 "Event": self.events,
+                "Element": self.elements,
             }
             decay_config = DecayConfig()
             unified_result = self._unified_entity_aggregation(
@@ -1559,10 +1560,12 @@ class StoryContextRetriever:
             char_key = "character"
             group_key = "group"
             event_key = "event"
+            element_key = "element"
             unified_chars = list(unified_result.get(char_key, {}).keys())
             unified_groups = list(unified_result.get(group_key, {}).keys())
             unified_events = list(unified_result.get(event_key, {}).keys())
-            print(f"{_DEBUG}unified aggregation: {len(unified_chars)} chars, {len(unified_groups)} groups, {len(unified_events)} events{_RESET}")
+            unified_elements = unified_result.get(element_key, {})
+            print(f"{_DEBUG}unified aggregation: {len(unified_chars)} chars, {len(unified_groups)} groups, {len(unified_events)} events, {len(unified_elements)} elements{_RESET}")
 
             def _safe_subject(label: str, fn):
                 try:
@@ -1583,11 +1586,19 @@ class StoryContextRetriever:
                 lambda: {"entries": {g: groups_entries.get(g, {}) for g in unified_groups}},
             ) or {}
             print(f"{_DEBUG}groups retrieved: type={type(result.groups).__name__}, count: {len(result.groups) if result.groups else 0}{_RESET}")
+            _MAX_CONTEXT_ELEMENTS = 25
+            def _graph_scored_elements():
+                if not unified_elements:
+                    return {"entries": {}}
+                ranked = sorted(unified_elements.items(), key=lambda x: x[1], reverse=True)[:_MAX_CONTEXT_ELEMENTS]
+                names = {name for name, _ in ranked}
+                entries = self.elements.get("entries", {})
+                return {"entries": {n: entries[n] for n in names if n in entries}}
             result.elements = _safe_subject(
                 "elements",
-                lambda: self._get_relevant_elements(scene_characters, context_to_search),
+                _graph_scored_elements,
             ) or {}
-            print(f"{_DEBUG}elements retrieved: type={type(result.elements).__name__}, count: {len(result.elements) if result.elements else 0}{_RESET}")
+            print(f"{_DEBUG}elements retrieved: type={type(result.elements).__name__}, count: {len(result.elements.get('entries', {})) if result.elements else 0}{_RESET}")
 
             scenes = self._get_field_value(self.events, "Event", "scenes", {}) or {}
             events = self._get_field_value(self.events, "Event", "events", {}) or {}
