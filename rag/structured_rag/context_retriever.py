@@ -1536,6 +1536,15 @@ class StoryContextRetriever:
             if element not in scene_elements:
                 scene_elements.append(element)
 
+        # Get groups from current scene
+        scene_groups = []
+        if current_scene and "who" in current_scene.get("now", {}):
+            for grp in current_scene["now"]["who"].get("groups", []):
+                if isinstance(grp, dict) and grp.get("name") and grp["name"] not in scene_groups:
+                    scene_groups.append(grp["name"])
+                elif isinstance(grp, str) and grp and grp not in scene_groups:
+                    scene_groups.append(grp)
+
         try:
             print(f"{_DEBUG}retrieve_context try block starting. general_info type: {type(result.general_info)}, is empty: {not result.general_info}{_RESET}")
             print(f"{_DEBUG}scene_characters to look up: {scene_characters}{_RESET}")
@@ -1575,25 +1584,40 @@ class StoryContextRetriever:
                     traceback.print_exc()
                     return None
 
+            # Scene characters are always included; graph adds extras
+            base_chars = [c for c in scene_characters if c]
+            extra_chars = [c for c in unified_chars if c not in base_chars]
+            all_chars = base_chars + extra_chars
             result.characters = _safe_subject(
                 "characters",
-                lambda: self._get_all_relevant_character_relationships(list(unified_chars)),
+                lambda: self._get_all_relevant_character_relationships(all_chars),
             ) or {}
             print(f"{_DEBUG}characters retrieved: type={type(result.characters).__name__}, count: {len(result.characters) if result.characters else 0}{_RESET}")
+            # Scene groups are always included; graph adds extras
+            base_groups = [g for g in scene_groups if g]
+            extra_groups = [g for g in unified_groups if g not in base_groups]
+            all_groups = base_groups + extra_groups
             groups_entries = self._get_entries(self.groups, "Group")
             result.groups = _safe_subject(
                 "groups",
-                lambda: {"entries": {g: groups_entries.get(g, {}) for g in unified_groups}},
+                lambda: {"entries": {g: groups_entries.get(g, {}) for g in all_groups}},
             ) or {}
             print(f"{_DEBUG}groups retrieved: type={type(result.groups).__name__}, count: {len(result.groups) if result.groups else 0}{_RESET}")
             _MAX_CONTEXT_ELEMENTS = 25
             def _graph_scored_elements():
-                if not unified_elements:
-                    return {"entries": {}}
-                ranked = sorted(unified_elements.items(), key=lambda x: x[1], reverse=True)[:_MAX_CONTEXT_ELEMENTS]
-                names = {name for name, _ in ranked}
                 entries = self.elements.get("entries", {})
-                return {"entries": {n: entries[n] for n in names if n in entries}}
+                # Scene elements are always included (they're directly present)
+                base = {n for n in scene_elements if n in entries}
+                # Graph-scored elements add relevance beyond the scene
+                extras = []
+                if unified_elements:
+                    ranked = sorted(unified_elements.items(), key=lambda x: x[1], reverse=True)
+                    extras = [n for n, _ in ranked if n not in base and n in entries]
+                # Scene elements first, then graph-scored extras, capped
+                selected = list(base) + extras[:_MAX_CONTEXT_ELEMENTS - len(base)]
+                if not selected:
+                    return {"entries": {}}
+                return {"entries": {n: entries[n] for n in selected}}
             result.elements = _safe_subject(
                 "elements",
                 _graph_scored_elements,
