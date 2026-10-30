@@ -81,9 +81,14 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                     return
                 summary_text = strip_thinking(summary_text)
 
-                summary_chars_present = self.chunker._extract_entities(summary_text, self.chunker.character_name_patterns)
-                summary_groups_ref = self.chunker._extract_entities(summary_text, self.chunker.group_name_patterns)
-                summary_events_ref = self.chunker._extract_entities(summary_text, self.chunker.event_name_patterns)
+                if self.chunker:
+                    summary_chars_present = self.chunker._extract_entities(summary_text, self.chunker.character_name_patterns)
+                    summary_groups_ref = self.chunker._extract_entities(summary_text, self.chunker.group_name_patterns)
+                    summary_events_ref = self.chunker._extract_entities(summary_text, self.chunker.event_name_patterns)
+                else:
+                    summary_chars_present = []
+                    summary_groups_ref = []
+                    summary_events_ref = []
 
                 summary_subjects_referenced = {
                     "characters": summary_chars_present,
@@ -107,7 +112,8 @@ Here is the message: """\n{message_content.strip()}\n"""'''
                     "event_id": None,
                     "is_summary": True,
                 }
-                self.chunker.store_chunks([summary_chunk_data], persist_dir=(self.history_path / "message_index"))
+                if self.chunker:
+                    self.chunker.store_chunks([summary_chunk_data], persist_dir=(self.history_path / "message_index"))
                 print(f"{_SUCCESS}Stored summary for message_idx {current_message_idx}{_RESET}")
             except Exception as e:
                 print(f"{_ERROR}Error generating message summary for message_idx {current_message_idx}: {e}{_RESET}")
