@@ -1592,7 +1592,7 @@ class StoryContextRetriever:
                 "characters",
                 lambda: self._get_all_relevant_character_relationships(all_chars),
             ) or {}
-            print(f"{_DEBUG}characters retrieved: type={type(result.characters).__name__}, count: {len(result.characters) if result.characters else 0}{_RESET}")
+            print(f"{_DEBUG}characters retrieved: type={type(result.characters).__name__}, count: {len(result.characters.get('entries', {})) if result.characters else 0}{_RESET}")
             # Scene groups are always included; graph adds extras
             base_groups = [g for g in scene_groups if g]
             extra_groups = [g for g in unified_groups if g not in base_groups]
