@@ -97,10 +97,16 @@ def load_from_log(log_path: str) -> list[dict]:
 
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <run_dir_or_log_path>")
+        print(f"Usage: {sys.argv[0]} <run_dir_or_log_path> [--turns START,END]")
         sys.exit(1)
 
     path = Path(sys.argv[1])
+    turn_start, turn_end = None, None
+    for i, arg in enumerate(sys.argv[1:], 1):
+        if arg == '--turns' and i + 1 < len(sys.argv):
+            parts = sys.argv[i + 1].split(',')
+            turn_start = int(parts[0])
+            turn_end = int(parts[1]) if len(parts) > 1 else None
 
     # Determine input source
     if path.is_dir():
@@ -128,6 +134,11 @@ def main():
     if not records:
         print("No records found.")
         return
+
+    if turn_start is not None or turn_end is not None:
+        before = len(records)
+        records = [r for r in records if (turn_start is None or r['turn'] >= turn_start) and (turn_end is None or r['turn'] <= turn_end)]
+        print(f"Turn filter: {turn_start}-{turn_end} → {len(records)}/{before} records")
 
     # Separate DSS from writer
     dss_records = [r for r in records if is_dss(r['subject'])]
