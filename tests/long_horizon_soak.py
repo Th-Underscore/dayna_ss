@@ -84,7 +84,12 @@ def soak_log(msg: str, ts: bool = True) -> None:
 _LOG_LOCK = threading.Lock()
 
 
-def _soak_log_call(phase_id: str, step_id: str, ttft: float, total: float, pt: int, ct: int) -> None:
+_SOAK_TURN = 0
+_SOAK_JSONL_PATH: str | None = os.environ.get("SOAK_JSONL_PATH")
+_SOAK_JSONL_LOCK = threading.Lock()
+
+
+def _soak_log_call(phase_id: str, step_id: str, ttft: float, total: float, pt: int, ct: int, cached_pt: int = 0) -> None:
     """Per-local-call latency line: real TTFT + full round-trip + token counts.
 
     ``ttft`` is time-to-first-token as observed by the harness: the interval from
@@ -94,14 +99,25 @@ def _soak_log_call(phase_id: str, step_id: str, ttft: float, total: float, pt: i
     ``total`` is the full round-trip (prefill + decode + transport + queue) from
     request issue to the [DONE] frame. Maps soak calls to the LMDeploy server log
     on the ``input_tokens`` (approximate prefill rate = pt/total).
+    ``cached_pt`` is the number of prompt tokens served from the prefix cache
+    (vLLM ``prompt_tokens_details.cached_tokens``); 0 when unavailable.
     """
     label = f"{phase_id or '?'}/{step_id or 'generate'}"
+    cache_str = f" cached={cached_pt}" if cached_pt else " "
     if ttft is not None:
         soak_log(f"  local-call {label}: ttft={ttft:.2f}s total={total:.2f}s "
-                 f"in={pt} out={ct} tok ({(pt / total / 1000):.1f}K tok/s)")
+                 f"in={pt} out={ct} tok{cache_str} ({(pt / total / 1000):.1f}K tok/s)")
     else:
         soak_log(f"  local-call {label}: ttft=— total={total:.2f}s "
-                 f"in={pt} out={ct} tok ({(pt / total / 1000):.1f}K tok/s)")
+                 f"in={pt} out={ct} tok{cache_str} ({(pt / total / 1000):.1f}K tok/s)")
+    # Structured JSONL sidecar (opt-in via SOAK_JSONL_PATH env var)
+    if _SOAK_JSONL_PATH:
+        rec = {"turn": _SOAK_TURN, "subject": phase_id, "action": step_id,
+               "ttft": round(ttft, 3) if ttft is not None else None,
+               "total": round(total, 3), "in": pt, "out": ct, "cached": cached_pt}
+        with _SOAK_JSONL_LOCK:
+            with open(_SOAK_JSONL_PATH, "a", encoding="utf-8") as f:
+                f.write(json.dumps(rec, separators=(",", ":")) + "\n")
 
 
 def _elapsed(t0: float) -> str:
@@ -209,6 +225,7 @@ def _arg_parser() -> argparse.ArgumentParser:
                    help="path to a dedicated soak logfile; default writes to runs/logs/<spreadsheet>_<hash>.log")
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--local-base", default=DEFAULT_LOCAL_BASE)
+    p.add_argument("--local-model", default=None, help="model name for the local server (overrides DSS_BENCH_MODEL env var)")
     p.add_argument("--cloud-endpoint", default=None, help="common self-hosted OpenAI-compatible base URL for all cloud models (e.g. http://localhost:9931). Overrides default cloud endpoint.")
     p.add_argument("--cloud-provider", default=None, help="auth.json entry name to use as the API key for --cloud-endpoint (e.g. 'llama' or 'textgen'). When omitted, resolve_local_api_key() picks from its default order.")
     p.add_argument("--judge-window", type=int, default=12, help="exchanges shown to the judge")
@@ -472,7 +489,7 @@ class LocalModel:
         # run never dies on a transient transport error.
         for attempt in range(3):
             try:
-                ttft, total, content, reasoning, pt, ct = self._stream_post(req, t0)
+                ttft, total, content, reasoning, pt, ct, cached_pt = self._stream_post(req, t0)
             except (TimeoutError, ConnectionError, urllib.error.URLError) as e:
                 if attempt >= 2:
                     raise
@@ -487,13 +504,13 @@ class LocalModel:
             self.completion_tokens += ct
             self.max_prompt_tokens = max(self.max_prompt_tokens, pt)
             if content or reasoning:
-                _soak_log_call(phase_id, step_id, ttft, total, pt, ct)
+                _soak_log_call(phase_id, step_id, ttft, total, pt, ct, cached_pt)
                 self.last_content = content
                 self.last_reasoning = reasoning
                 return content or reasoning
             if attempt < 2:
                 time.sleep(0.5 * (attempt + 1))
-        _soak_log_call(phase_id, step_id, ttft, total, pt, ct)
+        _soak_log_call(phase_id, step_id, ttft, total, pt, ct, cached_pt)
         return ""
 
     @staticmethod
@@ -508,7 +525,7 @@ class LocalModel:
         ttft = None
         content = ""
         reasoning = ""
-        pt = ct = 0
+        pt = ct = cached_pt = 0
         with urllib.request.urlopen(req, timeout=300) as resp:
             for raw in resp:
                 line = raw.decode("utf-8", "replace").strip()
@@ -531,6 +548,8 @@ class LocalModel:
                 if "usage" in chunk:
                     u = chunk.get("usage") or {}
                     pt, ct = int(u.get("prompt_tokens", 0) or 0), int(u.get("completion_tokens", 0) or 0)
+                    details = u.get("prompt_tokens_details") or {}
+                    cached_pt = int(details.get("cached_tokens", 0) or 0)
                 fr = None
                 for choice in chunk.get("choices", []):
                     delta = choice.get("delta") or {}
@@ -542,11 +561,13 @@ class LocalModel:
                         fr = choice["finish_reason"]
                 if fr:
                     break
-        return ttft, time.perf_counter() - t0, content, reasoning, pt, ct
+        return ttft, time.perf_counter() - t0, content, reasoning, pt, ct, cached_pt
 
     def generate_with_streaming(self, encoded_prompt: Any, state: dict):
         self.call_count += 1
-        text = self._complete(str(encoded_prompt), state)
+        phase_id = state.get('_dss_phase_id', '')
+        step_id = state.get('_dss_step_id', '')
+        text = self._complete(str(encoded_prompt), state, phase_id=phase_id, step_id=step_id)
         yield text
 
     @staticmethod
@@ -2802,6 +2823,12 @@ def main() -> int:
     print(f"[soak] spreadsheet={spreadsheet['id']} turns={total} resume_from={resume_from} "
           f"run_dir={run_dir} level={args.level}")
 
+    # Default the JSONL sidecar to <run_dir>/dss_calls.jsonl unless explicitly
+    # overridden (empty string disables).
+    if "SOAK_JSONL_PATH" not in os.environ:
+        global _SOAK_JSONL_PATH
+        _SOAK_JSONL_PATH = str(run_dir / "dss_calls.jsonl")
+
     # sandbox for engine extension_dir isolation
     sandbox = run_dir / "sandbox"
     sandbox.mkdir(parents=True, exist_ok=True)
@@ -2841,7 +2868,7 @@ def main() -> int:
     # Local model
     base_url = args.local_base
     api_key = resolve_local_key()
-    model = os.environ.get("DSS_BENCH_MODEL", "").strip()
+    model = (args.local_model or os.environ.get("DSS_BENCH_MODEL", "")).strip()
     if not model:
         # Resolve the id from the live server (the source of truth) so usage
         # records/reports name the actual model instead of a stale default.
@@ -2961,6 +2988,8 @@ def main() -> int:
         for turn in range(resume_from, total):
             if soak._stop:
                 break
+            global _SOAK_TURN
+            _SOAK_TURN = turn
             soak_log(f"--- turn {turn}/{total} ---")
             t0 = time.time()
             local_before = local.stats()

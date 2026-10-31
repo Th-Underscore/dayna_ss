@@ -120,6 +120,10 @@ class LLMClientMixin:
         })
 
         try:
+            # Forward phase/step to the model via state so the soak harness
+            # (and any other instrumentation) can log per-call labels.
+            state = {**state, '_dss_phase_id': phase_id, '_dss_step_id': step_id}
+
             if use_tool_loop:
                 gen = self.generate_with_tool_loop(
                     prompt, state, stopping_strings,
