@@ -884,21 +884,27 @@ def guide_turn_with_retry(guide: "CloudModel", spreadsheet: dict, msgs: list[dic
     raise RuntimeError(f"guide produced unusable {label}")  # unreachable
 
 _SCORE_ANCHORS = """SCORE CALIBRATION — use the FULL scale; anchor every numeric score you return to these meanings:
-- 5.0 — Perfect. Masterfully written and composed: publication-quality craft, zero flaws in any scored dimension. Reserved for genuinely exceptional output; most good work is NOT a 5.
-- 4.5 — Extraordinary. The expected quality of an experienced professional human writer on a good day: controlled, vivid, precise, essentially flawless apart from trivial nitpicks.
-- 4.0 — Excellent. Impressive and production-ready — unambiguously "good enough" by any professional standard; strong craft whose minor imperfections do not call for revision.
-- 3.5 — Good. Solid and readable with real craft, but carrying noticeable flaws (some repetition, thin beats, minor slips) a careful reader would feel.
+- 5.0 — Exceptional. A sentence or passage that would stand out in a published anthology: original imagery, precise diction, emotional resonance that goes beyond the expected. Zero flaws AND at least one moment of genuine surprise. Most turns will NOT reach this.
+- 4.5 — Distinctive. Clearly above the norm of competent AI prose: a fresh angle, an unexpected detail, or a line of dialogue that reveals character in a way the instructions didn't mandate. The reader notices something specific and appreciable beyond "this is well-written."
+- 4.0 — Solid. Competent, coherent, no flaws that call for revision. Reads well but does not surprise; the kind of prose that fills a page without distinguishing itself.
+- 3.5 — Good. Readable with real craft, but carrying minor flaws (repetition, thin beats, generic imagery, a line that could be in any story) a careful reader would feel.
 - 3.0 — Functional. Passable but clearly flawed; multiple notable issues that accumulate.
 - 2.5 — Weak. Several significant flaws across dimensions.
 - 2.0 — Poor. Fails most dimensions.
 - 1.0–1.5 — Failing. Fundamentally broken output.
-Calibration rule: competent-but-flawed output lands 2.5–3.5; a 4.0 must be EARNED, not granted for effort; do NOT cluster scores at 3–4 out of caution when the work is plainly better or worse than that. The MANDATORY FLOORS still cap scores regardless of this ladder."""
+Calibration rules:
+- A 3.5 is the DEFAULT for competent output. Do not inflate to 4.0+ for prose that is "well-written" in a generic sense.
+- To score 4.0+, you must identify a SPECIFIC line, image, or choice that is distinctive — name it in your summary. If you cannot point to a concrete moment of distinction, the score is 3.5 or below.
+- To score 4.5+, the distinction must be clear and appreciable: a fresh angle, an unexpected detail, or character-revealing dialogue that the instructions did not mandate.
+- To score 5.0, the turn must contain something genuinely surprising or original that a human reader would highlight. If you are not certain, score 4.5.
+- Compare this turn to the OTHER turns in the window: if it is comparable in quality to the surrounding turns, it is NOT extraordinary — score it relative to the best turn in the window, not in absolute terms.
+- The MANDATORY FLOORS still cap scores regardless of this ladder."""
 
 
 JUDGE_SYSTEM_TMPL = """You are a quality auditor grading ONE writer — {name2} ({role2}), the DSS-driven writer — on a single turn of a collaborative story. {name1} ({role1}) writes the OTHER writer's turns; those turns are provided ONLY as CONTEXT (what {name2} was responding to). Do not credit or penalize {name2} for anything {name1} wrote, and never score {name1}'s prose or the joint plot. The verdict measures {name2} alone.
 
 Score four things, all about {name2}'s turn:
-(1) style_score: did {name2}'s reply hold HER directed voice ({dss_directive}) and its hard rules;
+(1) style_score: did {name2}'s reply hold THEIR directed voice ({dss_directive}) and its hard rules;
 (2) quality_score: the narrative quality of {name2}'s reply itself (not the story's plot);
 (3) memory_fidelity: does {name2}'s private memory of the story so far reflect what actually happened;
 (4) per-note adherence: for the IN-BEAT notes (those part of this turn's beat), did {name2}'s turn plant/echo/honor them. PAST notes are continuity context only — never scored for adherence.
@@ -920,17 +926,22 @@ quality_score:
 - 3: repetitive imagery or metaphor, OR a scene inconsistency (a character present who is established absent, a location mismatch), OR the reply is largely atmospheric with no concrete action, dialogue, or new detail.
 - 2: multiple scene inconsistencies or heavy self-repetition, or it ignores nearly all IN-BEAT notes.
 - 1: incoherent, off-topic, or content-free.
-memory_fidelity:
-- 5: {name2}'s memory matches the story — roles, relationships, and facts all consistent with the EXACT stored fields shown in {name2}'s private memory below.
-- 4: one minor misattribution or a small factual slip.
-- 3: TWO or more minor errors, or one role/identity confusion (a character's role or relationship misstated).
-- 2: recurring identity confusion — e.g. {name2} treating HERSELF as another character, the suspect, or the protagonist of the other writer's arc — or state that contradicts the premise outright.
-- 1: memory is wholesale wrong or contradicts the premise.
+memory_fidelity (state completeness and freshness — NOT consistency):
+Grade whether the DSS state is a COMPLETE and CURRENT record of what has happened in the story. The state was generated by the same system that wrote the reply, so consistency is expected by construction — do NOT award 5.0 merely because the reply does not contradict the state. Instead, check:
+- COMPLETENESS: are all characters, groups, and elements mentioned in the recent window present in the state? If a character appears in the last few turns but has no entry (or an entry with no relationships), that is a gap.
+- FRESHNESS: do the state entries reflect the LATEST state of affairs? If a character's location, status, or relationships changed in recent turns, does the state show the updated values? Stale entries (e.g. a character still listed at a location they left 5 turns ago) are failures.
+- RELATIONSHIP INTEGRITY: are the relationships between scene participants correctly tracked? If two characters interacted in recent turns but no relationship edge exists, that is a gap.
+Scoring:
+- 5: the state is complete (all window participants have entries), current (reflects the latest known state), and relationships between active scene participants are tracked. No gaps or stale data visible in the window.
+- 4: one minor gap (a peripheral element missing) or one mildly stale field (a location or status 1-2 turns out of date) that does not affect the current scene.
+- 3: two or more gaps, OR one actively relevant entry is stale (a current-scene participant's location/status is outdated), OR a key relationship between scene participants is missing.
+- 2: the state is noticeably incomplete or stale — multiple current-scene participants missing entries, or several relationships not tracked, making the state unreliable as a record.
+- 1: the state is wholesale wrong, empty, or contradicts the premise.
 
-GROUND MEMORY SCORES IN THE STORED STATE: judge {name2}'s memory strictly against the exact fields listed under "[EVALUATED] {name2}'s private memory" below. Do not invent contradictions that are not visible in the stored state, and do not infer a fact the memory does not contain. If a subject is shown as "(EMPTY)" (e.g. '== characters == (EMPTY — no entries saved)'), that emptiness IS a memory failure — score it down accordingly and say so explicitly.
+GROUND MEMORY SCORES IN THE RECENT WINDOW: to judge completeness and freshness, compare the state against what actually HAPPENED in the recent window (the [CONTEXT] and [EVALUATED] turns provided). If a character or element is mentioned in the window but absent from the state, that is a completeness failure. If the state shows a value that the window has since superseded, that is a freshness failure. Do NOT invent contradictions that are not visible in the stored state, and do not infer a fact the memory does not contain. If a subject is shown as "(EMPTY)" (e.g. '== characters == (EMPTY — no entries saved)'), that emptiness IS a memory failure — score it down accordingly and say so explicitly.
 
 MANDATORY FLOORS (apply regardless of how pretty the prose is):
-- If {name2} casts herself as the wrong character (e.g. as {name1}'s identity/role), memory_fidelity is at most 2 and overall cannot reach 4. (Exception: if the premise explicitly establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT, not a violation.)
+- If {name2} casts themself as the wrong character (e.g. as {name1}'s identity/role), memory_fidelity is at most 2 and overall cannot reach 4. (Exception: if the premise explicitly establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT, not a violation.)
 - If the turn re-quotes {name1} verbatim or repeats an earlier turn's closing line, style_score is at most 3.
 - If a scene inconsistency exists, quality_score is at most 3.
 - Missed notes lower quality only through the anchors above; a craft-strong reply (concrete action, new detail, fresh imagery) is NOT capped for missing notes. The per-note statuses carry the note-adherence verdict — never double-penalize the same missed note in both quality_score and the per-note list.
@@ -1089,22 +1100,22 @@ FINAL_OVERVIEW_SYSTEM_TMPL = """You are a quality auditor evaluating ONE writer 
 The story was written as an exchange: {name1} writes a turn, then {name2} replies. {name1}'s turns are provided ONLY as CONTEXT — they are the stimuli {name2} was responding to. Do not credit {name2} for ideas {name1} introduced, and do not penalize {name2} for plot or voice elements that came from {name1}'s turns. {name1}'s turns are context only; do not credit or penalize {name1} in any dimension. The verdict measures {name2} alone.
 
 What is evaluated is {name2}'s craft as a writer and as the DSS agent:
-- her adherence to her directed voice ({dss_directive}) and its hard rules;
-- her use of her private memory of the story;
-- how faithfully she honored the outline notes in her turns;
-- how well her turns advanced or landed the intended beats.
+- their adherence to their directed voice ({dss_directive}) and its hard rules;
+- their use of their private memory of the story;
+- how faithfully they honored the outline notes in their turns;
+- how well their turns advanced or landed the intended beats.
 
 SCORING RUBRIC (be strict — a mediocre run must NOT score 4+):
 - overall_score is NOT the joint story quality and NOT a straight average of the sub-scores. Weigh:
   voice adherence ~30%, memory fidelity ~25%, note/clue usage ~25%, scene progression ~20%.
 - voice: 5 = zero voice violations across the run; 4 = an occasional single slip; 3 = recurring slips or repeated verbatim re-quotes of {name1} or repeated closing lines; 2 = wholesale wrong-person drift (first person where the directive demands third, or vice versa, or a second-person 'you' slipping into 'I'/'he') or habitual re-quoting; 1 = never in character.
-- memory: 5 = roles/relationships/facts tracked correctly throughout; 4 = a few minor misattributions; 3 = an identity or role confusion that recurs; 2 = {name2} repeatedly casts herself as the wrong character (e.g. as {name1}'s identity or as the suspect) or contradicts the premise; 1 = wholesale wrong. (Exception: if the premise establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT.)
+- memory (state completeness and freshness over the run): 5 = the state is a complete and current record: all characters/elements that appeared have entries, relationships between active participants are tracked, and entries reflect the latest known state (not stale); 4 = a few minor gaps (a peripheral element missing) or mildly stale fields that do not affect the current scene; 3 = two or more notable gaps, OR actively relevant entries are stale (current-scene participants' locations/statuses outdated), OR key relationships between scene participants are missing; 2 = the state is noticeably incomplete — multiple current-scene participants missing entries, or several relationships not tracked; 1 = wholesale wrong, empty, or contradicts the premise. Do NOT award 5 merely because the reply is consistent with the state — consistency is expected by construction; grade COMPLETENESS and FRESHNESS. (Exception: if the premise establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT.)
 - notes: grade ONLY the notes marked in scope (the unplanted ones are excluded — {name2} cannot honor a note the other writer never planted). 5 = most in-scope notes planted/echoed at the right turns; 4 = most notes used but some fumbled; 3 = roughly half the in-scope notes missed; 2 = the clear majority missed; 1 = notes essentially ignored.
-- progression: 5 = her turns consistently advanced the beats; 4 = mostly advancing but some beats fumbled; 3 = imagery over action, several beats missed; 2 = rarely advanced anything; 1 = static or regressive.
+- progression: 5 = their turns consistently advanced the beats; 4 = mostly advancing but some beats fumbled; 3 = imagery over action, several beats missed; 2 = rarely advanced anything; 1 = static or regressive.
 
 {anchors}
 
-GROUND MEMORY SCORES IN THE STORED STATE: judge {name2}'s memory strictly against the exact fields in "{name2}'s private memory at the end" given below. Do not invent contradictions not visible in the stored state, and do not infer facts the memory does not contain. A subject shown as "(EMPTY)" (e.g. '== characters == (EMPTY — no entries saved)') IS a memory failure — say so and score it down. Attribution: {name2} receives per-turn instructions generated by the harness; if a recurring flaw in her turns was explicitly mandated by those instructions (a specified prop, animal, or ending), weigh it as weak EXECUTION, not as {name2}'s own creative choice or a memory error.
+GROUND MEMORY SCORES IN THE TRANSCRIPT AND STATE: to judge completeness and freshness, compare the state against what actually happened in the transcript. If a character or element is mentioned in the story but absent from the state, that is a completeness failure. If the state shows a value that the story has since superseded, that is a freshness failure. Do NOT invent contradictions not visible in the stored state, and do not infer facts the memory does not contain. A subject shown as "(EMPTY)" (e.g. '== characters == (EMPTY — no entries saved)') IS a memory failure — say so and score it down. Attribution: {name2} receives per-turn instructions generated by the harness; if a recurring flaw in their turns was explicitly mandated by those instructions (a specified prop, animal, or ending), weigh it as weak EXECUTION, not as {name2}'s own creative choice or a memory error.
 
 MANDATORY FLOORS (apply regardless of how pretty the prose is):
 - Recurring identity confusion ({name2} as the wrong character) caps overall_score at 3, and memory-fidelity discussion must call it out explicitly.
@@ -1114,7 +1125,7 @@ MANDATORY FLOORS (apply regardless of how pretty the prose is):
 
 Be consistent with the per-turn judge records you are given: if the judge records show repeated low memory_fidelity or a high missed-note rate, your overall_score must reflect that. Do not let excellent prose inflate the overall score when memory or note usage failed.
 
-Do NOT score the joint plot's inherent quality, do NOT score {name1}'s prose, and do NOT review the story "as a whole". Ignore how good or bad the resulting story happens to be; focus purely on how well {name2} executed her part.
+Do NOT score the joint plot's inherent quality, do NOT score {name1}'s prose, and do NOT review the story "as a whole". Ignore how good or bad the resulting story happens to be; focus purely on how well {name2} executed their part.
 
 Style directives (for reference only — {name1}'s voice is not scored):
 - {name1}'s voice: {guide_directive}
@@ -1130,7 +1141,7 @@ Return STRICT JSON only, exactly this shape:
   "overall_score": 0-5, may use 0.5 steps — score of how well {name2} performed as the DSS writer per the SCORING RUBRIC above (voice adherence ~30%, memory fidelity ~25%, note/clue usage ~25%, scene progression ~20%; apply the MANDATORY FLOORS) — NOT joint story quality,
   "verdict": "one-sentence verdict on {name2}'s performance alone",
   "arc_progression": "2-3 sentences on how well {name2}'s turns advanced or landed the intended beats (what the DSS contributed), not how good the plot is",
-  "style_consistency": "2-3 sentences on whether {name2} held HER directed voice ({dss_directive}) and its hard rules; {name1}'s voice is not scored",
+  "style_consistency": "2-3 sentences on whether {name2} held THEIR directed voice ({dss_directive}) and its hard rules; {name1}'s voice is not scored",
   "memory_fidelity": "2-3 sentences on whether {name2}'s private memory tracked the actual story",
   "notes": [{{"id": "<note id>", "status": "planted|echoed|missed|superseded", "detail": "one sentence on what {name2}'s turns did with this note"}}],
   "strengths": ["2-4 strengths specific to {name2}'s turns"],
