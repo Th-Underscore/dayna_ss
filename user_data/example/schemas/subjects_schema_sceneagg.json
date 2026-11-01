@@ -794,6 +794,7 @@
         "tone_placeholder": "The primary emotional tone or mood of the story. This guides the feeling of the narrative (e.g., 'Tense and suspenseful', 'Hopeful but grim', 'Witty and adventurous').",
         "themes_placeholder": "A comma-separated list of the central themes or underlying ideas being explored in the story (e.g., 'The cost of survival', 'Betrayal and redemption', 'Man vs. Nature').",
         "setting_placeholder": "A description of the world, location, and environment where the story takes place (e.g., 'Post-apocalyptic Earth, 2087, ruined cities overrun by Subterraneans').",
+        "rules_query_prompt_template": "A new scene has just concluded. Did this scene demonstrate any world rules — deviations from real-world expectations, or hard-set laws of this world (how its technology, physics, institutions, economy, or society work)? These are rules about the WORLD itself, not about individual characters.\n\nRespond with only 'YES' if new world rules were demonstrated or stated, or 'NO' if none.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
         "rules_placeholder": "A list of world-building rules or laws that govern the story's world (e.g., 'Magic requires mana crystals to cast', 'Technology level: post-nanite apocalypse'). Some overarching plot points about the world can also be included here if they are fundamental to the story and unlikely to change (e.g., 'The nanite plague has devastated humanity, leading to the rise of Subterranean factions' or 'Comms systems are down globally'), but nothing character-specific.",
         "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
         "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
@@ -803,6 +804,10 @@
           {
             "action": "query_branch_for_changes",
             "skip_query": true
+          },
+          {
+            "action": "query_branch_for_changes",
+            "prompt_template": "rules_query_prompt_template"
           }
         ]
       }
