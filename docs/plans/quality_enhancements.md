@@ -9,9 +9,9 @@ Section numbers differ from the earlier item numbering. A map is at the end.
 | Section | Item | Extra LLM cost | Priority |
 |---------|------|----------------|----------|
 | 5.1 | ~~`description` split (stable vs. current status)~~ **DONE** `4efa3063` | Negative (fewer tokens) | ✅ |
-| 3.1 | Change history (per-field diffs) | 0 | High, cheap |
+| 3.1 | ~~Change history (per-field diffs)~~ **DONE** `78dd784b` | 0 | ✅ |
 | 3.2 | Shared `source` convention and precedence rule | ~1 token per item | Medium |
-| 4.1 | World rules as deviations from real life | 1 call per story, then net negative | High |
+| 4.1 | World rules as deviations from real life | 1 call per scene boundary (rules query only) | High (partial: harvest trigger done, shape migration pending) |
 | 4.2 | Epistemics (who knows what) | 1 call per scene | High |
 | 5.2 | Values for characters | Set at creation | Medium |
 | 5.3 | Goals / intent | Folded into the scene-boundary call | Medium |
@@ -28,6 +28,7 @@ Every addition should respect what the timing data showed, otherwise quality is 
 
 - **No new per-entry LLM calls.** Entry-level patch calls were ~57% of DSS time. Ride on existing calls or on one batched call per scene boundary (`on_new_scene`).
 - **Prefer code-derived over LLM-derived.** If a value can be computed from `current_scene`, event participants or the applied-update log, compute it.
+- **No hardcoded subject structures in code.** Deterministic logic must be self-contained and convention-driven (e.g. "any `TimePoint` field named `end` syncs from `current_scene.now.when`"), not per-subject field-name lists. The `scene_archive_template` pattern (Jinja2 template in schema defaults) is the model: the "which fields, from where" knowledge lives in the schema, the code renders generically. A small rule table (name pattern + type → action) is acceptable; a hardcoded list of `StoryEvents.end.when = ...` is not.
 - **Keyed, bounded, patch-style fields.** The path/value patch format works, with `NO_UPDATES_REQUIRED` as the cheap exit. Index-addressed lists flip-flop (3.2), so key new collections by name or slug and cap anything log-like.
 - **One source of truth per concept.** Derive views instead of generating the same fact twice.
 - **Add a field only where something consumes it:** writer context, code validation, capping or a probe. This applies to `source` (3.2) and to scales (6.2).
@@ -107,7 +108,7 @@ Evidence:
 
 Causes:
 
-- **Wrong input.** The run's `GeneralInfo` fires a path patch and a full-JSON rewrite on every scene boundary. The rewrite's only story input is the last scene summary (1–3 sentences), which compresses away mechanics.
+- **Wrong input.** The run's `GeneralInfo` fires a path patch and a full-JSON rewrite on every scene boundary. The rewrite's only story input is the last scene summary (1–3 sentences), which compresses away mechanics. *(Since replaced: the full-rewrite `perform_update` trigger was removed; only `query_branch_for_changes` entries remain.)*
 - **Nothing prompts for rules.** The patch call only nudges toward empty fields, and `rules` is not empty.
 - **The placeholder pulls the wrong way.** Its examples are fantasy-style ("mana crystals") and it says "nothing character-specific".
 - **Seed and schema drift.** The repo's `initial_population` prompt mentions only `writing_style`, `tone` and `themes`, and the run's schema fires `on_new_scene` (patch plus rewrite) where the repo example fires `always` (patch only). See the open questions.
@@ -128,7 +129,7 @@ Use `domain: meta` for genre and tone constraints. They constrain the narrator a
 
 Recommendations:
 
-1. **Seed pass at creation.** One call walks the domain checklist and asks how this world differs from reality, about 3 per domain, giving 20–30 terse deviations. This is the main lever for "a few dozen" rules. For power-scaled stories, define the ladders from 6.2 in the same pass.
+1. ~~Seed pass at creation.~~ **DONE** `9e93e070`. A dedicated `on_new_scene` trigger with a rules-focused `query_branch_for_changes` (see `rules_query_prompt_template` in `GeneralInfo`) now harvests world rules on every scene boundary. No one-shot seed pass needed — the first scene boundary populates the initial rules, and subsequent boundaries add new ones. Rides on existing trigger + action infrastructure (zero code). **Shape migration done:** `rules` is now `dict[str, WorldRule]` with structured fields (`text`, `domain`, `scope`, `source`).
 2. **Frame rules as deviations.** Use the test "would a reader who knows the real world get this wrong without being told?" and drop the fantasy examples. Real life is the baseline.
 3. **Replace the full rewrite with scoped patches** for `synopsis`, `main_objective` and rules. The rewrite regenerates ~500 tokens to change a sentence or two, and it risks silently rewording or dropping seed rules.
 4. **Harvest from verbatim exchanges, not summaries.** A regex prefilter ("requires", "only if", "triggers", "cannot", "must") decides whether the harvest call runs, instead of an LLM gate. Run it every N scenes or at chapter boundaries.
@@ -268,7 +269,7 @@ A prompt that asks for "a couple of sentences about what it can do" is a good fi
 | **Magnitude** (output, durability, impact) | Skills, element durability, group force, event scale | A real-world human or object |
 | **Proficiency** | Aptitudes | Real-world percentiles: competent professional, top 1%, then rungs above that defined by the story |
 
-The low rungs are anchored to the real world, matching 4.1's "real life is the baseline." Rungs above the human range are story-specific and come from the seed pass.
+The low rungs are anchored to the real world, matching 4.1's "real life is the baseline." Rungs above the human range are story-specific and come from the rules harvest (first scene boundary populates, subsequent boundaries add).
 
 ```
 Rung:
@@ -278,7 +279,7 @@ Rung:
 ```
 
 - **Define the ladders once** in `rules` (domain `physics` or `technology`) or the system context. About 8–10 rungs is enough.
-- **Keep the exemplars living.** The seed pass writes the first ones, and demonstrated feats add more ("T4: Sunbeam pierces obsidian"). Anchoring to the story's own exemplars keeps the model from importing inflated genre priors.
+- **Keep the exemplars living.** The rules harvest writes the first ones at the first scene boundary, and demonstrated feats add more ("T4: Sunbeam pierces obsidian"). Anchoring to the story's own exemplars keeps the model from importing inflated genre priors.
 - **Use coarse yardsticks, not invented numbers.** "Pierces a building wall" is safer than "42 cm of concrete", because false precision becomes canon in the writer's output and gets contradicted later. If the story states a number, keep it verbatim with its unit.
 - **Multi-axis capabilities** (speed versus thoroughness) live in the `can_do` text, which names the axis. Add structured axes only for comparison-heavy stories.
 
@@ -374,7 +375,7 @@ A read-time union in code supplies the ranked "open threads, stalest first" list
 
 Make most of it deterministic:
 
-- While an event is `open` and overlaps the current scene, set its `end.*` from `current_scene.now.when` in code. This removes close to half of the events patch output.
+- While an event is `open` and overlaps the current scene, set its `end.*` from `current_scene.now.when` in code. This removes close to half of the events patch output. Implement via the convention rule (section 2): any `TimePoint` field named `end` syncs from `current_scene.now.when` — no per-subject hardcoding. The `_message_node` stamp is the existing precedent for this pattern.
 - Compute "stale" and "due" in code, and surface stale threads as reminders.
 - Only creation and resolution need an LLM. They share the scene-boundary call from 4.2 ("new or resolved threads").
 - An `inferred` thread cannot create an obligation (3.2), so a hallucinated thread cannot silently become something the story must resolve.
@@ -390,8 +391,8 @@ Arcs and objectives. This layer is missing today:
 
 0. **Record baselines** on both benchmark stories (section 9) before implementing the next item.
 1. ~~**5.1** `description` split~~ **DONE** `4efa3063`.
-2. **3.1** Change history. Pure engine hook with no schema risk, and it gives you data to judge everything else.
-3. **4.1** Seed pass and deviation framing. One call per story, no per-turn cost. For power-scaled stories, include the 6.2 ladders in the same pass.
+2. ~~**3.1** Change history~~ **DONE** `78dd784b`. Per-field `{path, old, new}` on a private `_history` list, capped at 20 per path. Turn/scene/reason deferred to v2.
+3. **4.1** Rules harvest. **PARTIAL** `9e93e070` (harvest trigger) + shape migration (`dict[str, WorldRule]`). Remaining: deviation framing in prompt, scoped patches, regex-gated harvest (step 7).
 4. **7.2** Deterministic parts (`end.*` from `current_scene`, stale and due computation).
 5. **5.4** Code-derived `last_seen`.
 6. **7.1** Guardrails (cross-tier dedup, `origin` validation). Deterministic and independent of the rest.
@@ -415,7 +416,7 @@ The soak already has needle probes (for example `n01`…). Add one probe family 
 | Provenance | 7.1 | Zero `past` entries with in-story nodes. Zero events duplicated across tiers |
 | Value | 5.2 | Replies follow the stated tension in a planted dilemma. Value edits stay near zero per 100 turns outside trigger milestones |
 | Source | 3.2 | No `inferred` item is asserted as canon. No `inferred` patch overwrites an `observed` value |
-| Rule | 4.1 | 20–30 deviation rules after the seed pass. No `meta` rule asserted as a world fact. A rule stated once in-story is harvested within N scenes |
+| Rule | 4.1 | 20–30 deviation rules after the rules harvest populates them. No `meta` rule asserted as a world fact. A rule stated once in-story is harvested within N scenes |
 | Skill | 6.1 | A planted technique and tier-up are recorded in history, with no silent downgrade. A stated claim does not raise a tier |
 | Ladder | 6.2 | Two-pass agreement within ±1 tier at least ~90% of the time. Contest outcomes consistent with tier ordering. Tier-increase rate per character |
 | Cost guard | all | Per-scene-turn calls and tokens do not rise after an addition. If they do, it is wrong-shaped |
