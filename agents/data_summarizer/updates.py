@@ -66,6 +66,32 @@ if False:  # forward refs only
 
 
 class DSUpdatesMixin:
+    _HISTORY_CAP = 20
+
+    def _record_history(self, data: dict, path_str: str, old_value, new_value):
+        """Append a change record to the entry's private _history list.
+
+        Compacts per-path: when a path exceeds the cap, the oldest entries
+        collapse into a single sentinel. The traversal never touches _history
+        because it iterates schema-defined fields, not raw dict keys.
+        """
+        if "_history" not in data:
+            data["_history"] = []
+        hist = data["_history"]
+        hist.append({"path": path_str, "old": old_value, "new": new_value})
+        # Compact: count entries for this path, collapse oldest if over cap
+        count = sum(1 for h in hist if h["path"] == path_str)
+        if count > self._HISTORY_CAP:
+            # Find entries for this path, keep newest N, collapse the rest
+            path_entries = [i for i, h in enumerate(hist) if h["path"] == path_str]
+            excess = count - self._HISTORY_CAP
+            to_remove = path_entries[:excess]
+            for idx in sorted(to_remove, reverse=True):
+                del hist[idx]
+            # Insert a compacted sentinel at the position of the first removed
+            sentinel = {"path": path_str, "old": None, "new": f"[compact: {excess} earlier change(s)]"}
+            hist.insert(to_remove[0] if to_remove[0] < len(hist) else len(hist), sentinel)
+
     def _perform_gate_check(
         self,
         branch_name: str,
@@ -463,6 +489,7 @@ class DSUpdatesMixin:
                 old_value = recursive_get(data, keyList)
                 print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
                 recursive_set(data, keyList, value)
+                self._record_history(data, path_str, old_value, value)
                 # Null hygiene
                 stored = recursive_get(data, keyList)
                 if isinstance(stored, list):
