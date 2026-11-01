@@ -387,6 +387,18 @@ Arcs and objectives. This layer is missing today:
 - `Arc.plot_threads` is a `list[str]` generated at arc level, and arcs were empty at turn 99, so nothing captured open threads between the scene and chapter timescales. Derive it as a roll-up of the thread subject instead of generating it separately.
 - `Objective` (`{description, importance}`) stayed at its 2 seed entries for all 100 turns, yet it still runs a gate, a patch and an importance update on every scene boundary. Consider folding it into threads as `kind=objective`, with `main_objective` kept as a pointer to the top open objective. This can wait until threads exist.
 
+## 7.5 Speculative: hierarchical format templates
+
+The current `format_templates.json` renders all subjects as flat `Field --- value` lines with inline `<<<<<<<<<<<< path` annotations. A hierarchical Markdown format (`## Subject` → `### Sub-section` → bullets) would mirror the structure LLMs see in training data and may improve field targeting for deeply nested entries (e.g., character → relationships → person → status).
+
+**Unproven.** No observed parsing failure motivates the change; the flat format produces correct path-patches today. The tradeoff:
+
+- **Pro:** Hierarchical Markdown is the dominant structure in LLM training corpora. Sub-sections give the model a scanning skeleton for nested data.
+- **Con:** Token overhead. Every `###` header, blank line, and bullet marker is a prefill token. At 30K context, 3–5% overhead is 900–1500 tokens per call — working against the entity-capping and description-split savings.
+- **Con:** The `<<<<<<<<<<<<` path annotation contract is line-oriented. A hierarchical format requires deciding where annotations attach (header? each bullet?) and updating the parse side accordingly.
+
+**If pursued:** scope to one subject (e.g., `general_info`) as an A/B smoke, measure patch correctness and field targeting against the flat baseline. Roll out only if quality measurably improves enough to offset the token cost.
+
 ## 8. Rollout order
 
 0. **Record baselines** on both benchmark stories (section 9) before implementing the next item.
