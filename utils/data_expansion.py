@@ -294,6 +294,10 @@ def unexpand_lists_in_data_from_llm(data: Any, schema_type, parser) -> Any:
             return data
 
     if isinstance(data, dict):
+        if getattr(schema_type, "__origin__", None) is dict:
+            value_type = getattr(schema_type, "__args__", (None,))
+            value_type = value_type[1] if len(value_type) > 1 else None
+            return {k: unexpand_lists_in_data_from_llm(v, value_type, parser) for k, v in data.items()}
         if _is_dict_expandable_to_list(data):
             sorted_items = sorted(data.items(), key=lambda x: int(x[0]))
             return [unexpand_lists_in_data_from_llm(item_data, None, parser) for _, item_data in sorted_items]
