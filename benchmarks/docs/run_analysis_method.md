@@ -1,6 +1,6 @@
 # Soak Run Analysis Method
 
-How to analyze a completed long-horizon soak run. Replicable for any run.Alr
+How to analyze a completed long-horizon soak run. Replicable for any run.
 
 ## Inputs
 
