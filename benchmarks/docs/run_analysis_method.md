@@ -161,48 +161,64 @@ mid-run review (general health) or the 3-axis subagent analysis (general quality
 these verify a specific feature landed correctly. Remove the section once the run attains
 excellent quality for this standard.
 
-### Trigger reorg + no-schema-descriptions performance (s522)
+### Full perf stack integration (s536)
 
-This run tests the trigger reorg (non-scene turns: 13-14 → 2 `always` calls) and
-`--no-schema-descriptions` (55% schema token reduction). Verify:
+This run is the first long soak with all performance fixes together: template reorder
+(48.7% prefix-cache hit rate), entity capping (top-25 by graph score), path-patch
+conversion (Arc/Chapter/GeneralInfo → `query_branch_for_changes`), hybrid retrieval
+(scene-present base set), and description/status split. Verify:
 
-- **Non-scene turn call count** — should be ~2-5 local calls (down from 17-20).
-  Parse the log for per-turn local-call counts on non-scene turns.
-- **Non-scene turn wall time** — should be ~15-35s (down from ~90-110s).
-- **Scene turn wall time** — expect modest improvement (~25-30% from schema reduction),
-  still dominated by call count.
-- **No parse errors** — the slim schema (no descriptions) should not cause the LLM
-  to produce malformed JSON. Check for `Failed to parse` / `Failed to extract` in log.
+- **Input token growth curve** — via `deep_timing.py` (JSONL primary). Character input
+  tokens should grow ~1.5-1.8x over the run (down from 3x pre-split). Elements/groups
+  should stay under 2x (entity cap limiting accumulation).
+- **Per-turn wall time** — non-scene turns should stay in the 15-40s range. Scene turns
+  200-400s. Flag any turn > 500s.
+- **Prefix cache hit rate** — vLLM log (`server_gm4_vllm_s536.log`) should show sustained
+  40-50% hit rate. A drop below 30% in later turns indicates context growth breaking
+  the cache. Cross-reference with `deep_timing.py` TTFT-based classification.
+- **No perform_update on Arc/Chapter** — `dss_calls.jsonl` should show zero
+  `perform_update` actions on `arcs` or `chapters` subjects. All should be
+  `query_branch_for_changes`.
 
-### Call timing comparison (s522 vs s521)
+### Rules harvest + WorldRule shape (s536)
 
-- **Per-turn timing via `parse_timing.py`** — compare s522 (trigger reorg + slim schema)
-  against s521 baseline (17-20 calls/turn, 86-108s non-scene).
-- **Per-category breakdown** — DSS calls should show reduced input tokens (slim schema)
-  and reduced call count (trigger reorg).
-- **Prefill vs decode split** — confirm prefix caching is still effective (effective
-  prefill rate should be ~2-3K tok/s with LCP).
+The `on_new_scene` trigger on `general_info` with `rules_query_prompt_template` should
+  harvest world rules at scene boundaries. Verify:
 
-### Chapter + arc archival (1:1 turns vs logging)
+- **Rules population** — `general_info.json` → `rules` should grow from the 3 seed
+  entries to 8-20+ entries by end of run. Each entry should be a `WorldRule` dict with
+  `text` (list of strings), `domain`, `scope`, `source` keys.
+- **Rules quality** — sample 5-10 rules: do they read as actual world-building rules
+  (deviations from real life, hard-set laws)? Flag generic filler ("characters can die",
+  "time passes") or character-specific content.
+- **Source values** — `source` field should use the convention: `stated`, `demonstrated`,
+  or `inferred`. Flag free-text values that don't match.
+- **Harvest frequency** — count `general_info` calls with `query_changes` action in
+  `dss_calls.jsonl`. Should fire on scene turns only (not every turn).
 
-- **1:1 chapter logging** — chapter count in `events.json` should match the number of
-  distinct chapter-boundary turns observed in the log. Each chapter archival event
-  should produce exactly one entry.
-- **1:1 arc logging** — same for arcs. Arc count should match arc-boundary turns.
-- **LLM refined titles** — no entry should still have `"title": "CHAPTER #N"` or
-  `"title": "ARC #N"`.
-- **Scene/chapter span correctness** — consecutive integers, no gaps or overlaps.
-- **Narrative fields filled** — `summary`, `key_changes`, `character_arcs` non-empty.
+### Change history (`_history`) (s536)
 
-### Data comparison vs s521 (f42ea382)
+The `_history` field records per-field diffs on path-patch updates. Verify:
 
-- **Character count and field population** — compare per-character populated field
-  counts. The gap-check + build_state fixes should maintain the improvement from s521.
-- **Element count growth rate** — compare elements/turn between the two runs.
-  Expect similar or slightly lower (trigger reorg gates element discovery to scene turns).
-- **Events structure** — `past` should remain clean (no in-story beats leaking in,
-  per the PastEvents discovery prompt fix).
-- **Judge scores** — style/quality/memory should remain at s521 levels (4.9/4.8/5.0).
+- **Presence** — sample entries from `characters.json`, `events.json` (scenes/beats).
+  Entries that were updated should have a `_history` list with `{path, old, new}` tuples.
+- **No LLM visibility** — `_history` must NOT appear in any LLM-facing prompt. Check
+  that `context.txt` (or equivalent) for a sampled turn does not contain `_history`.
+- **Cap enforcement** — no field path should have more than 20 history entries (plus
+  a `[compact: N earlier change(s)]` sentinel if it exceeded the cap).
+
+### Judge score variance (s536)
+
+The tightened rubric (3.5 default anchor, relative comparison, memory_fidelity as
+completeness/freshness) should produce more discriminative scores. Verify:
+
+- **Score distribution** — from `result.json` across all judged turns. Quality and style
+  should show spread (not clustered at 4.5-5.0). Expect some 3.0-3.5 scores on weaker turns.
+- **Memory fidelity** — should differentiate (not flat 5.0). Track correlation with
+  turns where the writer references stale/missing state.
+- **Relative comparison effect** — check that the judge's notes reference comparison
+  to other turns in the window (e.g., "comparable to turn N" or "weaker than the
+  strongest turn in this window").
 
 ## Lessons Learned
 

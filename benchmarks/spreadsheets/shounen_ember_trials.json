@@ -1,0 +1,2305 @@
+{
+  "id": "shounen_ember_trials",
+  "genre": "Shounen battle adventure",
+  "premise": "A boy whose Ember refuses to light enters Halcyon Forge Academy and the Ninefold Trial to prove an unlit flame can still burn, never suspecting that the seal on his chest is what the Pale Choir has hunted for a generation.",
+  "setting": "The Cinder Reach: a chain of basalt isles joined by rope-bridges and sky-rails above a sea of cloud, where everyone carries an Ember fed by resolve. Halcyon Forge Academy sits beneath the Beacon Spire, with its Ashen Gate, the neglected Ember Annex, the Basalt Maze and the Trial Ring.",
+  "greeting": "Dawn bleeds orange over the Ashen Gate, and you stand at the back of the line with a hundred applicants pressing around you, every one of them already glowing. The Examiner calls the next name. It is not yours yet. It will be soon.",
+  "characters": {
+    "name1": {
+      "name": "Soren Hakari",
+      "role": "protagonist, an unlit Ember student (guide writes these turns in the first person)",
+      "description": "A stubborn sixteen-year-old from a lighthouse village whose Ember has never lit; earnest, impulsive, and impossible to keep down.",
+      "attributes": [
+        "Endurance: takes punishment far past what an Ash-rank should and keeps getting up",
+        "Observation: remembers every Form he has watched, motion for motion"
+      ]
+    },
+    "name2": {
+      "name": "Narrator",
+      "role": "the voice that tells Soren's story to 'you', voicing the world, rivals and allies (DAYNA / DSS writes these turns)",
+      "description": "An unseen storyteller of the Cinder Reach who speaks to Soren directly and never decides what he does.",
+      "attributes": [
+        "Narration: tells the story in kinetic, earnest second person without ever deciding Soren's choices"
+      ]
+    }
+  },
+  "writing_style": {
+    "directive": "Hot-blooded shounen adventure: earnest, kinetic, big-hearted. The guide plays Soren in the first person ('I'); the narrator tells the story back to him in the second person ('you'), voicing the world, rivals and allies.",
+    "guide_directive": "First-person present tense as Soren Hakari: 'I' is ALWAYS Soren. Declare what I do, say, notice and think in one short beat (~60 words); earnest, stubborn, impulsive, big-hearted. Never narrate the outcome of my own attacks or how anyone else reacts or feels: the narrator decides that. End on a move, question or challenge that hands the scene back to the narrator. Never mention notes or outlines.",
+    "dss_directive": "Second-person present tense, the narrator telling Soren's story to 'you': 'you' is ALWAYS Soren Hakari; every other character is 'he', 'she' or 'they'. Kinetic, earnest, big-hearted shounen register: concrete sensation, clear action geography, stakes you can feel. One scene beat (~100 words). Hard rules: keep the second person throughout and never say 'I' or refer to the narrator; never decide what you do, say or feel beyond what Soren's own turn declared (describe sensation and perception, not choices); never quote or repeat Soren's lines back verbatim, respond to them; end on an opening, a challenge or a choice, not a summary.",
+    "taboos": [
+      "No grimdark nihilism or gratuitous gore",
+      "No power jumps without cost, training or sacrifice"
+    ]
+  },
+  "specificity_profile": "mixed",
+  "notes": [
+    {
+      "id": "n01",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Soren's late mother's ember-stone hangs under his shirt: cracked down the middle, grey, and always cold.",
+      "needle": "ember-stone",
+      "needle_syns": [
+        "ember-stone",
+        "cracked stone",
+        "grey stone"
+      ],
+      "plant": {
+        "turn": 2
+      },
+      "recall": {
+        "due": 88,
+        "hint": "the ember-stone warms and the crack glows"
+      }
+    },
+    {
+      "id": "n02",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "The Ashen Gate's arch is set with ring-glass that glows orange for a lit Ember; for Soren it stays grey.",
+      "needle": "ring-glass",
+      "needle_syns": [
+        "ring-glass",
+        "the arch glass",
+        "grey glass"
+      ],
+      "plant": {
+        "turn": 3
+      },
+      "recall": {
+        "due": 92,
+        "hint": "the ring-glass answers Soren at last"
+      }
+    },
+    {
+      "id": "n03",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Examiner Hesper Lowe's cuffs are stitched with red thread, and she never smiles.",
+      "needle": "red thread",
+      "needle_syns": [
+        "red thread",
+        "red-thread cuffs",
+        "the examiner's cuffs"
+      ],
+      "plant": {
+        "turn": 4
+      },
+      "recall": {
+        "due": 66,
+        "hint": "the red thread matches the Warden's coat"
+      }
+    },
+    {
+      "id": "n04",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Bran Gale wraps his fists in iron-studded knuckle-wraps and names each stud after someone he has beaten.",
+      "needle": "knuckle-wraps",
+      "needle_syns": [
+        "knuckle-wraps",
+        "iron studs",
+        "the wraps"
+      ],
+      "plant": {
+        "turn": 6
+      },
+      "recall": {
+        "due": 140,
+        "hint": "Bran adds a stud with a new name"
+      }
+    },
+    {
+      "id": "n05",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Mirelle Teague chews dried emberroot when nervous, and feels other people's Embers as warmth on her palms.",
+      "needle": "emberroot",
+      "needle_syns": [
+        "emberroot",
+        "her palms",
+        "the herb pouch"
+      ],
+      "plant": {
+        "turn": 9
+      },
+      "recall": {
+        "due": 150,
+        "hint": "Mirelle's palm-sense catches Idris's failing Ember"
+      }
+    },
+    {
+      "id": "n06",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Soren's creed, 'A flame shared burns longer', surfaces whenever he gives something up for someone else.",
+      "needle": "flame shared burns longer",
+      "needle_syns": [
+        "flame shared burns longer",
+        "a shared flame",
+        "burns longer"
+      ],
+      "plant": {
+        "turn": 10
+      },
+      "recall": {
+        "due": 175,
+        "hint": "Soren repeats his creed at the worst moment"
+      }
+    },
+    {
+      "id": "n07",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Soren taps two fingers against the ember-stone before every fight.",
+      "needle": "two-finger tap",
+      "needle_syns": [
+        "two-finger tap",
+        "two fingers",
+        "taps the stone"
+      ],
+      "plant": {
+        "turn": 12
+      },
+      "recall": {
+        "due": 270,
+        "hint": "the two-finger tap before the siege"
+      }
+    },
+    {
+      "id": "n08",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "The Kindle Test is rigged against suspected seals: the Examiner damps the candle wick of any applicant she thinks is sealed.",
+      "needle": "damp wick",
+      "needle_syns": [
+        "damp wick",
+        "damped wick",
+        "wet wick"
+      ],
+      "plant": {
+        "turn": 14
+      },
+      "recall": {
+        "due": 90,
+        "hint": "Soren learns the Kindle Test was rigged"
+      }
+    },
+    {
+      "id": "n09",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Soren was raised by his mother alone in the lighthouse village on Sedge Isle; she vanished the winter he turned ten.",
+      "needle": "Sedge Isle",
+      "needle_syns": [
+        "Sedge Isle",
+        "the lighthouse village",
+        "his mother's lighthouse"
+      ],
+      "plant": {
+        "turn": 16
+      },
+      "recall": {
+        "due": 275,
+        "hint": "Sedge Isle holds the answer about his mother"
+      }
+    },
+    {
+      "id": "n10",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Keep the earnest, hot-blooded shounen register (big feelings, kinetic action) even in quiet scenes; no sarcasm or cynicism.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 18
+      },
+      "recall": {
+        "due": 80,
+        "hint": "earnest register holds"
+      }
+    },
+    {
+      "id": "n11",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Master Orrel Vance, called Old Ash, runs the Ember Annex alone and never lets anyone see his left forearm.",
+      "needle": "left forearm",
+      "needle_syns": [
+        "left forearm",
+        "the wrapped arm",
+        "the bandage"
+      ],
+      "plant": {
+        "turn": 20
+      },
+      "recall": {
+        "due": 160,
+        "hint": "Orrel's forearm brand is exposed"
+      }
+    },
+    {
+      "id": "n12",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "The Ember Annex's hearth-lamp must be lit by hand every dusk or the Annex is struck off as unclaimed.",
+      "needle": "hearth-lamp",
+      "needle_syns": [
+        "hearth-lamp",
+        "dusk lamp",
+        "the Annex lamp"
+      ],
+      "plant": {
+        "turn": 22
+      },
+      "recall": {
+        "due": 205,
+        "hint": "Soren relights the hearth-lamp in the ruins"
+      }
+    },
+    {
+      "id": "n13",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Orrel makes every new Annex student swear a vow on the hearth-lamp; a vow sworn on a lit Ember binds, and breaking it gutters the Ember for a season.",
+      "needle": "oath-binding",
+      "needle_syns": [
+        "oath-binding",
+        "sworn on a lit Ember",
+        "binding vow"
+      ],
+      "plant": {
+        "turn": 24
+      },
+      "recall": {
+        "due": 296,
+        "hint": "the oath at the Gate binds on a lit Ember"
+      }
+    },
+    {
+      "id": "n14",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Seen-Fire: a Form can only be learned after the student has watched it performed once; Orrel makes Soren watch Kindling Fist for a week before he may try.",
+      "needle": "Seen-Fire",
+      "needle_syns": [
+        "Seen-Fire",
+        "seen fire",
+        "watched it performed"
+      ],
+      "plant": {
+        "turn": 26
+      },
+      "recall": {
+        "due": 228,
+        "hint": "the Seen-Fire rule bends for a memory crystal"
+      }
+    },
+    {
+      "id": "n15",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Tob Ferren keeps a soot-stained ledger of every Form he has seen, with the date and the burn cost.",
+      "needle": "soot-stained ledger",
+      "needle_syns": [
+        "soot-stained ledger",
+        "Tob's ledger",
+        "the ledger"
+      ],
+      "plant": {
+        "turn": 28
+      },
+      "recall": {
+        "due": 225,
+        "hint": "the ledger holds the only record of Meteor Drive"
+      }
+    },
+    {
+      "id": "n16",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "Soren can mimic Kindling Fist's motions perfectly, but nothing ignites: his palm stays cold.",
+      "needle": "cold palm",
+      "needle_syns": [
+        "cold palm",
+        "nothing ignites",
+        "no spark"
+      ],
+      "plant": {
+        "turn": 31
+      },
+      "recall": {
+        "due": 88,
+        "hint": "Kindling Fist ignites for the first time"
+      }
+    },
+    {
+      "id": "n17",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Bran's Ember is an Anvil: dense, slow to start, and nearly impossible to move once planted.",
+      "needle": "Anvil Ember",
+      "needle_syns": [
+        "Anvil Ember",
+        "anvil flame",
+        "planted stance"
+      ],
+      "plant": {
+        "turn": 34
+      },
+      "recall": {
+        "due": 135,
+        "hint": "Bran plants like an anvil against Dagan"
+      }
+    },
+    {
+      "id": "n18",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Idris Kuroha polishes a brass lantern before every duel; it is a House Kuroha heirloom.",
+      "needle": "brass lantern",
+      "needle_syns": [
+        "brass lantern",
+        "Kuroha lantern",
+        "the polished lantern"
+      ],
+      "plant": {
+        "turn": 38
+      },
+      "recall": {
+        "due": 108,
+        "hint": "Idris performs Sunbeam by brass lantern light"
+      }
+    },
+    {
+      "id": "n19",
+      "type": "foreshadow",
+      "specificity": "mixed",
+      "content": "Idris coughs into a white handkerchief and folds it away fast; the cloth is flecked grey.",
+      "needle": "grey-flecked handkerchief",
+      "needle_syns": [
+        "grey-flecked handkerchief",
+        "the handkerchief",
+        "flecked cloth"
+      ],
+      "plant": {
+        "turn": 40
+      },
+      "recall": {
+        "due": 155,
+        "hint": "the handkerchief shows ash: the ashing illness"
+      }
+    },
+    {
+      "id": "n20",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "When Mirelle shakes Idris's hand she freezes for half a second, a cold spot, and says nothing.",
+      "needle": "cold spot",
+      "needle_syns": [
+        "cold spot",
+        "she freezes",
+        "half a second"
+      ],
+      "plant": {
+        "turn": 44
+      },
+      "recall": {
+        "due": 155,
+        "hint": "Mirelle names what she felt"
+      }
+    },
+    {
+      "id": "n21",
+      "type": "location_turning_point",
+      "specificity": "mixed",
+      "content": "The Basalt Maze is a lantern-run course of shifting stone walls that reshuffle at every bell.",
+      "needle": "Basalt Maze",
+      "needle_syns": [
+        "Basalt Maze",
+        "shifting walls",
+        "the Basalt course"
+      ],
+      "plant": {
+        "turn": 48
+      },
+      "recall": {
+        "due": 60,
+        "hint": "the Maze reshuffles and Team Kindling forms"
+      }
+    },
+    {
+      "id": "n22",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Headmistress Calla Vantor has one amber eye and one grey eye, and carries a cane she never leans on.",
+      "needle": "amber and grey eyes",
+      "needle_syns": [
+        "amber and grey eyes",
+        "one amber eye",
+        "two-colored eyes"
+      ],
+      "plant": {
+        "turn": 52
+      },
+      "recall": {
+        "due": 98,
+        "hint": "Calla quietly vouches for Soren"
+      }
+    },
+    {
+      "id": "n23",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Soren vows that no one gets left at the bottom of the Maze, with Bran's own history behind the promise.",
+      "needle": "bottom of the Maze",
+      "needle_syns": [
+        "bottom of the Maze",
+        "left behind",
+        "no one gets left"
+      ],
+      "plant": {
+        "turn": 56
+      },
+      "recall": {
+        "due": 135,
+        "hint": "Soren carries Bran out: the vow repaid"
+      }
+    },
+    {
+      "id": "n24",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "Team Kindling forms at the end of the Lantern Run: Soren, Bran, Mirelle and Tob.",
+      "needle": "Team Kindling",
+      "needle_syns": [
+        "Team Kindling",
+        "Kindling"
+      ],
+      "plant": {
+        "turn": 58
+      },
+      "recall": {
+        "due": 98,
+        "hint": "Team Kindling is registered for the Trial"
+      }
+    },
+    {
+      "id": "n25",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "The narrator stays in the second person addressed to Soren throughout: never 'I', never 'he'.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 60
+      },
+      "recall": {
+        "due": 120,
+        "hint": "second person holds"
+      }
+    },
+    {
+      "id": "n26",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Warden Sethe Crowe's 'routine inspection' of the Annex is a seal-check on Soren; Orrel pretends not to notice.",
+      "needle": "seal-check",
+      "needle_syns": [
+        "seal-check",
+        "routine inspection",
+        "Warden's inspection"
+      ],
+      "plant": {
+        "turn": 62
+      },
+      "recall": {
+        "due": 90,
+        "hint": "Crowe arrives at the qualifier to confirm the seal"
+      }
+    },
+    {
+      "id": "n27",
+      "type": "foreshadow",
+      "specificity": "mixed",
+      "content": "The Trial Ring's central stone is cracked in a spiral; the groundskeeper says it cracked when the last true flame fought there.",
+      "needle": "spiral crack",
+      "needle_syns": [
+        "spiral crack",
+        "the ring's crack",
+        "spiral fissure"
+      ],
+      "plant": {
+        "turn": 66
+      },
+      "recall": {
+        "due": 88,
+        "hint": "the white flame lights the spiral crack"
+      }
+    },
+    {
+      "id": "n28",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Announcer Pell Marrow calls every match in rhyming couplets.",
+      "needle": "rhyming couplets",
+      "needle_syns": [
+        "rhyming couplets",
+        "rhymes",
+        "in rhyme"
+      ],
+      "plant": {
+        "turn": 72
+      },
+      "recall": {
+        "due": 110,
+        "hint": "Pell Marrow rhymes the bracket draw"
+      }
+    },
+    {
+      "id": "n29",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Tob matches the ember-stone's engraved sigils to a Seal-Warden binding catalog: it is a binding stone. He keeps it secret from Soren.",
+      "needle": "binding stone",
+      "needle_syns": [
+        "binding stone",
+        "Warden sigils",
+        "engraved sigils"
+      ],
+      "plant": {
+        "turn": 78
+      },
+      "recall": {
+        "due": 275,
+        "hint": "Soren learns the pendant is his mother's binding stone"
+      }
+    },
+    {
+      "id": "n30",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "At the qualifier duel with Idris, Soren's Ember ignites for the first time: a white flame, not orange. After this he is no longer unlit.",
+      "needle": "white flame",
+      "needle_syns": [
+        "white flame",
+        "white fire",
+        "white ember"
+      ],
+      "plant": {
+        "turn": 80
+      },
+      "recall": {
+        "due": 88,
+        "hint": "Soren ignites white"
+      }
+    },
+    {
+      "id": "n31",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "After the duel Soren is re-read at the Ashen Gate: his grey Ash cord is replaced by a copper Cinder cord.",
+      "needle": "copper cord",
+      "needle_syns": [
+        "copper cord",
+        "Cinder cord",
+        "new cord"
+      ],
+      "plant": {
+        "turn": 86
+      },
+      "recall": {
+        "due": 92,
+        "hint": "Soren wears the copper Cinder cord"
+      }
+    },
+    {
+      "id": "n32",
+      "type": "foreshadow",
+      "specificity": "loose",
+      "content": "A sealed invitation from the Hearth-Keepers arrives bearing a nine-petaled flame.",
+      "needle": "nine-petaled flame",
+      "needle_syns": [
+        "nine-petaled flame",
+        "Hearth-Keeper seal",
+        "the invitation"
+      ],
+      "plant": {
+        "turn": 94
+      },
+      "recall": {
+        "due": 110,
+        "hint": "the nine-petaled flame opens the Ninefold Trial"
+      }
+    },
+    {
+      "id": "n33",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Soren's white flame leaves ash-numbness in his hands if he holds a Form too long: the burn cost.",
+      "needle": "ash-numbness",
+      "needle_syns": [
+        "ash-numbness",
+        "numb hands",
+        "burn cost"
+      ],
+      "plant": {
+        "turn": 101
+      },
+      "recall": {
+        "due": 245,
+        "hint": "Meteor Drive's burn cost drops him into ash-numbness"
+      }
+    },
+    {
+      "id": "n34",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Soren trains at night on the Annex roof, striking a straw dummy he calls Old Crow.",
+      "needle": "Old Crow",
+      "needle_syns": [
+        "Old Crow",
+        "straw dummy",
+        "the dummy"
+      ],
+      "plant": {
+        "turn": 104
+      },
+      "recall": {
+        "due": 112,
+        "hint": "Sunbeam scorches Old Crow"
+      }
+    },
+    {
+      "id": "n35",
+      "type": "character_plant",
+      "specificity": "exact",
+      "content": "Sunbeam is House Kuroha's piercing line of flame; Idris performs it for Soren after hours, and Soren learns it by Seen-Fire.",
+      "needle": "Sunbeam",
+      "needle_syns": [
+        "Sunbeam",
+        "piercing line of flame",
+        "Kuroha's line of flame"
+      ],
+      "plant": {
+        "turn": 108
+      },
+      "recall": {
+        "due": 185,
+        "hint": "Sunbeam pierces the obsidian aegis"
+      }
+    },
+    {
+      "id": "n36",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Sunbeam is a closely guarded House Kuroha Form; Idris teaching it to an outsider breaks his family's law, and he does it anyway.",
+      "needle": "family's law",
+      "needle_syns": [
+        "family's law",
+        "House law",
+        "forbidden to outsiders"
+      ],
+      "plant": {
+        "turn": 109
+      },
+      "recall": {
+        "due": 230,
+        "hint": "House Kuroha demands payment for the broken law"
+      }
+    },
+    {
+      "id": "n37",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Fights stay kinetic and clear: one decisive exchange per turn, no melee blur.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 110
+      },
+      "recall": {
+        "due": 190,
+        "hint": "fights stay clear"
+      }
+    },
+    {
+      "id": "n38",
+      "type": "foreshadow",
+      "specificity": "mixed",
+      "content": "The Ninefold Trial's bracket is drawn on a copper board; two names are scratched out in advance.",
+      "needle": "copper board",
+      "needle_syns": [
+        "copper board",
+        "the bracket board",
+        "scratched names"
+      ],
+      "plant": {
+        "turn": 112
+      },
+      "recall": {
+        "due": 170,
+        "hint": "the scratched names mean the Choir is placing fighters"
+      }
+    },
+    {
+      "id": "n39",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Dagan Moor of Ironreach is a Furnace-ring brute who fights with a chain of linked iron bells.",
+      "needle": "iron bells",
+      "needle_syns": [
+        "iron bells",
+        "bell chain",
+        "Dagan's chain"
+      ],
+      "plant": {
+        "turn": 115
+      },
+      "recall": {
+        "due": 135,
+        "hint": "the bell chain rings over the Ring"
+      }
+    },
+    {
+      "id": "n40",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Kuma Tsuru of Northwind weaves fog from her Ember and fights from inside it.",
+      "needle": "Tsuru's fog",
+      "needle_syns": [
+        "Tsuru's fog",
+        "fog Ember",
+        "the fog"
+      ],
+      "plant": {
+        "turn": 118
+      },
+      "recall": {
+        "due": 120,
+        "hint": "Soren fights blind in Kuma's fog"
+      }
+    },
+    {
+      "id": "n41",
+      "type": "character_echo",
+      "specificity": "mixed",
+      "content": "Orrel's old maxim, 'Light is borrowed', surfaces as he faces Cantor Veyra.",
+      "needle": "borrowed light",
+      "needle_syns": [
+        "borrowed light",
+        "light is borrowed"
+      ],
+      "plant": {
+        "turn": 120
+      },
+      "recall": {
+        "due": 196,
+        "hint": "Orrel's maxim at his stand"
+      }
+    },
+    {
+      "id": "n42",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Seraphine Ardent of Northwind never fights without her obsidian aegis, a mirrored shield that returns heat as light.",
+      "needle": "obsidian aegis",
+      "needle_syns": [
+        "obsidian aegis",
+        "mirrored shield",
+        "the aegis"
+      ],
+      "plant": {
+        "turn": 122
+      },
+      "recall": {
+        "due": 185,
+        "hint": "Sunbeam shatters the obsidian aegis"
+      }
+    },
+    {
+      "id": "n43",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "Lysa Quill, who joins Team Kindling as its fifth member, is a Pale Choir agent siphoning Embers; she is friendly and useful to everyone.",
+      "needle": "Lysa Quill",
+      "needle_syns": [
+        "Lysa Quill",
+        "Lysa",
+        "the fifth member"
+      ],
+      "plant": {
+        "turn": 125
+      },
+      "recall": {
+        "due": 190,
+        "hint": "Lysa's mask drops"
+      }
+    },
+    {
+      "id": "n44",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Lysa hums a three-note descending tune while she works.",
+      "needle": "three-note hum",
+      "needle_syns": [
+        "three-note hum",
+        "descending tune"
+      ],
+      "plant": {
+        "turn": 128
+      },
+      "recall": {
+        "due": 190,
+        "hint": "the hum is the Choir's siphon call"
+      }
+    },
+    {
+      "id": "n45",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "In Round 2 Dagan's chain breaks Bran's arm; he is out of the Trial and Soren carries him out.",
+      "needle": "broken arm",
+      "needle_syns": [
+        "broken arm",
+        "Bran's arm",
+        "the sling"
+      ],
+      "plant": {
+        "turn": 130
+      },
+      "recall": {
+        "due": 135,
+        "hint": "Bran leaves the Trial with a broken arm"
+      }
+    },
+    {
+      "id": "n46",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Orrel and Calla argue in the Spire stairwell in voices that stop whenever anyone passes.",
+      "needle": "stairwell argument",
+      "needle_syns": [
+        "stairwell argument",
+        "the argument",
+        "the hushed shouting"
+      ],
+      "plant": {
+        "turn": 140
+      },
+      "recall": {
+        "due": 160,
+        "hint": "what Orrel and Calla argued about"
+      }
+    },
+    {
+      "id": "n47",
+      "type": "foreshadow",
+      "specificity": "mixed",
+      "content": "A hooded spectator in the east stands never cheers and never leaves between rounds.",
+      "needle": "hooded spectator",
+      "needle_syns": [
+        "hooded spectator",
+        "the hooded man",
+        "the east-stands figure"
+      ],
+      "plant": {
+        "turn": 145
+      },
+      "recall": {
+        "due": 190,
+        "hint": "the hooded spectator is Cantor Veyra"
+      }
+    },
+    {
+      "id": "n48",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Idris's illness is ashing: his Ember is burning out from the inside. He hides it, Mirelle knows, and he has forbidden her to tell.",
+      "needle": "ashing",
+      "needle_syns": [
+        "ashing",
+        "burning out",
+        "Idris's illness"
+      ],
+      "plant": {
+        "turn": 150
+      },
+      "recall": {
+        "due": 155,
+        "hint": "Soren learns about the ashing"
+      }
+    },
+    {
+      "id": "n49",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "Emotional beats land through action and gesture, never speeches longer than two lines.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 150
+      },
+      "recall": {
+        "due": 195,
+        "hint": "feeling through action"
+      }
+    },
+    {
+      "id": "n50",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Mirelle's promise to Idris to keep his secret chafes against her honesty with Soren.",
+      "needle": "promise of silence",
+      "needle_syns": [
+        "promise of silence",
+        "her promise",
+        "keep his secret"
+      ],
+      "plant": {
+        "turn": 152
+      },
+      "recall": {
+        "due": 170,
+        "hint": "Mirelle's silence breaks when Idris collapses"
+      }
+    },
+    {
+      "id": "n51",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Orrel Vance was once Marshal of the Hollow Watch, the unit that guarded the Hollow where sealed Embers are kept.",
+      "needle": "Hollow Watch",
+      "needle_syns": [
+        "Hollow Watch",
+        "the Hollow",
+        "Hollow Marshal"
+      ],
+      "plant": {
+        "turn": 160
+      },
+      "recall": {
+        "due": 240,
+        "hint": "Orrel's old rank opens the Hollow's gates"
+      }
+    },
+    {
+      "id": "n52",
+      "type": "location_turning_point",
+      "specificity": "mixed",
+      "content": "The Beacon Spire's observation balcony is where the Hearth-Keepers watch every round; it is the only place the Trial's rules are enforced.",
+      "needle": "observation balcony",
+      "needle_syns": [
+        "observation balcony",
+        "the balcony",
+        "Hearth-Keepers' perch"
+      ],
+      "plant": {
+        "turn": 165
+      },
+      "recall": {
+        "due": 192,
+        "hint": "the Choir strikes the balcony"
+      }
+    },
+    {
+      "id": "n53",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "The Pale Choir targets sealed Embers: it siphons them with a three-voice chord.",
+      "needle": "three-voice chord",
+      "needle_syns": [
+        "three-voice chord",
+        "the chord",
+        "Choir's chord"
+      ],
+      "plant": {
+        "turn": 170
+      },
+      "recall": {
+        "due": 190,
+        "hint": "the chord siphons Mirelle's Ember"
+      }
+    },
+    {
+      "id": "n54",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "After Round 4 Soren's Ring is raised from Cinder to Flame: an orange cord replaces the copper one.",
+      "needle": "orange cord",
+      "needle_syns": [
+        "orange cord",
+        "Flame cord",
+        "Flame badge"
+      ],
+      "plant": {
+        "turn": 170
+      },
+      "recall": {
+        "due": 178,
+        "hint": "Soren wears the orange Flame cord"
+      }
+    },
+    {
+      "id": "n55",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Seraphine Ardent respects only opponents who make her bleed; she asks Soren for a real fight.",
+      "needle": "a real fight",
+      "needle_syns": [
+        "a real fight",
+        "make me bleed",
+        "her respect"
+      ],
+      "plant": {
+        "turn": 180
+      },
+      "recall": {
+        "due": 195,
+        "hint": "Seraphine fights beside Soren"
+      }
+    },
+    {
+      "id": "n56",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "The Ninefold Trial is suspended after the Choir's attack; the remaining rounds are declared void by the Hearth-Keepers.",
+      "needle": "void rounds",
+      "needle_syns": [
+        "void rounds",
+        "Trial suspended",
+        "declared void"
+      ],
+      "plant": {
+        "turn": 186
+      },
+      "recall": {
+        "due": 192,
+        "hint": "the Trial is void"
+      }
+    },
+    {
+      "id": "n57",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "Orrel is ashed protecting the crowd: his Ember gutters out and he is no longer a Master.",
+      "needle": "gutters out",
+      "needle_syns": [
+        "gutters out",
+        "Orrel's Ember gutters",
+        "burned out"
+      ],
+      "plant": {
+        "turn": 190
+      },
+      "recall": {
+        "due": 198,
+        "hint": "Orrel's Ember gutters out"
+      }
+    },
+    {
+      "id": "n58",
+      "type": "location_turning_point",
+      "specificity": "mixed",
+      "content": "Halcyon's evacuation terrace is the sky-rail platform where Calla orders the Gate closed behind the survivors.",
+      "needle": "sky-rail platform",
+      "needle_syns": [
+        "sky-rail platform",
+        "evacuation terrace",
+        "the platform"
+      ],
+      "plant": {
+        "turn": 196
+      },
+      "recall": {
+        "due": 199,
+        "hint": "the Gate is closed behind them"
+      }
+    },
+    {
+      "id": "n59",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "Six months pass between the siege and the road: the Academy is rubble, Team Kindling is scattered, and Soren travels with only the ember-stone.",
+      "needle": "six months",
+      "needle_syns": [
+        "six months",
+        "half a year",
+        "after the siege"
+      ],
+      "plant": {
+        "turn": 198
+      },
+      "recall": {
+        "due": 201,
+        "hint": "six months later"
+      }
+    },
+    {
+      "id": "n60",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Idris returns to House Kuroha's cliff-keep; a House ritual he calls the Long Candle slows his ashing for now.",
+      "needle": "Long Candle",
+      "needle_syns": [
+        "Long Candle",
+        "the candle ritual",
+        "slow burn"
+      ],
+      "plant": {
+        "turn": 204
+      },
+      "recall": {
+        "due": 232,
+        "hint": "the Long Candle burns low"
+      }
+    },
+    {
+      "id": "n61",
+      "type": "character_plant",
+      "specificity": "loose",
+      "content": "Mirelle, ashed by the chord, can no longer feel others' Embers; she works in a Warden infirmary learning to heal without it.",
+      "needle": "numb palms",
+      "needle_syns": [
+        "numb palms",
+        "ashed palms",
+        "can't feel Embers"
+      ],
+      "plant": {
+        "turn": 206
+      },
+      "recall": {
+        "due": 255,
+        "hint": "Mirelle's sense returns in the siege"
+      }
+    },
+    {
+      "id": "n62",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Tob has salvaged half the Annex's archive onto a salvage barge named The Footnote.",
+      "needle": "The Footnote",
+      "needle_syns": [
+        "The Footnote",
+        "salvage barge",
+        "the barge"
+      ],
+      "plant": {
+        "turn": 208
+      },
+      "recall": {
+        "due": 225,
+        "hint": "Tob's barge carries the memory crystal"
+      }
+    },
+    {
+      "id": "n63",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "After the time skip the register stays earnest: grief and loss weigh, but hope is never mocked.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 210
+      },
+      "recall": {
+        "due": 290,
+        "hint": "hope is never mocked"
+      }
+    },
+    {
+      "id": "n64",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Hearth-Keeper Amaranth admits the Keepers knew a white flame would return and chose not to warn anyone.",
+      "needle": "Hearth-Keeper Amaranth",
+      "needle_syns": [
+        "Hearth-Keeper Amaranth",
+        "Amaranth",
+        "the Keepers knew"
+      ],
+      "plant": {
+        "turn": 214
+      },
+      "recall": {
+        "due": 250,
+        "hint": "the Keepers' silence has a price"
+      }
+    },
+    {
+      "id": "n65",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Seraphine Ardent now travels with Soren; her obsidian aegis was re-forged with a Sunbeam-shaped scar.",
+      "needle": "aegis scar",
+      "needle_syns": [
+        "aegis scar",
+        "the scarred aegis",
+        "re-forged aegis"
+      ],
+      "plant": {
+        "turn": 216
+      },
+      "recall": {
+        "due": 262,
+        "hint": "the aegis scar focuses Sunbeam through her shield"
+      }
+    },
+    {
+      "id": "n66",
+      "type": "foreshadow",
+      "specificity": "mixed",
+      "content": "The ember-stone begins warming faintly whenever the Choir's chord sounds nearby.",
+      "needle": "stone warms",
+      "needle_syns": [
+        "stone warms",
+        "the stone warms",
+        "warm pendant"
+      ],
+      "plant": {
+        "turn": 220
+      },
+      "recall": {
+        "due": 275,
+        "hint": "the stone burns hot at the truth"
+      }
+    },
+    {
+      "id": "n67",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Tob finds a memory crystal in the barge's cargo; it holds Orrel's last Meteor Drive from his Marshal days, a Seen-Fire loophole.",
+      "needle": "memory crystal",
+      "needle_syns": [
+        "memory crystal",
+        "the crystal",
+        "stored memory"
+      ],
+      "plant": {
+        "turn": 225
+      },
+      "recall": {
+        "due": 235,
+        "hint": "Soren watches Meteor Drive in the crystal"
+      }
+    },
+    {
+      "id": "n68",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "Seen-Fire is revised: a stored memory counts as witnessing a Form, but only if the watcher shares the original performer's resolve.",
+      "needle": "shares the resolve",
+      "needle_syns": [
+        "shares the resolve",
+        "same resolve",
+        "memory counts"
+      ],
+      "plant": {
+        "turn": 228
+      },
+      "recall": {
+        "due": 235,
+        "hint": "the rule bends: the crystal counts"
+      }
+    },
+    {
+      "id": "n69",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Elder Haruzen Kuroha speaks only through a bronze listening-tube and judges every guest by how long they sit still.",
+      "needle": "listening-tube",
+      "needle_syns": [
+        "listening-tube",
+        "bronze tube",
+        "Haruzen's tube"
+      ],
+      "plant": {
+        "turn": 230
+      },
+      "recall": {
+        "due": 240,
+        "hint": "Haruzen names the House's price"
+      }
+    },
+    {
+      "id": "n70",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "House Kuroha demands payment for the broken family law: Soren must stand as the House's champion in a duel of honor.",
+      "needle": "duel of honor",
+      "needle_syns": [
+        "duel of honor",
+        "House champion",
+        "Kuroha's price"
+      ],
+      "plant": {
+        "turn": 232
+      },
+      "recall": {
+        "due": 240,
+        "hint": "Soren fights the duel of honor"
+      }
+    },
+    {
+      "id": "n71",
+      "type": "character_plant",
+      "specificity": "mixed",
+      "content": "Orrel appears at the Footnote's rail, ashed and leaning on a cane; he refuses the title Master.",
+      "needle": "Orrel's cane",
+      "needle_syns": [
+        "Orrel's cane",
+        "the ashed Marshal",
+        "no longer a Master"
+      ],
+      "plant": {
+        "turn": 234
+      },
+      "recall": {
+        "due": 250,
+        "hint": "the ashed Marshal teaches resolve"
+      }
+    },
+    {
+      "id": "n72",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "Soren's first attempts at Meteor Drive fail: he leaps and nothing ignites; the Form needs a resolve he has not yet found.",
+      "needle": "Meteor Drive",
+      "needle_syns": [
+        "Meteor Drive",
+        "the Drive",
+        "meteor charge"
+      ],
+      "plant": {
+        "turn": 235
+      },
+      "recall": {
+        "due": 285,
+        "hint": "Meteor Drive breaks the anchor mountain"
+      }
+    },
+    {
+      "id": "n73",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Idris's brass lantern is relit and passed on; he gives it to Soren before the siege.",
+      "needle": "lantern passed on",
+      "needle_syns": [
+        "lantern passed on",
+        "Idris's gift",
+        "the lantern's gift"
+      ],
+      "plant": {
+        "turn": 240
+      },
+      "recall": {
+        "due": 262,
+        "hint": "the lantern passes to Soren"
+      }
+    },
+    {
+      "id": "n74",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "The Pale Choir's goal is the Last Ember: the white flame. Its leader, the Conductor, has hunted it since Soren's birth.",
+      "needle": "Last Ember",
+      "needle_syns": [
+        "Last Ember",
+        "the Conductor"
+      ],
+      "plant": {
+        "turn": 245
+      },
+      "recall": {
+        "due": 255,
+        "hint": "the Conductor names Soren"
+      }
+    },
+    {
+      "id": "n75",
+      "type": "character_echo",
+      "specificity": "loose",
+      "content": "Soren's debt to Orrel's maxim returns: he must return the borrowed light brighter than it came.",
+      "needle": "return it brighter",
+      "needle_syns": [
+        "return it brighter",
+        "brighter than it came"
+      ],
+      "plant": {
+        "turn": 250
+      },
+      "recall": {
+        "due": 292,
+        "hint": "Soren returns the borrowed light"
+      }
+    },
+    {
+      "id": "n76",
+      "type": "location_turning_point",
+      "specificity": "mixed",
+      "content": "The Choir Engine is a siphon tower anchored in Greywatch Ridge's mountain face, humming the three-voice chord.",
+      "needle": "Choir Engine",
+      "needle_syns": [
+        "Choir Engine",
+        "siphon tower",
+        "Greywatch Ridge"
+      ],
+      "plant": {
+        "turn": 250
+      },
+      "recall": {
+        "due": 280,
+        "hint": "the siege breaks at the Engine"
+      }
+    },
+    {
+      "id": "n77",
+      "type": "style_hold",
+      "specificity": "loose",
+      "content": "The siege stays clear and cinematic: scale is told through consequence (what breaks, what holds), not numbers.",
+      "needle": "",
+      "needle_syns": [],
+      "plant": {
+        "turn": 250
+      },
+      "recall": {
+        "due": 285,
+        "hint": "scale through consequence"
+      }
+    },
+    {
+      "id": "n78",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "Warden Sethe Crowe breaks with the Seal-Wardens and joins Soren's side after seeing what the Choir does to sealed children.",
+      "needle": "Crowe defects",
+      "needle_syns": [
+        "Crowe defects",
+        "breaks with the Wardens",
+        "Crowe's turn"
+      ],
+      "plant": {
+        "turn": 255
+      },
+      "recall": {
+        "due": 262,
+        "hint": "Crowe joins the siege"
+      }
+    },
+    {
+      "id": "n79",
+      "type": "plot_twist",
+      "specificity": "exact",
+      "content": "Soren's mother Isolde Hakari was a Seal-Warden who sealed his white flame to hide him from the Choir; she is alive, held in the Engine.",
+      "needle": "Isolde Hakari",
+      "needle_syns": [
+        "Isolde Hakari",
+        "the Warden-mother",
+        "the mother who sealed him"
+      ],
+      "plant": {
+        "turn": 258
+      },
+      "recall": {
+        "due": 275,
+        "hint": "Isolde's seal is revealed"
+      }
+    },
+    {
+      "id": "n80",
+      "type": "character_echo",
+      "specificity": "mixed",
+      "content": "Mirelle passes Soren her emberroot pouch before the siege; its last root is the one she saved.",
+      "needle": "saved root",
+      "needle_syns": [
+        "saved root",
+        "her last root",
+        "Mirelle's pouch"
+      ],
+      "plant": {
+        "turn": 260
+      },
+      "recall": {
+        "due": 282,
+        "hint": "the last emberroot"
+      }
+    },
+    {
+      "id": "n81",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "At the siege muster Soren's Ring is raised to Blaze: a gold cord replaces the orange one.",
+      "needle": "gold cord",
+      "needle_syns": [
+        "gold cord",
+        "Blaze cord",
+        "Blaze badge"
+      ],
+      "plant": {
+        "turn": 262
+      },
+      "recall": {
+        "due": 266,
+        "hint": "Soren wears the gold Blaze cord"
+      }
+    },
+    {
+      "id": "n82",
+      "type": "plot_twist",
+      "specificity": "mixed",
+      "content": "Embers are not inborn: they are borrowed from the Sun-Wyrm's heart, and the white flame is a splinter of that heart.",
+      "needle": "Sun-Wyrm",
+      "needle_syns": [
+        "Sun-Wyrm",
+        "the Wyrm's heart",
+        "borrowed Embers"
+      ],
+      "plant": {
+        "turn": 268
+      },
+      "recall": {
+        "due": 285,
+        "hint": "the Wyrm's heart in Soren's chest"
+      }
+    },
+    {
+      "id": "n83",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "The world rule 'Embers are inborn' is overturned: Embers are lent, and that reorders what a seal is.",
+      "needle": "Embers are lent",
+      "needle_syns": [
+        "Embers are lent",
+        "lent Embers",
+        "not inborn"
+      ],
+      "plant": {
+        "turn": 270
+      },
+      "recall": {
+        "due": 290,
+        "hint": "the rule overturned"
+      }
+    },
+    {
+      "id": "n84",
+      "type": "supersession",
+      "specificity": "exact",
+      "content": "Soren's Meteor Drive pierces the Engine's anchor face, a mountain-scale feat, and leaves him ash-numb for a week.",
+      "needle": "anchor face",
+      "needle_syns": [
+        "anchor face",
+        "mountain face",
+        "Engine's anchor"
+      ],
+      "plant": {
+        "turn": 282
+      },
+      "recall": {
+        "due": 285,
+        "hint": "the Drive breaks the anchor face"
+      }
+    },
+    {
+      "id": "n85",
+      "type": "supersession",
+      "specificity": "mixed",
+      "content": "The Conductor escapes through a chord rift; the siege ends in a draw, not a victory.",
+      "needle": "chord rift",
+      "needle_syns": [
+        "chord rift",
+        "the rift",
+        "Conductor's escape"
+      ],
+      "plant": {
+        "turn": 288
+      },
+      "recall": {
+        "due": 290,
+        "hint": "the Conductor escapes"
+      }
+    },
+    {
+      "id": "n86",
+      "type": "location_turning_point",
+      "specificity": "mixed",
+      "content": "The Ashen Gate at dawn again: Soren swears his oath on his lit Ember to light every snuffed flame, and the ring-glass answers white.",
+      "needle": "oath on his Ember",
+      "needle_syns": [
+        "oath on his Ember",
+        "his oath",
+        "light every snuffed flame"
+      ],
+      "plant": {
+        "turn": 292
+      },
+      "recall": {
+        "due": 296,
+        "hint": "the oath at the Gate"
+      }
+    }
+  ],
+  "dss_beats": [
+    {
+      "id": "b01",
+      "turn": "5",
+      "subject": "characters",
+      "content": "DSS should have saved Soren Hakari as the protagonist: an unlit applicant at the Ashen Gate.",
+      "expect": {
+        "contains": {
+          "soren": "unlit"
+        }
+      }
+    },
+    {
+      "id": "b02",
+      "turn": "6",
+      "subject": "elements",
+      "content": "DSS should have saved the cracked grey ember-stone pendant Soren wears.",
+      "expect": {
+        "contains": {
+          "ember-stone": "cracked"
+        }
+      }
+    },
+    {
+      "id": "b03",
+      "turn": "8",
+      "subject": "characters",
+      "content": "DSS should have saved Examiner Hesper Lowe, who runs the Kindle Test.",
+      "expect": {
+        "contains": {
+          "lowe": "Examiner"
+        }
+      }
+    },
+    {
+      "id": "b04",
+      "turn": "10",
+      "subject": "characters",
+      "content": "DSS should have saved Bran Gale and his iron-studded knuckle-wraps.",
+      "expect": {
+        "contains": {
+          "bran": "wraps"
+        }
+      }
+    },
+    {
+      "id": "b05",
+      "turn": "12",
+      "subject": "characters",
+      "content": "DSS should have saved Mirelle Teague and her emberroot pouch.",
+      "expect": {
+        "contains": {
+          "mirelle": "emberroot"
+        }
+      }
+    },
+    {
+      "id": "b06",
+      "turn": "16",
+      "subject": "events",
+      "content": "DSS should have saved the Kindle Test: Soren fails to light the candle and is placed provisionally as Ash-rank.",
+      "expect": {
+        "contains": {
+          "kindle test": "Ash"
+        }
+      }
+    },
+    {
+      "id": "b07",
+      "turn": "22",
+      "subject": "characters",
+      "content": "DSS should have saved Master Orrel Vance, called Old Ash, who runs the Ember Annex.",
+      "expect": {
+        "contains": {
+          "orrel": "Annex"
+        }
+      }
+    },
+    {
+      "id": "b08",
+      "turn": "24",
+      "subject": "groups",
+      "content": "DSS should have saved Halcyon Forge Academy as a group.",
+      "expect": {
+        "contains": {
+          "halcyon": "Academy"
+        }
+      }
+    },
+    {
+      "id": "b09",
+      "turn": "26",
+      "subject": "elements",
+      "content": "DSS should have saved the Ember Annex and its hand-lit hearth-lamp.",
+      "expect": {
+        "contains": {
+          "annex": "hearth-lamp"
+        }
+      }
+    },
+    {
+      "id": "b10",
+      "turn": "30",
+      "subject": "characters",
+      "content": "DSS should have saved Tob Ferren and his ledger of Forms.",
+      "expect": {
+        "contains": {
+          "tob": "ledger"
+        }
+      }
+    },
+    {
+      "id": "b11",
+      "turn": "32",
+      "subject": "general_info",
+      "content": "DSS should have recorded the Seen-Fire rule: a Form must be watched performed once before it can be learned.",
+      "expect": {
+        "contains": {
+          "rules": "Seen-Fire"
+        }
+      }
+    },
+    {
+      "id": "b12",
+      "turn": "40",
+      "subject": "general_info",
+      "content": "DSS should have recorded the Ring ladder (Ash, Cinder, Flame, Blaze, Furnace, Beacon, Sun) as a world rule.",
+      "expect": {
+        "contains": {
+          "rules": "Cinder"
+        }
+      }
+    },
+    {
+      "id": "b13",
+      "turn": "42",
+      "subject": "characters",
+      "content": "DSS should have saved Idris Kuroha, House Kuroha's prodigy, with his brass lantern.",
+      "expect": {
+        "contains": {
+          "idris": "Kuroha"
+        }
+      }
+    },
+    {
+      "id": "b14",
+      "turn": "44",
+      "subject": "groups",
+      "content": "DSS should have saved House Kuroha as a group.",
+      "expect": {
+        "contains": {
+          "kuroha": "lantern"
+        }
+      }
+    },
+    {
+      "id": "b15",
+      "turn": "52",
+      "subject": "elements",
+      "content": "DSS should have saved the Basalt Maze, whose walls reshuffle at every bell.",
+      "expect": {
+        "contains": {
+          "maze": "reshuffle"
+        }
+      }
+    },
+    {
+      "id": "b16",
+      "turn": "54",
+      "subject": "characters",
+      "content": "DSS should have saved Headmistress Calla Vantor.",
+      "expect": {
+        "contains": {
+          "calla": "Headmistress"
+        }
+      }
+    },
+    {
+      "id": "b17",
+      "turn": "60",
+      "subject": "events",
+      "content": "DSS should have saved the Lantern Run through the Basalt Maze, where Team Kindling formed.",
+      "expect": {
+        "contains": {
+          "lantern run": "Team Kindling"
+        }
+      }
+    },
+    {
+      "id": "b18",
+      "turn": "62",
+      "subject": "groups",
+      "content": "DSS should have saved Team Kindling (Soren, Bran, Mirelle, Tob).",
+      "expect": {
+        "contains": {
+          "kindling": "Soren"
+        }
+      }
+    },
+    {
+      "id": "b19",
+      "turn": "66",
+      "subject": "characters",
+      "content": "DSS should have saved Warden Sethe Crowe of the Seal-Wardens.",
+      "expect": {
+        "contains": {
+          "crowe": "Warden"
+        }
+      }
+    },
+    {
+      "id": "b20",
+      "turn": "68",
+      "subject": "groups",
+      "content": "DSS should have saved the Seal-Warden Order as a group.",
+      "expect": {
+        "contains": {
+          "warden": "seal"
+        }
+      }
+    },
+    {
+      "id": "b21",
+      "turn": "70",
+      "subject": "elements",
+      "content": "DSS should have saved the Trial Ring with its spiral crack.",
+      "expect": {
+        "contains": {
+          "trial ring": "spiral"
+        }
+      }
+    },
+    {
+      "id": "b22",
+      "turn": "75",
+      "subject": "characters",
+      "content": "DSS should have saved Pell Marrow, the announcer who rhymes every match call.",
+      "expect": {
+        "contains": {
+          "pell": "rhym"
+        }
+      }
+    },
+    {
+      "id": "b23",
+      "turn": "90",
+      "subject": "events",
+      "content": "DSS should have saved the qualifier duel where Soren's Ember ignited as a white flame.",
+      "expect": {
+        "contains": {
+          "qualifier": "white flame"
+        }
+      }
+    },
+    {
+      "id": "b24",
+      "turn": "94",
+      "subject": "events",
+      "content": "DSS should have saved Soren's re-reading at the Ashen Gate: Ash cord replaced by Cinder cord.",
+      "expect": {
+        "contains": {
+          "soren": "Cinder"
+        }
+      }
+    },
+    {
+      "id": "b25",
+      "turn": "100",
+      "subject": "general_info",
+      "content": "DSS should have recorded that seals bind an Ember so it cannot ignite until the seal breaks.",
+      "expect": {
+        "contains": {
+          "rules": "seal"
+        }
+      }
+    },
+    {
+      "id": "b26",
+      "turn": "110",
+      "subject": "elements",
+      "content": "DSS should have saved Idris's brass lantern as a House Kuroha heirloom.",
+      "expect": {
+        "contains": {
+          "lantern": "Kuroha"
+        }
+      }
+    },
+    {
+      "id": "b27",
+      "turn": "112",
+      "subject": "groups",
+      "content": "DSS should have saved the Hearth-Keepers as the Trial's arbiters.",
+      "expect": {
+        "contains": {
+          "hearth-keepers": "Trial"
+        }
+      }
+    },
+    {
+      "id": "b28",
+      "turn": "114",
+      "subject": "characters",
+      "content": "DSS should have saved that Soren learned Sunbeam from Idris by Seen-Fire.",
+      "expect": {
+        "contains": {
+          "soren": "Sunbeam"
+        }
+      }
+    },
+    {
+      "id": "b29",
+      "turn": "118",
+      "subject": "characters",
+      "content": "DSS should have saved Dagan Moor of Ironreach and his chain of iron bells.",
+      "expect": {
+        "contains": {
+          "dagan": "bells"
+        }
+      }
+    },
+    {
+      "id": "b30",
+      "turn": "124",
+      "subject": "characters",
+      "content": "DSS should have saved Kuma Tsuru of Northwind and her fog.",
+      "expect": {
+        "contains": {
+          "kuma": "fog"
+        }
+      }
+    },
+    {
+      "id": "b31",
+      "turn": "126",
+      "subject": "groups",
+      "content": "DSS should have saved Northwind Conservatory as a group, with Seraphine Ardent among its fighters.",
+      "expect": {
+        "contains": {
+          "northwind": "Seraphine"
+        }
+      }
+    },
+    {
+      "id": "b32",
+      "turn": "130",
+      "subject": "characters",
+      "content": "DSS should have saved Lysa Quill as Team Kindling's fifth member.",
+      "expect": {
+        "contains": {
+          "lysa": "Team Kindling"
+        }
+      }
+    },
+    {
+      "id": "b33",
+      "turn": "137",
+      "subject": "events",
+      "content": "DSS should have saved Round 2: Dagan's chain broke Bran's arm and Soren carried him out.",
+      "expect": {
+        "contains": {
+          "round 2": "Bran"
+        }
+      }
+    },
+    {
+      "id": "b34",
+      "turn": "164",
+      "subject": "groups",
+      "content": "DSS should have saved the Hollow Watch as Orrel's former unit.",
+      "expect": {
+        "contains": {
+          "hollow watch": "Orrel"
+        }
+      }
+    },
+    {
+      "id": "b35",
+      "turn": "165",
+      "subject": "characters",
+      "content": "DSS should have saved Orrel's past as Marshal of the Hollow Watch.",
+      "expect": {
+        "contains": {
+          "orrel": "Hollow Watch"
+        }
+      }
+    },
+    {
+      "id": "b36",
+      "turn": "172",
+      "subject": "groups",
+      "content": "DSS should have saved the Pale Choir as a group that siphons sealed Embers.",
+      "expect": {
+        "contains": {
+          "choir": "siphon"
+        }
+      }
+    },
+    {
+      "id": "b37",
+      "turn": "175",
+      "subject": "characters",
+      "content": "DSS should have saved that Idris's Ember is ashing, and who knows.",
+      "expect": {
+        "contains": {
+          "idris": "ashing"
+        }
+      }
+    },
+    {
+      "id": "b38",
+      "turn": "180",
+      "subject": "characters",
+      "content": "DSS should have saved Soren's Flame-ring promotion.",
+      "expect": {
+        "contains": {
+          "soren": "Flame"
+        }
+      }
+    },
+    {
+      "id": "b39",
+      "turn": "188",
+      "subject": "events",
+      "content": "DSS should have saved the semifinal: Sunbeam pierced Seraphine's obsidian aegis.",
+      "expect": {
+        "contains": {
+          "semifinal": "Sunbeam"
+        }
+      }
+    },
+    {
+      "id": "b40",
+      "turn": "192",
+      "subject": "events",
+      "content": "DSS should have saved the Choir attack in which Lysa was exposed as an agent and Mirelle was ashed.",
+      "expect": {
+        "contains": {
+          "choir attack": "Lysa"
+        }
+      }
+    },
+    {
+      "id": "b41",
+      "turn": "195",
+      "subject": "characters",
+      "content": "DSS should have saved Cantor Veyra as the Choir's lieutenant.",
+      "expect": {
+        "contains": {
+          "veyra": "Choir"
+        }
+      }
+    },
+    {
+      "id": "b42",
+      "turn": "198",
+      "subject": "events",
+      "content": "DSS should have saved Orrel's stand against Cantor Veyra, which cost him his Ember.",
+      "expect": {
+        "contains": {
+          "orrel": "gutter"
+        }
+      }
+    },
+    {
+      "id": "b43",
+      "turn": "200",
+      "subject": "events",
+      "content": "DSS should have saved the Academy's evacuation and the Trial being declared void.",
+      "expect": {
+        "contains": {
+          "evacuation": "Gate"
+        }
+      }
+    },
+    {
+      "id": "b44",
+      "turn": "202",
+      "subject": "events",
+      "content": "DSS should have saved the six-month time skip after the siege.",
+      "expect": {
+        "contains": {
+          "time skip": "six months"
+        }
+      }
+    },
+    {
+      "id": "b45",
+      "turn": "216",
+      "subject": "characters",
+      "content": "DSS should have saved Hearth-Keeper Amaranth, who admits the Keepers kept silent.",
+      "expect": {
+        "contains": {
+          "amaranth": "Keeper"
+        }
+      }
+    },
+    {
+      "id": "b46",
+      "turn": "230",
+      "subject": "elements",
+      "content": "DSS should have saved the memory crystal holding Orrel's Meteor Drive.",
+      "expect": {
+        "contains": {
+          "crystal": "Meteor Drive"
+        }
+      }
+    },
+    {
+      "id": "b47",
+      "turn": "232",
+      "subject": "characters",
+      "content": "DSS should have saved Elder Haruzen Kuroha and his bronze listening-tube.",
+      "expect": {
+        "contains": {
+          "haruzen": "listening"
+        }
+      }
+    },
+    {
+      "id": "b48",
+      "turn": "236",
+      "subject": "general_info",
+      "content": "DSS should have recorded the revised Seen-Fire rule: a stored memory counts if the watcher shares the performer's resolve.",
+      "expect": {
+        "contains": {
+          "rules": "memory"
+        }
+      }
+    },
+    {
+      "id": "b49",
+      "turn": "238",
+      "subject": "events",
+      "content": "DSS should have saved Soren's failed first attempts at Meteor Drive.",
+      "expect": {
+        "contains": {
+          "meteor drive": "fail"
+        }
+      }
+    },
+    {
+      "id": "b50",
+      "turn": "242",
+      "subject": "events",
+      "content": "DSS should have saved the duel of honor Soren fought as House Kuroha's champion.",
+      "expect": {
+        "contains": {
+          "duel of honor": "Kuroha"
+        }
+      }
+    },
+    {
+      "id": "b51",
+      "turn": "250",
+      "subject": "characters",
+      "content": "DSS should have saved the Conductor and the Choir's goal, the Last Ember.",
+      "expect": {
+        "contains": {
+          "conductor": "Last Ember"
+        }
+      }
+    },
+    {
+      "id": "b52",
+      "turn": "254",
+      "subject": "elements",
+      "content": "DSS should have saved the Choir Engine, anchored in Greywatch Ridge.",
+      "expect": {
+        "contains": {
+          "engine": "anchor"
+        }
+      }
+    },
+    {
+      "id": "b53",
+      "turn": "262",
+      "subject": "characters",
+      "content": "DSS should have saved that Warden Crowe defected to Soren's side.",
+      "expect": {
+        "contains": {
+          "crowe": "defect"
+        }
+      }
+    },
+    {
+      "id": "b54",
+      "turn": "264",
+      "subject": "events",
+      "content": "DSS should have saved the start of the siege of Halcyon at the Choir Engine.",
+      "expect": {
+        "contains": {
+          "siege": "Engine"
+        }
+      }
+    },
+    {
+      "id": "b55",
+      "turn": "268",
+      "subject": "characters",
+      "content": "DSS should have saved Soren's Blaze-ring promotion.",
+      "expect": {
+        "contains": {
+          "soren": "Blaze"
+        }
+      }
+    },
+    {
+      "id": "b56",
+      "turn": "272",
+      "subject": "general_info",
+      "content": "DSS should have recorded the overturned rule: Embers are lent by the Sun-Wyrm's heart, not inborn.",
+      "expect": {
+        "contains": {
+          "rules": "lent"
+        }
+      }
+    },
+    {
+      "id": "b57",
+      "turn": "276",
+      "subject": "characters",
+      "content": "DSS should have saved that Isolde Hakari, Soren's mother, sealed his white flame and is alive.",
+      "expect": {
+        "contains": {
+          "isolde": "seal"
+        }
+      }
+    },
+    {
+      "id": "b58",
+      "turn": "286",
+      "subject": "events",
+      "content": "DSS should have saved Meteor Drive breaking the Engine's anchor face.",
+      "expect": {
+        "contains": {
+          "anchor": "Meteor Drive"
+        }
+      }
+    },
+    {
+      "id": "b59",
+      "turn": "291",
+      "subject": "events",
+      "content": "DSS should have saved the Conductor's escape and the siege ending in a draw.",
+      "expect": {
+        "contains": {
+          "conductor": "escape"
+        }
+      }
+    },
+    {
+      "id": "b60",
+      "turn": "297",
+      "subject": "events",
+      "content": "DSS should have saved Soren's oath at the Ashen Gate to light every snuffed flame.",
+      "expect": {
+        "contains": {
+          "oath": "snuffed"
+        }
+      }
+    }
+  ]
+}

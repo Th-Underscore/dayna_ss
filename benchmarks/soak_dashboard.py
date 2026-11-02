@@ -1,13 +1,13 @@
 """Standalone dashboard for the dayna_ss long-horizon soak.
 
-Inspects the ``tests/runs/<config_hash>/`` directories produced by
+Inspects the ``benchmarks/tests/runs/<config_hash>/`` directories produced by
 ``long_horizon_soak.py``. Top level is computed stats; every exact payload
 (user input, reply, instruction prompt, judge result, probes, state snapshot)
 is one click away and fetched on demand.
 
 Run::
 
-    python soak_dashboard.py [--runs-dir tests/runs] [--port 7861] [--host 0.0.0.0]
+    python soak_dashboard.py [--runs-dir benchmarks/runs] [--port 7861] [--host 0.0.0.0]
 
 Stdlib only. Run directories are indexed incrementally: each ``result.json`` is
 parsed once and re-parsed only if it changes, so refreshes are O(new turns).
@@ -40,9 +40,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlsplit
 
-TEST_DIR = Path(__file__).parent
-REPO_ROOT = TEST_DIR.parent.parent.parent
-DEFAULT_RUNS_DIR = TEST_DIR / "runs"
+BENCHMARK_DIR = Path(__file__).parent
+REPO_ROOT = BENCHMARK_DIR.parent.parent.parent
+DEFAULT_RUNS_DIR = BENCHMARK_DIR / "runs"
 DEFAULT_LOCAL_BASE = "http://0.0.0.0:5001/v1"
 
 BOOT = secrets.token_hex(3)
@@ -549,7 +549,7 @@ class Run:
         sid = man.get("spreadsheet", "")
         if not sid:
             return {}
-        for p in (self.dir / f"{sid}.json", TEST_DIR / "spreadsheets" / f"{sid}.json",
+        for p in (self.dir / f"{sid}.json", BENCHMARK_DIR / "spreadsheets" / f"{sid}.json",
                   self.dir.parent.parent / "spreadsheets" / f"{sid}.json"):
             data = cached_json(p)
             if isinstance(data, dict) and data:
@@ -1477,7 +1477,7 @@ def main() -> int:
     global REGISTRY, SAMPLER
     ap = argparse.ArgumentParser(description="DSS long-horizon soak dashboard")
     ap.add_argument("--runs-dir", type=Path, default=DEFAULT_RUNS_DIR,
-                    help="directory holding run outputs (default: tests/runs)")
+                    help="directory holding run outputs (default: benchmarks/runs)")
     ap.add_argument("--host", default="0.0.0.0")
     ap.add_argument("--port", type=int, default=7861)
     args = ap.parse_args()

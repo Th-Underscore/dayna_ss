@@ -2,8 +2,8 @@ __pycache__
 .git
 test.py
 user_data/history
-tests/runs
-tests/user_data
+benchmarks/runs
+benchmarks/user_data
 _runs
 
 .ref
@@ -21,9 +21,7 @@ pi-warden.md
 # stray / runtime cruft
 .ignore
 error.log
-tests/textgen-dump.txt
-tests/_dumps/
-tests/_tmpl_extract/
+scripts/_dumps/
 user_data/nltk_data/
 user_data/example/schemas/*.txt
 user_data/example/schemas/*.bak
