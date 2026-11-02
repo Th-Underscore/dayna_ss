@@ -30,8 +30,7 @@ from ...utils.helpers import (
     split_keys_to_list,
     recursive_set,
     recursive_get,
-    expand_lists_in_data_for_llm,
-    unexpand_lists_in_data_from_llm,
+    to_jsonc,
     coerce_container_types,
     strip_thinking,
     strip_response,
@@ -458,8 +457,7 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
                 print(f"{_ERROR}Memory hygiene pass failed (non-fatal): {e}{_RESET}")
 
             print(f"{_HILITE}Summary for {data_type} completed in {time.time() - start:.2f} seconds.{_RESET}")
-            normalized = unexpand_lists_in_data_from_llm(data, target_schema_class, self.schema_parser)
-            save_json(normalized, self.history_path / f"{data_type}.json")
+            save_json(data, self.history_path / f"{data_type}.json")
             if data:
                 _lkg = getattr(self.summarizer, "_last_good_subjects", None)
                 if _lkg is not None:
@@ -477,10 +475,7 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
             # 10 chars -> missing -> {} for 15+ turns). Prefer the normalized form,
             # fall back to the raw data if normalization itself is what failed.
             try:
-                save_json(
-                    unexpand_lists_in_data_from_llm(data, target_schema_class, self.schema_parser),
-                    self.history_path / f"{data_type}.json",
-                )
+                save_json(data, self.history_path / f"{data_type}.json")
                 print(f"{_WARNING}Preserved prior {data_type} state despite update error.{_RESET}")
             except Exception as e2:
                 print(f"{_ERROR}Normalized preservation failed ({e2}); saving raw data.{_RESET}")

@@ -25,8 +25,7 @@ from ...utils.helpers import (
     split_keys_to_list,
     recursive_set,
     recursive_get,
-    expand_lists_in_data_for_llm,
-    unexpand_lists_in_data_from_llm,
+    to_jsonc,
     coerce_container_types,
     strip_thinking,
     strip_response,
@@ -389,13 +388,6 @@ class DSPromptsMixin:
         if path_to_value:
             current_value = recursive_get(formatted_data.data, path_to_value, default=None)
 
-        value_str = ""
-        if current_value is not None:
-            if isinstance(current_value, (dict, list)):
-                value_str = json.dumps(current_value, indent=indent)
-            else:
-                value_str = str(current_value)
-
         schema_snippet_str = ""
         example_json_str = ""
         branch_list_str = ""
@@ -470,7 +462,7 @@ class DSPromptsMixin:
             "branch_name": item_name,
             "item_name": item_name,
             "field_name": field_name,
-            "value": value_str,
+            "value": current_value,
             "keys": keys or [],
             "schema_snippet": schema_snippet_str,
             "example_json": example_json_str,
@@ -518,4 +510,4 @@ class DSPromptsMixin:
             print(
                 f"{_ERROR}Missing key in prompt template formatting: {e}. Template: '{prompt_template_str}', Args: {format_kwargs}{_RESET}"
             )
-            return f"Update field '{field_name}' for item '{item_name}'. Current value: {value_str}"
+            return f"Update field '{field_name}' for item '{item_name}'. Current value: {current_value}"

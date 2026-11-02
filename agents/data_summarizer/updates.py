@@ -25,8 +25,7 @@ from ...utils.helpers import (
     split_keys_to_list,
     recursive_set,
     recursive_get,
-    expand_lists_in_data_for_llm,
-    unexpand_lists_in_data_from_llm,
+    to_jsonc,
     coerce_container_types,
     strip_thinking,
     strip_response,
@@ -722,7 +721,7 @@ class DSUpdatesMixin:
                                 _done_field_phase()
                                 return parsed_list
                             elif isinstance(parsed_list, dict):
-                                return unexpand_lists_in_data_from_llm(parsed_list, target_schema_or_type, self.schema_parser)
+                                return coerce_container_types(parsed_list, target_schema_or_type, self.schema_parser)
                             last_error = f"Response was valid JSON but not a list: '{stripped_text}'"
                             print(f"{_ERROR}LLM response for list field {context_path_for_marker}: {last_error}{_RESET}")
                             pm.warn_step(field_phase_id, "perform_update", f"Parse error: {last_error}")

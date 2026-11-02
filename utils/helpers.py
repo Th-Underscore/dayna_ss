@@ -37,10 +37,8 @@ from .data_expansion import (
     _is_dict_expandable_to_list,
     coerce_container_types,
     enumerate_list,
-    expand_list,
-    expand_lists_in_data_for_llm,
     get_values,
-    unexpand_lists_in_data_from_llm,
+    to_jsonc,
 )
 from .formatting import (
     _bracket_dots,
@@ -70,8 +68,7 @@ __all__ = [
     "recursive_get", "recursive_set", "split_keys_to_list",
     # data_expansion
     "_COLLECTION_KEY_CANDIDATES", "_infer_collection_key", "_is_dict_expandable_to_list",
-    "coerce_container_types", "enumerate_list", "expand_list",
-    "expand_lists_in_data_for_llm", "get_values", "unexpand_lists_in_data_from_llm",
+    "coerce_container_types", "enumerate_list", "get_values", "to_jsonc",
     # formatting
     "_bracket_dots", "_get_jinja_env", "_get_param", "_last_item", "_scene_messages",
     "format_str", "format_str_or_jinja", "render_jinja_template",

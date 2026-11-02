@@ -1,88 +1,71 @@
 from typing import Any
 
-from .console import _BOLD, _DEBUG, _RESET
+import jsonc
 
 
-def expand_lists_in_data_for_llm(data: dict | list, schema_type, parser) -> Any:
-    """Recursively traverse data and expand lists into dictionaries
-    with stringified integer keys if the corresponding schema indicates to do so.
-
-    This is for creating a JSON-like structure that is clearer for an LLM.
-    This does not mutate the original data.
-
-    Args:
-        data (dict | list): The data to process (dict, list, or primitive).
-        schema_type (ParsedSchemaClass | None): The type for the current data segment, if available.
-        parser (SchemaParser): The SchemaParser instance for resolving type definitions.
-
-    Returns:
-        out (Any): A new data structure with specified lists expanded.
-    """
-    from .schema_parser import ParsedSchemaClass, TYPE_MAP
-
-    if schema_type in TYPE_MAP.values() or data is None:
-        return data
-
-    if isinstance(schema_type, ParsedSchemaClass):
-        parsed_class_obj = schema_type
-
-        if parsed_class_obj.definition_type == "dataclass" and isinstance(data, dict):
-            data_copy = {}
-            for k, v in data.items():
-                field_schema = parsed_class_obj.get_field(k)
-                if field_schema:
-                    item_schema_type = field_schema.type if field_schema.type else None
-                    data_copy[k] = expand_lists_in_data_for_llm(v, item_schema_type, parser)
-            return data_copy
-        elif parsed_class_obj.definition_type == "field":
-            field_type = parsed_class_obj.get_field().type
-            item_schema_type = None
-
-            if isinstance(data, dict):
-                if (
-                    hasattr(field_type, "__origin__")
-                    and field_type.__origin__ is dict
-                    and hasattr(field_type, "__args__")
-                    and field_type.__args__
-                ):
-                    item_schema_type = field_type.__args__[1]
-                return {k: expand_lists_in_data_for_llm(v, item_schema_type, parser) for k, v in data.items()}
-
-            if parsed_class_obj.do_expand_into_dict and isinstance(data, list):
-                if (
-                    hasattr(field_type, "__origin__")
-                    and field_type.__origin__ is list
-                    and hasattr(field_type, "__args__")
-                    and field_type.__args__
-                ):
-                    item_schema_type = field_type.__args__[0]
-                return {str(i): expand_lists_in_data_for_llm(item, item_schema_type, parser) for i, item in enumerate(data)}
-
-            print(f"Returning '{schema_type.name}' as is: {_BOLD}{data} {_DEBUG} {field_type}{_RESET}")
-            return [expand_lists_in_data_for_llm(item, field_type, parser) for item in data] if isinstance(data, list) else data
-
-        elif parsed_class_obj.definition_type == "alias" and isinstance(data, list):
-            # Alias of a list (e.g. Chapters = list[Chapter]) rendered directly:
-            # keep the LIST shape — list-iterating templates must see entries,
-            # not the stringified keys a dict-expansion would produce.
-            aliased_type = parsed_class_obj.get_field().type if parsed_class_obj.get_field() else None
-            if hasattr(aliased_type, "__origin__") and aliased_type.__origin__ is list:
-                item_schema_type = aliased_type.__args__[0] if aliased_type.__args__ else None
-                return [expand_lists_in_data_for_llm(item, item_schema_type, parser) for item in data]
-
-    if isinstance(data, dict):
-        effective_type = schema_type.__args__[1] if hasattr(schema_type, "__args__") else schema_type
-        return {k: expand_lists_in_data_for_llm(v, effective_type, parser) for k, v in data.items()}  # data_copy
-
+def _build_comments_structure(data):
+    """Recursively build the comment tree for jsonc.dumps."""
     if isinstance(data, list):
-        effective_type = schema_type.__args__[0] if hasattr(schema_type, "__args__") else schema_type
-        return {str(i): expand_lists_in_data_for_llm(item, effective_type, parser) for i, item in enumerate(data)}  # data_copy
+        comments = {}
+        for i, item in enumerate(data):
+            if isinstance(item, (list, dict)):
+                inner = _build_comments_structure(item)
+                if inner:
+                    comments[i] = (str(i), inner)
+                else:
+                    comments[i] = str(i)
+            else:
+                comments[i] = str(i)
+        return comments
+    elif isinstance(data, dict):
+        comments = {}
+        for key, value in data.items():
+            if isinstance(value, (list, dict)):
+                inner = _build_comments_structure(value)
+                if inner:
+                    comments[key] = (None, inner)
+        return comments
+    return None
 
-    return data
+
+def to_jsonc(data, indent: int = 2) -> str:
+    """Serialize data to JSONC with a trailing index comment on every array element.
+
+    Replaces the old dict-expansion approach: data keeps its native shape, and
+    the LLM sees `// 0`, `// 1`, … after each array entry.
+
+    Scalars (str, int, float, bool) pass through as their string form;
+    None renders as empty string.
+    """
+    if data is None:
+        return "null"
+    if not isinstance(data, (dict, list)):
+        return str(data)
+    tree = _build_comments_structure(data)
+    if isinstance(data, list):
+        root_comments = (None, tree) if tree else None
+    else:
+        root_comments = tree
+    raw = jsonc.dumps(data, indent=indent, comments=root_comments)  # type: ignore[arg-type]
+    return _make_comments_inline(raw)
 
 
-def expand_list(data: list) -> dict:
-    return {str(i): item for i, item in enumerate(data)}
+def _make_comments_inline(jsonc_str: str) -> str:
+    """Shift stacked `// N` comment lines to trailing inline position."""
+    lines = jsonc_str.splitlines()
+    out = []
+    pending = None
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith("//"):
+            pending = stripped
+            continue
+        if pending and stripped:
+            out.append(f"{line} {pending}")
+            pending = None
+        else:
+            out.append(line)
+    return "\n".join(out)
 
 
 def _is_dict_expandable_to_list(data: dict) -> bool:
@@ -144,7 +127,7 @@ def coerce_container_types(data: Any, schema_type, parser) -> Any:
       * ``list[X]``-declared fields written as int-keyed dicts -> back to lists
         (the ``_is_dict_expandable_to_list`` convention).
 
-    Mirrors the traversal of `unexpand_lists_in_data_from_llm`; mutates dict/list
+    Mirrors the old unexpand traversal; mutates dict/list
     values in place (the root object is preserved, so callers that alias the
     subject dict keep seeing the same object) and only returns a NEW container for
     the coerced cases themselves.
@@ -214,99 +197,6 @@ def coerce_container_types(data: Any, schema_type, parser) -> Any:
         return data
     return data
 
-
-def unexpand_lists_in_data_from_llm(data: Any, schema_type, parser) -> Any:
-    """
-    Recursively traverse data and convert dictionaries with stringified integer keys
-    back into lists if the corresponding schema indicates to do so, or if no schema is provided
-    and the dictionary keys suggest it was an expanded list.
-
-    This is the inverse of `expand_lists_in_data_for_llm`.
-    This does not mutate the original data.
-
-    Args:
-        data (Any): The data to process (dict, list, or primitive).
-        schema_type (ParsedSchemaClass | None): The type for the current data segment, if available.
-        parser (SchemaParser): The SchemaParser instance for resolving type definitions.
-
-    Returns:
-        out (Any): A new data structure with specified dictionaries converted to lists.
-    """
-    from .schema_parser import ParsedSchemaClass, TYPE_MAP
-
-    if schema_type in TYPE_MAP.values() or data is None:
-        return data
-
-    if isinstance(schema_type, ParsedSchemaClass):
-        parsed_class_obj = schema_type
-
-        if parsed_class_obj.definition_type == "dataclass" and isinstance(data, dict):
-            data_copy = {}
-            for k, v in data.items():
-                field_schema = parsed_class_obj.get_field(k)
-                current_item_schema_type = field_schema.type if field_schema and field_schema.type else None
-                data_copy[k] = unexpand_lists_in_data_from_llm(v, current_item_schema_type, parser)
-            return data_copy
-        elif parsed_class_obj.definition_type == "alias":
-            field_type = parsed_class_obj.get_field().type
-            if parsed_class_obj.do_expand_into_dict and isinstance(data, dict) and _is_dict_expandable_to_list(data):
-                list_item_schema_type = None
-                if field_type and hasattr(field_type, "__origin__") and field_type.__origin__ is list:
-                    if hasattr(field_type, "__args__") and field_type.__args__:
-                        list_item_schema_type = field_type.__args__[0]
-
-                    # Ensure keys are sorted numerically for correct list order
-                    sorted_items = sorted(data.items(), key=lambda x: int(x[0]))
-                    return [
-                        unexpand_lists_in_data_from_llm(item_data, list_item_schema_type, parser)
-                        for _, item_data in sorted_items
-                    ]  # data_copy
-
-            if isinstance(data, dict):
-                dict_value_schema_type = None
-                if (
-                    field_type
-                    and hasattr(field_type, "__origin__")
-                    and field_type.__origin__ is dict
-                    and hasattr(field_type, "__args__")
-                    and len(field_type.__args__) > 1
-                ):
-                    dict_value_schema_type = field_type.__args__[1]
-                return {
-                    k: unexpand_lists_in_data_from_llm(v, dict_value_schema_type, parser) for k, v in data.items()
-                }  # data_copy
-
-            if isinstance(data, list):
-                list_item_schema_type = None
-                if (
-                    field_type
-                    and hasattr(field_type, "__origin__")
-                    and field_type.__origin__ is list
-                    and hasattr(field_type, "__args__")
-                    and field_type.__args__
-                ):
-                    list_item_schema_type = field_type.__args__[0]
-                elif field_type:  # If it's a non-generic type for list items
-                    list_item_schema_type = field_type
-
-                return [unexpand_lists_in_data_from_llm(item, list_item_schema_type, parser) for item in data]  # data_copy
-
-            return data
-
-    if isinstance(data, dict):
-        if getattr(schema_type, "__origin__", None) is dict:
-            value_type = getattr(schema_type, "__args__", (None,))
-            value_type = value_type[1] if len(value_type) > 1 else None
-            return {k: unexpand_lists_in_data_from_llm(v, value_type, parser) for k, v in data.items()}
-        if _is_dict_expandable_to_list(data):
-            sorted_items = sorted(data.items(), key=lambda x: int(x[0]))
-            return [unexpand_lists_in_data_from_llm(item_data, None, parser) for _, item_data in sorted_items]
-        return {k: unexpand_lists_in_data_from_llm(v, None, parser) for k, v in data.items()}
-
-    if isinstance(data, list):
-        return [unexpand_lists_in_data_from_llm(item, None, parser) for item in data]
-
-    return data
 
 
 def get_values(data: dict | list):

@@ -38,7 +38,7 @@ from ...utils.helpers import (
     History,
     load_json,
     save_json,
-    expand_lists_in_data_for_llm,
+    to_jsonc,
     get_values,
     strip_thinking,
     strip_response,

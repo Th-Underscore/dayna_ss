@@ -29,7 +29,6 @@ from ..utils.helpers import (
     _RESET,
     _SUCCESS,
     _WARNING,
-    expand_lists_in_data_for_llm,
     load_json,
     save_json,
     strip_thinking,
@@ -214,7 +213,7 @@ class FormattedData:
                         # list-iterating template would render the KEYS.
                         data = list(data.values())
 
-            self.data = expand_lists_in_data_for_llm(data, actual_data_schema_hint, self.parser)
+            self.data = data
         else:
             self.data = data
 

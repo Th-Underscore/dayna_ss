@@ -5,6 +5,7 @@ import jinja2
 from jinja2.sandbox import ImmutableSandboxedEnvironment
 
 from .console import _RESET, _WARNING
+from .data_expansion import to_jsonc
 
 
 def format_str(string: str, **kwargs) -> str:
@@ -130,6 +131,7 @@ def _get_jinja_env():
         _jinja_env.filters['scene_messages'] = _scene_messages
         _jinja_env.filters['get_param'] = _get_param
         _jinja_env.filters['bracket'] = _bracket_dots
+        _jinja_env.filters['tojsonc'] = to_jsonc
     return _jinja_env
 
 
