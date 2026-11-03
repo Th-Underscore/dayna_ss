@@ -568,6 +568,19 @@
         "importance": "Importance"
       }
     },
+    "EventKnowledgeRole": {
+      "type": "alias",
+      "field": "str",
+      "defaults": {
+        "field_placeholder": "The scene narrative role relative to the knowledge item.",
+        "field_options": [
+          "established",
+          "reinforced",
+          "challenged",
+          "debunked"
+        ]
+      }
+    },
     "StoryEvent": {
       "type": "dataclass",
       "fields": {
@@ -581,7 +594,7 @@
         "outcome": "str",
         "participants": "dict[str, EventParticipant]",
         "importance": "Importance",
-        "learned": "dict[str, str]"
+        "learned": "dict[str, EventKnowledgeRole]"
       },
       "defaults": {
         "relationship_format": {
