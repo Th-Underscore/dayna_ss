@@ -203,9 +203,16 @@ class ParsedSchemaClass:
     ) -> dict:
         """Converts a Python type hint (potentially a ParsedSchemaClass) to a JSON schema dict."""
         schema: dict[str, Any] = {}
-        description = self.defaults.get(f"{field_name}_placeholder")
+        description = self.defaults.get(f"{field_name}_placeholder") or self.defaults.get("field_placeholder")
         if description:
             schema["description"] = description
+        options = self.defaults.get(f"{field_name}_options") or self.defaults.get("field_options")
+        if options:
+            schema["enum"] = options
+        field_range = self.defaults.get(f"{field_name}_range") or self.defaults.get("field_range")
+        if field_range and type_hint in (int, float):
+            schema["minimum"] = field_range[0]
+            schema["maximum"] = field_range[1]
 
         if isinstance(type_hint, ParsedSchemaClass):
             # This is a reference to another defined type
@@ -300,8 +307,20 @@ class ParsedSchemaClass:
                     field_placeholder = self.defaults.get(f"{field_name}_placeholder")
 
                     if field_placeholder is not None:
-                        if field_type is str or field_type is int or field_type is float or field_type is bool:
-                            example_obj[field_name] = str(field_placeholder)
+                        if field_type is str:
+                            field_options = self.defaults.get(f"{field_name}_options") or self.defaults.get("field_options")
+                            if field_options:
+                                example_obj[field_name] = field_options[len(field_options) // 2]
+                            else:
+                                example_obj[field_name] = f"{field_name}_example_string"
+                        elif field_type is int:
+                            field_range = self.defaults.get(f"{field_name}_range") or self.defaults.get("field_range")
+                            example_obj[field_name] = (field_range[0] + field_range[1]) // 2 if field_range else 0
+                        elif field_type is float:
+                            field_range = self.defaults.get(f"{field_name}_range") or self.defaults.get("field_range")
+                            example_obj[field_name] = (field_range[0] + field_range[1]) / 2 if field_range else 0.0
+                        elif field_type is bool:
+                            example_obj[field_name] = True
                         elif isinstance(field_type, ParsedSchemaClass):  # Nested class, recurse
                             example_obj[field_name] = field_type.generate_example_json(
                                 all_definitions_map, depth + 1, max_depth
@@ -315,8 +334,16 @@ class ParsedSchemaClass:
                                     example_obj[field_name] = [
                                         item_type.generate_example_json(all_definitions_map, depth + 1, max_depth)
                                     ]
+                                elif item_type is int:
+                                    item_range = self.defaults.get(f"{field_name}_range") or self.defaults.get("field_range")
+                                    example_obj[field_name] = [(item_range[0] + item_range[1]) // 2] if item_range else [0]
+                                elif item_type is float:
+                                    item_range = self.defaults.get(f"{field_name}_range") or self.defaults.get("field_range")
+                                    example_obj[field_name] = [(item_range[0] + item_range[1]) / 2] if item_range else [0.0]
+                                elif item_type is bool:
+                                    example_obj[field_name] = [True]
                                 else:
-                                    example_obj[field_name] = [field_placeholder]
+                                    example_obj[field_name] = [f"{field_name}_example_string"]
                         else:  # Fallback for other types if description not used
                             example_obj[field_name] = f"<{field_placeholder}>"  # Use description as placeholder
 
@@ -398,12 +425,23 @@ class ParsedSchemaClass:
             if self._field:
                 field_obj = self._field
                 field_type = field_obj.type
+                field_options = self.defaults.get("field_options")
                 field_placeholder = self.defaults.get("field_placeholder")
 
+                if field_options and field_type is str:
+                    return field_options[len(field_options) // 2]
+                if field_type is int:
+                    field_range = self.defaults.get("field_range")
+                    return (field_range[0] + field_range[1]) // 2 if field_range else 0
+                if field_type is float:
+                    field_range = self.defaults.get("field_range")
+                    return (field_range[0] + field_range[1]) / 2 if field_range else 0.0
+                if field_type is bool:
+                    return True
+                if field_type is str:
+                    return f"{self.name.lower()}_example_string"
                 if field_placeholder is not None:
-                    if field_type is str or field_type is int or field_type is float or field_type is bool:
-                        return str(field_placeholder)
-                    elif isinstance(field_type, ParsedSchemaClass):  # Nested class, recurse
+                    if isinstance(field_type, ParsedSchemaClass):  # Nested class, recurse
                         return field_type.generate_example_json(all_definitions_map, depth + 1, max_depth)
                     elif hasattr(field_type, "__origin__"):  # Handle generics like list/dict
                         pass  # TODO: Handle generics
@@ -466,6 +504,66 @@ class ParsedSchemaClass:
             return f"<empty_definition_{self.name}>"
 
         return f"<unknown_definition_type_{self.definition_type}_for_{self.name}>"
+
+    def generate_example_comments(self, all_definitions_map: dict, depth: int = 0, max_depth: int = 5) -> dict | None:
+        """Build a jsonc comments tree for this schema class, parallel to generate_example_json.
+
+        Each field gets a comment from its placeholder and/or options. Nested dataclasses
+        get recursive sub-comments.
+        """
+        if depth > max_depth:
+            return None
+        if self.definition_type != "dataclass":
+            return None
+
+        comments: dict = {}
+        for field_obj in self.get_fields():
+            field_name = field_obj.name
+            if field_name.startswith("_"):
+                continue
+            field_type = field_obj.type
+
+            placeholder = self.defaults.get(f"{field_name}_placeholder")
+            options = self.defaults.get(f"{field_name}_options") or self.defaults.get("field_options")
+
+            # For alias-typed fields, fall back to the alias's own field_placeholder/field_options
+            if not placeholder and isinstance(field_type, ParsedSchemaClass) and field_type.definition_type == "alias":
+                placeholder = field_type.defaults.get("field_placeholder")
+                if not options:
+                    options = field_type.defaults.get("field_options")
+
+            comment_text = None
+            if placeholder:
+                comment_text = str(placeholder)
+                if options:
+                    comment_text += " (" + " | ".join(str(o) for o in options) + ")"
+            elif options:
+                comment_text = "(" + " | ".join(str(o) for o in options) + ")"
+
+            sub_comments = None
+            if isinstance(field_type, ParsedSchemaClass):
+                sub_comments = field_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
+            elif hasattr(field_type, "__origin__"):
+                origin = field_type.__origin__
+                args = getattr(field_type, "__args__", tuple())
+                if origin is list and args:
+                    item_type = args[0]
+                    if isinstance(item_type, ParsedSchemaClass):
+                        item_comments = item_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
+                        if item_comments:
+                            sub_comments = {0: (None, item_comments)}
+                elif origin is dict and len(args) == 2:
+                    value_type = args[1]
+                    if isinstance(value_type, ParsedSchemaClass):
+                        value_comments = value_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
+                        if value_comments:
+                            key = str(placeholder) if placeholder else f"{field_name}_key_example"
+                            sub_comments = {key: (None, value_comments)}
+
+            if comment_text or sub_comments:
+                comments[field_name] = (comment_text, sub_comments)
+
+        return comments if comments else None
 
     def __repr__(self):
         if self.definition_type == "alias":
@@ -939,6 +1037,14 @@ class SchemaParser:
 
         self.example_jsons[type_hint] = value
         return value
+
+    def generate_example_json_comments(self, type_hint: Any, depth: int = 0, max_depth: int = 8) -> dict | None:
+        """Build a jsonc comments tree for a type hint, parallel to generate_example_json."""
+        if depth > max_depth:
+            return None
+        if isinstance(type_hint, ParsedSchemaClass):
+            return type_hint.generate_example_comments(self.definitions, depth, max_depth)
+        return None
 
     def get_subject_class(self, subject_name: str) -> ParsedSchemaClass | None:
         """Get the parsed class definition for a top-level subject."""

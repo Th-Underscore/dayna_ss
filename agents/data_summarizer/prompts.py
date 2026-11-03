@@ -41,6 +41,8 @@ from ...utils.schema_parser import (
     Trigger,
 )
 
+from ...utils.data_expansion import _make_comments_inline
+
 from ..formatted_data import FormattedData
 
 from .parsing import (
@@ -400,7 +402,11 @@ class DSPromptsMixin:
                 schema_snippet_str = lambda: json.dumps(
                     strip_underscore_keys(self.schema_parser.get_relevant_json_schema_definitions(target_schema_or_type)), indent=2
                 )
-                example_json_str = lambda: json.dumps(strip_underscore_keys(self.schema_parser.generate_example_json(target_schema_or_type)), indent=2)
+                example_json_str = lambda: _make_comments_inline(jsonc.dumps(
+                    strip_underscore_keys(self.schema_parser.generate_example_json(target_schema_or_type)),
+                    indent=2,
+                    comments=strip_underscore_keys(self.schema_parser.generate_example_json_comments(target_schema_or_type)),
+                ))
             except Exception as e:
                 print(f"{_ERROR}Error generating schema snippet or example JSON for {target_name}: {e}{_RESET}")
                 traceback.print_exc()
