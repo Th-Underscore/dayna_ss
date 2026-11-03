@@ -148,6 +148,26 @@ def merge_underscore_preserve(new_data: Any, old_data: Any) -> Any:
     return new_data
 
 
+def stamp_end_message_nodes(data: Any, message_node: str) -> None:
+    """Recursively stamp _message_node on all 'end' TimePoint fields.
+
+    Convention: any dict-valued field named 'end' gets its _message_node
+    set to the given value. This is the type+name convention — name 'end'
+    + dict shape (TimePoint) — with no per-subject hardcoding.
+    Mutates data in place.
+    """
+    if isinstance(data, dict):
+        for k, v in data.items():
+            if k == "end" and isinstance(v, dict):
+                v["_message_node"] = message_node
+            elif isinstance(v, (dict, list)):
+                stamp_end_message_nodes(v, message_node)
+    elif isinstance(data, list):
+        for item in data:
+            if isinstance(item, (dict, list)):
+                stamp_end_message_nodes(item, message_node)
+
+
 def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
     """Split a string of keys into a list, handling both dot separators and square brackets.
 

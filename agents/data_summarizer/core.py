@@ -30,6 +30,7 @@ from ...utils.helpers import (
     split_keys_to_list,
     recursive_set,
     recursive_get,
+    stamp_end_message_nodes,
     to_jsonc,
     coerce_container_types,
     strip_thinking,
@@ -427,6 +428,11 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
                 raise ValueError(f"Subject '{data_type}' should be a ParsedSchemaClass: {subject_type}")
 
             self._update_recursive(data_type, data, formatted_data, unexpanded_formatted_data, target_schema_class)
+
+            # Type+name convention: any 'end' TimePoint field gets its
+            # _message_node stamped with the current message node post-apply.
+            msg_node = self._resolve_current_message_node()
+            stamp_end_message_nodes(data, msg_node)
 
             # Scene boundary: copy the model's fresh start → now so both render
             # identically at the boundary (the model reliably rewrites start but
