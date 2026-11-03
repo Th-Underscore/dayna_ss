@@ -1,0 +1,1208 @@
+{
+  "definitions": {
+    "Characters": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "$ref": "#/definitions/CharacterMap"
+        }
+      },
+      "required": [
+        "entries"
+      ]
+    },
+    "CharacterMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Character"
+      }
+    },
+    "Character": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "description": "The character's static identity: who they are, physical appearance, personality, and defining characteristics. Set at creation and rarely updated. Keep to 1-3 concise entries.",
+          "$ref": "#/definitions/Text"
+        },
+        "status": {
+          "description": "The character's current state: where they are, physical condition, what they are doing right now. REPLACED (not appended) each update. Keep to a single concise sentence.",
+          "type": "string"
+        },
+        "biography": {
+          "description": "The character's backstory, past experiences, and history. This can include their origins, past relationships, previous life events, and how they became who they are today.",
+          "$ref": "#/definitions/Text"
+        },
+        "traits": {
+          "description": "A list of defining characteristics, personality aspects, or physical features of the character.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attributes": {
+          "description": "A list of character's abilities, skills, or quantifiable characteristics, often with a brief explanation (e.g., 'Raw strength: Greatly above average', 'Gunslinging: Elite speed, high-tier accuracy').",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "voice": {
+          "description": "A description of the character's speaking style, tone, and manner of expression (e.g., 'Speaks in a low, gravelly voice, uses short sentences').",
+          "type": "string"
+        },
+        "quirks": {
+          "description": "A list of distinctive habits, quirks, or idiosyncratic behaviors that make the character unique.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fears": {
+          "description": "A list of things that frighten or concern the character.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "preferences": {
+          "description": "The character's likes and dislikes.",
+          "$ref": "#/definitions/CharacterPreferences"
+        },
+        "importance": {
+          "description": "The character's overall importance to the story -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing). Faction: 'positive', 'negative', or 'neutral' from the story's perspective. Characters scoring below the importance detail threshold are rendered as one-line roster entries instead of full profiles.",
+          "$ref": "#/definitions/Importance"
+        },
+        "group_status": {
+          "description": "Example_Group_Status_Name",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/CharacterGroupStatus"
+          }
+        },
+        "relationships": {
+          "description": "Example_Character_Name",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/CharacterRelationships"
+          }
+        },
+        "milestones": {
+          "description": "A list of significant achievements, events, or turning points in the character's life.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CharacterMilestone"
+          }
+        },
+        "knows": {
+          "description": "Knowledge item slugs this character is aware of, mapped to their epistemic stance. Stance values: 'knows' (neutral awareness of a confirmed fact), 'believes' (accepts as true — rumors, lies, unconfirmed claims), 'suspects' (has it in mind with doubt), 'spreading' (actively sharing/repeating it), 'sees_through' (knows it is false). Only include items where the character has a SPECIFIC stance that differs from the default. A character who simply knows a confirmed fact does NOT need an entry here — that's the default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EpistemicStance"
+          }
+        }
+      },
+      "required": [
+        "description",
+        "status",
+        "biography",
+        "traits",
+        "attributes",
+        "voice",
+        "quirks",
+        "fears",
+        "preferences",
+        "importance",
+        "group_status",
+        "relationships",
+        "milestones",
+        "knows"
+      ]
+    },
+    "Text": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "CharacterPreferences": {
+      "type": "object",
+      "properties": {
+        "likes": {
+          "description": "A list of things, activities, topics, or items the character enjoys or prefers.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dislikes": {
+          "description": "A list of things, activities, topics, or items the character dislikes or avoids.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "likes",
+        "dislikes"
+      ]
+    },
+    "Importance": {
+      "type": "object",
+      "properties": {
+        "score": {
+          "description": "A numerical value 0-100, scored per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing, not a single scene's moment-to-moment urgency). A score means the same across all entity types. In the real JSON this is an integer, not a string.",
+          "minimum": 0,
+          "maximum": 100,
+          "type": "integer"
+        },
+        "reason": {
+          "description": "A brief explanation of why this importance level is appropriate -- what makes it salient and/or weighty relative to the specific context.",
+          "type": "string"
+        },
+        "faction": {
+          "description": "RELATIVE TO THE SUBJECT'S PERSPECTIVE. Options: 'positive' (ally, friend, family - benefits them), 'negative' (enemy, rival, hostile - threatens them), 'neutral' (barely known, acquaintance). Example: John's status in 'Subterraneans' as 'enemy' would have faction='negative' (from John's perspective), but from the Subterraneans' perspective of John, faction would also be 'negative' (John is THEIR enemy). The Council's faction in Subterraneans should be 'positive' because they are allies TO the Subterraneans.",
+          "enum": [
+            "positive",
+            "negative",
+            "neutral"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "score",
+        "reason",
+        "faction"
+      ]
+    },
+    "CharacterGroupStatus": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "description": "The character's roles or ranks within this specific status context (e.g., 'Commander', 'Enemy').",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aliases": {
+          "description": "Alternative names or titles for the character within this specific status context (e.g., 'Leader', 'Hellion'). A genuine alias names THIS entry only (a nickname, title, or handle referring to this same entity). It is NOT the name of a different, separately-tracked entity. If a term names another entry in the roster, do not list it here — it belongs on that entity's own entry (record shared/undercover/impersonation identities as a relationship or milestone, not as an alias).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "events": {
+          "description": "A list of significant events related to the character under this specific status.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "importance": {
+          "description": "The importance of this status context RELATIVE TO THAT GROUP -- scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT; long-term). Faction: RELATIVE to the group perspective -- 'positive' if they are an ally/friend TO THAT GROUP, 'negative' if enemy/rival, 'neutral' otherwise. Example: a group's enemy has faction='negative' from the group's standpoint, but might be 'positive' from another group's standpoint.",
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "position",
+        "aliases",
+        "events",
+        "importance"
+      ]
+    },
+    "CharacterRelationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CharacterRelationship"
+      }
+    },
+    "CharacterMilestone": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "scenes": {
+          "description": "A list of scene numbers where this milestone is relevant or occurred.",
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "importance": {
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "title",
+        "scenes",
+        "importance"
+      ]
+    },
+    "EpistemicStance": {
+      "description": "The character's epistemic stance toward this knowledge item.",
+      "enum": [
+        "knows",
+        "believes",
+        "suspects",
+        "spreading",
+        "sees_through"
+      ],
+      "type": "string"
+    },
+    "CharacterRelationship": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "description": "A single term to describe the relationship between these two characters for this specific status (e.g., 'brother', 'boss', 'subordinate')",
+          "type": "string"
+        },
+        "status": {
+          "description": "The connection these two characters have for this relationship (e.g., 'Family', 'School', 'Army')",
+          "type": "string"
+        },
+        "aliases": {
+          "description": "A list of nicknames or alternative terms for the related character in the context of this specific relationship (e.g., 'Bro'). A genuine alias names THIS entry only (a nickname, title, or handle referring to this same entity). It is NOT the name of a different, separately-tracked entity. If a term names another entry in the roster, do not list it here — it belongs on that entity's own entry (record shared/undercover/impersonation identities as a relationship or milestone, not as an alias).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "events": {
+          "description": "A list of events relevant to this specific relationship between the characters.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "importance": {
+          "description": "The importance of this RELATIONSHIP, RELATIVE TO THIS CHARACTER -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; long-term standing, not a single scene's urgency). It measures how central, irreplaceable, and defining the tie is to this character's life. Faction: RELATIVE TO THIS CHARACTER -- 'positive' if this character views the other as ally/friend, 'negative' if enemy/rival, 'neutral' otherwise. Example: if John killed Harry, John's relationship to Harry is faction='negative' (Harry views him negatively), yet the score can still be high if Harry's life now organizes around that revenge.",
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "relation",
+        "status",
+        "aliases",
+        "events",
+        "importance"
+      ]
+    },
+    "Groups": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "$ref": "#/definitions/GroupMap"
+        }
+      },
+      "required": [
+        "entries"
+      ]
+    },
+    "GroupMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Group"
+      }
+    },
+    "Group": {
+      "type": "object",
+      "properties": {
+        "aliases": {
+          "description": "Alternative names or shorthand for the group. A genuine alias names THIS entry only (a nickname, title, or handle referring to this same entity). It is NOT the name of a different, separately-tracked entity. If a term names another entry in the roster, do not list it here — it belongs on that entity's own entry (record shared/undercover/impersonation identities as a relationship or milestone, not as an alias).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "description": "A detailed textual description of the group, its purpose, and characteristics.",
+          "$ref": "#/definitions/Text"
+        },
+        "purpose": {
+          "description": "What the group seeks to achieve or accomplish. Their goals and motivations.",
+          "type": "string"
+        },
+        "culture": {
+          "description": "The group's norms, values, traditions, and social customs.",
+          "type": "string"
+        },
+        "resources": {
+          "description": "What the group possesses or controls (e.g., weapons, territory, technology, connections).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "events": {
+          "description": "A list of significant events the group has been involved in.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "importance": {
+          "description": "The group's overall importance to the story -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing). Faction: 'positive', 'negative', or 'neutral'. Groups scoring below the importance detail threshold are rendered as one-line roster entries instead of full profiles.",
+          "$ref": "#/definitions/Importance"
+        },
+        "relationships": {
+          "description": "Example_Other_Group_Name",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/GroupRelationships"
+          }
+        },
+        "characters": {
+          "description": "Example_Character_In_Group",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/GroupCharacterInfo"
+          }
+        },
+        "knows": {
+          "description": "Knowledge item slugs this group is aware of, mapped to their epistemic stance. Same stance vocabulary as characters: 'knows', 'believes', 'suspects', 'spreading', 'sees_through'. Only include items where the group has a specific stance that differs from the default.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EpistemicStance"
+          }
+        }
+      },
+      "required": [
+        "aliases",
+        "description",
+        "purpose",
+        "culture",
+        "resources",
+        "events",
+        "importance",
+        "relationships",
+        "characters",
+        "knows"
+      ]
+    },
+    "GroupRelationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/GroupRelationship"
+      }
+    },
+    "GroupCharacterInfo": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "description": "The character's role or rank within this specific group.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "events": {
+          "description": "A list of events relevant to this character's involvement with the group.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "importance": {
+          "description": "The importance of this character's membership to the group -- scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT; long-term). Faction: 'positive', 'negative', or 'neutral' relative to the group.",
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "position",
+        "events",
+        "importance"
+      ]
+    },
+    "GroupRelationship": {
+      "type": "object",
+      "properties": {
+        "position": {
+          "description": "A one-word summary of this specific relationship the group has with the target group (e.g., 'Ally', 'Enemy', 'Neutral').",
+          "type": "string"
+        },
+        "relation": {
+          "description": "The type of relationship (e.g., 'ally', 'enemy', 'neutral').",
+          "type": "string"
+        },
+        "status": {
+          "description": "The current status of the relationship (e.g., 'active', 'dormant', 'hostile').",
+          "type": "string"
+        },
+        "importance": {
+          "description": "The significance of this relationship -- scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT; long-term). Faction: 'positive' for ally, 'negative' for enemy, 'neutral' otherwise, relative to the subject.",
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "position",
+        "relation",
+        "status",
+        "importance"
+      ]
+    },
+    "Elements": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "$ref": "#/definitions/ElementMap"
+        }
+      },
+      "required": [
+        "entries"
+      ]
+    },
+    "ElementMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/Element"
+      }
+    },
+    "Element": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "description": "The type of element: 'creature', 'location', 'item', or 'resource'.",
+          "type": "string"
+        },
+        "description": {
+          "description": "A detailed textual description of the element, potentially spanning multiple lines.",
+          "$ref": "#/definitions/Text"
+        },
+        "traits": {
+          "description": "A list of defining characteristics or notable features of the element.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "attributes": {
+          "description": "A list of the element's capabilities, properties, or quantifiable characteristics (e.g., 'Height: 8 feet', 'Durability: High').",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "properties": {
+          "description": "A key-value bag for type-specific details (e.g., for a location: {'capacity': '50 people', 'lighting': 'dim'}; for an item: {'ammo': '12', 'range': '300m'}).",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "relationships": {
+          "description": "Example_Character_Or_Element_Name",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/ElementRelationships"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "importance": {
+          "description": "The element's overall importance to the story -- scored 0-100 per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing). An element can be constantly PRESENT yet disposable (this scene's setpiece) -- salience alone caps near 50; reserve 80+ for elements the story structurally depends on and uses across scenes. Elements scoring below the importance detail threshold are rendered as one-line roster entries instead of full profiles.",
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "kind",
+        "description",
+        "traits",
+        "attributes",
+        "properties",
+        "relationships",
+        "events",
+        "importance"
+      ]
+    },
+    "ElementRelationships": {
+      "type": "object",
+      "properties": {
+        "relation": {
+          "description": "A single term describing the relationship between this element and another element or character (e.g., 'contains', 'located_in', 'wields', 'guarded_by').",
+          "type": "string"
+        },
+        "status": {
+          "description": "The current state of this relationship (e.g., 'active', 'broken', 'temporary').",
+          "type": "string"
+        },
+        "importance": {
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "relation",
+        "status",
+        "importance"
+      ]
+    },
+    "CurrentScene": {
+      "type": "object",
+      "properties": {
+        "what": {
+          "description": "A brief summary or title describing the overall current scene or situation. This field is reset when a new scene is detected (via manual 'NEXT SCENE:' prefix or auto-detection), archived to scenes.json, and the current scene is cleared for tracking the new scene.",
+          "type": "string"
+        },
+        "start": {
+          "description": "The initial state or setup of the current scene.",
+          "$ref": "#/definitions/SceneStart"
+        },
+        "now": {
+          "description": "The current, up-to-date state of the scene as it is unfolding.",
+          "$ref": "#/definitions/SceneNow"
+        },
+        "_scene_number": {
+          "type": "integer",
+          "readOnly": true
+        },
+        "_scene_start_message": {
+          "type": "integer",
+          "readOnly": true
+        }
+      },
+      "required": [
+        "what",
+        "start",
+        "now"
+      ]
+    },
+    "SceneStart": {
+      "$ref": "#/definitions/SceneState"
+    },
+    "SceneNow": {
+      "$ref": "#/definitions/SceneState"
+    },
+    "SceneState": {
+      "type": "object",
+      "properties": {
+        "who": {
+          "description": "Describes the characters and groups involved in this state of the scene.",
+          "$ref": "#/definitions/SceneWho"
+        },
+        "when": {
+          "description": "Describes the timing (date, general time, specific time) of this state of the scene.",
+          "$ref": "#/definitions/SceneWhen"
+        },
+        "where": {
+          "description": "The primary location or setting for this state of the scene.",
+          "type": "string"
+        },
+        "why": {
+          "description": "Example_Reason",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SceneWhy"
+          }
+        }
+      },
+      "required": [
+        "who",
+        "when",
+        "where",
+        "why"
+      ]
+    },
+    "SceneWho": {
+      "type": "object",
+      "properties": {
+        "characters": {
+          "description": "Example_Scene_Character_Name",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SceneCharacter"
+          }
+        },
+        "groups": {
+          "description": "Example_Scene_Group_Name",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SceneGroup"
+          }
+        },
+        "elements": {
+          "description": "Example_Scene_Entity_Name",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SceneElement"
+          }
+        }
+      },
+      "required": [
+        "characters",
+        "groups",
+        "elements"
+      ]
+    },
+    "SceneWhen": {
+      "type": "object",
+      "properties": {
+        "_message_node": {
+          "$ref": "#/definitions/Message",
+          "readOnly": true
+        },
+        "date": {
+          "description": "The calendar date of the scene (e.g., 'October 15, 2028'), or a day relative to a previous checkpoint (e.g., 'The day after the battle').",
+          "type": "string"
+        },
+        "time": {
+          "description": "A general description of the time of day for the scene (e.g., 'Pre-dawn hours', 'Afternoon').",
+          "type": "string"
+        },
+        "specific_time": {
+          "description": "A precise time for the scene, if applicable (e.g., '05:30', '14:32').",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "time",
+        "specific_time"
+      ]
+    },
+    "SceneWhy": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A short title or category for the reason/purpose (e.g., 'Mission Preparation').",
+          "type": "string"
+        },
+        "details": {
+          "description": "A more detailed explanation of the reason, objective, or motivation behind the scene or elements within it.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "details"
+      ]
+    },
+    "SceneCharacter": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The name of the character present in the scene.",
+          "type": "string"
+        },
+        "location": {
+          "description": "The last known location of the character within the scene.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "location"
+      ]
+    },
+    "SceneGroup": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The name of the group present or relevant to the scene.",
+          "type": "string"
+        },
+        "location": {
+          "description": "The general location or area of operation for the group in the context of the scene.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "location"
+      ]
+    },
+    "SceneElement": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The name of the element present in the scene.",
+          "type": "string"
+        },
+        "location": {
+          "description": "The last known location of the element within the scene.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "location"
+      ]
+    },
+    "Message": {
+      "description": "<INTERNAL_FIELD_DO_NOT_UPDATE>",
+      "type": "string"
+    },
+    "Events": {
+      "type": "object",
+      "properties": {
+        "past": {
+          "description": "Example_Past_Event_Before_Story_Start",
+          "$ref": "#/definitions/PastEvents"
+        },
+        "scenes": {
+          "description": "Example_Story_Scene",
+          "$ref": "#/definitions/Scenes"
+        },
+        "chapters": {
+          "description": "Example_Chapter",
+          "$ref": "#/definitions/Chapters"
+        },
+        "beats": {
+          "$ref": "#/definitions/CrucialEvents"
+        }
+      },
+      "required": [
+        "past",
+        "scenes",
+        "chapters",
+        "beats"
+      ]
+    },
+    "PastEvents": {
+      "description": "Past_Event_Before_Story_Start",
+      "$ref": "#/definitions/StoryEvents"
+    },
+    "Scenes": {
+      "description": "Scene_Using_Data_From_Current_Scene",
+      "$ref": "#/definitions/StoryEvents"
+    },
+    "Chapters": {
+      "description": "Chapter_Title",
+      "type": "array",
+      "items": {
+        "description": "Chapter_Title",
+        "$ref": "#/definitions/Chapter"
+      }
+    },
+    "CrucialEvents": {
+      "description": "Very_Important_Event",
+      "$ref": "#/definitions/StoryEvents"
+    },
+    "StoryEvents": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/StoryEvent"
+      }
+    },
+    "Chapter": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "description": "A short title for this chapter (e.g., 'The Betrayal Unfolds', 'The Journey Begins').",
+          "type": "string"
+        },
+        "starting_scene": {
+          "description": "The absolute scene index where this chapter began (e.g., scene 1 of the story).",
+          "type": "integer"
+        },
+        "ending_scene": {
+          "description": "The absolute scene index where this chapter concluded, or null if still active.",
+          "type": "integer"
+        },
+        "scenes": {
+          "description": "List of absolute scene indices in this chapter (e.g., [1, 2, 3, 4, 5]).",
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "summary": {
+          "description": "A concise summary of what happened in this chapter - the core narrative beats and progression.",
+          "type": "string"
+        },
+        "key_changes": {
+          "description": "A list of significant changes, each with a description and the scene where it occurred.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/KeyChange"
+          }
+        },
+        "status": {
+          "description": "Current status: 'active', 'concluded', or 'suspended'.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "starting_scene",
+        "ending_scene",
+        "scenes",
+        "summary",
+        "key_changes",
+        "status"
+      ]
+    },
+    "StoryEvent": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The unique name or title of the story event.",
+          "type": "string"
+        },
+        "formal_name": {
+          "description": "The formal or official name of the story event, if different from the 'name' field. Write 'N/A' if no formal name exists, i.e. referred to only colloquially or informally.",
+          "type": "string"
+        },
+        "aliases": {
+          "description": "A list of alternate names or aliases for the story event. A genuine alias names THIS entry only (a nickname, title, or handle referring to this same entity). It is NOT the name of a different, separately-tracked entity. If a term names another entry in the roster, do not list it here — it belongs on that entity's own entry (record shared/undercover/impersonation identities as a relationship or milestone, not as an alias).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "start": {
+          "description": "The time point marking the beginning of the event.",
+          "$ref": "#/definitions/TimePoint"
+        },
+        "end": {
+          "description": "The time point marking the end of the event.",
+          "$ref": "#/definitions/TimePoint"
+        },
+        "summary": {
+          "description": "A textual summary describing the key occurrences and outcomes of the event.",
+          "type": "string"
+        },
+        "catalyst": {
+          "description": "What triggered or caused this event to happen.",
+          "type": "string"
+        },
+        "outcome": {
+          "description": "The result or consequence of this event.",
+          "type": "string"
+        },
+        "participants": {
+          "description": "A mapping of character/group names to their participation importance IN THIS EVENT, scored per the universal Importance Scale but CONTEXTUAL to this event only (central 80-100, key 60-80, supporting 40-60, witness 10-30).",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EventParticipant"
+          }
+        },
+        "importance": {
+          "$ref": "#/definitions/Importance"
+        },
+        "learned": {
+          "description": "Knowledge item slugs established, reinforced, challenged, or debunked by this event, mapped to the event's role in their lifecycle. Role values: 'established' (first introduced here), 'reinforced' (confirmed or strengthened), 'challenged' (called into question), 'debunked' (revealed to be false here). Only include items this event directly affected.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/EventKnowledgeRole"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "formal_name",
+        "aliases",
+        "start",
+        "end",
+        "summary",
+        "catalyst",
+        "outcome",
+        "participants",
+        "importance",
+        "learned"
+      ]
+    },
+    "KeyChange": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "description": "A description of a significant change that occurred during this chapter (e.g., 'John learned the truth about his father', 'The alliance was formed').",
+          "type": "string"
+        },
+        "scene": {
+          "description": "The scene name where this change occurred (e.g., 'The Revelation at Dawn').",
+          "type": "string"
+        }
+      },
+      "required": [
+        "description",
+        "scene"
+      ]
+    },
+    "TimePoint": {
+      "type": "object",
+      "properties": {
+        "_message_node": {
+          "$ref": "#/definitions/Message",
+          "readOnly": true
+        },
+        "date": {
+          "description": "The calendar date of the time point (e.g., 'October 15, 2028').",
+          "type": "string"
+        },
+        "time": {
+          "description": "A general description of the time of day for the time point (e.g., 'Pre-dawn hours', 'Afternoon').",
+          "type": "string"
+        },
+        "specific_time": {
+          "description": "A precise time for the time point, if applicable (e.g., '05:30', '14:32').",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date",
+        "time",
+        "specific_time"
+      ]
+    },
+    "EventParticipant": {
+      "type": "object",
+      "properties": {
+        "importance": {
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "importance"
+      ]
+    },
+    "EventKnowledgeRole": {
+      "description": "The scene narrative role relative to the knowledge item.",
+      "enum": [
+        "established",
+        "reinforced",
+        "challenged",
+        "debunked"
+      ],
+      "type": "string"
+    },
+    "GeneralInfo": {
+      "type": "object",
+      "properties": {
+        "writing_style": {
+          "description": "A description of the narrative format to ensure stylistic consistency (e.g., '{{char}}: 3rd-person prose, one paragraph per response, no more than one paragraph', '{{char}}: 1st-person dialogue as \"{{char}}\" with actions in asterisks', '{{char}}: 1st-person prose as \"{{user}}\", approximately double the paragraphs as {{user}}', '{{char}}: 2nd-person prose (speaking to \"{{user}}\"), the same number of paragraphs as {{user}}').\n\nThis is of utmost importance. Check what the user has written so far, as well as what you (as {{char}}) have written so far (particularly the very first message, the greeting, if available). Be specific; this will be followed strictly. If this already exists, keep it as is. Do not change it unless clarifying even further.",
+          "type": "string"
+        },
+        "tone": {
+          "description": "The primary emotional tone or mood of the story. This guides the feeling of the narrative (e.g., 'Tense and suspenseful', 'Hopeful but grim', 'Witty and adventurous').",
+          "type": "string"
+        },
+        "themes": {
+          "description": "A comma-separated list of the central themes or underlying ideas being explored in the story (e.g., 'The cost of survival', 'Betrayal and redemption', 'Man vs. Nature').",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "setting": {
+          "description": "A description of the world, location, and environment where the story takes place (e.g., 'Post-apocalyptic Earth, 2087, ruined cities overrun by Subterraneans').",
+          "type": "string"
+        },
+        "rules": {
+          "description": "A map of world-building rules keyed by short slug (e.g., 'mana_crystals', 'comms_down'). Each rule is a WorldRule with: text (the rule statement, as a list of lines for multi-part rules), domain (technology, physics, economy, society, magic, meta), scope (who or what it applies to, e.g., 'all characters', 'corporations only'), source (where it was established). Include deviations from real-world expectations AND hard-set laws of the world. Nothing character-specific.",
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/WorldRule"
+          }
+        },
+        "objectives": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Objective"
+          }
+        },
+        "main_objective": {
+          "description": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
+          "type": "string"
+        },
+        "synopsis": {
+          "description": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "writing_style",
+        "tone",
+        "themes",
+        "setting",
+        "rules",
+        "objectives",
+        "main_objective",
+        "synopsis"
+      ]
+    },
+    "WorldRule": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "$ref": "#/definitions/Text"
+        },
+        "domain": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/definitions/Source"
+        }
+      },
+      "required": [
+        "text",
+        "domain",
+        "scope",
+        "source"
+      ]
+    },
+    "Objective": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "description": "A secondary objective the protagonist(s) are trying to achieve. This is not the main objective. Multiple secondary objectives should generally be set before the initial main objective - the main objective will be decided from one of the existing secondary objectives once the story has a clear long-term goal.",
+          "type": "string"
+        },
+        "importance": {
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "description",
+        "importance"
+      ]
+    },
+    "Source": {
+      "description": "Where this fact was established: 'witnessed' (directly observed in person), 'stated' (explicitly declared by a character, NPC, or narrator), 'demonstrated' (shown through events or behavior in-story), 'overheard' (heard indirectly — eavesdropping, intercepted comms, third-party retelling), or 'inferred' (deduced from context; less reliable, should be confirmed on a second sighting).",
+      "enum": [
+        "witnessed",
+        "stated",
+        "demonstrated",
+        "overheard",
+        "inferred"
+      ],
+      "type": "string"
+    },
+    "Arcs": {
+      "description": "Arc_Title",
+      "type": "object",
+      "additionalProperties": {
+        "description": "Arc_Title",
+        "$ref": "#/definitions/Arc"
+      }
+    },
+    "Arc": {
+      "type": "object",
+      "properties": {
+        "title": {
+          "description": "A short, evocative title for this narrative arc (e.g., 'The Betrayal', 'The Hunt Begins').",
+          "type": "string"
+        },
+        "starting_chapter": {
+          "description": "The chapter index where this arc began.",
+          "type": "integer"
+        },
+        "ending_chapter": {
+          "description": "The chapter index where this arc concluded, or null if still active.",
+          "type": "integer"
+        },
+        "chapters": {
+          "description": "List of chapter indices where this arc was active or referenced.",
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "summary": {
+          "description": "A 1-2 paragraph summary of what this arc is about - the core conflict, stakes, and progression.",
+          "type": "string"
+        },
+        "character_arcs": {
+          "description": "How have the main characters involved in this arc changed or been revealed?",
+          "type": "string"
+        },
+        "relationship_shifts": {
+          "description": "How have relationships between characters shifted during this arc?",
+          "type": "string"
+        },
+        "plot_threads": {
+          "description": "What plot threads or mysteries are associated with this arc?",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "description": "Current status: 'active', 'concluded', or 'suspended'.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "starting_chapter",
+        "ending_chapter",
+        "chapters",
+        "summary",
+        "character_arcs",
+        "relationship_shifts",
+        "plot_threads",
+        "status"
+      ]
+    },
+    "Knowledge": {
+      "type": "object",
+      "properties": {
+        "entries": {
+          "$ref": "#/definitions/KnowledgeMap"
+        }
+      },
+      "required": [
+        "entries"
+      ]
+    },
+    "KnowledgeMap": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/KnowledgeItem"
+      }
+    },
+    "KnowledgeItem": {
+      "type": "object",
+      "properties": {
+        "fact": {
+          "description": "One atomic statement of what is known, in the form 'X is Y' or 'X did Y'. Keep it to one clause — if it contains 'and' connecting two independent facts, split it into two items. Example: 'The vault requires a biometric scan plus a rotating code.'",
+          "type": "string"
+        },
+        "type": {
+          "description": "What kind of knowledge this is: 'fact' (objective, verifiable), 'secret' (concealed from others), 'suspicion' (a character's unconfirmed belief), 'rumor' (circulating claim, unverified), 'lie' (known to be false but believed by some), 'revelation' (formerly secret, now exposed).",
+          "enum": [
+            "fact",
+            "secret",
+            "suspicion",
+            "rumor",
+            "lie",
+            "revelation"
+          ],
+          "type": "string"
+        },
+        "status": {
+          "description": "The narrative lifecycle state: 'active' (currently in play), 'confirmed' (verified as true), 'debunked' (revealed to be false), 'resolved' (no longer relevant to the story).",
+          "enum": [
+            "active",
+            "confirmed",
+            "debunked",
+            "resolved"
+          ],
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/definitions/Source"
+        },
+        "importance": {
+          "description": "How significant this knowledge is to the story — scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT). A critical secret that drives the plot scores 80+; a trivial overheard detail scores 10-20.",
+          "$ref": "#/definitions/Importance"
+        }
+      },
+      "required": [
+        "fact",
+        "type",
+        "status",
+        "source",
+        "importance"
+      ]
+    }
+  }
+}
