@@ -164,6 +164,8 @@
 - [ ] Let DSS run constantly (Historian), giving long windows to summarize
 - [ ] recurring/ongoing events + planned (future) events?
 - [ ] start DataSummarizer with to run prefill in parallel (cache warm)
+- [ ] Insert _full_ schema (all defs) into context prefix (no re-eval for each call if cached)
+- [ ] Give DSS reasoning and full tool suite, letting it choose what to edit at each turn (partially implemented, unused)
 
 ---
 

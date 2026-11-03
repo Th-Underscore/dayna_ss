@@ -141,21 +141,28 @@ Recommendations:
 Characters acting on things they shouldn't know are the most visible roleplay memory bugs, and nothing in the schema models knowledge.
 
 ```
-Knowledge item:                      # one shared `knowledge` subject
+KnowledgeItem:                       # one shared `knowledge` subject
   fact:          str                 # one atomic statement
-  known_by:      list[str]           # characters and groups
-  secret_from:   list[str]           # explicit "must not know"
-  status:        true | false | suspected | rumor
-  source:        witnessed | told | overheard | inferred   # 3.2
-  learned_scene: str
+  type:          fact | secret | suspicion | rumor | lie | revelation
+  status:        active | confirmed | debunked | resolved
+  source:        Source              # witnessed | stated | demonstrated | overheard | inferred
+  importance:    Importance          # score (0-100) + reason + faction
+
+Cross-entity links (on the connecting side):
+  Character.knows:  dict[str, EpistemicStance]   # key=item slug, value=stance
+  Group.knows:      dict[str, EpistemicStance]
+  Scene.learned:    dict[str, EventKnowledgeRole]  # key=item slug, value=scene's role
+
+EpistemicStance:    knows | believes | suspects | spreading | sees_through
+EventKnowledgeRole: established | reinforced | challenged | debunked
 ```
 
-- **One source of truth.** Per-character and per-group views are derived, not separately generated, so `known_by` stays consistent by construction.
-- **Populate with one call at the scene boundary** over the scene recap: "Who learned or concealed what in this scene? Return only new or changed items." Code fans the result out to the views. That is 1 call per scene, not N entry calls.
-- **Retrieval:** include a character's view only when they are in the current scene or about to speak. Always include `secret_from` constraints for characters in the scene, since those prevent leaks.
-- **Memories (deferred):** a per-character "Memories" layer (what they *remember experiencing*, the prose/experiential view) is not an independent generation target. It falls out as a derived prompt-build projection from knowledge items (this section) + milestone participations (7.1) + `_history` entries (3.1): path-scope under the entity → collapse per-path runs → rank by recency × inverse path-frequency → render compact lines. No extra LLM call. The structured data is the source of truth; prose is a view.
+- **Item is self-contained.** `type` (what kind of knowledge) and `status` (narrative lifecycle) are orthogonal axes. A suspicion that gets confirmed is `type: suspicion, status: confirmed`. A secret that gets exposed is `type: secret → revelation, status: resolved`.
+- **Links live on the connecting side.** Character/Group carry `knows` (who knows what, and with what stance); Scene carries `learned` (what the scene established/challenged). The item doesn't point outward. New characters just add their `knows` entries without retroactively editing item lists.
+- **Stance is typed.** `EpistemicStance` is a `field_options`-constrained alias — the LLM gets a hard `enum` in the prompt. `believes` vs `suspects` vs `sees_through` distinguishes epistemic posture toward the same item.
+- **Memories (deferred):** a per-character "Memories" layer (what they *remember experiencing*, the prose/experiential view) is not an independent generation target. It falls out as a derived prompt-build projection from `knows` edges + milestone participations (7.1) + `_history` entries (3.1). No extra LLM call. The structured data is the source of truth; prose is a view.
 
-**Implementation:** `Knowledge` subject with `KnowledgeItem` dataclass (`fact`, `known_by`, `secret_from`, `status`, `source` → `Source` alias, `learned_scene`). One `on_new_scene` trigger with `knowledge_query_prompt_template` (gate) + `branch_query_prompt_template` (query) + `branch_update_prompt_template` (path-patch). `Source` alias expanded to cover `witnessed` and `overheard` in addition to the existing `stated`/`demonstrated`/`inferred`. Format template renders entries as `slug (status) --- fact` blocks in `_context_order` after characters. No code changes needed — schema-driven subject discovery picks it up automatically.
+**Implementation:** `Knowledge` wrapper with `KnowledgeMap` (`dict[str, KnowledgeItem]`). Triggers: `on_new_scene` → `[add_new, perform_gate_check]` on `KnowledgeMap` (creation), `query_branch_for_changes` on `Knowledge` (modification). `Source` alias with `field_options` (5 values). `EpistemicStance` alias with `field_options` (5 values). `type` and `status` use `field_options` in KnowledgeItem defaults. `score_range: [0,100]` on Importance. `knows`/`learned` declared in `relationship_format` on wrapper classes (`Characters`, `Groups`, `StoryEvents`) for entity graph edge extraction — the string-value branch in `_process_relationship_dict` handles `dict[str, str]` edge labels. Format template renders entries with type/status/fact/importance/source. Schema-driven subject discovery — no code changes needed for the subject itself.
 
 ## 5. Characters
 
@@ -462,6 +469,12 @@ Design notes:
 Expect this genre to stress `status` over `description` (power-ups and injuries are short-lived) and the change log, which also makes it a good check on 5.1.
 
 ## 10. Open questions
+
+Entity references (deferred):
+
+- The LLM sometimes paraphrases entity names (e.g. writing "a location in the building" instead of the slug `conduit_junction`) when populating cross-reference fields (`knows`, `relationships`, `learned`, `participants`). Two complementary mitigations considered:
+  - **Prompt-side:** a `_references: "<subject>"` convention in schema defaults that generates a comment hint ("Keys must be exact slugs from the <subject> subject") in the example JSON. Low effort — effectively a template wording change. Can be done incrementally per field as the need arises.
+  - **Validation-side:** post-apply set-membership check. For a field with `_references: "knowledge"`, validate that every key (dict field) or element (list field) exists in `keys(data["knowledge"])`. Type-aware: dict → validate keys, list → validate elements. CurrentScene should be excluded (it legitimately references unidentified entities before they're added to their subjects). More complex — needs the data tree at validation time and per-type logic.
 
 Data model:
 
