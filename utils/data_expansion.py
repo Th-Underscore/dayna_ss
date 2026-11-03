@@ -28,11 +28,23 @@ def _build_comments_structure(data):
     return None
 
 
+def _strip_private_keys(data):
+    """Recursively remove underscore-prefixed keys from dicts."""
+    if isinstance(data, dict):
+        return {k: _strip_private_keys(v) for k, v in data.items() if not k.startswith("_")}
+    if isinstance(data, list):
+        return [_strip_private_keys(item) for item in data]
+    return data
+
+
 def to_jsonc(data, indent: int = 2) -> str:
     """Serialize data to JSONC with a trailing index comment on every array element.
 
     Replaces the old dict-expansion approach: data keeps its native shape, and
     the LLM sees `// 0`, `// 1`, … after each array entry.
+
+    Underscore-prefixed keys (e.g. ``_history``, ``_message_node``) are stripped
+    before serialization — they are internal bookkeeping, not LLM-facing data.
 
     Scalars (str, int, float, bool) pass through as their string form;
     None renders as empty string.
@@ -41,6 +53,7 @@ def to_jsonc(data, indent: int = 2) -> str:
         return "null"
     if not isinstance(data, (dict, list)):
         return str(data)
+    data = _strip_private_keys(data)
     tree = _build_comments_structure(data)
     if isinstance(data, list):
         root_comments = (None, tree) if tree else None
