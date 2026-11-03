@@ -359,6 +359,7 @@ class EntityGraph:
             "elements": ("element", "elements.json"),
             "events": ("event", "events.json"),
             "arcs": ("arc", "arcs.json"),
+            "knowledge": ("knowledge", "knowledge.json"),
         }
 
         for subject_name, (entity_type, filename) in subject_mapping.items():
@@ -454,6 +455,16 @@ class EntityGraph:
         (per the CharacterRelationships alias schema). Normalize to a list so both shapes work.
         """
         for target_name, rel_list in rel_dict.items():
+            if isinstance(rel_list, str):
+                target_id = f"{target_type}:{target_name}"
+                self.relationships.append(Relationship(
+                    source_id=source_id,
+                    target_id=target_id,
+                    relation=rel_list,
+                    status="",
+                    field_name=field_name,
+                ))
+                continue
             if isinstance(rel_list, dict):
                 rel_list = [rel_list]
             if not isinstance(rel_list, list):
