@@ -107,7 +107,7 @@
 - [x] Triggers with specific defaults (prompt templates), rather than defaults and triggers separate?
 - [ ] `on_new_scene_or_truncate` 
 - [ ] Include `msg_` or first few characters of message when creating `history_str` 
-- [ ] More meaningful “importance”:
+- [x] More meaningful “importance”:
     - [ ] Depending on level, character-specific "thoughts" summary on specific events/relationships
     - [ ] `100` = Always on their mind
 `80` = Frequently on their mind
@@ -119,7 +119,7 @@
 `0` = Stranger
     - [X] “favour” level for negative/positive relationship
 - [ ] Entity aggregation decay
-- [ ] Instead of expanding lists (modifying the actual data structure), just add comments for each element e.g.
+- [X] Instead of expanding lists (modifying the actual data structure), just add comments for each element e.g.
 
 ```jsonc
 [

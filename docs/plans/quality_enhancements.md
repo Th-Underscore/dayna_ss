@@ -153,6 +153,7 @@ Knowledge item:                      # one shared `knowledge` subject
 - **One source of truth.** Per-character and per-group views are derived, not separately generated, so `known_by` stays consistent by construction.
 - **Populate with one call at the scene boundary** over the scene recap: "Who learned or concealed what in this scene? Return only new or changed items." Code fans the result out to the views. That is 1 call per scene, not N entry calls.
 - **Retrieval:** include a character's view only when they are in the current scene or about to speak. Always include `secret_from` constraints for characters in the scene, since those prevent leaks.
+- **Memories (deferred):** a per-character "Memories" layer (what they *remember experiencing*, the prose/experiential view) is not an independent generation target. It falls out as a derived prompt-build projection from knowledge items (this section) + milestone participations (7.1) + `_history` entries (3.1): path-scope under the entity → collapse per-path runs → rank by recency × inverse path-frequency → render compact lines. No extra LLM call. The structured data is the source of truth; prose is a view.
 
 ## 5. Characters
 
