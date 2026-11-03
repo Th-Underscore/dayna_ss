@@ -25,6 +25,7 @@ from ...utils.helpers import (
     split_keys_to_list,
     recursive_set,
     recursive_get,
+    merge_underscore_preserve,
     to_jsonc,
     coerce_container_types,
     strip_thinking,
@@ -246,7 +247,7 @@ class DSUpdatesMixin:
             # Simple equality check to see if it actually changed (set a flag instead?)
             if updated_branch_data != data:
                 print(f"{_SUCCESS}Applying direct branch update to '{branch_name}'.{_RESET}")
-                data.update(updated_branch_data)
+                data.update(merge_underscore_preserve(updated_branch_data, data))
                 return True
             else:
                 print(f"{_GRAY}Direct branch update for '{branch_name}' resulted in identical data.{_RESET}")
@@ -486,6 +487,7 @@ class DSUpdatesMixin:
             value = _retarget_value(value, data)
             try:
                 old_value = recursive_get(data, keyList)
+                value = merge_underscore_preserve(value, old_value)
                 print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
                 recursive_set(data, keyList, value)
                 self._record_history(data, path_str, old_value, value)

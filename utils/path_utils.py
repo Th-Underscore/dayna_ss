@@ -110,6 +110,44 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
     return data
 
 
+def strip_underscore_keys(data: Any) -> Any:
+    """Recursively remove all underscore-prefixed keys from dicts.
+
+    Used to hide internal fields (_message_node, _history, etc.) from LLM prompts
+    and to sanitize LLM output before applying updates.
+    """
+    if isinstance(data, dict):
+        return {k: strip_underscore_keys(v) for k, v in data.items() if not (isinstance(k, str) and k.startswith("_"))}
+    elif isinstance(data, list):
+        return [strip_underscore_keys(item) for item in data]
+    return data
+
+
+def merge_underscore_preserve(new_data: Any, old_data: Any) -> Any:
+    """Strip underscore-prefixed keys from new_data, then restore any that exist in old_data.
+
+    Preserves internal fields (_message_node, _history, etc.) across full-rewrite updates
+    so the LLM cannot corrupt them.
+    """
+    if isinstance(new_data, dict):
+        old_dict = old_data if isinstance(old_data, dict) else {}
+        result = {}
+        for k, v in new_data.items():
+            if isinstance(k, str) and k.startswith("_"):
+                continue  # discard LLM-written internal fields
+            result[k] = merge_underscore_preserve(v, old_dict.get(k))
+        # Restore internal fields from old data
+        for k, v in old_dict.items():
+            if isinstance(k, str) and k.startswith("_"):
+                result[k] = v
+        return result
+    elif isinstance(new_data, list):
+        old_list = old_data if isinstance(old_data, list) else []
+        return [merge_underscore_preserve(n, o) if i < len(old_list) else strip_underscore_keys(n)
+                for i, (n, o) in enumerate(zip(new_data, old_list))]
+    return new_data
+
+
 def split_keys_to_list(keys: str | Iterable[str]) -> list[str]:
     """Split a string of keys into a list, handling both dot separators and square brackets.
 

@@ -30,7 +30,7 @@ from .console import (
     TypedKey,
 )
 from .json_utils import load_json, save_json, validate_path
-from .path_utils import recursive_get, recursive_set, split_keys_to_list
+from .path_utils import recursive_get, recursive_set, split_keys_to_list, strip_underscore_keys, merge_underscore_preserve
 from .data_expansion import (
     _COLLECTION_KEY_CANDIDATES,
     _infer_collection_key,
