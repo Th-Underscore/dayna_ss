@@ -386,13 +386,7 @@ class ParsedSchemaClass:
                             else:
                                 example_obj[field_name] = [f"<example_for_{str(item_type)}>"]
                         elif origin is dict and len(args) == 2:
-                            # Determine the example key using the field's description if available
-                            field_placeholder_as_key = self.defaults.get(f"{field_name}_placeholder")
-                            key_example = (
-                                str(field_placeholder_as_key)
-                                if field_placeholder_as_key is not None
-                                else f"{field_name}_key_example"
-                            )
+                            key_example = f"{field_name}_key_example"
 
                             value_type = args[1]
                             if isinstance(value_type, ParsedSchemaClass):
