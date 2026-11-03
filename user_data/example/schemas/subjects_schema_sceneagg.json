@@ -7,6 +7,43 @@
         "do_expand_into_dict": false
       }
     },
+    "Importance": {
+      "type": "dataclass",
+      "fields": {
+        "score": "int",
+        "reason": "str",
+        "faction": "str"
+      },
+      "defaults": {
+        "score_placeholder": "A numerical value 0-100, scored per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing, not a single scene's moment-to-moment urgency). A score means the same across all entity types. In the real JSON this is an integer, not a string.",
+        "reason_placeholder": "A brief explanation of why this importance level is appropriate -- what makes it salient and/or weighty relative to the specific context.",
+        "faction_placeholder": "RELATIVE TO THE SUBJECT'S PERSPECTIVE. Options: 'positive' (ally, friend, family - benefits them), 'negative' (enemy, rival, hostile - threatens them), 'neutral' (barely known, acquaintance). Example: John's status in 'Subterraneans' as 'enemy' would have faction='negative' (from John's perspective), but from the Subterraneans' perspective of John, faction would also be 'negative' (John is THEIR enemy). The Council's faction in Subterraneans should be 'positive' because they are allies TO the Subterraneans.",
+        "score_range": [
+          0,
+          100
+        ],
+        "faction_options": [
+          "positive",
+          "negative",
+          "neutral"
+        ]
+      },
+      "triggers": {}
+    },
+    "EpistemicStance": {
+      "type": "alias",
+      "field": "str",
+      "defaults": {
+        "field_placeholder": "The character's epistemic stance toward this knowledge item.",
+        "field_options": [
+          "knows",
+          "believes",
+          "suspects",
+          "spreading",
+          "sees_through"
+        ]
+      }
+    },
     "CharacterGroupStatus": {
       "type": "dataclass",
       "fields": {
@@ -28,20 +65,6 @@
         "events_placeholder": "A list of significant events related to the character under this specific status.",
         "importance_placeholder": "The importance of this status context RELATIVE TO THAT GROUP -- scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT; long-term). Faction: RELATIVE to the group perspective -- 'positive' if they are an ally/friend TO THAT GROUP, 'negative' if enemy/rival, 'neutral' otherwise. Example: a group's enemy has faction='negative' from the group's standpoint, but might be 'positive' from another group's standpoint."
       }
-    },
-    "Importance": {
-      "type": "dataclass",
-      "fields": {
-        "score": "int",
-        "reason": "str",
-        "faction": "str"
-      },
-      "defaults": {
-        "score_placeholder": "A numerical value 0-100, scored per the universal Importance Scale in the system context (SALIENCE x WEIGHT; a high score needs both; long-term standing, not a single scene's moment-to-moment urgency). A score means the same across all entity types. In the real JSON this is an integer, not a string.",
-        "reason_placeholder": "A brief explanation of why this importance level is appropriate -- what makes it salient and/or weighty relative to the specific context.",
-        "faction_placeholder": "RELATIVE TO THE SUBJECT'S PERSPECTIVE. Options: 'positive' (ally, friend, family - benefits them), 'negative' (enemy, rival, hostile - threatens them), 'neutral' (barely known, acquaintance). Example: John's status in 'Subterraneans' as 'enemy' would have faction='negative' (from John's perspective), but from the Subterraneans' perspective of John, faction would also be 'negative' (John is THEIR enemy). The Council's faction in Subterraneans should be 'positive' because they are allies TO the Subterraneans."
-      },
-      "triggers": {}
     },
     "CharacterRelationship": {
       "type": "dataclass",
@@ -110,7 +133,7 @@
         "group_status": "dict[str, CharacterGroupStatus]",
         "relationships": "dict[str, CharacterRelationships]",
         "milestones": "list[CharacterMilestone]",
-        "knows": "dict[str, str]"
+        "knows": "dict[str, EpistemicStance]"
       },
       "defaults": {
         "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any significant changes, additions, or deletions required for this character's entire entry (description, status, biography, traits, attributes, voice, quirks, fears, preferences, group_status, relationships, milestones)? Respond with only 'NO' or 'UNCHANGED' if this character's section is probably up-to-date and no fields within it need to be checked individually. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nIDENTITY BINDING — {{ name2 }} is the AI character being roleplayed: the story's protagonist and focal character. {{ name1 }} is the other principal character (the user's character). Never assign {{ name1 }}'s identity, occupation, biography, or voice to {{ name2 }}, and never merge the two characters into a single entry. If this entry IS {{ name2 }}, derive all details from the story context and premise — never from {{ name1 }}'s dialogue or biography.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
@@ -269,7 +292,7 @@
         "importance": "Importance",
         "relationships": "dict[str, GroupRelationships]",
         "characters": "dict[str, GroupCharacterInfo]",
-        "knows": "dict[str, str]"
+        "knows": "dict[str, EpistemicStance]"
       },
       "defaults": {
         "branch_query_prompt_template": "Considering the overall story context and the current details for the entry, does this entry's entire information (aliases, description, purpose, culture, resources, events, relationships, characters involved) need a review for potential updates? Respond with only 'NO' or 'UNCHANGED' if no updates are needed. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
@@ -598,13 +621,7 @@
         "importance_detail_threshold": 50,
         "suggested_min_turns": 2,
         "suggested_max_turns": 4,
-        "max_turns_before_required": 6,
-        "relationship_format": {
-          "learned": {
-            "target_type": "knowledge",
-            "bidirectional": false
-          }
-        }
+        "max_turns_before_required": 6
       },
       "triggers": {
         "on_new_scene": [
@@ -796,7 +813,14 @@
       "type": "alias",
       "field": "str",
       "defaults": {
-        "field_placeholder": "Where this fact was established: 'witnessed' (directly observed in person), 'stated' (explicitly declared by a character, NPC, or narrator), 'demonstrated' (shown through events or behavior in-story), 'overheard' (heard indirectly — eavesdropping, intercepted comms, third-party retelling), or 'inferred' (deduced from context; less reliable, should be confirmed on a second sighting)."
+        "field_placeholder": "Where this fact was established: 'witnessed' (directly observed in person), 'stated' (explicitly declared by a character, NPC, or narrator), 'demonstrated' (shown through events or behavior in-story), 'overheard' (heard indirectly — eavesdropping, intercepted comms, third-party retelling), or 'inferred' (deduced from context; less reliable, should be confirmed on a second sighting).",
+        "field_options": [
+          "witnessed",
+          "stated",
+          "demonstrated",
+          "overheard",
+          "inferred"
+        ]
       }
     },
     "WorldRule": {
@@ -970,7 +994,21 @@
         "fact_placeholder": "One atomic statement of what is known, in the form 'X is Y' or 'X did Y'. Keep it to one clause — if it contains 'and' connecting two independent facts, split it into two items. Example: 'The vault requires a biometric scan plus a rotating code.'",
         "type_placeholder": "What kind of knowledge this is: 'fact' (objective, verifiable), 'secret' (concealed from others), 'suspicion' (a character's unconfirmed belief), 'rumor' (circulating claim, unverified), 'lie' (known to be false but believed by some), 'revelation' (formerly secret, now exposed).",
         "status_placeholder": "The narrative lifecycle state: 'active' (currently in play), 'confirmed' (verified as true), 'debunked' (revealed to be false), 'resolved' (no longer relevant to the story).",
-        "importance_placeholder": "How significant this knowledge is to the story — scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT). A critical secret that drives the plot scores 80+; a trivial overheard detail scores 10-20."
+        "importance_placeholder": "How significant this knowledge is to the story — scored 0-100 per the universal Importance Scale (SALIENCE x WEIGHT). A critical secret that drives the plot scores 80+; a trivial overheard detail scores 10-20.",
+        "type_options": [
+          "fact",
+          "secret",
+          "suspicion",
+          "rumor",
+          "lie",
+          "revelation"
+        ],
+        "status_options": [
+          "active",
+          "confirmed",
+          "debunked",
+          "resolved"
+        ]
       }
     },
     "KnowledgeMap": {
