@@ -772,7 +772,7 @@
       "type": "alias",
       "field": "str",
       "defaults": {
-        "field_placeholder": "Where this fact was established: 'stated' (explicitly declared by a character, NPC, or narrator), 'demonstrated' (shown through events or behavior in-story), or 'inferred' (the model deduced it from context; less reliable, should be confirmed on a second sighting)."
+        "field_placeholder": "Where this fact was established: 'witnessed' (directly observed in person), 'stated' (explicitly declared by a character, NPC, or narrator), 'demonstrated' (shown through events or behavior in-story), 'overheard' (heard indirectly — eavesdropping, intercepted comms, third-party retelling), or 'inferred' (deduced from context; less reliable, should be confirmed on a second sighting)."
       }
     },
     "WorldRule": {
@@ -932,6 +932,55 @@
           "population_prompt": "Based on the provided story context, greeting, the first exchange, and the identified element, generate the full data for the element described here.\n\nDetermine the appropriate 'kind' for this element:\n- 'creature': A living non-character being\n- 'location': A place or area\n- 'item': An object or tool\n- 'resource': Consumable or material\n\nRelevant Schema for an Element:\n```json\n{{ schema_definition_json }}\n```\n\nExample JSON structure for an Element:\n```json\n{{ example_json }}\n```\n\nStory Context:\n\"\"\"\n{{ char_context }}\n\"\"\"\n\nInitial Greeting:\n\"\"\"\n{{ char_greeting }}\n\"\"\"\n\nPlease provide your response as a complete JSON object for this element.\n\nNAME EXACTLY: Use the exact name the story uses — do not paraphrase, shorten, or reword it (e.g. if the story says 'the quince paste jar', the entry must be 'the quince paste jar', never 'quince paste' or 'jar').\n\nEntry to populate: '{{ entity_name }}'\n\nDescriptor: {{ descriptor }}"
         }
       }
+    },
+    "KnowledgeItem": {
+      "type": "dataclass",
+      "fields": {
+        "fact": "str",
+        "known_by": "list[str]",
+        "secret_from": "list[str]",
+        "status": "str",
+        "source": "Source",
+        "learned_scene": "str"
+      },
+      "defaults": {
+        "fact_placeholder": "One atomic statement of what is known, in the form 'X is Y' or 'X did Y'. Keep it to one clause — if it contains 'and' connecting two independent facts, split it into two items. Example: 'The vault requires a biometric scan plus a rotating code.'",
+        "known_by_placeholder": "Names of characters and/or groups who know this fact. Must reference existing entries in the characters or groups subject.",
+        "secret_from_placeholder": "Names of characters and/or groups who must NOT know this fact. Use for active concealment (a mole, a hidden identity, a secret plan). Leave empty [] if this is not a secret — most knowledge items are not.",
+        "status_placeholder": "The epistemic status of this fact: 'true' (confirmed as fact within the story), 'false' (revealed to be a lie, misdirection, or error), 'suspected' (a character suspects it but has not confirmed), 'rumor' (circulating as talk, no one has verified it).",
+        "learned_scene_placeholder": "The name or title of the scene where this fact was first established. Use the scene's event name from the events subject."
+      }
+    },
+    "KnowledgeMap": {
+      "type": "alias",
+      "field": "dict[str, KnowledgeItem]",
+      "defaults": {
+        "gate_check_prompt_template": "Based on the latest exchange, does the entire knowledge section require a detailed review for potential changes? This is a preliminary check. Respond with only 'NO' or 'UNCHANGED' if this entire section is likely up-to-date and no further checks are needed. Otherwise, respond with 'YES'.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction and complete ONLY that instruction."
+      }
+    },
+    "Knowledge": {
+      "type": "dataclass",
+      "fields": {
+        "entries": "KnowledgeMap"
+      },
+      "defaults": {
+        "initial_population": {
+          "mode": "direct",
+          "target_file": "knowledge.json",
+          "prompt_template": "This is a new story with no history. Initialize the knowledge subject with an empty entries object. No facts have been established yet.\n\nRespond with ONLY:\n{\"entries\": {}}"
+        },
+        "knowledge_query_prompt_template": "A new scene has just concluded. Did any character learn, discover, deduce, or conceal information in this scene? This includes:\n- A character learning a fact (witnessing an event, being told something, overheard a conversation)\n- A character deliberately hiding information from others (a secret, a lie, a concealed identity)\n- A fact being confirmed, denied, or revealed to be false\n- A character forming a suspicion based on evidence\n\nRespond with only 'YES' if new knowledge was gained, concealed, or a fact's status changed, or 'NO' if no epistemic changes occurred.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- SCENE RECAP (recent exchanges) ---\n{{ scene_recap }}\n\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the story, are there any new or changed knowledge items that should be recorded? This includes facts a character learned, discovered, or deduced; secrets being concealed; and facts whose status changed (confirmed, denied, revealed false).\n\nRespond with only 'NO' or 'UNCHANGED' if no epistemic changes are apparent, otherwise respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the knowledge entries below. Identify any new facts that characters have learned, discovered, or deduced, any secrets being concealed, and any existing facts whose status has changed.\n\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nFor each new or changed knowledge item, emit a path-patch update. New items use the path 'entries.<slug>' where <slug> is a short snake_case key derived from the fact (e.g., 'vault_biometric_scan', 'mole_is_sable'). Changed items use the same slug with the specific field path (e.g., 'entries.mole_is_sable.status').\n\nRULES:\n- Each fact must be ONE atomic statement. If two independent facts are connected by 'and', emit two separate entries.\n- known_by and secret_from must reference character/group names that exist in the roster.\n- source: use 'witnessed' for directly observed, 'told' for explicitly told, 'overheard' for indirect hearing, 'inferred' for deduced.\n- status: use 'true' for confirmed, 'false' for debunked, 'suspected' for unconfirmed suspicion, 'rumor' for unverified talk.\n- learned_scene: the name of the scene where this was first established.\n- Do NOT create entries for information that is already common knowledge or stated in the world rules.\n\nIf NO updates are required, respond with the exact str: NO_UPDATES_REQUIRED\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n(Recent exchanges appear verbatim in the conversation above.)\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction and complete ONLY that instruction.\n\nCurrent knowledge entries:\n```\n{{ value | tojsonc }}\n```"
+      },
+      "triggers": {
+        "on_new_scene": [
+          {
+            "action": "query_branch_for_changes",
+            "prompt_template": "knowledge_query_prompt_template"
+          }
+        ]
+      }
     }
   },
   "subjects": {
@@ -941,7 +990,8 @@
     "current_scene": "CurrentScene",
     "events": "Events",
     "general_info": "GeneralInfo",
-    "arcs": "Arcs"
+    "arcs": "Arcs",
+    "knowledge": "Knowledge"
   },
   "subject_routing": {
     "characters": "Named people or beings who speak, act, or recur — protagonists, antagonists, witnesses, named animals or pets, and anyone with a role or relationship. Unnamed crowds belong in groups instead.",
@@ -950,6 +1000,7 @@
     "current_scene": "Live scene metadata (where the story currently is) — not a store of new entities.",
     "events": "Significant past or off-screen narrative events that shaped the story — not ongoing scene beats.",
     "general_info": "World-level writing style and background — not entities.",
-    "arcs": "High-level narrative arcs — not entities."
+    "arcs": "High-level narrative arcs — not entities.",
+    "knowledge": "Epistemic state: what each character knows, suspects, or is keeping secret. One shared subject; per-character views are derived at prompt-build time."
   }
 }

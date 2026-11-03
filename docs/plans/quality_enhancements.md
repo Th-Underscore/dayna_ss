@@ -12,7 +12,7 @@ Section numbers differ from the earlier item numbering. A map is at the end.
 | 3.1 | ~~Change history (per-field diffs)~~ **DONE** `78dd784b` | 0 | ✅ |
 | 3.2 | Shared `source` convention and precedence rule | ~1 token per item | Medium |
 | 4.1 | World rules as deviations from real life | 1 call per scene boundary (rules query only) | High (partial: harvest trigger done, shape migration pending) |
-| 4.2 | Epistemics (who knows what) | 1 call per scene | High |
+| 4.2 | ~~Epistemics (who knows what)~~ **DONE** — `Knowledge` subject + `KnowledgeItem` dataclass + `on_new_scene` trigger + format template | 1 call per scene | ✅ |
 | 5.2 | Values for characters | Set at creation | Medium |
 | 5.3 | Goals / intent | Folded into the scene-boundary call | Medium |
 | 5.4 | Spatial and physical state | Mostly code-derived | Medium |
@@ -154,6 +154,8 @@ Knowledge item:                      # one shared `knowledge` subject
 - **Populate with one call at the scene boundary** over the scene recap: "Who learned or concealed what in this scene? Return only new or changed items." Code fans the result out to the views. That is 1 call per scene, not N entry calls.
 - **Retrieval:** include a character's view only when they are in the current scene or about to speak. Always include `secret_from` constraints for characters in the scene, since those prevent leaks.
 - **Memories (deferred):** a per-character "Memories" layer (what they *remember experiencing*, the prose/experiential view) is not an independent generation target. It falls out as a derived prompt-build projection from knowledge items (this section) + milestone participations (7.1) + `_history` entries (3.1): path-scope under the entity → collapse per-path runs → rank by recency × inverse path-frequency → render compact lines. No extra LLM call. The structured data is the source of truth; prose is a view.
+
+**Implementation:** `Knowledge` subject with `KnowledgeItem` dataclass (`fact`, `known_by`, `secret_from`, `status`, `source` → `Source` alias, `learned_scene`). One `on_new_scene` trigger with `knowledge_query_prompt_template` (gate) + `branch_query_prompt_template` (query) + `branch_update_prompt_template` (path-patch). `Source` alias expanded to cover `witnessed` and `overheard` in addition to the existing `stated`/`demonstrated`/`inferred`. Format template renders entries as `slug (status) --- fact` blocks in `_context_order` after characters. No code changes needed — schema-driven subject discovery picks it up automatically.
 
 ## 5. Characters
 
