@@ -87,12 +87,13 @@ def recursive_set(data: dict | list, keyList: Iterable, value: Any) -> None:
         if isinstance(current_level, list):
             if isinstance(key, str) and key.isdigit():
                 key = int(key)
-                if len(current_level) <= key:
-                    while len(current_level) <= key:
-                        current_level.append(None)  # Ensure the list is long enough
-                    is_value_exists = False
-            else:
+            elif not isinstance(key, int):
                 raise TypeError(f"Cannot use non-integer key '{key}' on a list.")
+            
+            if len(current_level) <= key:
+                while len(current_level) <= key:
+                    current_level.append(None)  # Ensure the list is long enough
+                is_value_exists = False
 
         if i == length - 1:  # Set the final value
             current_level[key] = value
