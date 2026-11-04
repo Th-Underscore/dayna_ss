@@ -63,9 +63,9 @@
     - [X] Auto-detect scene end
         - [ ] Decide whether to count user\_input as new scene, or start from output
     - [ ] Detect important events at end of scene?
-- [ ] last\_x is all messages in current scene
-    - [ ] Could be what the LLM decides is relevant from the last scene (e.g. +2 msg context)?
-    - [ ] Could just be specific conditions? When to use full messages vs summarizations
+- [x] last\_x is all messages in current scene (sticky history)
+    - [x] Could be what the LLM decides is relevant from the last scene (e.g. +2 msg context)?
+    - [x] Could just be specific conditions? When to use full messages vs summarizations
 - [ ] User-defined example message format
 - [x] More sum prompt options (gate check → “YES”, “NO”, “SPECIFIC\_FIELD\_UPDATE” aka query branch fields to change instead of modifications all in one prompt)
 - [ ] Subject data UI (tree)
@@ -82,6 +82,7 @@
         - [ ] Also tool calling mode
     - [ ] Character mode (persona) - Provide as`"context"`  then place in spot
     - [ ] Also parsing/imitation for both modes
+    - Partially implemented (rolling messages, retrieval placement)
 - [ ] Short-term goal for this scene/event (`general_info`?)
 - [ ] Allow the user to put instructions via "\[\[NOTE HERE\]\]" within the message. Whether to preserve this internally in history or remove it is unclear
     - [ ] Also disable sum gen and/or give specific keywords to direct generation? (e.g. “suzie dead by pure accident”)
@@ -98,10 +99,10 @@
     - [ ] Also each relationship (essentially what`"events":`  is for, but better)
     - [ ] Maybe new schema type for “Memory”?
 - [ ] Detect edits and compare original vs new to determine what to change in history\_str
-- [ ] Add instructions.json (`instr`) toggle
+- [x] Add instructions.json (`instr`) toggle
 - [x] Refactor `_update_recursive` into more standard recursive style
 - [ ] Save message word count?
-- [ ] What specific branches should be updated then looping those recursively (rather than a gate check)
+- [x] What specific branches should be updated then looping those recursively (rather than a gate check)
     - [ ] Essentially function calling
 - [ ] Message RAG: Include the “speaker” (`char1` vs `char2`) per message (not just per node necessarily)
 - [x] Triggers with specific defaults (prompt templates), rather than defaults and triggers separate?
@@ -130,6 +131,7 @@
 ```
 
 - [ ] "Memories" - notes for each character for each scene and event — summary of specific things that happened that are memorable for this specific character
+  - "milestones" + "knows" should supersede this?
 - [ ] Analyze "user intent" before generating instructions
 - [ ] Track changes in-scene then actually apply them at the end
 - [ ] Persist DataSummarizer change-diffs into message_index (MessageChunker)
@@ -144,32 +146,38 @@
     - Optional quality tier: at scene-archive, distill each entity's turn-diffs into 2–3 prose changelog lines stored engine-managed on the entry (`_change_log`, same reserved-field precedent as \_recent\_state) — old scenes stay queryable without replaying raw audits
 - [ ] Include simulated "character thoughts" when summarizing (or even message_index?)
 - [ ] Format_messages shouldn't include index `10. <message>` to avoid re-evaluating; instead, use normal format but at the end give summaries specifying which message is which
+  - Partially solved with rolling messages mode
 - [ ] More detailed relationship info (temporary status etc.)
 - [ ] `"extra_info"` fields?
-- [ ] "Entities" subject types
-    - [ ] Locations
-    - [ ] Items/resources
-    - [ ] Creatures
-    - [ ] Goals?
+- [x] "Elements" subject types
+    - [x] Locations
+    - [x] Items/resources
+    - [x] Creatures
+    - ~~[ ] Goals?~~ (done separately)
 - [ ] 5x5 grid to place characters in a scene (LOW PRIORITY, parked 2026-08-20; schema-driven, no hardcoded engine dispatch)
     - New current\_scene field (e.g. `positions`: cell -> entity, or entity -> \[row, col\]) riding the normal update machinery with its own prompt template
     - Open: update cadence — every-turn branch\_update (costly; current\_scene.now is already a full-branch update every turn) vs new-scene rewrite + movement-gated query
     - Open: render as an ASCII grid into the reply context so the writer model reasons about adjacency/earshot/line-of-sight (who can slip away unnoticed)
     - Open: absolute room map vs relative-to-speaker positions; multi-room scenes
     - Small-model risk: positional churn / teleporting — may need a stability nudge ("only move cells the text implies")
-    - Related: Entities > Locations
 - [ ] Granular Events for more precise RAG? Basically summarized messages
 - [ ] Only perform initial population after first scene?
 - [x] Execute DataSummarizer in parallel - stopping if interrupted - only truncating/updating RetrievalContext after a _full_ run (max_subject_workers, schema-order reassembly)
-- [ ] Let DSS run constantly (Historian), giving long windows to summarize
-- [ ] recurring/ongoing events + planned (future) events?
-- [ ] start DataSummarizer with to run prefill in parallel (cache warm)
-- [ ] Insert _full_ schema (all defs) into context prefix (no re-eval for each call if cached)
+- [ ] Let DSS run constantly (Historian), giving long windows to summarize (`docs/plans/async_dss.md`)
+- [ ] recurring/ongoing events + planned (future) events? (`docs/plans/quality_enhancements.md`)
+- [ ] start DataSummarizer with (...) to run prefill in parallel (cache warm)
+- [x] Insert _full_ schema (all defs) into context prefix (no re-eval for each call if cached) (`embed_full_schema`)
 - [ ] Give DSS reasoning and full tool suite, letting it choose what to edit at each turn (partially implemented, unused)
 
 ---
 
 ## Auto-Generated Notes
+
+- [ ] Revise initial population mechanism (wrapper vs individual type mismatch):
+    - Current: population prompts use wrapper type (e.g. `Elements`) for schema + example, but the LLM produces a single entity object; the `#!/definitions/` ref is empty because `schema_class` is never passed
+    - Option A: retarget to `elements.entries.<name>` path (use individual type `Element` for schema/example, pass `schema_class`); requires backend changes to the apply path
+    - Option B: replace initial population with `add_new` logic on the first scene turn
+    - Option C: add a config option to disable initial population entirely (let standard mechanisms handle first-scene population)
 
 ### Scale & aggregation units
 

@@ -6,6 +6,7 @@ How to analyze a completed long-horizon soak run. Replicable for any run.
 
 - **Log file:** `tests/runs/logs/<run_name>.log` (e.g. `scifi_heist_gemma4_s200.log`)
 - **Run directory:** `tests/runs/<spreadsheet>__<hash>/` (e.g. `sci_fi_heist__c05349c6/`)
+  - Verify latest via ``ls -ltd runs/*__*/ | head -n 3``
   - `turn_NNN/reply.txt` — model reply per turn
   - `turn_NNN/instr_prompt.txt` — instruction block per turn
   - `turn_NNN/current_scene.json` — scene state snapshot
@@ -53,6 +54,16 @@ One subagent per analysis axis. All three run in parallel (single workflow call 
 6. Compute: total LLM time vs wall time (the ratio reveals non-GPU overhead)
 
 **Deliverable:** `<run_id>_timing.md` with tables.
+
+**Also run `deep_timing.py`** with turn-range slices for finer-grained analysis:
+- All turns: `python scripts/deep_timing.py <run_dir>`
+- 0-20%: `--turns 1,N*0.2` (early-run baseline)
+- 21-40%: `--turns N*0.2+1,N*0.4` (mid-run steady state)
+- 41-60%: `--turns N*0.4+1,N*0.6`
+- 61-80%: `--turns N*0.6+1,N*0.8`
+- 81-100%: `--turns N*0.8+1,N` (late-run, entity accumulation effects)
+
+Compare per-subject `perform_update` token counts across slices to identify which subjects are growing and at what rate.
 
 #### Subagent B: Context/State Evolution
 
@@ -145,6 +156,8 @@ Checks to perform at natural pause points (reboot, timeout kill, user-initiated 
 ### Error check
 
 - **Log file** — grep for `Traceback`, `FAILED`, `Error` in the run log. A few HTTP 502s from the cloud endpoint are normal (transient). Repeated failures or `TypeError`/`AttributeError` tracebacks indicate code bugs.
+- **All errors including validation** — also grep for `validation`, `ValidationError`, `Failed to parse`, `no matching step`, and ANSI-coded error lines (lines containing `\x1b[31m` red or `\x1b[33m` yellow that start with an error indicator). Validation errors are often the most important signal (schema drift, LLM producing wrong shapes) and are easy to miss if you only grep for "Error".
+- **Count and categorize** — don't just flag that errors exist; count them by type and identify which turns/subjects they affect. A pattern (e.g. 12 `no matching step` errors on `current_scene.now.why`) is more actionable than a single traceback.
 
 ### Resume readiness
 
@@ -161,64 +174,42 @@ mid-run review (general health) or the 3-axis subagent analysis (general quality
 these verify a specific feature landed correctly. Remove the section once the run attains
 excellent quality for this standard.
 
-### Full perf stack integration (s536)
+### Example JSON comment generation (s542)
 
-This run is the first long soak with all performance fixes together: template reorder
-(48.7% prefix-cache hit rate), entity capping (top-25 by graph score), path-patch
-conversion (Arc/Chapter/GeneralInfo → `query_branch_for_changes`), hybrid retrieval
-(scene-present base set), and description/status split. Verify:
+Multi-nested alias resolution in `generate_example_comments` (schema_parser.py).
+Peels through alias layers until the innermost type is reached, then dispatches
+on kind. Verify in DSS prompts (via oaiproxy):
 
-- **Input token growth curve** — via `deep_timing.py` (JSONL primary). Character input
-  tokens should grow ~1.5-1.8x over the run (down from 3x pre-split). Elements/groups
-  should stay under 2x (entity cap limiting accumulation).
-- **Per-turn wall time** — non-scene turns should stay in the 15-40s range. Scene turns
-  200-400s. Flag any turn > 500s.
-- **Prefix cache hit rate** — vLLM log (`server_gm4_vllm_s536.log`) should show sustained
-  40-50% hit rate. A drop below 30% in later turns indicates context growth breaking
-  the cache. Cross-reference with `deep_timing.py` TTFT-based classification.
-- **No perform_update on Arc/Chapter** — `dss_calls.jsonl` should show zero
-  `perform_update` actions on `arcs` or `chapters` subjects. All should be
-  `query_branch_for_changes`.
+- **`knows` on Characters** — example JSON should have a JSONC comment with the
+  `EpistemicStance` options: `// (knows | believes | suspects | spreading | sees_through)`.
+  Values in `characters.json` should use only this vocabulary. Flag out-of-vocab values
+  (e.g. `"confirmed"` from s541).
+- **`relationships` on Characters** — alias wrapping `list[CharacterRelationship]`
+  should produce nested sub-comments aligned to the `relationships_key_example` key.
+- **`start`/`now` on CurrentScene** — alias-wrapping-dataclass fields should produce
+  nested comments for their `SceneWhen` children (when, where, who, etc.).
+- **`attributes` on Elements** — should be a flat `list[str]` in the data, not a
+  `dict[str, str]` key-value bag. The placeholder now says "NOT a key-value pair".
 
-### Rules harvest + WorldRule shape (s536)
+### Prompt template headers (s542)
 
-The `on_new_scene` trigger on `general_info` with `rules_query_prompt_template` should
-  harvest world rules at scene boundaries. Verify:
+Update/branch_update templates reworded to clarify the example JSON is the structure
+being modified, not the response format. Verify in DSS prompts:
 
-- **Rules population** — `general_info.json` → `rules` should grow from the 3 seed
-  entries to 8-20+ entries by end of run. Each entry should be a `WorldRule` dict with
-  `text` (list of strings), `domain`, `scope`, `source` keys.
-- **Rules quality** — sample 5-10 rules: do they read as actual world-building rules
-  (deviations from real life, hard-set laws)? Flag generic filler ("characters can die",
-  "time passes") or character-specific content.
-- **Source values** — `source` field should use the convention: `stated`, `demonstrated`,
-  or `inferred`. Flag free-text values that don't match.
-- **Harvest frequency** — count `general_info` calls with `query_changes` action in
-  `dss_calls.jsonl`. Should fire on scene turns only (not every turn).
+- **Update prompts** — header should say "do NOT output this full structure in your
+  response; only output the fields that changed".
+- **New-entry prompts** — should keep the original "Example JSON structure:" header.
 
-### Change history (`_history`) (s536)
+### Knowledge subject population (ongoing)
 
-The `_history` field records per-field diffs on path-patch updates. Verify:
+Knowledge `add_new_query` is firing but returning empty arrays (0 entries after 30
+turns in s542). The prompt lacks the grounding that Elements has (no JSON example,
+no `{{ branch_list }}`, no `{{ scene_recap }}`/`{{ scene_events }}`). Prompt rewrite
+pending. Verify after next run:
 
-- **Presence** — sample entries from `characters.json`, `events.json` (scenes/beats).
-  Entries that were updated should have a `_history` list with `{path, old, new}` tuples.
-- **No LLM visibility** — `_history` must NOT appear in any LLM-facing prompt. Check
-  that `context.txt` (or equivalent) for a sampled turn does not contain `_history`.
-- **Cap enforcement** — no field path should have more than 20 history entries (plus
-  a `[compact: N earlier change(s)]` sentinel if it exceeded the cap).
-
-### Judge score variance (s536)
-
-The tightened rubric (3.5 default anchor, relative comparison, memory_fidelity as
-completeness/freshness) should produce more discriminative scores. Verify:
-
-- **Score distribution** — from `result.json` across all judged turns. Quality and style
-  should show spread (not clustered at 4.5-5.0). Expect some 3.0-3.5 scores on weaker turns.
-- **Memory fidelity** — should differentiate (not flat 5.0). Track correlation with
-  turns where the writer references stale/missing state.
-- **Relative comparison effect** — check that the judge's notes reference comparison
-  to other turns in the window (e.g., "comparable to turn N" or "weaker than the
-  strongest turn in this window").
+- **Knowledge population** — `knowledge.json` should have entries by mid-run.
+- **`knows` on Characters** — `dict[str, str]` with `EpistemicStance` values.
+- **`learned` on StoryEvents** — `dict[str, str]` with `EventKnowledgeRole` values.
 
 ## Lessons Learned
 
