@@ -8,6 +8,8 @@ from enum import IntEnum
 from pathlib import Path
 from typing import Any, Union, get_origin, get_args
 
+from .path_utils import strip_underscore_keys
+
 from .helpers import (
     _ERROR,
     _SUCCESS,
@@ -724,6 +726,19 @@ class SchemaParser:
         for name, parsed_class_obj in self.definitions.items():
             json_schema_definitions[name] = parsed_class_obj.to_json_schema_dict(self.definitions)
         return json_schema_definitions
+
+    def get_full_schema_str(self) -> str:
+        """Build the full merged JSON schema for all subjects, underscore keys stripped.
+
+        Used as a stable prefix-cache anchor in the system context when
+        config['embed_full_schema'] is enabled.
+        """
+        all_defs = {}
+        for name, cls in self.subjects.items():
+            schema = self.get_relevant_json_schema_definitions(cls)
+            if "definitions" in schema:
+                all_defs.update(schema["definitions"])
+        return json.dumps(strip_underscore_keys({"definitions": all_defs}), indent=2)
 
     def _collect_refs_from_schema_part(
         self, schema_part: Any, queue: list[str], visited: set[str], all_definition_keys: set[str]

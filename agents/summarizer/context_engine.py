@@ -36,7 +36,6 @@ from ...utils.helpers import (
     load_json,
     save_json,
     format_str_or_jinja,
-    strip_underscore_keys,
 )
 
 from ...rag.structured_rag.context_retriever import RetrievalContext, StoryContextRetriever
@@ -251,14 +250,9 @@ class ContextEngineMixin:
         # Static full-schema prefix: injected once into the system context so
         # every DSS call sees the complete schema at a stable prefix position
         # (prefix-cache anchor). Gated by config['embed_full_schema'].
+        print(f"{_DEBUG}self.last.schema_parser: {self.last.schema_parser}")
         if self.config.get("embed_full_schema", False) and self.last.schema_parser:
-            _all_defs = {}
-            for _name, _cls in self.last.schema_parser.subjects.items():
-                _schema = self.last.schema_parser.get_relevant_json_schema_definitions(_cls)
-                if "definitions" in _schema:
-                    _all_defs.update(_schema["definitions"])
-            _full_schema_str = json.dumps(strip_underscore_keys({"definitions": _all_defs}), indent=2)
-            custom_state["context"] += f"\n\nFULL SCHEMA (all subjects):\n```json\n{_full_schema_str}\n```"
+            custom_state["context"] += f"\n\nFULL SCHEMA (all subjects):\n```json\n{self.last.schema_parser.get_full_schema_str()}\n```"
 
         # Check whether any scene has been archived (on-disk truth of first-scene completion).
         # Before the first scene completes, inject raw state["context"] as fallback;

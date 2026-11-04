@@ -128,6 +128,13 @@ class PopulationMixin:
             custom_state = copy.deepcopy(state)
             custom_state.update(copy.deepcopy(base_state))
 
+            # Static full-schema prefix: injected once into the system context so
+            # every DSS call sees the complete schema at a stable prefix position
+            # (prefix-cache anchor). Gated by config['embed_full_schema']. Mirrors
+            # the injection in context_engine.py for the normal DSS path.
+            if self.config.get("embed_full_schema", False) and self.last.schema_parser:
+                custom_state["context"] += f"\n\nFULL SCHEMA (all subjects):\n```json\n{self.last.schema_parser.get_full_schema_str()}\n```"
+
             max_retries = 2
             populated_data = None
             pm = self._phase_manager
@@ -259,6 +266,10 @@ class PopulationMixin:
 
         custom_state = copy.deepcopy(state)
         custom_state.update(copy.deepcopy(base_state))
+
+        if self.config.get("embed_full_schema", False) and self.last.schema_parser:
+            custom_state["context"] += f"\n\nFULL SCHEMA (all subjects):\n```json\n{self.last.schema_parser.get_full_schema_str()}\n```"
+
         pm = self._phase_manager
 
         # Step 1: Identification
