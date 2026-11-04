@@ -392,6 +392,61 @@ class DSUpdatesMixin:
             branch_name, data, formatted_data, update_template, schema_class, keys, phase_id, pm
         )
 
+    def _path_terminal_default(self, keyList: list, schema_class) -> Any:
+        """Determine the default container for the terminal node of a parent path.
+
+        Walks the parent path through the schema, resolving through
+        dict[str, Dataclass] layers to reach the correct class level, then
+        checks the terminal field's type. Returns [] for list fields, {} otherwise.
+        """
+        if schema_class is None:
+            return {}
+        try:
+            cls = schema_class
+            while cls.definition_type == "alias":
+                inner = cls._field.type if cls._field else None
+                if isinstance(inner, ParsedSchemaClass):
+                    cls = inner
+                else:
+                    return {}
+
+            parent_keys = keyList[:-1]
+            # Walk all parent keys except the terminal to resolve through
+            # dict[str, Dataclass] / list[Dataclass] layers
+            for key in parent_keys[:-1]:
+                if not isinstance(key, str) or not cls._fields or key not in cls._fields:
+                    break
+                ftype = cls._fields[key].type
+                origin = getattr(ftype, '__origin__', None)
+                if origin not in (dict, list):
+                    break
+                args = getattr(ftype, '__args__', ())
+                val_type = args[-1] if args else None
+                if not isinstance(val_type, ParsedSchemaClass):
+                    break
+                # Resolve through alias wrappers
+                v = val_type
+                while v.definition_type == "alias":
+                    inner = v._field.type if v._field else None
+                    if not isinstance(inner, ParsedSchemaClass):
+                        v = None
+                        break
+                    v = inner
+                if v is None:
+                    break
+                cls = v
+
+            # Check the terminal field's type
+            terminal = parent_keys[-1] if parent_keys else None
+            if isinstance(terminal, str) and cls._fields and terminal in cls._fields:
+                ftype = cls._fields[terminal].type
+                if getattr(ftype, '__origin__', None) is list:
+                    return []
+
+            return {}
+        except Exception:
+            return {}
+
     def _get_valid_schema_fields(self, schema_class) -> set[str]:
         """Extract valid field names from a ParsedSchemaClass.
 
@@ -446,12 +501,13 @@ class DSUpdatesMixin:
             keyList = split_keys_to_list(path_str)
             keyList = _resolve_path_keys(data, keyList)
 
-            # Layer 2: parent existence
+            # Layer 2: parent existence — create missing intermediates with
+            # schema-appropriate container types
             if len(keyList) > 1:
                 _parent = recursive_get(data, keyList[:-1])
                 if _parent is None:
-                    errors.append(f"path '{path_str}': parent path does not exist")
-                    continue
+                    _term = self._path_terminal_default(keyList, schema_class)
+                    recursive_set(data, keyList[:-1], _term)
 
             # Layer 3: schema conformity
             if schema_class is not None and len(keyList) > 1:
