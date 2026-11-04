@@ -395,8 +395,10 @@ class DSPromptsMixin:
         example_json_str = ""
         branch_list_str = ""
 
+        target_name = ""
+        
         if target_schema_or_type:
-            target_name = getattr(target_schema_or_type, "name", str(target_schema_or_type))
+            target_name: str = getattr(target_schema_or_type, "name", str(target_schema_or_type))
             print(f"{_INPUT}Generating schema snippet and example JSON for {target_name}{_RESET}")
             try:
                 schema_snippet_str = lambda: json.dumps(
@@ -466,6 +468,7 @@ class DSPromptsMixin:
         chapter_in_arc = chapters_in_arc  # Current chapter position within arc
 
         format_kwargs = {
+            "schema_class": target_name,
             "branch_name": item_name,
             "item_name": item_name,
             "field_name": field_name,

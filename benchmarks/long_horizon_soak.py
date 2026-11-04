@@ -197,6 +197,8 @@ def _arg_parser() -> argparse.ArgumentParser:
                    help="explicit subjects_schema.json path (overrides --schema-type resolution)")
     p.add_argument("--no-schema-descriptions", action="store_true",
                    help="strip field descriptions from generated JSON schemas in DSS prompts (saves ~50% schema tokens)")
+    p.add_argument("--embed-full-schema", action="store_true",
+                   help="embed the full merged JSON schema in every DSS prompt (stable prefix-cache anchor; ~11K tokens baseline)")
     p.add_argument("--synthetic-chat", action="store_true",
                    help="ISOLATION MODE: the cloud model writes BOTH sides of the conversation; "
                         "DSS runs only the DataSummarizer (no local reply generation). Isolates "
@@ -2077,9 +2079,11 @@ class SoakRun:
         # Per-entry whole-subject context re-statement gating (see §23).
         self.summarizer.config["restate_map_context"] = self.args.restate_map_context
         self.summarizer.config["restate_map_threshold_chars"] = max(0, self.args.restate_map_threshold)
+        self.summarizer.config["embed_full_schema"] = self.args.embed_full_schema
         # The selected schema is copied into the sandbox at the default location
         # (see main()'s sandbox setup), so the engine resolves
         # `extension_dir / user_data/example/subjects_schema.json` to the variant.
+        self.local.config = self.summarizer.config
         return self.summarizer
 
     # ------------------------------------------------------ state summary ---
