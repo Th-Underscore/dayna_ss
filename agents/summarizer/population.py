@@ -121,7 +121,7 @@ class PopulationMixin:
                 char_greeting_str=char_greeting_str,
                 all_relevant_definitions_json_str=all_definitions_str,
                 example_json=example_json_str,
-                schema_definition_json=all_definitions_str,
+                schema_snippet=all_definitions_str,
                 retry_feedback_placeholder="",
             )
 
@@ -189,7 +189,7 @@ class PopulationMixin:
                                 char_greeting_str=char_greeting_str,
                                 all_relevant_definitions_json_str=all_definitions_str,
                                 example_json=example_json_str,
-                                schema_definition_json=all_definitions_str,
+                                schema_snippet=all_definitions_str,
                                 retry_feedback_placeholder=error_feedback + "\n",
                             )
                 except json.JSONDecodeError as e:
@@ -205,7 +205,7 @@ class PopulationMixin:
                             char_greeting_str=char_greeting_str,
                             all_relevant_definitions_json_str=all_definitions_str,
                             example_json=example_json_str,
-                            schema_definition_json=all_definitions_str,
+                            schema_snippet=all_definitions_str,
                             retry_feedback_placeholder=error_feedback,
                         )
                 except Exception as e:
@@ -407,14 +407,14 @@ class PopulationMixin:
                 if schema_to_use and isinstance(schema_to_use, ParsedSchemaClass):
                     example_json = schema_to_use.generate_example_json(all_definitions_map=schema_parser.definitions)
                     example_json_str = json.dumps(example_json, indent=2)
-                    schema_definition_json = json.dumps(schema_parser.get_relevant_json_schema_definitions(schema_name), indent=2)
+                    schema_snippet = json.dumps(schema_parser.get_relevant_json_schema_definitions(schema_name), indent=2)
 
                     population_prompt = format_str_or_jinja(
                         population_prompt_template,
                         entity_type=entity_type,
                         entity_name=entity_name,
                         descriptor=entity_descriptor,
-                        schema_definition_json=schema_definition_json,
+                        schema_snippet=schema_snippet,
                         example_json=example_json_str,
                         char_context=char_context,
                         char_greeting=char_greeting,
@@ -520,7 +520,7 @@ class PopulationMixin:
                                         entity_type=entity_type,
                                         entity_name=entity_name,
                                         descriptor=entity_descriptor,
-                                        schema_definition_json=schema_definition_json,
+                                        schema_snippet=schema_snippet,
                                         example_json=example_json_str,
                                         char_context=char_context,
                                         char_greeting=char_greeting,
@@ -540,7 +540,7 @@ class PopulationMixin:
                                     entity_type=entity_type,
                                     entity_name=entity_name,
                                     descriptor=entity_descriptor,
-                                    schema_definition_json=schema_definition_json,
+                                    schema_snippet=schema_snippet,
                                     example_json=example_json_str,
                                     char_context=char_context,
                                     char_greeting=char_greeting,
