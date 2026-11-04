@@ -451,8 +451,11 @@ class CloudModel:
         state: dict = {"role": self.role, "model": self.model, "phase": "generating",
                        "started_at": started}
         self._progress_write({**state, "force": True})
+        last_data = time.time()
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
             for raw in resp:
+                if time.time() - last_data > self.timeout:
+                    break
                 line = raw.decode("utf-8", "replace").strip()
                 if not line.startswith("data:"):
                     continue  # SSE comments / keep-alives (": OPENROUTER PROCESSING")
@@ -475,6 +478,8 @@ class CloudModel:
                     content_parts.append(c)
                 if r:
                     reasoning_parts.append(r)
+                if c or r:
+                    last_data = time.time()
                 if choices[0].get("finish_reason"):
                     finish_reason = choices[0]["finish_reason"]
                     break
