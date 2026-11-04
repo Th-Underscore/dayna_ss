@@ -538,7 +538,10 @@ class ParsedSchemaClass:
 
             sub_comments = None
             if isinstance(field_type, ParsedSchemaClass):
-                sub_comments = field_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
+                resolve_target = field_type
+                while resolve_target.definition_type == "alias" and resolve_target._field and isinstance(resolve_target._field.type, ParsedSchemaClass):
+                    resolve_target = resolve_target._field.type
+                sub_comments = resolve_target.generate_example_comments(all_definitions_map, depth + 1, max_depth)
             elif hasattr(field_type, "__origin__"):
                 origin = field_type.__origin__
                 args = getattr(field_type, "__args__", tuple())
@@ -551,10 +554,45 @@ class ParsedSchemaClass:
                 elif origin is dict and len(args) == 2:
                     value_type = args[1]
                     if isinstance(value_type, ParsedSchemaClass):
-                        value_comments = value_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
-                        if value_comments:
-                            key = str(placeholder) if placeholder else f"{field_name}_key_example"
-                            sub_comments = {key: (None, value_comments)}
+                        if value_type.definition_type == "alias":
+                            # Peel through nested aliases to reach the innermost type
+                            inner = value_type
+                            while inner.definition_type == "alias" and inner._field and isinstance(inner._field.type, ParsedSchemaClass):
+                                inner = inner._field.type
+                            final_type = inner._field.type if inner._field else None
+                            if isinstance(final_type, ParsedSchemaClass):
+                                # Resolved to a dataclass (e.g. alias → alias → Dataclass)
+                                item_comments = final_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
+                                if item_comments:
+                                    key = f"{field_name}_key_example"
+                                    sub_comments = {key: (None, item_comments)}
+                            elif final_type is not None and hasattr(final_type, "__origin__") and final_type.__origin__ is list:
+                                # Resolved to a list of dataclasses (e.g. alias → list[Dataclass])
+                                item_type = final_type.__args__[0] if final_type.__args__ else None
+                                if isinstance(item_type, ParsedSchemaClass):
+                                    item_comments = item_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
+                                    if item_comments:
+                                        key = f"{field_name}_key_example"
+                                        sub_comments = {key: (None, {0: (None, item_comments)})}
+                            else:
+                                # Simple string/other type → use field_options/field_placeholder
+                                v_options = value_type.defaults.get("field_options")
+                                v_placeholder = value_type.defaults.get("field_placeholder")
+                                v_comment = None
+                                if v_placeholder:
+                                    v_comment = str(v_placeholder)
+                                    if v_options:
+                                        v_comment += " (" + " | ".join(str(o) for o in v_options) + ")"
+                                elif v_options:
+                                    v_comment = "(" + " | ".join(str(o) for o in v_options) + ")"
+                                if v_comment:
+                                    key = f"{field_name}_key_example"
+                                    sub_comments = {key: (v_comment, None)}
+                        else:
+                            value_comments = value_type.generate_example_comments(all_definitions_map, depth + 1, max_depth)
+                            if value_comments:
+                                key = f"{field_name}_key_example"
+                                sub_comments = {key: (None, value_comments)}
 
             if comment_text or sub_comments:
                 comments[field_name] = (comment_text, sub_comments)
