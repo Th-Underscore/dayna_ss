@@ -81,6 +81,7 @@ class RetrievalContext:
     chapters: dict[str, dict] = field(default_factory=dict)
     arcs: dict[str, dict] = field(default_factory=dict)
     general_info: dict[str, dict] = field(default_factory=dict)
+    knowledge: dict[str, dict] = field(default_factory=dict)
     messages: list[str] = field(default_factory=list)
     messages_metadata: list[dict] = field(default_factory=list)
     character_status: dict[str, dict] = field(default_factory=dict)
@@ -122,6 +123,7 @@ class StoryContextRetriever:
         self.general_info_path = history_path / "general_info.json"
         self.current_scene_path = history_path / "current_scene.json"
         self.arcs_path = history_path / "arcs.json"
+        self.knowledge_path = history_path / "knowledge.json"
 
         self.characters = self._load_json(self.characters_path)
         self.groups = self._load_json(self.groups_path)
@@ -130,6 +132,7 @@ class StoryContextRetriever:
         self.general_info = self._load_json(self.general_info_path)
         self.current_scene = self._load_json(self.current_scene_path)
         self.arcs = self._load_json(self.arcs_path)
+        self.knowledge = self._load_json(self.knowledge_path)
 
         print(f"{_DEBUG}StoryContextRetriever loaded:")
         print(f"  history_path: {history_path}")
@@ -139,7 +142,8 @@ class StoryContextRetriever:
         print(f"  events keys: {list(self.events.keys()) if self.events else 'empty'}")
         print(f"  general_info keys: {list(self.general_info.keys()) if self.general_info else 'empty'}")
         print(f"  current_scene keys: {list(self.current_scene.keys()) if self.current_scene else 'empty'}")
-        print(f"  arcs count: {len(self.arcs) if self.arcs else 0}{_RESET}")
+        print(f"  arcs count: {len(self.arcs) if self.arcs else 0}")
+        print(f"  knowledge count: {len(self.knowledge.get('entries', self.knowledge)) if self.knowledge else 0}{_RESET}")
 
         # Initialize entity graph for relationship tracking
         self.schema_classes = schema_classes or {}
@@ -1664,6 +1668,10 @@ class StoryContextRetriever:
             if self.arcs:
                 result.arcs = _safe_subject("arcs", lambda: self.arcs) or {}
                 print(f"{_DEBUG}arcs retrieved: type={type(result.arcs).__name__}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
+                  
+            if self.knowledge:
+                result.knowledge = _safe_subject("knowledge", lambda: self.knowledge) or {}
+                print(f"{_DEBUG}knowledge retrieved: type={type(result.knowledge).__name__}, count: {len(result.knowledge.get('entries', result.knowledge)) if result.knowledge else 0}{_RESET}")
 
             chapters_data = self._get_field_value(self.events, "Event", "chapters", {})
             if chapters_data:
