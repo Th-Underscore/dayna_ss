@@ -95,18 +95,100 @@ def load_from_log(log_path: str) -> list[dict]:
     return records
 
 
+def compute_slices(all_turns: list[int], n: int) -> list[tuple[str, int, int]]:
+    """Divide the turn range into n equal slices. Returns (label, lo, hi) tuples."""
+    lo_all, hi_all = min(all_turns), max(all_turns)
+    span = hi_all - lo_all + 1
+    step = max(1, span // n)
+    slices = []
+    for i in range(n):
+        lo = lo_all + i * step
+        hi = hi_all if i == n - 1 else min(lo_all + (i + 1) * step - 1, hi_all)
+        if lo > hi_all:
+            break
+        pct_lo = round((lo - lo_all) / span * 100)
+        pct_hi = round((hi - lo_all + 1) / span * 100)
+        slices.append((f"{pct_lo}-{pct_hi}% ({lo}-{hi})", lo, hi))
+    return slices
+
+
+def print_slice_analysis(records: list[dict], dss_records: list[dict], n_slices: int):
+    """Print per-slice subject/action breakdowns."""
+    all_turns = sorted(set(r['turn'] for r in records))
+    slices = compute_slices(all_turns, n_slices)
+
+    print(f"\n{'=' * 100}")
+    print(f"  PER-SLICE ANALYSIS ({n_slices} slices)")
+    print(f"{'=' * 100}")
+
+    # Overall stats per slice
+    print(f"\n  {'Slice':<22} {'DSS':>5} {'Writer':>7} {'DSS (s)':>9} {'Wrt (s)':>9} {'Total (s)':>10} {'DSS %':>6}")
+    print(f"  {'-' * 72}")
+    for label, lo, hi in slices:
+        dss = [r for r in dss_records if lo <= r['turn'] <= hi]
+        wrt = [r for r in records if not is_dss(r['subject']) and lo <= r['turn'] <= hi]
+        dt = sum(r['total'] for r in dss)
+        wt = sum(r['total'] for r in wrt)
+        tot = dt + wt
+        pct = dt / tot * 100 if tot else 0
+        print(f"  {label:<22} {len(dss):>5} {len(wrt):>7} {dt:>9.0f} {wt:>9.0f} {tot:>10.0f} {pct:>5.1f}%")
+
+    # Per-slice subject breakdown
+    for label, lo, hi in slices:
+        subj = defaultdict(lambda: {'calls': 0, 'time': 0, 'in_tok': 0})
+        for r in dss_records:
+            if lo <= r['turn'] <= hi:
+                s = r['top']
+                subj[s]['calls'] += 1
+                subj[s]['time'] += r['total']
+                subj[s]['in_tok'] += r['in']
+        total_t = sum(v['time'] for v in subj.values())
+        print(f"\n  {label} — subject breakdown")
+        print(f"  {'Subject':<18} {'Calls':>6} {'Time (s)':>10} {'%':>6} {'Avg/call':>9} {'Avg in':>8}")
+        print(f"  {'-' * 62}")
+        for s in sorted(subj.keys(), key=lambda x: -subj[x]['time']):
+            v = subj[s]
+            pct = v['time'] / total_t * 100 if total_t else 0
+            avg = v['time'] / v['calls'] if v['calls'] else 0
+            avg_in = v['in_tok'] // v['calls'] if v['calls'] else 0
+            print(f"  {s:<18} {v['calls']:>6} {v['time']:>10.1f} {pct:>5.1f}% {avg:>9.2f} {avg_in:>8,}")
+
+    # Per-slice action breakdown
+    for label, lo, hi in slices:
+        act = defaultdict(lambda: {'calls': 0, 'time': 0, 'in_tok': 0})
+        for r in dss_records:
+            if lo <= r['turn'] <= hi:
+                a = r['action']
+                act[a]['calls'] += 1
+                act[a]['time'] += r['total']
+                act[a]['in_tok'] += r['in']
+        total_t = sum(v['time'] for v in act.values())
+        print(f"\n  {label} — action breakdown")
+        print(f"  {'Action':<22} {'Calls':>6} {'Time (s)':>10} {'%':>6} {'Avg/call':>9} {'Avg in':>8}")
+        print(f"  {'-' * 68}")
+        for a in sorted(act.keys(), key=lambda x: -act[x]['time']):
+            v = act[a]
+            pct = v['time'] / total_t * 100 if total_t else 0
+            avg = v['time'] / v['calls'] if v['calls'] else 0
+            avg_in = v['in_tok'] // v['calls'] if v['calls'] else 0
+            print(f"  {a:<22} {v['calls']:>6} {v['time']:>10.1f} {pct:>5.1f}% {avg:>9.2f} {avg_in:>8,}")
+
+
 def main():
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} <run_dir_or_log_path> [--turns START,END]")
+        print(f"Usage: {sys.argv[0]} <run_dir_or_log_path> [--turns START,END] [--slices N]")
         sys.exit(1)
 
     path = Path(sys.argv[1])
     turn_start, turn_end = None, None
+    n_slices = 0
     for i, arg in enumerate(sys.argv[1:], 1):
         if arg == '--turns' and i + 1 < len(sys.argv):
             parts = sys.argv[i + 1].split(',')
             turn_start = int(parts[0])
             turn_end = int(parts[1]) if len(parts) > 1 else None
+        if arg == '--slices' and i + 1 < len(sys.argv):
+            n_slices = int(sys.argv[i + 1])
 
     # Determine input source
     if path.is_dir():
@@ -355,6 +437,10 @@ def main():
             avg_in = (lo + hi) // 2
             hit_p50 = max(0, 1 - (p50 * COLD_RATE) / avg_in) * 100
             print(f"  {lo // 1000}-{hi // 1000}K{'':<10} {n:>5} {p50:>10.2f} {hit_p50:>14.1f}%")
+
+    # === PER-SLICE ANALYSIS ===
+    if n_slices > 0:
+        print_slice_analysis(records, dss_records, n_slices)
 
 
 if __name__ == '__main__':
