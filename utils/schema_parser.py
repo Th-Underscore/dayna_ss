@@ -778,6 +778,57 @@ class SchemaParser:
                 all_defs.update(schema["definitions"])
         return json.dumps(strip_underscore_keys({"definitions": all_defs}), indent=2)
 
+    def get_enum_constraints(self, root_schema_or_type: ParsedSchemaClass | type | str) -> list[tuple[str, list[str]]]:
+        """Collect enum constraints for the given target schema.
+
+        Walks the resolved JSON schema and returns a list of
+        ``(path, options)`` tuples for every field carrying an ``enum``
+        constraint. Example::
+
+            [("importance.faction", ["positive", "negative", "neutral"]),
+             ("knows.*", ["knows", "believes", "suspects", "spreading", "sees_through"])]
+
+        Returns an empty list if no enum constraints are found.
+        """
+        schema = self.get_relevant_json_schema_definitions(root_schema_or_type)
+        definitions = schema.get("definitions", {})
+
+        main = schema.get("main_schema", {})
+        if "$ref" in main:
+            root_name = main["$ref"].split("/")[-1]
+        else:
+            root_name = None
+
+        constraints: list[tuple[str, list[str]]] = []
+
+        def walk(schema_part: dict, path: str):
+            if not isinstance(schema_part, dict):
+                return
+            if "enum" in schema_part:
+                constraints.append((path, schema_part["enum"]))
+                return
+            if "$ref" in schema_part:
+                ref_name = schema_part["$ref"].split("/")[-1]
+                if ref_name in definitions:
+                    walk(definitions[ref_name], path)
+                return
+            if "properties" in schema_part:
+                for prop_name, prop_schema in schema_part["properties"].items():
+                    new_path = f"{path}.{prop_name}" if path else prop_name
+                    walk(prop_schema, new_path)
+            if "additionalProperties" in schema_part:
+                new_path = f"{path}.*" if path else ".*"
+                walk(schema_part["additionalProperties"], new_path)
+            if "items" in schema_part:
+                walk(schema_part["items"], path)
+
+        if root_name and root_name in definitions:
+            walk(definitions[root_name], "")
+        elif not root_name:
+            walk(main, "")
+
+        return constraints
+
     def _collect_refs_from_schema_part(
         self, schema_part: Any, queue: list[str], visited: set[str], all_definition_keys: set[str]
     ):

@@ -394,6 +394,7 @@ class DSPromptsMixin:
         schema_snippet_str = ""
         example_json_str = ""
         branch_list_str = ""
+        enum_constraints = []
 
         target_name = ""
         
@@ -409,6 +410,7 @@ class DSPromptsMixin:
                     indent=2,
                     comments=strip_underscore_keys(self.schema_parser.generate_example_json_comments(target_schema_or_type)),
                 ))
+                enum_constraints = lambda: self.schema_parser.get_enum_constraints(target_schema_or_type)
             except Exception as e:
                 print(f"{_ERROR}Error generating schema snippet or example JSON for {target_name}: {e}{_RESET}")
                 traceback.print_exc()
@@ -476,6 +478,7 @@ class DSPromptsMixin:
             "keys": keys or [],
             "schema_snippet": schema_snippet_str,
             "example_json": example_json_str,
+            "enum_constraints": enum_constraints,
             "branch_list": branch_list_str,
             "user_input": self.user_input,
             "output": self.output,
