@@ -2,7 +2,6 @@
 """
 from __future__ import annotations
 
-import copy
 import json
 import jsonc
 import re
@@ -362,15 +361,10 @@ class DSUpdatesMixin:
         pm.start_step(phase_id, "apply_updates", "Applying updates...")
 
         # --- Step 2+3: Request and Apply (with validation retry) ---
-        # Simulate a conversation history so the LLM knows it just said "YES"
-        temp_state = copy.deepcopy(current_custom_state)
-        temp_state["history"]["internal"].append([branch_query_full_prompt, llm_response_text])
-
         print(f"{_INPUT}Query for '{branch_name}' suggests changes. Requesting field updates list...{_RESET}")
 
         return self._generate_branch_updates_with_retry(
             branch_name, data, formatted_data, update_template, schema_class, keys, phase_id, pm,
-            state=temp_state,
         )
 
     def _branch_update_only(
