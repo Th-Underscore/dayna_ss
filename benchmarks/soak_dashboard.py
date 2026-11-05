@@ -342,10 +342,14 @@ def summarize(turn_dir: Path, r: dict, st: os.stat_result) -> dict:
     else:
         judge = None
     wall = hms(r.get("wall_ts") or "") or dt.datetime.fromtimestamp(st.st_mtime).strftime("%H:%M:%S")
+    dt_s = float(r.get("dt_s") or 0)
+    cloud_s = float(r.get("cloud_s") or 0)
     return {
         "dir": turn_dir.name,
         "v": st.st_mtime_ns // 1000,
-        "dt_s": float(r.get("dt_s") or 0),
+        "dt_s": dt_s,
+        "cloud_s": cloud_s,
+        "local_s": max(0.0, dt_s - cloud_s),
         "wall": wall,
         "judge": judge,
         "present": frozenset(k for k, p in (r.get("probes") or {}).items()
@@ -580,6 +584,8 @@ class Run:
         series = usage_series(summaries)
         cost = {
             "dt_s": sum(s["dt_s"] for s in summaries),
+            "cloud_s": sum(s["cloud_s"] for s in summaries),
+            "local_s": sum(s["local_s"] for s in summaries),
             "local_calls": sum(u["local_calls"] for u in series),
             "local_prompt": sum(u["local_prompt"] for u in series),
             "cloud_calls": sum(u["cloud_calls"] for u in series),
@@ -587,7 +593,7 @@ class Run:
         }
         trans = find_transitions(turns)
 
-        turn_rows = [{"turn": n, "v": s["v"], "dt_s": s["dt_s"], "wall": s["wall"], "judge": s["judge"],
+        turn_rows = [{"turn": n, "v": s["v"], "dt_s": s["dt_s"], "cloud_s": s["cloud_s"], "local_s": s["local_s"], "wall": s["wall"], "judge": s["judge"],
                       "trans": trans.get(n)} for n, s in turns]
         curves = [{"turn": n, "wall": s["wall"], **s["judge"]} for n, s in turns
                   if s["judge"] and "error" not in s["judge"]]
@@ -1163,7 +1169,7 @@ function renderStats(ov) {
   setCard(C, 'c-lt', { label: 'Local ctx (prompt tok)', value: fmtTok(c.local_prompt), sub, tip: HELP.local_ctx });
   setCard(C, 'c-cc', { label: 'Cloud calls (guide+judge+audit)', value: String(c.cloud_calls), sub });
   setCard(C, 'c-ct', { label: 'Cloud ctx (prompt tok)', value: fmtTok(c.cloud_prompt), sub });
-  setCard(C, 'c-wt', { label: 'Total wall time', value: fmtDt(c.dt_s), sub });
+  setCard(C, 'c-wt', { label: 'Total wall time', value: fmtDt(c.dt_s), sub: `cloud ${fmtDt(c.cloud_s)} · local ${fmtDt(c.local_s)}` });
 
   const moves = [];
   for (const t of ov.transitions) for (const k of ['scene', 'chapter', 'arc']) if (t.moves[k]) moves.push(`turn ${t.turn}: ${k} ${t.moves[k][0]}→${t.moves[k][1]}`);
@@ -1238,6 +1244,7 @@ function buildSections() {
 // ---- per-turn list -------------------------------------------------------
 function turnTitle(r) {
   let s = `Turn ${r.turn} · ${fmtDt(r.dt_s)}`;
+  if (r.cloud_s > 5) s += ` (cloud ${fmtDt(r.cloud_s)}, local ${fmtDt(r.local_s)})`;
   if (r.judge && !r.judge.error) s += ` · style ${nz(r.judge.style)} fid ${nz(r.judge.fidelity)}`;
   for (const k of ['scene', 'chapter', 'arc']) if (r.trans && r.trans[k]) s += ` · ⛨ ${k.toUpperCase()} ${r.trans[k][0]}→${r.trans[k][1]}`;
   return s;

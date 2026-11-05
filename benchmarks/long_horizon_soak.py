@@ -2281,6 +2281,7 @@ class SoakRun:
         # 1. guide writes the user turn
         active_notes = notes_visible_at(spread["notes"], turn, args.guide_style)
         state_dir = self._current_state_dir()
+        _cloud_t0 = time.time()
         replanned = self._maybe_replan(turn, state_dir)
         memory = self._memory_summary(state_dir)
         soak_log(1.5)
@@ -2291,6 +2292,7 @@ class SoakRun:
             self.guide, spread, guide_msgs,
             max_attempts=self.args.guide_max_attempts,
             cooldown=self.args.cloud_empty_cooldown)
+        cloud_s = time.time() - _cloud_t0
         soak_log(1.75)
         if args.arc_breaks == "3_arcs" and turn in (25, 50, 75):
             # Stage via persistent_ui_state — the same channel production's
@@ -2419,6 +2421,7 @@ class SoakRun:
             "ts": ts,
             "local_calls": self.local.call_count,
             "cloud_usage": self.guide.stats(),
+            "cloud_s": round(cloud_s, 1),
             "synthetic_chat": bool(getattr(args, "synthetic_chat", False)),
         }
 
@@ -3032,7 +3035,8 @@ def main() -> int:
             result["cloud_usage"] = _delta_stats(guide_before, guide_after)
             result["cloud_usage"]["model"] = guide_after.get("model")
             result["wall_ts"] = time.strftime("%Y-%m-%dT%H:%M:%S")
-            soak_log(f"  done: turn {turn} in {dt:.1f}s")
+            cloud_s = result.get("cloud_s", 0)
+            soak_log(f"  done: turn {turn} in {dt:.1f}s (cloud {cloud_s:.0f}s, local {dt - cloud_s:.0f}s)")
             soak_log(f"  user: {result['user_input'][:100]!r}")
             soak_log(f"  reply: {result['reply'][:100]!r}")
             soak_log(f"  local_calls={result['local_usage']['calls']} "
