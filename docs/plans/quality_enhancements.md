@@ -1,7 +1,7 @@
 # DSS Quality Plan
 
 Scope: state quality for LLM roleplay (current goal), general enough for other memory-system uses later.
-Evidence: the `scifi_heist` seed-524 soak (100 turns, `compressed` cadence) and the v0.2.0 source. Performance work is tracked separately.
+Evidence: the `scifi_heist` seed-524 soak (100 turns, `compressed` cadence) and the v0.2.0 source. Performance work is tracked separately (`soak_optimization_plan.md`). Related plans: read-side ranking in `retrieval_plan.md`, the engine and UI boundary in `headless_engine_ui_plan.md`, and how DSS compares with Smart-Memory, TunnelVision and Talemate in `memory_comparisons.md`.
 Section numbers differ from the earlier item numbering. A map is at the end.
 
 ## 1. Summary
@@ -10,9 +10,11 @@ Section numbers differ from the earlier item numbering. A map is at the end.
 |---------|------|----------------|----------|
 | 5.1 | ~~`description` split (stable vs. current status)~~ **DONE** `4efa3063` | Negative (fewer tokens) | ✅ |
 | 3.1 | ~~Change history (per-field diffs)~~ **DONE** `78dd784b` | 0 | ✅ |
-| 3.2 | Shared `source` convention and precedence rule | ~1 token per item | Medium |
-| 4.1 | World rules as deviations from real life | 1 call per scene boundary (rules query only) | High (partial: harvest trigger done, shape migration pending) |
-| 4.2 | ~~Epistemics (who knows what)~~ **DONE** — `Knowledge` subject + `KnowledgeItem` dataclass + `on_new_scene` trigger + format template | 1 call per scene | ✅ |
+| 3.2 | Shared `source` convention and precedence rule (with a `user` rung) | ~1 token per item | Medium |
+| 3.3 | Entity resolution shared by write and read paths | 0 | High |
+| 3.4 | Rewind safety for swipes, edits and deletes | 0 | High |
+| 4.1 | ~~World rules as deviations from real life~~ **DONE** | 1 call per scene boundary (rules query only) | ✅ |
+| 4.2 | ~~Epistemics (who knows what)~~ **DONE** — `Knowledge` subject + `KnowledgeItem` dataclass + `on_new_scene` trigger + format template; writer-side rendering fixed, scene-cast stances proposed in 4.2 Consumption | 1 call per scene | ✅ |
 | 5.2 | Values for characters | Set at creation | Medium |
 | 5.3 | Goals / intent | Folded into the scene-boundary call | Medium |
 | 5.4 | Spatial and physical state | Mostly code-derived | Medium |
@@ -52,6 +54,8 @@ _history: list of { turn, scene, path, old, new, reason? }
 - Compact when a field's history exceeds a cap (start at 20), collapsing old entries into one line per scene.
 - It makes other items enforceable: a field that changes every scene becomes visible (5.1), and it supplies the tier-increase rate (6.2).
 
+Follow-up (not yet implemented): add `node` (the message node of the turn that produced the patch) and `actor` (`llm` | `user` | `system`) to each entry. Both are free at write time. `node` is what makes rewind possible (3.4) and `actor` is what makes user-edit precedence enforceable (3.2). A read of state as of an earlier turn is already possible in principle by loading that turn's snapshot directory (3.4 Evidence); `node` adds a turn-to-directory index and a cheaper replay of `_history`. Graphiti's bi-temporal edges are the reference (`memory_comparisons.md`, criterion 17).
+
 ### 3.2 Source and precedence
 
 `source` records how a fact is known. It earns its place only where something consumes it:
@@ -61,7 +65,9 @@ _history: list of { turn, scene, path, old, new, reason? }
 3. **Capping:** drop `inferred` items first.
 4. **Probes:** check that inferred items are not asserted as canon.
 
-Vocabulary: one base enum with refinements. Precedence is `observed` > `told` > `inferred`.
+Vocabulary: one base enum with refinements. Precedence is `user` > `observed` > `told` > `inferred`.
+
+`user` is never emitted by the model. Code stamps it on any edit made through the UI, or through an LLM-assisted edit the user approved (`headless_engine_ui_plan.md` P5). A path stamped `user` is locked against LLM patches until the user unlocks it, and the attempted overwrite goes to the change log. It costs no tokens and it is what makes direct editing safe. Precedent: TunnelVision never lets background automation rewrite authored (`constant`) lorebook entries (`memory_comparisons.md`, criterion 7).
 
 | Base | Refinements | Used by |
 |------|-------------|---------|
@@ -95,6 +101,69 @@ Evidence for the relationship decision: per-path churn in the soak's applied upd
 - **Index-addressed lists inflate the table.** `resources`, `aliases` and `description` are addressed by position (`resources.2`), and positions shift. Use keyed or deduplicated lists there, not `source`.
 - **Element relationships are the cleaner signal.** They are dict-keyed, and 22% (30 of 134) revisited an earlier value.
 - **The churn is in the lowest-value place.** Element relationships link props and locations. Consider restricting them to important elements, or dropping them, before adding `source` there. Characters and groups have too few relationship updates to judge yet.
+
+### 3.3 Entity resolution (write and read paths)
+
+Goal: one definition of "which entity does this string refer to", used wherever the engine turns text into a key.
+
+Evidence (static read of `a3c64b4`):
+
+- **The write side is already good.** `agents/data_summarizer/parsing.py` has `_normalize_entry_name` (alphanumerics only), `_resolve_dict_key` (exact, then normalized, then alias match) and `_retarget_dict_key` (re-addresses a lookalike key such as `The_Second_Runner` onto the canonical `Second Runner`). `_collect_entry_aliases` walks any nested `aliases` array, schema-agnostic.
+- **The read side is separate and weaker.** `rag/structured_rag/context_retriever.py` does its own matching:
+  - `_create_character_patterns` and `_create_element_patterns` compile `(full|first|last)` case-insensitive regexes with no word boundary and no stopword filter. A multi-word name that starts with an article ("The Vault") adds `The` as a standalone alternative, which matches almost any sentence. A short name matches inside other words (`Ray` in `array`, `Kit` in `kitchen`).
+  - `_get_relevant_elements` and `_get_relevant_groups` call `re.search(name, context)` with the name **unescaped**. A name containing `(`, `+`, `.` or `?` is read as a pattern, so it can raise `re.error` or match the wrong text. `_safe_subject` catches the error, prints a traceback and substitutes an empty subject, so the whole elements or groups section silently disappears from that turn's context.
+  - Aliases are consumed on the read side only for groups. Characters and elements have no top-level `aliases` field, so a nickname or title never resolves to them.
+- **Why it matters.** Matches become `initial_entities`, which seed the graph traversal. A false positive pulls unrelated state in through decay and inflates context against the 40k standing rule (`soak_optimization_plan.md` §35). A false negative loses the seed.
+- The "Entity references" problem in section 10 (the model paraphrasing a slug) is the same problem on the write side.
+
+Design:
+
+- **One resolver module** used by the retriever, `data_summarizer` and the section 10 validator. Reuse the `parsing.py` functions; do not write a second implementation.
+- **Index per subject:** normalized name to key, normalized alias to key, partial token to a list of keys. Build it on load and update it when an entry changes. Per section 2, no per-subject field-name lists: aliases come from any `aliases` list `_collect_entry_aliases` finds, and a schema may also declare an `aliases` field on characters and elements.
+- **Matching rules:** `re.escape` everywhere. Word boundaries (`(?<!\w)` and `(?!\w)`). Strip a leading article before deriving partial tokens. Ignore partial tokens under 3 characters or in a small stopword list. A partial token that maps to more than one entity is ambiguous and does not seed on its own.
+- **Match tiers set the seed weight** in the graph traversal: full name 1.0, alias 0.9, unique partial 0.5. These are starting values, to be tuned with the Retrieval probe in section 9.
+- **Aliases cost almost nothing to create:** ask for them in the character and element `add_new` output (a few tokens). Keep them as a deduplicated, append-only, capped set (start at 8), not an index-addressed list, to avoid the churn shown in the 3.2 table.
+
+Additions from reading Graphiti and OpenVault (`memory_comparisons.md`, criterion 3):
+
+- **Stages, cheapest first.** Exact normalized name, then alias, then a fuzzy match, and only then (optionally) an LLM. Graphiti's deterministic stage compares character-shingle sets (Jaccard at least 0.9) and has an entropy guard: short or low-information names are not fuzzy-matched, because they collide, and move on to the next stage. Use the same guard here.
+- **Merges leave redirects.** When two entries are merged or a key is retargeted, keep an old-key to canonical-key map (OpenVault's `_mergeRedirects`, followed through chains with a cycle guard), so a later paraphrase of the old name resolves immediately. This persists what `_retarget_dict_key` decides per call today.
+- **Type-aware thresholds.** Per its data-schema doc, OpenVault merges people on high embedding similarity but requires token overlap for other entity types. Characters and elements here likely need different rules.
+- **Identity fields.** Graphiti lets a type declare identity properties that match before any fuzzy step. A schema could declare `identity: [...]` per subject (default: the name), which keeps the resolver schema-driven.
+
+Cost: 0 LLM calls. Retriever-side details are in `retrieval_plan.md` R2. Verify with the Resolution and Retrieval probes (9).
+
+### 3.4 Rewind safety
+
+Problem: swipes, regenerations, edits and deletes happen every session. DSS applies patches after each turn. Regenerating or swiping the latest reply is already safe, but editing or deleting an earlier message loses state (see Evidence).
+
+Evidence (read in the code at `a3c64b4`, not run): state is stored in one directory per turn, keyed by a hash of the full history (`retrieve_history_path` in `context_engine.py`). Each turn loads the previous turn's directory and writes a new one, so these are content-addressed snapshots, and the message index lives inside each one. A swipe or regeneration restarts from the same pre-exchange directory, so the latest turn rewinds correctly by construction. Discarded branches leave orphaned directories behind. An edit or deletion earlier in the chat changes every later hash, no matching directory exists, and `prepare_context` creates an empty directory holding only the schema files, so state appears to be lost. `backtrack_history` in `core.py` is the hook meant for this, and it is currently a placeholder that does nothing. For comparison, TunnelVision snapshots each write and `revertInvalidSnapshots` undoes any whose message was swiped, edited or deleted, keyed on message identity so it needs no host event arguments. Smart-Memory subscribes to swipe and delete events.
+
+First step (small): implement `backtrack_history` by nearest-prefix snapshot.
+
+- Hash progressively shorter prefixes of the history (the same `hash_key` over `history[:k]`) and find the longest prefix whose directory exists.
+- Copy that directory (state and message index) forward as the starting state.
+- Replay the exchanges after the prefix through `summarize_latest_state`, at full cost, or accept the gap and mark the state stale until a replay is run (open question in section 10).
+- Garbage-collect orphaned directories (swiped replies, abandoned branches) by age, keeping the last N branches.
+
+Cost: 0 LLM calls to restore, plus N turns of DSS calls if the missing turns are replayed.
+
+Finer-grained rewind, building on 3.1 (only if the first step is not enough):
+
+- Every `_history` entry carries `node` and `actor`.
+- `rewind(to_node)` applies the inverse of every `llm` entry with `node` greater than `to_node`, newest first. The `old` values are already stored. `user` entries are never reverted automatically; they are listed for the user instead (3.2).
+- The 3.1 compaction cap can discard the old values rewind needs. Keep the last N turns (start at 10) uncompacted and compact only older entries.
+- State that is not a field patch needs its own inverse: record creates as `{path, old: <absent>}`, keep the previous version of regenerated digests (`synopsis`), and refuse to rewind past a chapter or arc archival boundary at first.
+- Detect a rewind by comparing the chat's message-node list with the last applied node, so no host event is required.
+- The message-chunk index has the same problem: chunks for removed messages must be dropped. Check whether `message_chunker` already does this.
+
+Alternatives found in other systems (`memory_comparisons.md`, criterion 8):
+
+- **Commit log keyed by message (Luker).** State is the replay of every commit whose (message, swipe) still exists in the live chat, so edits, swipes and deletes need no event handler and no inverse patches. Luker's log once grew to about 19 MB for about 1 MB of data until commits became incremental, so store diffs, not snapshots. DSS's `_history` is already per-field diffs. The decision is whether it becomes the source of truth (`headless_engine_ui_plan.md` P1) or stays an audit trail with inverse patches applied on rewind.
+- **Commit lag for slow subjects (OpenVault, Summaryception).** Both avoid rollback by processing only turns that have aged out of a recent window, so a swipe never reaches memory. That cannot work for `current_scene`, because the writer needs this turn's state, but it suits subjects that change slowly and are consumed later: chapters, arcs, `knowledge` and the canon synopsis. Apply those N turns late, and rewind only has to cover the fast subjects.
+- **Provenance counting (Graphiti).** Each edge records its source episodes, and `remove_episode` deletes only what no other episode supports. It does not matter for tail rewinds, but it would if mid-chat edits are ever supported.
+
+Cost: 0 LLM calls. Verify with the Rewind probe (9).
 
 ## 4. World knowledge
 
@@ -161,6 +230,14 @@ EventKnowledgeRole: established | reinforced | challenged | debunked
 - **Links live on the connecting side.** Character/Group carry `knows` (who knows what, and with what stance); Scene carries `learned` (what the scene established/challenged). The item doesn't point outward. New characters just add their `knows` entries without retroactively editing item lists.
 - **Stance is typed.** `EpistemicStance` is a `field_options`-constrained alias — the LLM gets a hard `enum` in the prompt. `believes` vs `suspects` vs `sees_through` distinguishes epistemic posture toward the same item.
 - **Memories (deferred):** a per-character "Memories" layer (what they *remember experiencing*, the prose/experiential view) is not an independent generation target. It falls out as a derived prompt-build projection from `knows` edges + milestone participations (7.1) + `_history` entries (3.1). No extra LLM call. The structured data is the source of truth; prose is a view.
+
+**Consumption.** The `Knowledge` subject was generated but never rendered for the writer: `RetrievalContext` had no `knowledge` field, `retrieve_context` never populated one, and `context_engine` skips any `_context_order` type whose attribute is `None`. That is fixed. The structural cause (a new subject is silently dropped unless the retriever has bespoke code for it) is addressed in `retrieval_plan.md` R1. What remains is the shape of the rendering:
+
+- **Show the stance of every character in the current scene,** computed in code: `knows: A, B | suspects: C | unaware: D`, where `unaware` is the scene cast with no edge to the item. The writer then sees who must not act on a fact, which is the Leak probe's pass condition. Smart-Memory tags `unaware` explicitly per character; deriving it from a missing edge avoids a generated field.
+- **Select items** first by an edge to a scene character, then by importance and status (`active` and `confirmed` before `debunked` and `resolved`), inside a budget set by the shared scorer (`retrieval_plan.md` R8).
+- **Omit** items with no edge to any scene character, rather than showing them unfiltered.
+
+Verify with the Leak and Knowledge render probes (9).
 
 **Implementation:** `Knowledge` wrapper with `KnowledgeMap` (`dict[str, KnowledgeItem]`). Triggers: `on_new_scene` → `[add_new, perform_gate_check]` on `KnowledgeMap` (creation), `query_branch_for_changes` on `Knowledge` (modification). `Source` alias with `field_options` (5 values). `EpistemicStance` alias with `field_options` (5 values). `type` and `status` use `field_options` in KnowledgeItem defaults. `score_range: [0,100]` on Importance. `knows`/`learned` declared in `relationship_format` on wrapper classes (`Characters`, `Groups`, `StoryEvents`) for entity graph edge extraction — the string-value branch in `_process_relationship_dict` handles `dict[str, str]` edge labels. Format template renders entries with type/status/fact/importance/source. Schema-driven subject discovery — no code changes needed for the subject itself.
 
@@ -229,6 +306,7 @@ Fold the update into the scene-boundary call, not per-entry patches. `hiding` an
 - **`last_seen` in code,** updated from `current_scene.now.who` each turn: `{scene, location, turn}`. Zero LLM calls.
 - **Surface "last seen at X, N scenes ago," not "is at X."** Optionally downgrade confidence as scenes pass. Only an explicit statement ("Dex left for the docks") sets a new location, and that comes from the scene-boundary call.
 - **Physical state:** a small struct on characters and groups (`held_items`, `injuries`, `attire`), overwritten like `status`. Injuries use the severity enum from 6.2. Pick one source of truth for who holds what, either `held_by` on elements or `held_items` on characters.
+- **Place state (candidate):** Smart-Memory's state cards track `hazards`, `accessibility`, `damage` and `occupants` for places, which suits a heist (a sealed door, a tripped alarm, a collapsed corridor). Keep `hazards`, `accessibility` and `damage` as short overwritten strings on location elements. Derive `occupants` in code from `last_seen` instead of storing it. Add it only if the writer context will use it.
 - **Small enums:** element `condition` (intact, damaged, lost, consumed). Character `lifecycle` (active, absent, deceased, unknown) only if not already tracked; I did not check.
 
 ## 6. Capabilities
@@ -392,6 +470,8 @@ Make most of it deterministic:
 
 Writer-facing use: inject only the top 3–5 threads, ranked by importance and staleness plus anything due, capped at ~150 tokens. Keep character motivation in the character sections, not in the same block.
 
+Statuses: `open | resolved | dormant` are declared by the model. Add a computed `stalled` (open and untouched for N scenes, from `last_touched_scene`), so staleness is never generated. TunnelVision's arc tracker distinguishes active, stalled, resolved and abandoned, and keeps a just-resolved arc in the prompt for a few turns so the payoff gets written. Do the same: include threads resolved within the last 2 to 3 scenes in the writer block, labelled resolved.
+
 Arcs and objectives. This layer is missing today:
 
 - `Arc.plot_threads` is a `list[str]` generated at arc level, and arcs were empty at turn 99, so nothing captured open threads between the scene and chapter timescales. Derive it as a roll-up of the thread subject instead of generating it separately.
@@ -414,6 +494,9 @@ The current `format_templates.json` renders all subjects as flat `Field --- valu
 0. **Record baselines** on both benchmark stories (section 9) before implementing the next item.
 1. ~~**5.1** `description` split~~ **DONE** `4efa3063`.
 2. ~~**3.1** Change history~~ **DONE** `78dd784b`. Per-field `{path, old, new}` on a private `_history` list, capped at 20 per path. Turn/scene/reason deferred to v2.
+2a. **3.4** Rewind safety. First implement `backtrack_history` by nearest-prefix snapshot (tail swipes already work). Then add `node` and `actor` to `_history` if finer rollback is wanted.
+2b. **3.3** Entity resolution. One shared resolver, then move the retriever onto it (`retrieval_plan.md` R2). Needs the Resolution probe first.
+2c. **3.2 (user rung)** Stamp `user` and lock paths in code. Needed before the UI allows editing (`headless_engine_ui_plan.md` P1).
 3. **4.1** Rules harvest. **PARTIAL** `9e93e070` (harvest trigger) + shape migration (`dict[str, WorldRule]`). Remaining: deviation framing in prompt, scoped patches, regex-gated harvest (step 7).
 4. **7.2** Deterministic parts (`end.*` from `current_scene`, stale and due computation).
 5. **5.4** Code-derived `last_seen`.
@@ -441,6 +524,11 @@ The soak already has needle probes (for example `n01`…). Add one probe family 
 | Rule | 4.1 | 20–30 deviation rules after the rules harvest populates them. No `meta` rule asserted as a world fact. A rule stated once in-story is harvested within N scenes |
 | Skill | 6.1 | A planted technique and tier-up are recorded in history, with no silent downgrade. A stated claim does not raise a tier |
 | Ladder | 6.2 | Two-pass agreement within ±1 tier at least ~90% of the time. Contest outcomes consistent with tier ordering. Tier-increase rate per character |
+| Resolution | 3.3 | No mention in a gold set (`The Vault`, short names, titles, nicknames, names with punctuation) resolves to the wrong entity. Zero `re.error` from entity names. |
+| Retrieval | 3.3, `retrieval_plan.md` R0 | Replay only, no LLM calls. Planted facts appear in the injected context (recall@k). Report the share of injected tokens that duplicate the live window and the false-seed rate. A beat served at consecutive checkpoints with no new mentions is not re-served. |
+| Knowledge render | 4.2 | For each scene, an item whose edges exclude a scene character renders that character as `unaware`. No item without an edge to the scene cast renders unfiltered. |
+| Rewind | 3.4 | Swipe, edit or delete at turn N: state equals the pre-N state (fields, new entries, history). `user`-stamped edits are untouched and reported. |
+| User edit | 3.2 | No LLM patch overwrites a `user`-stamped path, and the attempt is logged. |
 | Cost guard | all | Per-scene-turn calls and tokens do not rise after an addition. If they do, it is wrong-shaped |
 
 ### Benchmark stories
@@ -465,6 +553,7 @@ Design notes:
 - **Control noise.** Local calls run at temperature 1.0, so use at least 2 seeds for headline metrics or lower the DSS temperature. Compare call and token counts across builds. Wall-clock time is confounded by server stalls (turn 38 of the soak had 50–142 s TTFT stalls).
 - **Reach arc level.** Set the cadence so at least one arc closes within the run, otherwise the 7.2 roll-up is untested.
 - **Shorten the loop.** A full 100-turn run took about 10 hours. Use targeted replays between items and one full run per milestone.
+- **Retrieval needs no LLM at all.** Replay the recorded transcript and state snapshots through the retriever only, so a retrieval change is checked in minutes (`retrieval_plan.md` R0).
 
 Expect this genre to stress `status` over `description` (power-ups and injuries are short-lived) and the change log, which also makes it a good check on 5.1.
 
@@ -475,10 +564,12 @@ Entity references (deferred):
 - The LLM sometimes paraphrases entity names (e.g. writing "a location in the building" instead of the slug `conduit_junction`) when populating cross-reference fields (`knows`, `relationships`, `learned`, `participants`). Two complementary mitigations considered:
   - **Prompt-side:** a `_references: "<subject>"` convention in schema defaults that generates a comment hint ("Keys must be exact slugs from the <subject> subject") in the example JSON. Low effort — effectively a template wording change. Can be done incrementally per field as the need arises.
   - **Validation-side:** post-apply set-membership check. For a field with `_references: "knowledge"`, validate that every key (dict field) or element (list field) exists in `keys(data["knowledge"])`. Type-aware: dict → validate keys, list → validate elements. CurrentScene should be excluded (it legitimately references unidentified entities before they're added to their subjects). More complex — needs the data tree at validation time and per-type logic.
+  - **Shared resolver (3.3):** both mitigations can reuse one resolver. `_resolve_dict_key` and `_retarget_dict_key` already handle lookalike spellings, but no string matching fixes a paraphrase such as "a location in the building", so keep the validation-side check for those.
 
 Data model:
 
 - Should `knowledge` be a shared subject or live on each entity? The plan assumes shared with derived views.
+- Should characters and elements get a declared `aliases` field, or keep deriving aliases from relationship entries (3.3)?
 - Should milestones stay a stored list or become a derived view over event participants? The derived view needs no per-character call but needs backstory events for pre-story milestones.
 - Should threads and events merge long-term? Keep them separate until the overlap proves too large. Should `Objective` fold into threads or stay as the structured form of `main_objective`?
 - Should rule `scope` be free text or a reference to a location or group entry? References are validatable but couple rules to the entity subjects.
@@ -488,6 +579,9 @@ Data model:
 
 To verify in code:
 
+- After `backtrack_history` restores the nearest earlier snapshot (3.4), how are the turns between that snapshot and the current history handled: replay through DSS at full cost, or accept the gap? Where is `delete_message_chunks` called from, if anywhere?
+- Confirmed: `_safe_subject` hides failures from `_get_relevant_elements` and `_get_relevant_groups` (3.3). Should it surface a visible warning in the UI and the soak log?
+- How much of `last_x_messages` and the rolling summaries overlaps the RAG-selected messages (`retrieval_plan.md` R3)?
 - Is `_message_node` stamped when an event is created or when its `start` is recorded? The `origin` validation depends on it.
 - Which `GeneralInfo` trigger is intended: the run's `on_new_scene` patch plus rewrite, or the repo example's `always` patch only?
 - Which prompt produced the 3 seed rules, given that `initial_population` mentions only `writing_style`, `tone` and `themes`?
@@ -515,3 +609,7 @@ Scope decisions that need data first:
 | 12 Rules | 4.1 |
 | 13 Skills and aptitudes | 6.1 |
 | 14 Anchored scales | 6.2 |
+
+Sections added or extended 2026-11-05: new 3.3 and 3.4, 4.2 Consumption; extended 3.1, 3.2, 5.4, 7.2, 8 (steps 2a to 2c), 9 and 10.
+Added 2026-11-06 after reading Luker, OpenVault, Graphiti and Summaryception: 3.1 (as-of reads), 3.3 (staged resolver, redirects, identity fields), 3.4 (commit-log and commit-lag alternatives).
+Revised 2026-11-06 after tracing the history-hash directories in the code: 3.4 now starts with `backtrack_history`, and the as-of note in 3.1 changed.

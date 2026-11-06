@@ -4,21 +4,56 @@ How to analyze a completed long-horizon soak run. Replicable for any run.
 
 ## Inputs
 
-- **Log file:** `tests/runs/logs/<run_name>.log` (e.g. `scifi_heist_gemma4_s200.log`)
-- **Run directory:** `tests/runs/<spreadsheet>__<hash>/` (e.g. `sci_fi_heist__c05349c6/`)
-  - Verify latest via ``ls -ltd runs/*__*/ | head -n 3``
+- **Log file:** `benchmarks/runs/logs/<run_name>.log` (e.g. `scifi_heist_gemma4_s200.log`)
+- **Run directory:** `benchmarks/runs/<spreadsheet>__<hash>/` (e.g. `sci_fi_heist__c05349c6/`)
+  - Verify latest via ``ls -ltd runs/*__*/ | head -n 3; ls -ltd runs/logs/ | head -n 3``
   - `turn_NNN/reply.txt` — model reply per turn
   - `turn_NNN/instr_prompt.txt` — instruction block per turn
-  - `turn_NNN/current_scene.json` — scene state snapshot
-  - `turn_NNN/characters.json`, `elements.json`, `arcs.json`, `events.json` — entity state
   - `turn_NNN/result.json` — judge verdict (score, notes, probes)
+  - `turn_NNN/state_snapshot/` — entity state (characters.json, elements.json, events.json, knowledge.json, etc.)
+  - `turn_NNN/state_snapshot/current_scene.json` — scene state snapshot
   - `rolling_overview_NNN.json` — rolling summary every N turns
   - `final_overview.json` — final LLM-generated overview
-- **Manifest:** `tests/runs/<spreadsheet>__<hash>/manifest.json`
+- **Manifest:** `benchmarks/runs/<spreadsheet>__<hash>/manifest.json`
+
+## Analysis Scripts
+
+Two scripts automate the bulk of the analysis. Run both before deep-diving.
+
+### `deep_timing.py`
+
+Per-subject, per-action timing from `dss_calls.jsonl`.
+
+```bash
+python3 benchmarks/deep_timing.py <run_dir>            # full report
+python3 benchmarks/deep_timing.py <run_dir> --slices 5 # + per-slice breakdowns
+python3 benchmarks/deep_timing.py <run_dir> --turns 1,22  # turn range filter
+```
+
+`--slices N` divides the turn range into N equal slices and prints per-slice
+subject and action breakdowns (calls, time, %, avg/call, avg in-tok) plus
+overall DSS/writer stats per slice. Replaces the old 6-command `--turns` approach.
+
+### `analyze_run.py`
+
+State evolution + prose quality from `turn_NNN/*` files. Writes a Markdown report.
+
+```bash
+python3 benchmarks/analyze_run.py <run_dir>                          # both sections
+python3 benchmarks/analyze_run.py <run_dir> --sections state         # state only
+python3 benchmarks/analyze_run.py <run_dir> --sections prose         # prose only
+python3 benchmarks/analyze_run.py <run_dir> --out PATH --sample 15   # custom output
+```
+
+**State section:** per-turn tracking table, turns-per-scene, entity growth curves,
+character entry/exit, scene transitions, rolling overviews, synopsis growth, anomalies.
+
+**Prose section:** reply length distribution, 5-gram overlap with outlier detection,
+flagged turns (lowest judge scores), voice consistency, note adherence.
 
 ## Workflow
 
-### Step 1: Parent quick triage (no subagents)
+### Step 1: Parent quick triage
 
 Read `final_overview.json` and sample a few `result.json` files to get:
 - Final score and the overview's stated weaknesses
@@ -26,81 +61,57 @@ Read `final_overview.json` and sample a few `result.json` files to get:
 - Which turns are flagged lowest
 - Obvious anomalies (empty replies, score jumps)
 
-Write an **interim findings doc** with these observations. This gives the subagents
-context for what to look for and gives the user an early read.
+Write an **interim findings doc** with these observations. This gives the user
+an early read while the deeper analysis runs.
 
-### Step 2: Dispatch 3 parallel subagents
+### Step 2: Run analysis scripts + targeted deep-dives
 
-One subagent per analysis axis. All three run in parallel (single workflow call - see `skill:parallel-subagents` for more details).
+Run both scripts (they produce the bulk of the analysis):
 
-**Critical constraint (baked into every subagent prompt):**
-> Never read a large file into LLM context in one operation. For any file > ~50 lines,
-> write a Python script (stdlib only) that does the mechanical I/O (regex, JSON parse,
-> aggregation) and writes the deliverable `.md` directly to disk. The subagent's context
-> should only see the script's small stdout (match counts, file sizes, key numbers),
-> never the raw file content. Process one source at a time. Write the deliverable
-> incrementally (append per completed section) so progress survives a kill.
+```bash
+python3 benchmarks/deep_timing.py <run_dir> --slices 5
+python3 benchmarks/analyze_run.py <run_dir> --out benchmarks/docs/<run_id>_analysis.md
+```
 
-#### Subagent A: Timing
+Then the parent reads the script outputs and does **targeted deep-dives** on
+what they flag. Typically 2–4 file reads per axis:
 
-**Task:** Parse the log file for per-turn and per-category LLM call timing.
+**Timing:**
+- Read `deep_timing.py` output — identify which subjects/actions are growing
+- If cloud failures are present: grep the log for `FAILED`, `HTTP 503`, gap patterns
+- Compare per-slice token growth to identify which subjects are bloating
 
-**Script approach:**
-1. Parse `local-call` and `cloud-call` log lines (regex for timestamp, role, duration, tokens)
-2. Group by turn (turn boundaries are `=== TURN N ===` markers in the log)
-3. Compute: per-turn wall time, local/cloud split, call counts, token counts
-4. Compute: per-category stats (writer vs DSS vs cloud guide/judge/auditor) — mean, median, p95, max
-5. Identify: slowest turns, outlier turns, failed cloud calls
-6. Compute: total LLM time vs wall time (the ratio reveals non-GPU overhead)
+**State:**
+- Read `analyze_run.py` state section — check the anomaly flags
+- For each flagged item: read the specific `turn_NNN/state_snapshot/<subject>.json`
+  to verify (entity drops, empty files, missing fields)
+- Cross-reference scene transitions against `current_scene.json`
 
-**Deliverable:** `<run_id>_timing.md` with tables.
+**Prose:**
+- Read `analyze_run.py` prose section — check outliers and flagged turns
+- For 1–2 outlier turns: read the `turn_NNN/reply.txt` to verify the n-gram
+  overlap is real transcription vs. coincidental phrasing
+- Check voice consistency anomalies: is the density shift a real voice drift?
 
-**Also run `deep_timing.py`** with turn-range slices for finer-grained analysis:
-- All turns: `python scripts/deep_timing.py <run_dir>`
-- 0-20%: `--turns 1,N*0.2` (early-run baseline)
-- 21-40%: `--turns N*0.2+1,N*0.4` (mid-run steady state)
-- 41-60%: `--turns N*0.4+1,N*0.6`
-- 61-80%: `--turns N*0.6+1,N*0.8`
-- 81-100%: `--turns N*0.8+1,N` (late-run, entity accumulation effects)
-
-Compare per-subject `perform_update` token counts across slices to identify which subjects are growing and at what rate.
-
-#### Subagent B: Context/State Evolution
-
-**Task:** Track how DSS state evolves across all turns.
-
-**Script approach:**
-1. For each `turn_NNN/` directory, read the JSON state files
-2. Track: scene number, character count, element count, arc count, event count
-3. Detect: scene transitions (scene_number changes), character entry/exit, entity growth
-4. Compute: turns-per-scene distribution, entity growth curves, JSON size growth
-5. Check: rolling overview file count and size growth
-6. Flag: anomalies (scene number resets, entity count drops, empty state files)
-
-**Deliverable:** `<run_id>_context.md` with tables and trajectory samples.
-
-#### Subagent C: Prose Quality + Instruction Fidelity
-
-**Task:** Assess prose quality, instruction fidelity, and judge reliability.
-
-**Script approach:**
-1. Read all `reply.txt` files → length distribution (mean, median, p95, min, max, shortest/longest 10)
-2. For 20 sampled turns (evenly spaced): compute 5-gram overlap between `instr_prompt.txt` and `reply.txt`
-3. For flagged turns (lowest scores from `result.json`): extract judge summary, note statuses, reply text
-4. Cross-check: do the judge's "transcription" claims match the n-gram data?
-5. Check voice consistency: first-person markers across sampled turns
-6. Aggregate note adherence: for each note ID, how many turns has it "present" vs "missed"
-
-**Deliverable:** `<run_id>_prose.md` with tables and flagged-turn deep-dives.
+**Deliverable:** `<run_id>_analysis.md` (from `analyze_run.py`) + deep-dive
+findings appended to the interim doc.
 
 ### Step 3: Consolidate
 
-Parent reads the three subagent reports, merges findings into the interim doc,
-and produces the final consolidated assessment with:
+Merge findings into the interim doc and produce the final assessment with:
 - What's working well
 - What's broken (systemic vs run-specific)
 - Judge artifacts (false positives)
 - Priority-ordered fix list
+
+### Optional: Subagents for very long runs
+
+For runs > 100 turns, the script outputs are large enough that dispatching
+parallel subagents (one per axis) can save wall time and keep the parent's
+context clean. The critical constraint still applies:
+> Never read a large file into LLM context in one operation. Write a Python
+> script that does the mechanical I/O and writes the deliverable `.md` to disk.
+> The subagent's context should only see the script's small stdout.
 
 ## Log Format Reference
 
@@ -116,13 +127,14 @@ Adjust regexes to match the actual log format — check a sample of lines first.
 
 ## File Naming Convention
 
-All deliverables go to `tests/docs/`:
-- `<run_id>_timing.md`
-- `<run_id>_context.md`
-- `<run_id>_prose.md`
-- `<run_id>_interim.md` (consolidated, starts as interim findings, updated with subagent results)
+All deliverables go to `benchmarks/docs/`:
+- `<run_id>_analysis.md` (from `analyze_run.py` — state + prose tables)
+- `<run_id>_interim.md` (consolidated: triage + script findings + deep-dives + final assessment)
 
 Where `<run_id>` = `<spreadsheet>__<hash>` (e.g. `scifi_heist_c05349c6`).
+
+For subagent-dispatched runs (100+ turns), each subagent writes its own
+`<run_id>_<axis>.md` (e.g. `_timing`, `_context`, `_prose`) as before.
 
 ## Mid-Run Reviews
 
@@ -174,42 +186,59 @@ mid-run review (general health) or the 3-axis subagent analysis (general quality
 these verify a specific feature landed correctly. Remove the section once the run attains
 excellent quality for this standard.
 
-### Example JSON comment generation (s542)
+### Knowledge "YES" echo fix (s546+)
 
-Multi-nested alias resolution in `generate_example_comments` (schema_parser.py).
-Peels through alias layers until the innermost type is reached, then dispatches
-on kind. Verify in DSS prompts (via oaiproxy):
+The branch query→update handoff previously appended the query's `"YES"` response
+to the conversation history, causing the LLM to echo `"YES"` instead of generating
+JSON in the `apply_updates` call. Fixed by removing the history append
+(`6123ec9e`). Verify:
 
-- **`knows` on Characters** — example JSON should have a JSONC comment with the
-  `EpistemicStance` options: `// (knows | believes | suspects | spreading | sees_through)`.
-  Values in `characters.json` should use only this vocabulary. Flag out-of-vocab values
-  (e.g. `"confirmed"` from s541).
-- **`relationships` on Characters** — alias wrapping `list[CharacterRelationship]`
-  should produce nested sub-comments aligned to the `relationships_key_example` key.
-- **`start`/`now` on CurrentScene** — alias-wrapping-dataclass fields should produce
-  nested comments for their `SceneWhen` children (when, where, who, etc.).
-- **`attributes` on Elements** — should be a flat `list[str]` in the data, not a
-  `dict[str, str]` key-value bag. The placeholder now says "NOT a key-value pair".
+- **No `Failed to parse LLM response as JSON ... Raw response: YES`** in the log.
+- **`knowledge.json` entries** — `apply_updates` calls should produce valid JSON
+  path-patch arrays, not bare `"YES"` tokens.
 
-### Prompt template headers (s542)
+### Knowledge in writer prompts (s546+)
 
-Update/branch_update templates reworded to clarify the example JSON is the structure
-being modified, not the response format. Verify in DSS prompts:
+`RetrievalContext` now carries a `knowledge` field populated from `knowledge.json`,
+so writer (gemma-4) prompts include knowledge entries (`15587c51`). Verify via
+oaiproxy:
 
-- **Update prompts** — header should say "do NOT output this full structure in your
-  response; only output the fields that changed".
-- **New-entry prompts** — should keep the original "Example JSON structure:" header.
+- **Writer prompt** — knowledge entries (e.g. `black_key_cipher_function`) should
+  appear in the system context of gemma-4 calls, not just in DSS calls.
+
+### Cloud/local time split (s546+)
+
+Turn completion lines now show the split: `done: turn N in Xs (cloud Ys, local Zs)`
+(`514575dc`). Verify:
+
+- **Log format** — every `done: turn` line includes `(cloud ...s, local ...s)`.
+- **Cloud share** — `cloud_s / dt_s` ratio per turn. A high ratio (>50%) on
+  non-scene turns indicates guide hangs, not DSS slowness.
 
 ### Knowledge subject population (ongoing)
 
-Knowledge `add_new_query` is firing but returning empty arrays (0 entries after 30
-turns in s542). The prompt lacks the grounding that Elements has (no JSON example,
-no `{{ branch_list }}`, no `{{ scene_recap }}`/`{{ scene_events }}`). Prompt rewrite
-pending. Verify after next run:
+Knowledge `add_new_query` was rewritten with concrete criteria, JSON example,
+`branch_list`, and scene grounding (`96be4dd4`). Verify after next run:
 
-- **Knowledge population** — `knowledge.json` should have entries by mid-run.
-- **`knows` on Characters** — `dict[str, str]` with `EpistemicStance` values.
-- **`learned` on StoryEvents** — `dict[str, str]` with `EventKnowledgeRole` values.
+- **Knowledge population** — `knowledge.json` should have entries by mid-run
+  (s545 had 2 entries; expect 5+ with the grounded prompt).
+- **`knows` on Characters** — `dict[str, EpistemicStance]` with in-vocab values
+  only. Flag any out-of-vocab values (e.g. `"confirmed"`).
+- **`learned` on StoryEvents** — `dict[str, EventKnowledgeRole]` with in-vocab
+  values only.
+
+### Scene archival cascade (known broken)
+
+The `add_new_query` prompt for `events.scenes` is vague (same failure mode as
+Knowledge before its rewrite). Scenes never get archived, which blocks the entire
+cascade: scenes → chapters → canon digest → synopsis updates. Verify it's still
+broken (confirming the fix is needed) or fixed if the prompt was updated:
+
+- **`events.json` → `scenes`** — should have entries. If always empty, the cascade
+  is still blocked.
+- **`events.json` → `chapters`** — should increment at archival boundaries.
+- **`general_info.json` → `synopsis`** — should update at chapter/arc archival,
+  not just once at the end.
 
 ## Lessons Learned
 

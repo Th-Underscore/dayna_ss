@@ -1321,3 +1321,45 @@ Operational note: the first instance of run 3 died at t12 with an unhandled
 URLError (Connection refused) when the local server blipped — checkpoint resume worked cleanly
 (relaunch resumed at t12 as sole writer), but the harness should retry transient local-server errors
 before giving up (candidate hardening for the 100-turn run).
+
+## 36. Prompt anatomy, context scoping and cache measurement (2026-11-05)
+
+Source: `deep_timing.py` output for `sci_fi_heist__26d93cf1` (56 turns): 961 DSS calls and 295 writer/other calls, DSS time 6,296 s, writer time 3,229 s. Related: `retrieval_plan.md` R7 (budgeted assembly), `quality_enhancements.md` 3.3 (entity resolution), `memory_comparisons.md` criteria 9 and 10.
+
+### Observed
+
+- **Prefill is the main cost.** Summing the Prefill column across subjects gives 4,489 s of 6,296 s DSS time (71%). Decode is 1,807 s (29%).
+- **Every call is large.** Average input is 17.7k to 20.6k tokens for every subject and action, and 18.3M input tokens in total.
+- **Scene turns are expensive and the rest are cheap.** The 20 scene turns made 33 to 53 calls and took about 200 to 440 s each. The 36 non-scene turns made about 4 calls and took about 17 to 25 s each.
+- **Where the time goes.** `apply_updates`: 409 calls, 3,134 s (49.8%). Elements alone: 257 calls, 2,086 s (33.1%), 8.1 s per call. `add_new` is the slowest per call at 15.5 s.
+- **The cache line is a reporting artifact.** `Prefix cache: 0 / 18,297,634 tokens cached (0.0%)` appears because the backend returns no `cached_tokens`. The tool then estimates the hit rate from TTFT (77% to 82% implied), assuming a cold prefill rate of 2,000 tok/s. The p50 TTFT is 1.61 s for 15k to 20k-token prompts, which is about 11k tok/s effective prefill. Either the cache is hitting, or the real cold rate is far above 2,000 tok/s. The estimate cannot tell which.
+- **The §22 target is not met yet.** §22 (seed-89 diagnosis) names the highest-leverage fix as scoping per-entry context to the target entry plus a compact sibling index and a bounded internal-history payload, aiming for 8k to 12k tokens per call. Calls still average about 18k to 20k, well below the 50k seen then but above that target. The §35 rule (under 40k rendered context) is met per call, so the open question is what the remaining 18k is made of.
+
+### Actions
+
+**S1. Prompt anatomy (first).** For a sample of each (subject, action), split the rendered prompt into sections (instructions, schema and format blocks, target entry, sibling entries, scene events, internal history, retrieved context) and print tokens per section, plus the longest common prefix with the previous call of the same kind (`scripts/prefix_cache_test.py` already measures part of this). Zero risk, one script. Every later decision depends on this table.
+
+**S2. Cache measurement.**
+1. Once per server configuration, measure the real cold prefill rate with a cache-busting nonce at the start of the prompt, and store it in the harness config.
+2. `deep_timing.py` prints "estimated (backend reports no cached_tokens, assumed cold rate X tok/s)" instead of `0.0%`.
+3. If the LMDeploy configuration can report cached tokens, log them.
+
+**S3. Scope DSS update calls through the retrieval allocator.** Use `retrieval_plan.md` R7 with purpose `dss_update`: the target entry in full, siblings as a compact index (name and one line), a bounded internal history, and scene events limited to the current scene part. Success metric: average input tokens and prefill seconds per `apply_updates` call, with the Drift, Leak and Retrieval probes unchanged (`quality_enhancements.md` section 9).
+
+**S4. Deterministic skip before the LLM.** With the shared resolver (`quality_enhancements.md` 3.3), skip a per-entry update when neither the entity nor its aliases appear in the new messages and no graph neighbor changed this turn. Never skip entries above an importance threshold at scene boundaries. This competes with three existing LLM steps that together took 711 s (11% of DSS time) in this run: `query_changes` (104 calls, 395 s), `perform_gate_check` (70 calls, 228 s) and `select_entries` (18 calls, 88 s, §30). A false skip loses an update, so measure with the Drift and retention probes before enabling by default.
+
+**S5. Scene-boundary batching (decide after S1).** `quality_enhancements.md` section 2 allows one batched call per scene boundary. If S1 shows that the unique per-entry suffix is small and decode dominates, batch low-importance entries into one call. Risks are longer outputs and cross-entry bleed. A/B it with at least 2 seeds (quality doc section 9, noise control).
+
+**S6. Transient-error resilience.** §34 recorded that the first instance of a run died at t12 on an unhandled `URLError` when the local server blipped, and that the harness should retry. The engine has the same gap: its retries are content-level (`add_new`, the gate check), and I found no transport retry or backoff in `agents/summarizer/llm_client.py` or elsewhere in the engine. Add a bounded retry with backoff, then a circuit breaker that pauses DSS and reports once instead of failing the turn (TunnelVision's sidecar does this; `memory_comparisons.md` criterion 12).
+
+Details worth copying from the systems read for that criterion: Summaryception honors retry-after hints, backs off exponentially and abandons a catch-up after consecutive failures. OpenVault uses an AIMD queue (additive increase, multiplicative decrease on timeouts or errors), which could size DSS's parallel subject workers (`max_subject_workers`) to what the local server sustains instead of a fixed number.
+
+### Verification
+
+Baseline is this run: DSS 6,296 s, 961 calls, 18.3M input tokens. After S3 and S4, compare average input tokens per DSS call, DSS prefill seconds per scene turn, and calls per turn (the quality doc's cost guard probe).
+
+### Open questions
+
+- Is the 18k to 20k per-call input mostly a shared prefix (cheap if cached) or a per-entry payload (expensive)? S1 answers this.
+- Can the LMDeploy configuration report `cached_tokens`?
+- What is the real cold prefill rate on this rig? S2 measures it.
