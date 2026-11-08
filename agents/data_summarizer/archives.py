@@ -271,7 +271,9 @@ class DSArchivesMixin:
                   f"keeping previous digest.{_RESET}")
 
     def check_and_archive_chapter(self):
-        """Check if the current chapter should be archived and create a new one if needed.
+        """DEPRECATED: Use the schema-driven `check_archive` action instead.
+
+        Check if the current chapter should be archived and create a new one if needed.
 
         This is called after scene archival to determine if a chapter boundary
         should be crossed based on LLM-driven decision making.
@@ -449,7 +451,7 @@ class DSArchivesMixin:
         _scene_span = list(range(_start_scene, total_scenes + 1))
 
         _ch_defaults = chapters_schema.defaults if (chapters_schema and hasattr(chapters_schema, 'defaults')) else {}
-        _ch_archive_tpl = _ch_defaults.get("chapter_archive_template")
+        _ch_archive_tpl = _ch_defaults.get("archive_template")
         if _ch_archive_tpl:
             _ch_temp_data = render_jinja_template(
                 _ch_archive_tpl,
@@ -725,7 +727,7 @@ Scenes in this chapter ({len(scene_names[span_start:])}):
         _chapter_span = list(range(_start_ch, _end_ch + 1))
 
         _ar_defaults = arcs_schema.defaults if (arcs_schema and hasattr(arcs_schema, 'defaults')) else {}
-        _ar_archive_tpl = _ar_defaults.get("arc_archive_template")
+        _ar_archive_tpl = _ar_defaults.get("archive_template")
         if _ar_archive_tpl:
             _ar_temp_data = render_jinja_template(
                 _ar_archive_tpl,

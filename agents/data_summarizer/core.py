@@ -281,32 +281,17 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
             if target_schema_class.definition_type == "alias":
                 field_origin = getattr(target_schema_class._field.type, "__origin__", None)
                 if field_origin in (dict, list):
-                    # Schema-driven: if the branch defines a *_archive_template,
-                    # use the programmatic archive path (pre-fill from known state,
-                    # LLM refines name + narrative fields).
-                    archive_tpl = (target_schema_class.defaults or {}).get(
-                        f"{branch_name.lower()}_archive_template"
+                    new_query_template = config.get("new_entry_query_prompt_template") if config else None
+                    new_entry_template = config.get("new_entry_prompt_template") if config else None
+                    self._detect_and_add_new_entries_to_branch(
+                        branch_name=branch_name,
+                        data=data,
+                        formatted_data=unexpanded_formatted_data,
+                        branch_schema_class=target_schema_class,
+                        new_query_template=new_query_template,
+                        new_entry_template=new_entry_template,
+                        keys=keys
                     )
-                    if archive_tpl:
-                        self._archive_boundary_entry(
-                            branch_name=branch_name,
-                            data=data,
-                            formatted_data=unexpanded_formatted_data,
-                            branch_schema_class=target_schema_class,
-                            keys=keys,
-                        )
-                    else:
-                        new_query_template = config.get("new_entry_query_prompt_template") if config else None
-                        new_entry_template = config.get("new_entry_prompt_template") if config else None
-                        self._detect_and_add_new_entries_to_branch(
-                            branch_name=branch_name,
-                            data=data,
-                            formatted_data=unexpanded_formatted_data,
-                            branch_schema_class=target_schema_class,
-                            new_query_template=new_query_template,
-                            new_entry_template=new_entry_template,
-                            keys=keys
-                        )
             pm.done_step(phase_id, action_name)
 
         elif action == Action.PERFORM_GATE_CHECK:
@@ -363,6 +348,13 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
                     # into sub-branches that would also answer NO.
                     pm.done_step(phase_id, action_name, "No changes — skipping sub-branches")
                     return (False, False, True)
+            pm.done_step(phase_id, action_name)
+
+        elif action == Action.CHECK_ARCHIVE:
+            pm.start_step(phase_id, action_name, f"Archive check for {branch_name}", {"branch_name": branch_name})
+            self._handle_check_archive(
+                branch_name, data, unexpanded_formatted_data, target_schema_class, keys
+            )
             pm.done_step(phase_id, action_name)
 
         elif action == Action.SELECT_ENTRIES_TO_UPDATE:

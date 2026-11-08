@@ -18,6 +18,8 @@ from ...utils.helpers import (
     _HILITE,
     _BOLD,
     _RESET,
+    strip_response,
+    render_jinja_template,
     _DEBUG,
     _WARNING,
     load_json,
@@ -335,17 +337,17 @@ class DSDiscoveryMixin:
             print(f"{_WARNING}_archive_boundary: no current_scene data; skipping.{_RESET}")
             return data
 
-        # Per-branch template key and entry key field
-        branch_key = branch_name.lower()
-        archive_tpl_key = f"{branch_key}_archive_template"
-        key_field = "name" if branch_key == "scenes" else "title"
+        # Generic template variables: current_scene + the branch's own data
+        # (named after the branch's last path segment, e.g. "chapters", "arcs", "scenes").
+        # Templates compute span/participants inline via Jinja.
+        # Dict branches are passed as a list of values so `| last` works in Jinja.
+        branch_key = branch_name.lower().split(".")[-1]
+        branch_data = list(data.values()) if isinstance(data, dict) else data
+        template_vars = {"current_scene": current_scene, branch_key: branch_data}
+        archive_tpl_key = "archive_template"
+        _defaults = branch_schema_class.defaults or {}
+        key_field = _defaults.get("key_field", "title")
         placeholder_prefix = {"scenes": "SCENE #", "chapters": "CHAPTER #", "arcs": "ARC #"}.get(branch_key, "")
-
-        # Compute programmatic template variables
-        template_vars = self._get_archive_template_vars(branch_key, current_scene)
-        if template_vars is None:
-            print(f"{_WARNING}_archive_boundary: cannot compute vars for '{branch_name}'; skipping.{_RESET}")
-            return data
 
         # Render the programmatic base entry
         archive_tpl = (branch_schema_class.defaults or {}).get(archive_tpl_key)
@@ -424,8 +426,8 @@ class DSDiscoveryMixin:
         if not final_name or (placeholder_prefix and final_name.startswith(placeholder_prefix)):
             final_name = programmatic_name
 
-        # Stamp message node (scenes only)
-        if branch_key == "scenes":
+        # Stamp message node (schema-driven)
+        if _defaults.get("stamp_message_node"):
             current_message_node = self._resolve_current_message_node()
             if "start" in refined and isinstance(refined["start"], dict):
                 refined["start"]["_message_node"] = current_message_node
@@ -439,55 +441,142 @@ class DSDiscoveryMixin:
         print(f"{_SUCCESS}Archived {branch_key[:-1] if branch_key != 'scenes' else 'scene'} '{final_name}' to '{branch_name}'.{_RESET}")
         return data
 
-    def _get_archive_template_vars(self, branch_key: str, current_scene: dict) -> dict | None:
-        """Compute the Jinja template variables for programmatic boundary archival."""
-        if branch_key == "scenes":
-            who = current_scene.get("now", {}).get("who", {})
-            chars = who.get("characters", [])
-            participants: dict[str, dict] = {}
-            for c in chars:
-                name = c.get("name", "")
-                if name and name not in participants:
-                    participants[name] = {"importance": {"score": 50, "reason": "", "faction": "positive"}}
-            return {"current_scene": current_scene, "participants": participants}
+    def _check_force_override(self, numbering_field: str | None) -> bool:
+        """Check if a forced boundary transition was staged (e.g. force_next_chapter)."""
+        if not numbering_field:
+            return False
+        # _chapter_number -> chapter, _arc_number -> arc
+        unit = numbering_field.lstrip("_").removesuffix("_number")
+        return bool(self.summarizer.last and getattr(self.summarizer.last, f"force_next_{unit}", False))
 
-        elif branch_key == "chapters":
-            events_data = self.all_subjects_data.get("events", {})
-            chapters_list = _entries_as_list(events_data.get("chapters")) if events_data else []
-            # Starting scene: last chapter's ending_scene + 1, or 1 if none
-            if chapters_list:
-                last = chapters_list[-1] if isinstance(chapters_list[-1], dict) else {}
-                last_ending = _safe_int(last.get("ending_scene"))
-                starting_scene = (last_ending + 1) if last_ending else 1
-            else:
-                starting_scene = 1
-            ending_scene = _safe_int(current_scene.get("_scene_number", 1))
-            scene_span = list(range(starting_scene, ending_scene + 1))
-            return {"current_scene": current_scene, "starting_scene": starting_scene, "scene_span": scene_span}
+    def _handle_check_archive(
+        self,
+        branch_name: str,
+        data: dict,
+        formatted_data: FormattedData,
+        branch_schema_class: ParsedSchemaClass,
+        keys: list,
+    ) -> dict:
+        """Schema-driven archive boundary handler.
 
-        elif branch_key == "arcs":
-            events_data = self.all_subjects_data.get("events", {})
-            chapters_list = _entries_as_list(events_data.get("chapters")) if events_data else []
-            # Starting chapter: last arc's ending_chapter + 1, or 1 if none
-            arcs_data = self.all_subjects_data.get("arcs", {})
-            if isinstance(arcs_data, dict) and arcs_data:
-                last_arc = max(
-                    (a for a in arcs_data.values() if isinstance(a, dict)),
-                    key=lambda a: _safe_int(a.get("ending_chapter")),
-                    default=None,
+        Replaces check_and_archive_chapter/arc. All configuration is read
+        from branch_schema_class.defaults.
+        """
+        d = branch_schema_class.defaults or {}
+
+        # 1. Span-aware cadence gate
+        span_source = d.get("span_source")
+        span_count = 0
+        span_digest = "(no archived entries yet)"
+        if span_source:
+            end_field = d["span_end_field"]
+            child_unit = span_source
+            suggested_min = int(d.get(f"suggested_min_{child_unit}", 1))
+            suggested_max = int(d.get(f"suggested_max_{child_unit}", suggested_min))
+            max_hard = int(d.get(f"max_{child_unit}_before_required", suggested_min))
+            hard_min = int(d.get(f"hard_min_{child_unit}", suggested_min))
+
+            # Current position in the span source (e.g. _scene_number for chapters, _chapter_number for arcs)
+            span_num_field = f"_{span_source.rstrip('s')}_number"
+            current_scene_data = self.all_subjects_data.get("current_scene", {})
+            current_num = int(current_scene_data.get(span_num_field, 1))
+
+            # Last boundary from the most recent entry in THIS branch (e.g. last chapter's ending_scene)
+            last_boundary = 0
+            if data:
+                last_entry = next(
+                    (v for k, v in data.items() if not k.startswith("_")), None
                 )
-                if last_arc is not None:
-                    last_ending_ch = _safe_int(last_arc.get("ending_chapter"))
-                    starting_chapter = (last_ending_ch + 1) if last_ending_ch else 1
-                else:
-                    starting_chapter = 1
-            else:
-                starting_chapter = 1
-            ending_chapter = _safe_int(current_scene.get("_chapter_number", 1))
-            chapter_span = list(range(starting_chapter, ending_chapter + 1))
-            return {"current_scene": current_scene, "starting_chapter": starting_chapter, "chapter_span": chapter_span}
+                if isinstance(last_entry, dict):
+                    last_boundary = int(last_entry.get(end_field, 0) or 0)
 
-        return None
+            span_count = max(0, current_num - last_boundary)
+
+            # Build span digest: last N entries from the span source
+            source_data = self.all_subjects_data.get("events", {}).get(span_source, {})
+            if isinstance(source_data, dict):
+                entries = [(k, v) for k, v in source_data.items() if not k.startswith("_")]
+            elif isinstance(source_data, list):
+                entries = [(str(i), v) for i, v in enumerate(source_data)]
+            else:
+                entries = []
+
+            # Take the last span_count entries (most recent)
+            span_entries = entries[-span_count:] if span_count > 0 else []
+            span_lines = []
+            for idx, (name, entry) in enumerate(span_entries, start=1):
+                summary = str(entry.get("summary", ""))[:160] if isinstance(entry, dict) else ""
+                span_lines.append(f"{child_unit.capitalize()} {idx}: {name} - {summary}")
+            span_digest = "\n".join(span_lines) if span_lines else "(no archived entries yet)"
+
+            if span_count < hard_min:
+                print(f"{_GRAY}Archive gate: {span_count} {child_unit} since last boundary < hard_min {hard_min}. Skipping.{_RESET}")
+                return data
+
+        # 2. Gate check LLM call (skip if no template, forced, or hard limit reached)
+        gate_template = d.get("gate_check_prompt_template")
+        force = self._check_force_override(d.get("numbering_field"))
+        if force:
+            print(f"{_BOLD}Forcing archive via override.{_RESET}")
+        elif gate_template and span_source and span_count < max_hard:
+            # Render gate prompt with span data
+            unit_label = span_source  # "scenes" or "chapters"
+            total_count = len([k for k in self.all_subjects_data.get("events", {}).get(unit_label, {}) if not k.startswith("_")])
+            digest_key = "span_digest" if unit_label == "scenes" else "chapters_digest"
+            gate_vars = {
+                f"{unit_label}_in_" + ("arc" if unit_label == "chapters" else "chapter"): span_count,
+                f"{unit_label}_count": total_count,
+                "suggested_min": suggested_min,
+                "suggested_max": suggested_max,
+                f"max_{unit_label}_before_required": max_hard,
+                digest_key: span_digest,
+            }
+            gate_prompt = render_jinja_template(gate_template, **gate_vars)
+
+            print(f"{_INPUT}Archive gate check ({unit_label}: {span_count})...{_RESET}")
+            current_custom_state = self.custom_state or {}
+            llm_response, stop_reason = self.summarizer.generate_using_tgwui(
+                prompt=gate_prompt,
+                state=current_custom_state,
+                history_path=self.history_path,
+                stopping_strings=["YES", "NO"],
+                match_prefix_only=True,
+                phase_id=branch_name.lower().split(".")[-1],
+                step_id="check_archive",
+            )
+
+            response_upper = strip_response(llm_response).upper().strip()
+            should_archive = "YES" in response_upper or (stop_reason and "YES" in stop_reason.upper())
+            if not should_archive:
+                print(f"{_GRAY}Archive gate: LLM says NO (response: {llm_response[:50]}...). Continuing.{_RESET}")
+                return data
+
+        # 3. Execute: _archive_boundary_entry (existing, already schema-driven)
+        data = self._archive_boundary_entry(
+            branch_name, data, formatted_data, branch_schema_class, keys
+        )
+
+        # 4. Numbering increment
+        num_field = d.get("numbering_field")
+        if num_field:
+            current_scene = self.all_subjects_data.get("current_scene", {})
+            current_scene[num_field] = current_scene.get(num_field, 1) + 1
+
+        # 5. Canon digest (schema flag)
+        if d.get("regenerate_digest"):
+            self._regenerate_canon_digest(f"{branch_name.lower()}_archive")
+
+        return data
+
+    def _check_force_override(self, numbering_field: str | None) -> bool:
+        """Check for a force-override flag on summarizer.last."""
+        if not numbering_field or not self.summarizer.last:
+            return False
+        # _chapter_number → force_next_chapter, _arc_number → force_next_arc
+        unit = numbering_field.lstrip("_").replace("_number", "")
+        force_attr = f"force_next_{unit}"
+        return bool(getattr(self.summarizer.last, force_attr, False))
+
 
     def _select_entries_to_update(
         self,

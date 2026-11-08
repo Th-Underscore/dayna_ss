@@ -159,7 +159,8 @@ def stamp_end_message_nodes(data: Any, message_node: str) -> None:
     if isinstance(data, dict):
         for k, v in data.items():
             if k == "end" and isinstance(v, dict):
-                v["_message_node"] = message_node
+                if "_message_node" not in v:
+                    v["_message_node"] = message_node
             elif isinstance(v, (dict, list)):
                 stamp_end_message_nodes(v, message_node)
     elif isinstance(data, list):

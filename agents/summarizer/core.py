@@ -864,9 +864,6 @@ class Summarizer(LLMClientMixin, InstructionGeneratorMixin, ContextEngineMixin, 
             if stopped:
                 return None
 
-            if self._run_boundary_checks(data_summarizer):
-                return None
-
             # --- Summarize New Messages ---
             pm.start_phase("message_summary", "Message Summarization")
             pm.start_step("message_summary", "summarize", "Preparing message summary...")

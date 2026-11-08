@@ -132,7 +132,26 @@ def _get_jinja_env():
         _jinja_env.filters['get_param'] = _get_param
         _jinja_env.filters['bracket'] = _bracket_dots
         _jinja_env.filters['tojsonc'] = to_jsonc
+        _jinja_env.filters['range_list'] = _range_list
+        _jinja_env.filters['participants'] = _build_participants
     return _jinja_env
+
+
+def _range_list(start: int, end: int) -> list:
+    """Jinja filter: inclusive range as a list. `{{ 1 | range_list(5) }}` → `[1,2,3,4,5]`."""
+    return list(range(start, end + 1))
+
+
+def _build_participants(characters: list) -> dict:
+    """Jinja filter: build a participants dict from a character list in current_scene."""
+    result = {}
+    for c in characters:
+        if not isinstance(c, dict):
+            continue
+        name = c.get("name", "")
+        if name and name not in result:
+            result[name] = {"importance": {"score": 50, "reason": "", "faction": "positive"}}
+    return result
 
 
 def _bracket_dots(value: Any) -> str:
