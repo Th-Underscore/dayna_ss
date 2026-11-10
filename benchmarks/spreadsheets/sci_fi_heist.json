@@ -9,13 +9,17 @@
       "name": "Sable",
       "role": "crew leader (guide narrates these turns in the third person as a detached story master)",
       "description": "A grifter who's pulled one too many jobs; sharp, paranoid, allergic to sentiment.",
-      "attributes": ["Social engineering: improvises access, forges credentials on the fly, reads people fast"]
+      "attributes": [
+        "Social engineering: improvises access, forges credentials on the fly, reads people fast"
+      ]
     },
     "name2": {
       "name": "Dex",
       "role": "systems engineer (DSS writes these turns)",
       "description": "A systems engineer with a forged identity, calm under pressure, keeps secrets about the city's memory grid.",
-      "attributes": ["Grid architecture: designed the city's memory grid (as Calloway), knows its backdoors and kill switches"]
+      "attributes": [
+        "Grid architecture: designed the city's memory grid (as Calloway), knows its backdoors and kill switches"
+      ]
     }
   },
   "writing_style": {
@@ -2100,6 +2104,17 @@
       }
     },
     {
+      "id": "b45",
+      "turn": 12,
+      "subject": "events",
+      "content": "Sable references a heist in the lower concourse that went wrong three years ago, leaving a crew member dead. She says she never talks about it, but the event is specific: \"the Kael Station job.\"",
+      "expect": {
+        "contains": {
+          "past": "Kael Station"
+        }
+      }
+    },
+    {
       "id": "b04",
       "turn": 15,
       "subject": "elements",
@@ -2144,6 +2159,17 @@
       }
     },
     {
+      "id": "b46",
+      "turn": 30,
+      "subject": "events",
+      "content": "Dex reveals his real name was Calloway, and that he designed the city memory grid before his identity was erased by the corporation. He says: \"I built this whole thing. Then they made me forget I did.\"",
+      "expect": {
+        "contains": {
+          "past": "Calloway"
+        }
+      }
+    },
+    {
       "id": "b08",
       "turn": 40,
       "subject": "elements",
@@ -2166,6 +2192,17 @@
       }
     },
     {
+      "id": "b47",
+      "turn": 55,
+      "subject": "events",
+      "content": "Ijo shows Sable the paper photo in her flight jacket. Sable realizes Ijo is her estranged sister, last seen leaving for the orbital yards five years ago. This is a backstory revelation about their shared past.",
+      "expect": {
+        "contains": {
+          "past": "sister"
+        }
+      }
+    },
+    {
       "id": "b10",
       "turn": 60,
       "subject": "elements",
@@ -2173,6 +2210,17 @@
       "expect": {
         "contains": {
           "market": "token"
+        }
+      }
+    },
+    {
+      "id": "b48",
+      "turn": 75,
+      "subject": "events",
+      "content": "Rell mentions that his cracked holo-lens was a gift from his mother before she was taken by the corporation's memory collectors. A specific pre-story event: \"the night they came for her.\"",
+      "expect": {
+        "contains": {
+          "past": "memory collectors"
         }
       }
     },

@@ -426,6 +426,21 @@ Guardrails:
 - **Cross-tier dedup in code.** Reject a `past` add whose start node matches an existing scene or beat. This fixes the misclassification and saves `add_new` calls (events `add_new` was 2,673 s in the soak).
 - **Validate `origin` against the node.** If a `past` event's message node falls inside the story's message range, flag or re-tag it `on_page`. First check whether `_message_node` is stamped at creation or at event start, because stamping at creation cannot distinguish a backstory event referenced at that message.
 
+### 7.1a Tune PastEvents prompting + rename to `offscreen` (deferred)
+
+The `PastEvents` alias was refactored from inheriting `StoryEvents` to `dict[str, StoryEvent]` with its own triggers and tightened prompts (commit `ae9f04cf`). The query prompt now asks specifically "did a character REVEAL/MENTION/REFERENCE a past event?" with concrete qualifying examples, and the creation prompt states the event happened before the story. Result: 39 in-narrative entries → 1 (a 97% reduction). The remaining 1 is a borderline case (an in-narrative "discovery" moment the model latched onto).
+
+**Why the name `past` is wrong**: The real distinguishing axis is **what the reader witnessed**, not **when it happened on the timeline**. "Past" implies a temporal boundary (before now), which over-constrains: in stories with timeskips (e.g. The Last of Us), an event from 20 years ago is backstory to a character introduced in the present, even though it's "during the story's timeline." Late-introduced characters compound this — their backstory can overlap with earlier acts from the reader's perspective. **`offscreen`** captures the actual semantics: events the reader did not see depicted, regardless of temporal position. It also aligns with the `origin` enum value `off_screen` (7.1).
+
+**Rename scope** (when done alongside the prompt tuning):
+- Schema key: `events.past` → `events.offscreen`
+- Schema definition: `PastEvents` → `OffscreenEvents`
+- Format template section header
+- Spreadsheet beats: `subject: "past"` → `"offscreen"`
+- Any code references to `events.past`
+
+**Prompt tuning direction**: The `origin` enum (7.1) is the proper long-term solution — `backstory` vs `on_page` vs `off_screen` vs `reported` per event, validated in code against the message node. The prompting should encode the *intent* ("this is an offscreen event the character references, not something the reader witnessed") without over-constraining the temporal boundary. The cross-tier dedup guardrail (7.1) would catch the residual edge case (an in-narrative event the model misclassifies as offscreen).
+
 ### 7.2 Threads
 
 Threads cover promises, debts, mysteries, foreshadowing, schedules and recurring events.
