@@ -462,6 +462,62 @@ class DSUpdatesMixin:
             pass
         return set()
 
+    def _coerce_value_to_schema_type(self, value: Any, schema_class, keyList: list) -> Any:
+        """Coerce a value to match the schema-declared container type.
+
+        The LLM sometimes emits an empty list where the schema expects a dict
+        (or vice versa). This walks the schema to resolve the terminal field's
+        declared type and coerces empty containers to the correct type.
+        Non-empty mismatches are logged but left as-is (cannot safely convert).
+        """
+        if schema_class is None or len(keyList) < 2:
+            return value
+        try:
+            cls = schema_class
+            while cls.definition_type == "alias":
+                inner = cls._field.type if cls._field else None
+                if isinstance(inner, ParsedSchemaClass):
+                    cls = inner
+                else:
+                    return value
+
+            # Walk through parent keys to reach the containing dataclass
+            for key in keyList[:-1]:
+                if not isinstance(key, str) or not cls._fields or key not in cls._fields:
+                    return value
+                ftype = cls._fields[key].type
+                origin = getattr(ftype, '__origin__', None)
+                if origin not in (dict, list):
+                    return value
+                args = getattr(ftype, '__args__', ())
+                val_type = args[-1] if args else None
+                if not isinstance(val_type, ParsedSchemaClass):
+                    return value
+                v = val_type
+                while v.definition_type == "alias":
+                    inner = v._field.type if v._field else None
+                    if not isinstance(inner, ParsedSchemaClass):
+                        v = None
+                        break
+                    v = inner
+                if v is None:
+                    return value
+                cls = v
+
+            # Check the terminal field's declared type
+            terminal = keyList[-1]
+            if not isinstance(terminal, str) or not cls._fields or terminal not in cls._fields:
+                return value
+            ftype = cls._fields[terminal].type
+            origin = getattr(ftype, '__origin__', None)
+            if origin is dict and isinstance(value, list) and len(value) == 0:
+                return {}
+            if origin is list and isinstance(value, dict) and len(value) == 0:
+                return []
+        except Exception:
+            pass
+        return value
+
     def _validate_branch_updates(
         self,
         branch_name: str,
@@ -513,6 +569,9 @@ class DSUpdatesMixin:
                         if isinstance(_field_key, str) and not _field_key.startswith('_') and _field_key not in _valid_fields:
                             errors.append(f"path '{path_str}': '{_field_key}' is not a valid field")
                             continue
+
+            # Layer 4: coerce empty container type mismatch (LLM emits [] where dict expected)
+            value = self._coerce_value_to_schema_type(value, schema_class, keyList)
 
             valid_updates.append({"path": path_str, "value": value, "keyList": keyList})
 
