@@ -1,43 +1,160 @@
 {
-  "writing_style": "Story Master: 3rd-person prose, short-medium-length paragraphs, no more than two paragraphs per response",
-  "tone": "Grim, tense, and desperate",
+  "writing_style": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. One tight scene beat. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+  "tone": "tense heist thriller with corporate noir undertones",
   "themes": [
-    "Survival",
-    "Loss",
-    "Adaptation",
-    "Brotherhood"
+    "corporate paranoia",
+    "survival instinct",
+    "technological intrusion"
   ],
-  "setting": "Post-apocalyptic Earth, year 2027-2028. Humanity has been pushed to the brink of extinction by the Subterraneans - monstrous creatures from beneath the Earth's surface. Major cities lie in ruins, safe zones are few, and the surface world is a desolate battlefield between the Rebel Force and the Subterraneans.",
-  "rules": [
-    "Subterraneans are vulnerable to sunlight and UV radiation",
-    "Geothermal energy powers Subterranean technology",
-    "Nanite plague has left Earth's technology severely damaged",
-    "Humanity's only hope is the Rebel Force's innovation",
-    "Subterraneans communicate through subsonic signals"
-  ],
-  "objectives": [
+  "setting": "Nereza, a corporate arcology suspended above a drowned Earth, defined by its glittering concourses, memory markets, and the high-security Vault at its apex.",
+  "rules": {
+    "external_breach_evidence": {
+      "text": [],
+      "domain": "security",
+      "scope": "Dex's immediate environment",
+      "source": "witnessed"
+    }
+  },
+  "objectives": [],
+  "main_objective": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks.",
+  "synopsis": "In the corporate arcology of Nereza, suspended above a drowned Earth, a grifter named Sable assembles a crew to infiltrate the high-security Vault at the city's apex. The mission is complicated by Sable's past connections and the crew's internal tensions. As they attempt the heist, security measures intensify, forcing immediate tactical adjustments to survive while pursuing the core before the corporation erases the city's memory banks.",
+  "_populated_from_first_scene": true,
+  "_history": [
     {
-      "description": "Locate and secure a safe haven.",
-      "importance": {
-        "score": 80,
-        "reason": "Finding a safe location is the foundation for all other survival efforts."
+      "path": "main_objective",
+      "old": "",
+      "new": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks."
+    },
+    {
+      "path": "synopsis",
+      "old": "",
+      "new": "In the corporate arcology of Nereza, suspended above a drowned Earth, a grifter named Sable assembles a crew to infiltrate the high-security Vault at the city's apex. The mission is complicated by Sable's past connections and the crew's internal tensions. As they attempt the heist, security measures intensify, forcing immediate tactical adjustments to survive while pursuing the core before the corporation erases the city's memory banks."
+    },
+    {
+      "path": "writing_style",
+      "old": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. One tight scene beat. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+      "new": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary."
+    },
+    {
+      "path": "tone",
+      "old": "tense heist thriller with corporate noir undertones",
+      "new": "tense heist thriller with corporate noir undertones"
+    },
+    {
+      "path": "themes",
+      "old": [
+        "corporate control",
+        "memory as currency",
+        "survival through expertise",
+        "betrayal and trust"
+      ],
+      "new": [
+        "The cost of survival",
+        "Betrayal and redemption",
+        "Man vs. Nature"
+      ]
+    },
+    {
+      "path": "setting",
+      "old": "Nereza, a corporate arcology suspended above a drowned Earth, defined by its glittering concourses, memory markets, and the high-security Vault at its apex.",
+      "new": "Nereza, a corporate arcology suspended above a drowned Earth, defined by its glittering concourses, memory markets, and the high-security Vault at its apex."
+    },
+    {
+      "path": "rules",
+      "old": {},
+      "new": {}
+    },
+    {
+      "path": "objectives",
+      "old": [],
+      "new": []
+    },
+    {
+      "path": "main_objective",
+      "old": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks.",
+      "new": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks."
+    },
+    {
+      "path": "synopsis",
+      "old": "In the corporate arcology of Nereza, suspended above a drowned Earth, a grifter named Sable assembles a crew to infiltrate the high-security Vault at the city's apex. The mission is complicated by Sable's past connections and the crew's internal tensions. As they attempt the heist, security measures intensify, forcing immediate tactical adjustments to survive while pursuing the core before the corporation erases the city's memory banks.",
+      "new": "In the corporate arcology of Nereza, suspended above a drowned Earth, a grifter named Sable assembles a crew to infiltrate the high-security Vault at the city's apex. The mission is complicated by Sable's past connections and the crew's internal tensions. As they attempt the heist, security measures intensify, forcing immediate tactical adjustments to survive while pursuing the core before the corporation erases the city's memory banks."
+    },
+    {
+      "path": "main_objective",
+      "old": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks.",
+      "new": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks."
+    },
+    {
+      "path": "writing_style",
+      "old": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. One tight scene beat. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+      "new": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. One tight scene beat. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary."
+    },
+    {
+      "path": "tone",
+      "old": "tense heist thriller with corporate noir undertones",
+      "new": "tense heist thriller with corporate noir undertones"
+    },
+    {
+      "path": "setting",
+      "old": "Nereza, a corporate arcology suspended above a drowned Earth, defined by its glittering concourses, memory markets, and the high-security Vault at its apex.",
+      "new": "Nereza, a corporate arcology suspended above a drowned Earth, defined by its glittering concourses, memory markets, and the high-security Vault at its apex."
+    },
+    {
+      "path": "themes",
+      "old": [
+        "The cost of survival",
+        "Betrayal and redemption",
+        "Man vs. Nature"
+      ],
+      "new": [
+        "corporate paranoia",
+        "survival instinct",
+        "technological intrusion"
+      ]
+    },
+    {
+      "path": "rules",
+      "old": {},
+      "new": {
+        "external_breach_evidence": {
+          "text": [],
+          "domain": "security",
+          "scope": "Dex's immediate environment",
+          "source": "witnessed"
+        }
       }
     },
     {
-      "description": "Assess the extent of the Subterranean threat and identify potential weaknesses.",
-      "importance": {
-        "score": 60,
-        "reason": "Understanding the enemy is crucial for long-term survival planning."
-      }
+      "path": "objectives",
+      "old": [],
+      "new": []
     },
     {
-      "description": "Establish communication with any surviving authorities or resistance groups.",
-      "importance": {
-        "score": 40,
-        "reason": "Connecting with other survivors increases resources and information."
-      }
+      "path": "main_objective",
+      "old": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks.",
+      "new": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks."
+    },
+    {
+      "path": "writing_style",
+      "old": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. One tight scene beat. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary.",
+      "new": "First-person present tense as Dex, the systems engineer — 'I' is ALWAYS Dex; Sable and the crew are 'she'/'they'. Precise hands-on detail of what he keys, scans, and risks. Lean, breathless, jargon-light. Hard rules: never narrate from Sable's perspective or as an outside narrator — the turn is Dex's own experience; never quote or repeat Sable's lines back verbatim — respond to them, do not re-speak them; end on action or observation, not summary."
+    },
+    {
+      "path": "main_objective",
+      "old": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks.",
+      "new": "Steal the Ascension Core from the Vault before the corporation erases Nereza's memory banks."
     }
   ],
-  "main_objective": "Survive the initial Incursion, secure a safe haven, and begin formulating a plan to locate Paul.",
-  "synopsis": "On September 5th, 2027, Earth was invaded by monstrous beings from beneath the surface. The protagonist is navigating the chaotic aftermath, scavenging for supplies and fighting for survival while desperately trying to locate his brother, Paul, who is currently abroad. The immediate priorities are finding a safe haven, assessing the threat, and establishing contact with potential allies, all while maintaining the ultimate goal of reuniting with Paul."
+  "_cast": {
+    "name1": {
+      "name": "Sable",
+      "role": "crew leader (guide narrates these turns in the third person as a detached story master)",
+      "description": "A grifter who's pulled one too many jobs; sharp, paranoid, allergic to sentiment."
+    },
+    "name2": {
+      "name": "Dex",
+      "role": "systems engineer (DSS writes these turns)",
+      "description": "A systems engineer with a forged identity, calm under pressure, keeps secrets about the city's memory grid."
+    }
+  }
 }

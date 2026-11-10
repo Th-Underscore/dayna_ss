@@ -1,548 +1,327 @@
 {
   "entries": {
-    "John Jones": {
+    "Sable": {
       "description": [
-        "John Jones is the commander and founder of the Rebel Force.",
-        "A 28-year-old man with black hair, blue eyes, and an intimidating presence."
+        "A grifter who's pulled one too many jobs; sharp, paranoid, allergic to sentiment."
       ],
+      "status": "maintaining the relay override from the maintenance hatch three tiers below",
       "biography": [
-        "John raised his brother Paul after their parents died when he was 16.",
-        "He became a master of combat and survival through years of training.",
-        "When The First Incursion happened, he naturally took leadership and founded the Rebel Force.",
-        "Known as 'Hellion' among Subterraneans - he's killed 139 of them singlehandedly."
+        "a grifter who's pulled one too many jobs"
       ],
       "traits": [
-        "Cunning, manipulative, and fearless.",
-        "Calm and calculated under pressure.",
-        "Emotionally distant but fiercely protective of family.",
-        "Natural leader with strategic mindset."
+        "sharp",
+        "paranoid",
+        "allergic to sentiment"
       ],
       "attributes": [
-        "Raw strength: Greatly above average.",
-        "Stamina: Can fight dozens without exhausting.",
-        "Combat: Best melee fighter in Rebel Force.",
-        "Intelligence: Strategic and tactical second to none."
+        "Social engineering: improvises access, forges credentials on the fly, reads people fast"
       ],
-      "voice": "Speaks in short, direct sentences. Uses tactical terminology.",
+      "voice": "flat and low through the static, matching the rhythm of the security patrols sweeping the lower concourse",
       "quirks": [
-        "Constantly scans for threats.",
-        "Rarely sleeps more than 4 hours.",
-        "Always positions with back to a wall.",
-        "Calculates odds unconsciously."
+        "thumbing the edge of a worn deck of polymer cards",
+        "deals one face down against her knuckle"
       ],
-      "fears": [
-        "Losing his brother Paul.",
-        "Failure leading to humanity's extinction.",
-        "Being betrayed by someone close."
-      ],
+      "fears": [],
       "preferences": {
-        "likes": ["Tactical planning", "Quiet solitude", "Well-maintained weapons"],
-        "dislikes": ["Incompetence", "Emotional displays", "Political maneuvering"]
+        "likes": [],
+        "dislikes": []
+      },
+      "importance": {
+        "score": 60,
+        "reason": "Sable is the crew leader and primary decision-maker in the mission, maintaining control over the operation's execution and personnel coordination.",
+        "faction": "positive"
       },
       "group_status": {
-        "Rebel Force": {
-          "position": ["Commander", "Leader"],
-          "aliases": ["Commander", "Hellion"],
-          "events": ["The First Incursion", "The Jones Offensive"],
-          "importance": {"score": 100, "reason": "Founder and supreme commander", "faction": "positive"}
+        "crew": {
+          "position": [
+            "crew leader"
+          ],
+          "aliases": [],
+          "events": [
+            "assembles crew to steal the Ascension Core"
+          ],
+          "importance": {
+            "score": 70,
+            "reason": "As the crew leader, Sable is the central organizing force behind the heist operation.",
+            "faction": "positive"
+          }
+        }
+      },
+      "relationships": {
+        "Dex": [
+          {
+            "relation": "crewmate",
+            "status": "active",
+            "aliases": [],
+            "events": [
+              "coordinating during the vault infiltration attempt"
+            ],
+            "importance": {
+              "score": 50,
+              "reason": "Dex is a key asset with specialized technical knowledge vital to the mission's success.",
+              "faction": "positive"
+            }
+          }
+        ]
+      },
+      "milestones": [],
+      "knows": {
+        "third_party_infiltration": "believes",
+        "vault_external_tampering": "believes",
+        "third_party_has_already_bypassed_primary_bus": "knows"
+      },
+      "_history": [
+        {
+          "path": "status",
+          "old": "standing in the damp shadow of the fire escape three tiers below the duct junction, thumbing the edge of a worn deck of polymer cards",
+          "new": ""
         },
-        "Subterraneans": {
-          "position": ["Enemy"],
-          "aliases": ["Hellion"],
-          "events": ["The First Incursion", "The Second Incursion"],
-          "importance": {"score": 100, "reason": "Primary enemy of the Subterraneans", "faction": "negative"}
+        {
+          "path": "relationships.Dex.0.events",
+          "old": [
+            "coordinating during the vault infiltration attempt"
+          ],
+          "new": [
+            "coordinating during the vault infiltration attempt"
+          ]
+        },
+        {
+          "path": "status",
+          "old": "crouched in the maintenance crawlspace, having jammed a blank polymer card into the relay's manual override to hold the circuit dead",
+          "new": ""
+        },
+        {
+          "path": "knows.third_party_infiltration",
+          "old": null,
+          "new": "believes"
+        },
+        {
+          "path": "knows.vault_external_tampering",
+          "old": null,
+          "new": "believes"
+        },
+        {
+          "path": "status",
+          "old": "crouched in the maintenance crawlspace with a blank polymer card jammed into the relay's manual override, monitoring the vault's security status.",
+          "new": ""
+        },
+        {
+          "path": "knows.third_party_has_already_bypassed_primary_bus",
+          "old": null,
+          "new": "knows"
         }
-      },
-      "relationships": {
-        "Paul Jones": [
-          {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["The Jones Offensive"], "importance": {"score": 95, "reason": "His brother and closest confidant", "faction": "positive"}},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": {"score": 70, "reason": "Fellow officer", "faction": "positive"}}
-        ],
-        "Amy Harrison": [
-          {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["The Jones Offensive"], "importance": {"score": 90, "reason": "Closest friend and trusted ally", "faction": "positive"}},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": {"score": 70, "reason": "Fellow officer", "faction": "positive"}}
-        ],
-        "Angelina Kristi": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": {"score": 50, "reason": "Fellow soldier", "faction": "positive"}},
-          {"relation": "victim's sister", "status": "", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": {"score": 10, "reason": "Brother killer's sister - complicated history", "faction": "negative"}}
-        ],
-        "Marcus Chen": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["The Jones Offensive"], "importance": {"score": 60, "reason": "Key strategist", "faction": "positive"}}
-        ],
-        "Elena Vasquez": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": {"score": 55, "reason": "Skilled operative", "faction": "positive"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Founding the Rebel Force", "scenes": [1], "importance": {"score": 100, "reason": "Created the main resistance", "faction": "positive"}},
-        {"title": "Killing 139 Subterraneans", "scenes": [15], "importance": {"score": 85, "reason": "Earned fearsome reputation", "faction": "positive"}},
-        {"title": "Leading The Jones Offensive", "scenes": [18], "importance": {"score": 95, "reason": "Major military victory", "faction": "positive"}}
       ]
     },
-    "Paul Jones": {
+    "Dex": {
       "description": [
-        "Paul Jones is John's younger brother and a general in the Rebel Force.",
-        "A 24-year-old man with brown hair, hazel eyes."
+        "A systems engineer with a forged identity, calm under pressure, keeps secrets about the city's memory grid."
       ],
+      "status": "Dex has infiltrated the Vault's eastern quadrant, discovered the Ascension Core is gone, and is pursuing residual thermal trails toward the emergency exit.",
       "biography": [
-        "Raised by John after their parents died.",
-        "Served as John's right hand in building the Rebel Force.",
-        "Injured his leg during The Jones Offensive."
+        "systems engineer with a forged identity",
+        "keeps secrets about the city's memory grid",
+        "designed the city's memory grid (as Calloway), knows its backdoors and kill switches"
       ],
-      "traits": ["Loyal to John.", "More emotionally expressive.", "Strategic thinker."],
+      "traits": [
+        "calm under pressure"
+      ],
       "attributes": [
-        "Strength: Above average.",
-        "Stamina: Average.",
-        "Combat: Skilled melee and ranged.",
-        "Intelligence: Strategic thinker."
+        "Grid architecture: designed the city's memory grid (as Calloway), knows its backdoors and kill switches"
       ],
-      "voice": "Speaks with conviction, slightly louder than necessary.",
-      "quirks": ["Limps on his injured leg when tired.", "Calls everyone 'brother' or 'sister'."],
-      "fears": ["Failing his brother John.", "Being seen as weak due to his injury."],
+      "voice": "First-person present tense, lean, breathless, jargon-light",
+      "quirks": [],
+      "fears": [],
       "preferences": {
-        "likes": ["Tactical discussions", "Morning drills", "Simple food"],
-        "dislikes": ["Being pitied", "Insubordination", "Idle chatter"]
+        "likes": [],
+        "dislikes": []
+      },
+      "importance": {
+        "score": 80,
+        "reason": "The protagonist and focal character who designed the city's memory grid, holding critical knowledge about its backdoors and kill switches.",
+        "faction": "positive"
       },
       "group_status": {
-        "Rebel Force": {
-          "position": ["General", "Deputy Commander"],
-          "aliases": ["Deputy"],
-          "events": ["The Jones Offensive"],
-          "importance": {"score": 90, "reason": "Second in command", "faction": "positive"}
-        }
-      },
-      "relationships": {
-        "John Jones": [
-          {"relation": "brother", "status": "Family", "aliases": ["Bro"], "events": ["The Jones Offensive"], "importance": {"score": 95, "reason": "His older brother", "faction": "positive"}},
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": {"score": 80, "reason": "Works closely with John", "faction": "positive"}}
-        ],
-        "Amy Harrison": [
-          {"relation": "friend", "status": "Confidant", "aliases": [], "events": [], "importance": {"score": 70, "reason": "Fellow officer and friend", "faction": "positive"}}
-        ],
-        "Marcus Chen": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": ["The Jones Offensive"], "importance": {"score": 60, "reason": "Key strategist", "faction": "positive"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [1], "importance": {"score": 80, "reason": "Joined his brother's cause", "faction": "positive"}},
-        {"title": "Rising to General", "scenes": [10], "importance": {"score": 70, "reason": "Achieved high rank", "faction": "positive"}},
-        {"title": "Injury at The Jones Offensive", "scenes": [18], "importance": {"score": 85, "reason": "Battle injury earned respect", "faction": "positive"}}
-      ]
-    },
-    "Amy Harrison": {
-      "description": ["Amy Harrison is the chief scientist of the Rebel Force.", "A 32-year-old woman with brown hair, green eyes."],
-      "biography": ["Leading researcher before The First Incursion.", "Joined early, became chief scientific advisor."],
-      "traits": ["Brilliant and innovative.", "Calm under pressure."],
-      "attributes": [
-        "Intelligence: Exceptional.",
-        "Technical skill: Expert in energy systems.",
-        "Combat: Minimal.",
-        "Stamina: Average."
-      ],
-      "voice": "Speaks precisely and carefully, choosing each word.",
-      "quirks": ["Mumbles calculations under her breath.", "Taps her fingers rhythmically when thinking."],
-      "fears": ["Her research being used for harm.", "Losing her mental edge."],
-      "preferences": {
-        "likes": ["Quiet laboratories", "Experimental technology", "Black coffee"],
-        "dislikes": ["Loud noises", "Interruptions during experiments", "Wasteful tactics"]
-      },
-      "group_status": {
-        "Rebel Force": {
-          "position": ["Chief Scientist"],
-          "aliases": ["Dr. Harrison"],
-          "events": ["The Jones Offensive"],
-          "importance": {"score": 85, "reason": "Key technology developer", "faction": "positive"}
-        }
-      },
-      "relationships": {
-        "John Jones": [
-          {"relation": "friend", "status": "Confidant", "aliases": [], "events": ["The Jones Offensive"], "importance": {"score": 90, "reason": "Closest friend", "faction": "positive"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [1], "importance": {"score": 90, "reason": "Early joiner with crucial skills", "faction": "positive"}},
-        {"title": "Developing Recharge Tech", "scenes": [8], "importance": {"score": 80, "reason": "Breakthrough technology", "faction": "positive"}}
-      ]
-    },
-    "Marcus Chen": {
-      "description": ["Marcus Chen is the lead strategist for the Rebel Force.", "A 35-year-old man with graying hair."],
-      "biography": ["Former military strategist.", "Developed many battle plans."],
-      "traits": ["Analytical and methodical.", "Calm in high-pressure."],
-      "attributes": [
-        "Intelligence: Strategic genius.",
-        "Combat: Below average.",
-        "Stamina: Below average.",
-        "Leadership: Inspires through logic."
-      ],
-      "voice": "Quiet, measured tone. Rarely raises his voice.",
-      "quirks": ["Draws tactical diagrams on any available surface.", "Mutters probabilities under his breath."],
-      "fears": ["Making a mistake that costs lives.", "Being outmaneuvered by the enemy."],
-      "preferences": {
-        "likes": ["Chess", "Silence", "Well-organized command centers"],
-        "dislikes": ["Impulsive decisions", "Loud music", "Uncertainty"]
-      },
-      "group_status": {
-        "Rebel Force": {
-          "position": ["Strategist", "Head of Tactical Planning"],
-          "aliases": ["The Brain"],
-          "events": ["The Jones Offensive"],
-          "importance": {"score": 80, "reason": "Master strategist", "faction": "positive"}
-        }
-      },
-      "relationships": {
-        "John Jones": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": ["Commander"], "events": ["The Jones Offensive"], "importance": {"score": 70, "reason": "Works closely with John", "faction": "positive"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [2], "importance": {"score": 75, "reason": "Valuable strategic mind", "faction": "positive"}},
-        {"title": "Planning The Jones Offensive", "scenes": [12], "importance": {"score": 85, "reason": "Created major victory", "faction": "positive"}}
-      ]
-    },
-    "Elena Vasquez": {
-      "description": ["Elena Vasquez is an elite operative.", "A 27-year-old woman with black hair."],
-      "biography": ["Former spy and infiltrator.", "Specializes in reconnaissance."],
-      "traits": ["Reserved and mysterious.", "Deadly in combat."],
-      "attributes": [
-        "Stealth: Exceptional.",
-        "Combat: Expert in close quarters.",
-        "Intelligence: High situational awareness.",
-        "Stamina: High."
-      ],
-      "voice": "Barely above a whisper, with a slight accent.",
-      "quirks": ["Never sits with her back to a door.", "Speaks in the fewest words possible."],
-      "fears": ["Being captured and interrogated.", "Losing her cover identity."],
-      "preferences": {
-        "likes": ["Shadows", "Solo missions", "Silent entry"],
-        "dislikes": ["Crowds", "Loud weapons", "Unnecessary chatter"]
-      },
-      "group_status": {
-        "Rebel Force": {
-          "position": ["Operative"],
-          "aliases": ["The Ghost"],
-          "events": ["The Jones Offensive"],
-          "importance": {"score": 75, "reason": "Elite operative", "faction": "positive"}
-        }
-      },
-      "relationships": {
-        "John Jones": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": ["Commander"], "events": [], "importance": {"score": 60, "reason": "Works under John", "faction": "positive"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Infiltrating Subterranean Base", "scenes": [14], "importance": {"score": 70, "reason": "Critical intelligence", "faction": "positive"}}
-      ]
-    },
-    "Angelina Kristi": {
-      "description": ["Angelina Kristi is a soldier.", "A 25-year-old woman with blonde hair."],
-      "biography": ["Joined after The First Incursion.", "Harry Kristi's sister."],
-      "traits": ["Brave and determined.", "Carries guilt about her brother."],
-      "attributes": [
-        "Combat: Skilled.",
-        "Stamina: High.",
-        "Intelligence: Average.",
-        "Stealth: Below average."
-      ],
-      "voice": "Trembles slightly when emotional, otherwise steady.",
-      "quirks": ["Checks her gear obsessively before every mission.", "Talks to her brother's photo."],
-      "fears": ["Dying before avenging her brother.", "Being forgotten like Harry."],
-      "preferences": {
-        "likes": ["Close combat training", "Night watches", "Silence"],
-        "dislikes": ["Mention of Harry's death", "John Jones", "Crowded spaces"]
-      },
-      "group_status": {
-        "Rebel Force": {
-          "position": ["Soldier"],
+        "crew": {
+          "position": [
+            "systems engineer"
+          ],
           "aliases": [],
-          "events": [],
-          "importance": {"score": 45, "reason": "Skilled soldier", "faction": "positive"}
+          "events": [
+            "",
+            ""
+          ],
+          "importance": {
+            "score": 65,
+            "reason": "Critical technical support for the crew's heist mission.",
+            "faction": "positive"
+          }
         }
       },
       "relationships": {
-        "John Jones": [
-          {"relation": "comrade", "status": "Rebel Force", "aliases": [], "events": [], "importance": {"score": 30, "reason": "Killed her brother", "faction": "negative"}}
+        "Sable": [
+          {
+            "relation": "crew member",
+            "status": "active",
+            "aliases": [],
+            "events": [
+              "Sable's cut-in, right on schedule, and her voice says what it always says when a job's gone sideways: 'Dex, we've got a problem.'",
+              "Sable reports two complications: early internal audit clearance and sub-floor lift lockout"
+            ],
+            "importance": {
+              "score": 50,
+              "reason": "Professional working relationship as crew members on a heist mission.",
+              "faction": "positive"
+            }
+          }
         ]
       },
-      "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [5], "importance": {"score": 50, "reason": "Joined after brother's death", "faction": "positive"}}
-      ]
-    },
-    "Subterranean Leader": {
-      "description": ["The Subterranean Leader commands the enemy forces.", "An ancient, powerful figure."],
-      "biography": ["Leads the Subterraneans in their war."],
-      "traits": ["Calculating and patient.", "Deeply hateful."],
-      "attributes": [
-        "Strength: Superhuman.",
-        "Intelligence: Ancient wisdom.",
-        "Combat: Legendary.",
-        "Stamina: Nearly limitless."
-      ],
-      "voice": "Deep, rumbling, echoes as if from a cavern.",
-      "quirks": ["Never blinks in conversation.", "Speaks in third person."],
-      "fears": ["Being overthrown by a rival.", "Humanity reclaiming the surface."],
-      "preferences": {
-        "likes": ["Absolute obedience", "Ancient rituals", "Darkness"],
-        "dislikes": ["Sunlight", "Disobedience", "The Rebel Force"]
+      "milestones": [],
+      "knows": {
+        "city's memory grid backdoors": "knows",
+        "city's memory grid kill switches": "knows",
+        "vault_eastern_surveillance_blind_spot": "sees_through",
+        "vault_biometric_scanner_location": "sees_through",
+        "third_party_infiltration_imminent": "sees_through",
+        "vault_external_tampering": "sees_through"
       },
-      "group_status": {
-        "Subterraneans": {
-          "position": ["Leader"],
-          "aliases": ["The Command One"],
-          "events": ["The First Incursion", "The Second Incursion"],
-          "importance": {"score": 100, "reason": "Enemy commander", "faction": "negative"}
+      "_history": [
+        {
+          "path": "status",
+          "old": "I'm wedged in the duct above the vault",
+          "new": ""
+        },
+        {
+          "path": "group_status.crew.events.1",
+          "old": null,
+          "new": ""
+        },
+        {
+          "path": "group_status.crew.importance.score",
+          "old": 60,
+          "new": 65
+        },
+        {
+          "path": "relationships.Sable.0.events.1",
+          "old": null,
+          "new": ""
+        },
+        {
+          "path": "status",
+          "old": "wedged in the duct above the vault, monitoring security patrol movements via comm-link with Sable",
+          "new": ""
+        },
+        {
+          "path": "group_status.crew.events",
+          "old": [
+            "wedged in the duct above the vault when the console pings",
+            "Sable reports internal audit clearance and sub-floor lift lockout"
+          ],
+          "new": [
+            "",
+            ""
+          ]
+        },
+        {
+          "path": "status",
+          "old": "Dex has lowered himself through the grate and positioned himself in a surveillance blind spot above the Vault's eastern quadrant, while Sable has confirmed the blind spot and jammed the sub-network relay with a forged polymer card.",
+          "new": ""
+        },
+        {
+          "path": "knows.vault_eastern_surveillance_blind_spot",
+          "old": null,
+          "new": "knows"
+        },
+        {
+          "path": "knows.vault_biometric_scanner_location",
+          "old": null,
+          "new": "knows"
+        },
+        {
+          "path": "knows.third_party_infiltration_imminent",
+          "old": null,
+          "new": "knows"
+        },
+        {
+          "path": "knows.vault_external_tampering",
+          "old": null,
+          "new": "knows"
+        },
+        {
+          "path": "status",
+          "old": "Dex has infiltrated the Vault's eastern quadrant via the ventilation shaft, positioning himself in a surveillance blind spot while Sable maintains the relay override from the maintenance hatch three tiers below.",
+          "new": ""
+        },
+        {
+          "path": "knows.vault_eastern_surveillance_blind_spot",
+          "old": "knows",
+          "new": "sees_through"
+        },
+        {
+          "path": "knows.vault_biometric_scanner_location",
+          "old": "knows",
+          "new": "sees_through"
+        },
+        {
+          "path": "knows.third_party_infiltration_imminent",
+          "old": "knows",
+          "new": "sees_through"
+        },
+        {
+          "path": "knows.vault_external_tampering",
+          "old": "knows",
+          "new": "sees_through"
         }
-      },
-      "relationships": {
-        "John Jones": [
-          {"relation": "enemy", "status": "Enemy Commander", "aliases": ["Hellion"], "events": ["The Jones Offensive"], "importance": {"score": 90, "reason": "Primary enemy", "faction": "negative"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Beginning The First Incursion", "scenes": [1], "importance": {"score": 100, "reason": "Started the war", "faction": "negative"}},
-        {"title": "Launching The Second Incursion", "scenes": [16], "importance": {"score": 90, "reason": "Escalated the war", "faction": "negative"}}
       ]
     },
-    "Harry Kristi": {
-      "description": ["Harry Kristi was Angelina's brother.", "Killed by John Jones during escape."],
-      "biography": ["Died in The First Incursion.", "Killed by John Jones."],
-      "traits": ["Unknown."],
-      "attributes": ["Unknown; deceased before detailed records."],
-      "voice": "Unknown.",
-      "quirks": ["Unknown."],
-      "fears": ["Unknown."],
-      "preferences": {
-        "likes": ["Unknown."],
-        "dislikes": ["Unknown."]
-      },
-      "relationships": {
-        "Angelina Kristi": [
-          {"relation": "brother", "status": "Family", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": {"score": 40, "reason": "Family tie", "faction": "positive"}}
-        ],
-        "John Jones": [
-          {"relation": "victim", "status": "", "aliases": [], "events": ["Killing of Harry Kristi"], "importance": {"score": 20, "reason": "Killed by John", "faction": "negative"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Killing of Harry Kristi", "scenes": [7], "importance": {"score": 60, "reason": "Key event", "faction": "neutral"}}
-      ]
-    },
-    "Sarah Mitchell": {
-      "description": ["Sarah Mitchell is a medic in the Rebel Force.", "A 30-year-old woman with red hair."],
-      "biography": ["Former emergency room doctor.", "Joined after The First Incursion."],
-      "traits": ["Compassionate.", "Calm under pressure."],
-      "attributes": [
-        "Medical skill: Expert.",
-        "Combat: Minimal.",
-        "Stamina: Average.",
-        "Intelligence: High."
+    "security patrol": {
+      "description": "Corporate security forces patrolling the Nereza sky-city levels, equipped with pulse rifles and thermal scanners.",
+      "status": "currently conducting a high-alert sweep of the sub-floor levels following an early internal audit.",
+      "biography": [
+        "The standard response force for Nereza's internal security protocols."
       ],
-      "voice": "Gentle and reassuring, with a steady bedside manner.",
-      "quirks": ["Hums while working on patients.", "Keeps a detailed journal of every treatment."],
-      "fears": ["Running out of medical supplies during a crisis.", "Losing a patient she could have saved."],
+      "traits": [
+        "synchronized",
+        "alert",
+        "well-equipped"
+      ],
+      "attributes": [
+        "Weaponry: Pulse rifles with active cycling",
+        "Detection capabilities: Thermal scanning with three-second sweep cycles",
+        "Movement: Heavy-duty mag-lock boots for synchronized patrol"
+      ],
+      "voice": "N/A",
+      "quirks": [],
+      "fears": [],
       "preferences": {
-        "likes": ["Organized medical stations", "Herbal remedies", "Training medics"],
-        "dislikes": ["Reckless soldiers", "Unsanitary conditions", "Wasteful triage"]
+        "likes": [],
+        "dislikes": []
+      },
+      "importance": {
+        "score": 25,
+        "reason": "A recurring environmental threat that creates immediate tension but lacks long-term narrative weight.",
+        "faction": "negative"
       },
       "group_status": {
-        "Rebel Force": {
-          "position": ["Medic", "Medical Officer"],
-          "aliases": ["Doc"],
-          "events": [],
-          "importance": {"score": 40, "reason": "Support staff", "faction": "positive"}
-        }
-      },
-      "relationships": {
-        "Paul Jones": [
-          {"relation": "patient", "status": "Medical", "aliases": [], "events": ["The Jones Offensive"], "importance": {"score": 30, "reason": "Treated his injury", "faction": "positive"}}
-        ]
-      },
-      "milestones": [
-        {"title": "Treating Paul Jones", "scenes": [19], "importance": {"score": 35, "reason": "Medical treatment", "faction": "positive"}}
-      ]
-    },
-    "David Park": {
-      "description": ["David Park is a communications specialist.", "A 28-year-old man."],
-      "biography": ["Ran comms for early Rebel operations."],
-      "traits": ["Technical mind.", "Quiet."],
-      "attributes": [
-        "Technical skill: Expert communicator.",
-        "Combat: Below average.",
-        "Intelligence: High.",
-        "Stamina: Average."
-      ],
-      "voice": "Low and even, with a slight radio crackle habit from years of comms work.",
-      "quirks": ["Taps out Morse code rhythms on his thigh unconsciously.", "Prefers written messages to speaking."],
-      "fears": ["Communications being intercepted.", "Being cut off from the team."],
-      "preferences": {
-        "likes": ["Radio equipment", "Silence", "Repairing tech"],
-        "dislikes": ["Loud environments", "Small talk", "Outdated equipment"]
-      },
-      "group_status": {
-        "Rebel Force": {
-          "position": ["Communications Specialist"],
-          "aliases": [],
-          "events": [],
-          "importance": {"score": 30, "reason": "Support staff", "faction": "positive"}
+        "Nereza Security Force": {
+          "position": [
+            "Patrol Unit"
+          ],
+          "aliases": [
+            "Security Patrol"
+          ],
+          "events": [
+            "Early internal audit sweep forcing immediate plan change"
+          ],
+          "importance": {
+            "score": 20,
+            "reason": "The patrol represents a temporary complication rather than a major faction-level threat.",
+            "faction": "negative"
+          }
         }
       },
       "relationships": {},
-      "milestones": []
-    },
-    "Captain Rodriguez": {
-      "description": ["Captain Rodriguez leads a small squad.", "A veteran soldier."],
-      "biography": ["Led a squad in The First Incursion.", "Now trains new recruits."],
-      "traits": ["Strict.", "Experienced."],
-      "attributes": [
-        "Combat: Veteran.",
-        "Leadership: Strong squad leader.",
-        "Stamina: Above average.",
-        "Intelligence: Tactical."
-      ],
-      "voice": "Authoritative bark, softened by a fatherly tone with recruits.",
-      "quirks": ["Calls everyone 'soldier' regardless of rank.", "Polishes his boots obsessively."],
-      "fears": ["Losing his squad like in The First Incursion.", "Becoming obsolete."],
-      "preferences": {
-        "likes": ["Drills", "Discipline", "Veteran stories"],
-        "dislikes": ["Sloppy formations", "New recruits who don't listen", "Politics"]
-      },
-      "group_status": {
-        "Rebel Force": {
-          "position": ["Captain"],
-          "aliases": [],
-          "events": ["The First Incursion"],
-          "importance": {"score": 35, "reason": "Squad leader", "faction": "positive"}
-        }
-      },
-      "relationships": {},
-      "milestones": [
-        {"title": "Surviving The First Incursion", "scenes": [3], "importance": {"score": 40, "reason": "Veteran experience", "faction": "positive"}}
-      ]
-    },
-    "Rachel Torres": {
-      "description": ["Rachel Torres is a new recruit.", "A 22-year-old eager soldier."],
-      "biography": ["Joined recently.", "Very little experience."],
-      "traits": ["Eager.", "Naive."],
-      "attributes": [
-        "Combat: In training.",
-        "Stamina: High (youthful energy).",
-        "Intelligence: Average.",
-        "Marksmanship: Below average but improving."
-      ],
-      "voice": "Bright and enthusiastic, still carries civilian speech patterns.",
-      "quirks": ["Asks too many questions during briefings.", "Keeps a journal of everything she learns."],
-      "fears": ["Being sent home as a failure.", "Freezing in combat."],
-      "preferences": {
-        "likes": ["Learning new skills", "Listening to veteran stories", "Proving herself"],
-        "dislikes": ["Being treated like a child", "Patronizing attitudes", "KP duty"]
-      },
-      "group_status": {
-        "Rebel Force": {
-          "position": ["Recruit"],
-          "aliases": [],
-          "events": [],
-          "importance": {"score": 15, "reason": "New recruit", "faction": "positive"}
-        }
-      },
-      "relationships": {},
-      "milestones": [
-        {"title": "Joining the Rebel Force", "scenes": [17], "importance": {"score": 20, "reason": "Just joined", "faction": "positive"}}
-      ]
-    },
-    "Subterranean Scout Alpha": {
-      "description": ["A Subterranean scout.", "Seen only briefly during reconnaissance."],
-      "biography": ["Part of intelligence gathering.", "Killed in action."],
-      "traits": ["Stealthy.", "Observant."],
-      "attributes": [
-        "Stealth: High.",
-        "Combat: Low.",
-        "Speed: High.",
-        "Stamina: Average."
-      ],
-      "voice": "Skittering clicks and hisses.",
-      "quirks": ["Twitches antenna-like sensors constantly.", "Never stays still."],
-      "fears": ["Being spotted.", "Failure of the mission."],
-      "preferences": {
-        "likes": ["Dark tunnels", "Silence", "Reporting findings"],
-        "dislikes": ["Open areas", "Bright light", "Noise"]
-      },
-      "group_status": {
-        "Subterraneans": {
-          "position": ["Scout"],
-          "aliases": [],
-          "events": [],
-          "importance": {"score": 10, "reason": "Low-ranking", "faction": "negative"}
-        }
-      },
-      "relationships": {},
-      "milestones": [
-        {"title": "Reconnaissance Mission", "scenes": [9], "importance": {"score": 15, "reason": "Brief appearance", "faction": "negative"}}
-      ]
-    },
-    "Subterranean Commander Vex": {
-      "description": ["Vex is a Subterranean commander.", "Second in command to the Leader."],
-      "biography": ["Commands ground forces.", "Known for brutality."],
-      "traits": ["Brutal.", "Strategic."],
-      "attributes": [
-        "Strength: Superhuman.",
-        "Combat: Elite.",
-        "Intelligence: Tactical.",
-        "Stamina: High."
-      ],
-      "voice": "Guttural roar that drops to a threatening whisper.",
-      "quirks": ["Cracks knuckles before every engagement.", "Collects trophies from defeated enemies."],
-      "fears": ["Displeasing the Subterranean Leader.", "Being outsmarted by humans."],
-      "preferences": {
-        "likes": ["Brute force tactics", "Trophies of war", "Total obedience"],
-        "dislikes": ["Retreat", "Human resistance", "Being questioned"]
-      },
-      "group_status": {
-        "Subterraneans": {
-          "position": ["Commander"],
-          "aliases": ["Vex the Brutal"],
-          "events": ["The Second Incursion"],
-          "importance": {"score": 85, "reason": "High-ranking enemy", "faction": "negative"}
-        }
-      },
-      "relationships": {
-        "Subterranean Leader": [
-          {"relation": "subordinate", "status": "Military", "aliases": [], "events": [], "importance": {"score": 80, "reason": "Second in command", "faction": "negative"}}
-        ]
-      },
-      "milestones": [
-        {"title": "The Second Incursion", "scenes": [16], "importance": {"score": 80, "reason": "Led assault", "faction": "negative"}}
-      ]
-    },
-    "Trader Jenkins": {
-      "description": ["Trader Jenkins is a civilian merchant.", "Supplies both sides for profit."],
-      "biography": ["Makes deals with anyone.", "Neutral party."],
-      "traits": ["Greedy.", "Pragmatic."],
-      "attributes": [
-        "Negotiation: Expert.",
-        "Combat: Below average.",
-        "Intelligence: Street-smart.",
-        "Connections: Extensive."
-      ],
-      "voice": "Smooth and ingratiating, with a salesman's cadence.",
-      "quirks": ["Always carries a small scale for weighing currency.", "Bargains habitually even for non-transactions."],
-      "fears": ["Being caught in a crossfire.", "Losing his supply routes."],
-      "preferences": {
-        "likes": ["Profitable deals", "Neutral ground", "Good merchandise"],
-        "dislikes": ["Violence", "Scavengers undercutting his prices", "Taking sides"]
-      },
-      "group_status": {
-        "Merchant Guild": {
-          "position": ["Trader"],
-          "aliases": [],
-          "events": [],
-          "importance": {"score": 20, "reason": "Civilian", "faction": "neutral"}
-        }
-      },
-      "relationships": {
-        "John Jones": [
-          {"relation": "trader", "status": "Business", "aliases": [], "events": [], "importance": {"score": 10, "reason": "Sells supplies", "faction": "neutral"}}
-        ]
-      },
-      "milestones": []
+      "milestones": [],
+      "knows": {}
     }
   }
 }

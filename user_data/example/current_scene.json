@@ -1,71 +1,844 @@
 {
-  "what": "Mission Planning - The Jones Offensive",
+  "what": "Dex recovers the black-box drive and flees the Vault as security forces converge",
   "start": {
     "who": {
       "characters": [
-        {"name": "John Jones", "location": "Rebel Force Headquarters"},
-        {"name": "Amy Harrison", "location": "Technology Lab"},
-        {"name": "Marcus Chen", "location": "War Room"}
+        {
+          "name": "Dex",
+          "location": "Vault interior, eastern quadrant"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance crawlspace, three tiers below duct junction"
+        }
       ],
-      "groups": [
-        {"name": "Rebel Force", "location": "Underground Base"},
-        {"name": "Subterranean Intelligence Unit", "location": "Unknown"}
-      ]
+      "groups": [],
+      "elements": []
     },
     "when": {
-      "_message_node": "140_1_1",
-      "date": "May 14, 2028",
-      "time": "Evening",
-      "specific_time": "19:30"
+      "date": "N/A",
+      "time": "Night",
+      "specific_time": "02:23",
+      "_message_node": "40_1_1"
     },
-    "where": "Rebel Force Headquarters - Strategic Planning Room",
+    "where": "Nereza, Vault interior",
     "why": [
       {
-        "name": "Mission Finalization",
-        "details": "Finalizing plans for the major offensive against Subterranean strongholds"
-      },
-      {
-        "name": "Technology Integration",
-        "details": "Amy Harrison presenting new reconnaissance drone prototypes"
+        "name": "The Infiltration",
+        "details": "Dex and Sable have infiltrated the Vault's eastern quadrant to retrieve the Ascension Core, but discover it has already been stolen by an unknown third party with insider access."
       }
     ]
   },
   "now": {
     "who": {
       "characters": [
-        {"name": "John Jones", "location": "War Room - Center"},
-        {"name": "Paul Jones", "location": "War Room - Left"},
-        {"name": "Marcus Chen", "location": "War Room - Right, at map table"},
-        {"name": "Amy Harrison", "location": "Technology Lab - Presenting remotely via screen"}
+        {
+          "name": "Dex",
+          "location": "Vault interior, eastern quadrant"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
       ],
-      "groups": [
-        {"name": "Rebel Force", "location": "Underground Base - Full Mobilization"},
-        {"name": "Subterranean Intelligence Unit", "location": "Eastern Perimeter - Reconnaissance"}
-      ]
+      "groups": [],
+      "elements": []
     },
     "when": {
-      "_message_node": null,
-      "date": "May 14, 2028",
-      "time": "Evening",
-      "specific_time": "20:15"
+      "date": "N/A",
+      "time": "Early morning",
+      "specific_time": "02:26",
+      "_message_node": "40_1_1"
     },
-    "where": "Rebel Force Headquarters - War Room",
+    "where": "Nereza, Vault interior",
     "why": [
       {
-        "name": "Final Briefing",
-        "details": "John presenting final assault plan to the team"
-      },
-      {
-        "name": "Tech Demonstration",
-        "details": "Amy demonstrating new drone capabilities for reconnaissance"
-      },
-      {
-        "name": "Role Assignment",
-        "details": "Assigning specific roles for the upcoming offensive"
+        "name": "The Infiltration",
+        "details": "Dex and Sable have infiltrated the Vault's eastern quadrant to retrieve the Ascension Core, but discover it has already been stolen by an unknown third party with insider access."
       }
     ]
   },
-  "_scene_number": 18,
-  "_chapter_number": 2,
-  "_arc_number": 1
+  "_scene_number": 7,
+  "_chapter_number": 1,
+  "_arc_number": 1,
+  "_scene_start_message": 38,
+  "_history": [
+    {
+      "path": "what",
+      "old": "Dex is wedged in a duct above the vault when Sable contacts him with complications regarding their job.",
+      "new": "Sable alerts Dex to complications with the job as security patrols close in."
+    },
+    {
+      "path": "start.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "duct above the vault"
+        },
+        {
+          "name": "Sable",
+          "location": "fire escape three own below the duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "duct above the vault"
+        },
+        {
+          "name": "Sable",
+          "location": "fire escape three levels below the duct junction"
+        }
+      ]
+    },
+    {
+      "path": "start.when",
+      "old": {
+        "date": "N/A",
+        "time": "N/A",
+        "specific_time": "N/A"
+      },
+      "new": {
+        "date": "N/A",
+        "time": "Night",
+        "specific_time": "02:14"
+      }
+    },
+    {
+      "path": "start.where",
+      "old": "Nereza, above the vault",
+      "new": "Nereza, above the vault"
+    },
+    {
+      "path": "start.why",
+      "old": [
+        {
+          "name": "Initial Contact",
+          "details": "Sable contacts Dex via comm-link to report problems with the job."
+        }
+      ],
+      "new": [
+        {
+          "name": "Mission complications",
+          "details": "Sable discovers the internal audit has moved up and the sub-floor lift is locked out."
+        }
+      ]
+    },
+    {
+      "path": "what",
+      "old": "Sable alerts Dex to complications with the job as security patrols close in.",
+      "new": "Dex slips through the duct while security patrols investigate Sable's position"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "duct above the vault",
+      "new": "next duct section"
+    },
+    {
+      "path": "now.who.characters.1.location",
+      "old": "fire escape three levels below the duct junction",
+      "new": "fire escape three tiers below the duct junction"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:14",
+      "new": "02:15"
+    },
+    {
+      "path": "what",
+      "old": "Dex slips through the duct while security patrols investigate Sable's position",
+      "new": "Dex infiltrates the vault via ventilation shafts while Sable secures the fire escape"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "next duct section",
+      "new": "Eastern Vault Grate"
+    },
+    {
+      "path": "now.who.characters.1.location",
+      "old": "fire escape three tiers below the duct junction",
+      "new": "Fire Escape"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:15",
+      "new": "02:18"
+    },
+    {
+      "path": "what",
+      "old": "Dex infiltrates the vault via ventilation shafts while Sable secures the fire escape",
+      "new": "Dex reaches the eastern grid position while Sable maintains comms silence at the maintenance hatch."
+    },
+    {
+      "path": "start.where",
+      "old": "Nereza, above the vault",
+      "new": "Nereza, above the vault"
+    },
+    {
+      "path": "start.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "start.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "start.when.specific_time",
+      "old": "02:14",
+      "new": "02:17"
+    },
+    {
+      "path": "start.when._message_node",
+      "old": "8_1_1",
+      "new": "10_1_1"
+    },
+    {
+      "path": "start.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "duct above the vault"
+        },
+        {
+          "name": "Sable",
+          "location": "fire escape three levels below the duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "eastern grid position, inside the ventilation shaft"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ]
+    },
+    {
+      "path": "start.why",
+      "old": [
+        {
+          "name": "Mission complications",
+          "details": "Sable discovers the internal audit has moved up and the sub-floor lift is locked out."
+        }
+      ],
+      "new": [
+        {
+          "name": "Mission Infiltration",
+          "details": "Dex is positioning himself at the vault's eastern grid while Sable maintains silent comms at the entry point."
+        }
+      ]
+    },
+    {
+      "path": "now.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "next duct section"
+        },
+        {
+          "name": "Sable",
+          "location": "Fire escape three tiers below the duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "inside the ventilation shaft above the Vault's eastern quadrant"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ]
+    },
+    {
+      "path": "now.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:18",
+      "new": "02:17"
+    },
+    {
+      "path": "now.where",
+      "old": "Nereza, above the vault",
+      "new": "Nereza, above the vault"
+    },
+    {
+      "path": "now.why",
+      "old": [
+        {
+          "name": "Mission complications",
+          "details": "Sable discovers the internal audit has moved up and the sub-floor lift is locked out."
+        }
+      ],
+      "new": [
+        {
+          "name": "Infiltration Positioning",
+          "details": "Dex reaches the eastern grate to position himself in a surveillance blind spot while Sable secures the entry point."
+        }
+      ]
+    },
+    {
+      "path": "what",
+      "old": "Dex reaches the eastern grid position while Sable maintains comms silence at the maintenance hatch.",
+      "new": "Dex infiltrates the Vault's eastern quadrant"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "eastern grid position, inside the ventilation shaft",
+      "new": "inside the Vault"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:17",
+      "new": "02:18"
+    },
+    {
+      "path": "what",
+      "old": "Dex infiltrates the Vault's eastern quadrant",
+      "new": "Dex infiltrates the Vault's eastern quadrant"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "inside the Vault",
+      "new": "inside the Vault"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:18",
+      "new": "02:18"
+    },
+    {
+      "path": "what",
+      "old": "Dex infiltrates the Vault's eastern quadrant",
+      "new": "Dex infiltrates the Vault's eastern quadrant"
+    },
+    {
+      "path": "start.where",
+      "old": "Nereza, above the vault",
+      "new": "Nereza, above the vault"
+    },
+    {
+      "path": "start.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "start.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "start.when.specific_time",
+      "old": "02:17",
+      "new": "02:17"
+    },
+    {
+      "path": "start.when._message_node",
+      "old": "14_1_1",
+      "new": "16_1_1"
+    },
+    {
+      "path": "start.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "eastern grid position, inside the ventilation shaft"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "eastern grid position, inside the ventilation shaft"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ]
+    },
+    {
+      "path": "start.why",
+      "old": [
+        {
+          "name": "Mission Infiltration",
+          "details": "Dex is positioning himself at the vault's eastern grid while Sable maintains silent comms at the entry point."
+        }
+      ],
+      "new": [
+        {
+          "name": "Infiltration",
+          "details": "Dex moves deeper into the Vault while Sable maintains the relay override."
+        }
+      ]
+    },
+    {
+      "path": "now.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "inside the Vault"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "inside the Vault"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ]
+    },
+    {
+      "path": "now.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:18",
+      "new": "02:18"
+    },
+    {
+      "path": "now.where",
+      "old": "Nereza, above the vault",
+      "new": "Nereza, above the vault"
+    },
+    {
+      "path": "now.why",
+      "old": [
+        {
+          "name": "Mission Infiltration",
+          "details": "Dex is positioning himself at the vault's eastern grid while Sable maintains silent comms at the entry point."
+        }
+      ],
+      "new": [
+        {
+          "name": "Infiltration",
+          "details": "Dex moves deeper into the Vault while Sable maintains the relay override."
+        }
+      ]
+    },
+    {
+      "path": "what",
+      "old": "Dex infiltrates the Vault's eastern quadrant",
+      "new": "Dex infiltrates the Vault's eastern quadrant while Sable confirms a blind spot and jams the sub-network relay"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "eastern grid position, inside the ventilation shaft",
+      "new": "eastern grid position, inside the ventilation shaft"
+    },
+    {
+      "path": "now.who.characters.1.location",
+      "old": "maintenance hatch, three tiers below duct junction",
+      "new": "maintenance hatch, three tiers below duct junction"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:17",
+      "new": "02:17"
+    },
+    {
+      "path": "what",
+      "old": "Dex infiltrates the Vault's eastern quadrant while Sable confirms a blind spot and jams the sub-network relay",
+      "new": "Dex observes the unknown black-box module and the security breach while Sable maintains the relay override"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "eastern grid position, inside the ventilation shaft",
+      "new": "Dex @ eastern grid position, inside the ventilation shaft"
+    },
+    {
+      "path": "now.who.characters.1.location",
+      "old": "maintenance hatch, three tiers below duct junction",
+      "new": "Sable @ maintenance hatch, three tiers below duct junction"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:17",
+      "new": "02:18"
+    },
+    {
+      "path": "what",
+      "old": "Dex observes the unknown black-box module and the security breach while Sable maintains the relay override",
+      "new": "Dex attempts to short the relay using the Zeiss-7 while Sable maintains the manual override"
+    },
+    {
+      "path": "now.where",
+      "old": "Nereza, above the vault",
+      "new": "Nereza eastern grid, Vault entrance"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:17",
+      "new": "02:17"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "eastern grid position, inside the ventilation shaft",
+      "new": "eastern grid position, inside the ventilation shaft"
+    },
+    {
+      "path": "now.who.characters.1.location",
+      "old": "maintenance hatch, three tiers below duct junction",
+      "new": "maintenance hatch, three tiers below duct junction"
+    },
+    {
+      "path": "what",
+      "old": "Dex attempts to short the relay using the Zeiss-7 while Sable maintains the manual override",
+      "new": "Dex moves through the eastern grid after the third party's presence is confirmed"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "eastern grid position, inside the ventilation shaft",
+      "new": "eastern grid, Vault entrance"
+    },
+    {
+      "path": "now.who.characters.1.location",
+      "old": "maintenance hatch, three tiers below duct junction",
+      "new": "maintenance hatch, three tiers below duct junction"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:17",
+      "new": "02:20"
+    },
+    {
+      "path": "what",
+      "old": "Dex moves through the eastern grid after the third party's presence is confirmed",
+      "new": "Dex enters the Vault interior after the third party's presence is confirmed"
+    },
+    {
+      "path": "start.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "eastern grid position, inside the ventilation shaft"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "Vault interior, eastern quadrant"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance crawlspace, three tiers below duct junction"
+        }
+      ]
+    },
+    {
+      "path": "start.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "start.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "start.when.specific_time",
+      "old": "02:17",
+      "new": "02:23"
+    },
+    {
+      "path": "start.when._message_node",
+      "old": "32_1_1",
+      "new": "34_1_1"
+    },
+    {
+      "path": "start.where",
+      "old": "Nereza, above the vault",
+      "new": "Nereza, Vault interior"
+    },
+    {
+      "path": "start.why",
+      "old": [
+        {
+          "name": "Infiltration",
+          "details": "Dex moves deeper into the Vault while Sable maintains the relay override."
+        }
+      ],
+      "new": [
+        {
+          "name": "Infiltration",
+          "details": "Dex has bypassed security systems and entered the Vault's eastern quadrant to investigate the third party's presence and secure the Ascension Core."
+        }
+      ]
+    },
+    {
+      "path": "now.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "eastern grid, Vault entrance"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance hatch, three tiers below duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "Vault's eastern quadrant"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance crawlspace, three tiers below duct junction"
+        }
+      ]
+    },
+    {
+      "path": "now.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:20",
+      "new": "02:23"
+    },
+    {
+      "path": "now.where",
+      "old": "Nereza eastern grid, Vault entrance",
+      "new": "Nereza, Vault interior"
+    },
+    {
+      "path": "now.why",
+      "old": [
+        {
+          "name": "Infiltration",
+          "details": "Dex moves deeper into the Vault while Sable maintains the relay override."
+        }
+      ],
+      "new": [
+        {
+          "name": "Infiltration",
+          "details": "Dex has infiltrated the Vault's eastern quadrant to investigate the third party's presence and secure the Ascension Core."
+        }
+      ]
+    },
+    {
+      "path": "what",
+      "old": "Dex enters the Vault interior after the third party's presence is confirmed",
+      "new": "Dex discovers the Ascension Core has been stolen and finds evidence of an intruder who used corporate-grade tools and Axiom lubricants"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Early morning"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:23",
+      "new": "02:37"
+    },
+    {
+      "path": "what",
+      "old": "Dex discovers the Ascension Core has been stolen and finds evidence of an intruder who used corporate-grade tools and Axiom lubricants",
+      "new": "Dex discovers the Ascension Core has been stolen and finds evidence of an intruder who used corporate-grade tools and Axiom lubricants"
+    },
+    {
+      "path": "now.where",
+      "old": "Nereza, Vault interior",
+      "new": "Nereza, Vault interior"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Early morning",
+      "new": "Early morning"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:37",
+      "new": "02:37"
+    },
+    {
+      "path": "what",
+      "old": "Dex discovers the Ascension Core has been stolen and finds evidence of an intruder who used corporate-grade tools and Axiom lubricants",
+      "new": "Dex discovers the Ascension Core has been stolen and finds evidence of an intruder who used corporate-grade tools and Axiom lubricants"
+    },
+    {
+      "path": "start.where",
+      "old": "Nereza, Vault interior",
+      "new": "Nereza, Vault interior"
+    },
+    {
+      "path": "start.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "start.when.time",
+      "old": "Night",
+      "new": "Night"
+    },
+    {
+      "path": "start.when.specific_time",
+      "old": "02:23",
+      "new": "02:23"
+    },
+    {
+      "path": "start.when._message_node",
+      "old": "38_1_1",
+      "new": "40_1_1"
+    },
+    {
+      "path": "start.who.characters",
+      "old": [
+        {
+          "name": "Dex",
+          "location": "Vault interior, eastern quadrant"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance crawlspace, three tiers below duct junction"
+        }
+      ],
+      "new": [
+        {
+          "name": "Dex",
+          "location": "Vault interior, eastern quadrant"
+        },
+        {
+          "name": "Sable",
+          "location": "maintenance crawlspace, three tiers below duct junction"
+        }
+      ]
+    },
+    {
+      "path": "start.why",
+      "old": [
+        {
+          "name": "Infiltration",
+          "details": "Dex has bypassed security systems and entered the Vault's eastern quadrant to investigate the third party's presence and secure the Ascension Core."
+        }
+      ],
+      "new": [
+        {
+          "name": "The Infiltration",
+          "details": "Dex and Sable have infiltrated the Vault's eastern quadrant to retrieve the Ascension Core, but discover it has already been stolen by an unknown third party with insider access."
+        }
+      ]
+    },
+    {
+      "path": "now.when.date",
+      "old": "N/A",
+      "new": "N/A"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Early morning",
+      "new": "Early morning"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:37",
+      "new": "02:37"
+    },
+    {
+      "path": "now.where",
+      "old": "Nereza, Vault interior",
+      "new": "Nereza, Vault interior"
+    },
+    {
+      "path": "now.why",
+      "old": [
+        {
+          "name": "Infiltration",
+          "details": "Dex has bypassed security systems and entered the Vault's eastern quadrant to investigate the third party's presence and secure the Ascension Core."
+        }
+      ],
+      "new": [
+        {
+          "name": "The Infiltration",
+          "details": "Dex and Sable have infiltrated the Vault's eastern quadrant to retrieve the Ascension Core, but discover it has already been stolen by an unknown third party with insider access."
+        }
+      ]
+    },
+    {
+      "path": "what",
+      "old": "Dex discovers the Ascension Core has been stolen and finds evidence of an intruder who used corporate-grade tools and Axiom lubricants",
+      "new": "Dex recovers the black-box drive and flees the Vault as security forces converge"
+    },
+    {
+      "path": "now.who.characters.0.location",
+      "old": "Vault interior, eastern quadrant",
+      "new": "emergency exit, eastern quadrant"
+    },
+    {
+      "path": "now.who.characters.1.location",
+      "old": "maintenance crawlspace, three tiers below duct junction",
+      "new": "maintenance hatch, three tiers below duct junction"
+    },
+    {
+      "path": "now.when.time",
+      "old": "Night",
+      "new": "Early morning"
+    },
+    {
+      "path": "now.when.specific_time",
+      "old": "02:23",
+      "new": "02:26"
+    }
+  ]
 }

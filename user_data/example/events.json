@@ -1,217 +1,691 @@
 {
-  "past": {},
+  "past": {
+    "The Infiltration of the Vault": {
+      "formal_name": "The Infiltration of the Vault",
+      "aliases": [],
+      "start": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:20",
+        "_message_node": "34_1_1"
+      },
+      "end": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:37",
+        "_message_node": "42_1_1"
+      },
+      "summary": "Dex infiltrates the Vault's eastern quadrant, discovering evidence of a third-party breach where the Ascension Core has already been taken by unknown actors who used his credentials as a ghost signal for forty minutes without triggering alarms.",
+      "catalyst": "Sable's confirmation that the sub-network relay has been compromised and the Ascension Core's security is already breached by a third party.",
+      "outcome": "Dex confirms the Core is missing and discovers evidence of a highly sophisticated breach that suggests they are not alone in the Vault.",
+      "participants": {
+        "Dex": {
+          "importance": {
+            "score": 80,
+            "reason": "Dex is the primary actor in this infiltration, risking immediate exposure to assess the situation and identify the nature of the breach.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "importance": {
+            "score": 60,
+            "reason": "Sable provides critical intel and coordination from the relay point, though she is not physically present in the Vault during the discovery.",
+            "faction": "positive"
+          }
+        }
+      },
+      "importance": {
+        "score": 75,
+        "reason": "This event marks a critical shift in the heist's parameters: the objective is already compromised by an unknown third party, forcing immediate tactical reassessment.",
+        "faction": "negative"
+      },
+      "learned": {
+        "third_party_infiltration_imminent": "confirmed",
+        "vault_external_tampering": "confirmed",
+        "vault_eastern_surveillance_blind_spot": "reinforced",
+        "ascension_core_stolen": "established",
+        "third_party_already_inside": "established",
+        "third_party_has_valid_clearance_or_backdoor": "established"
+      },
+      "title": "The Infiltration of the Vault"
+    },
+    "_history": {
+      "path": "The Infiltration of the Vault.learned.vault_external_tampering",
+      "old": "confirmed",
+      "new": "confirmed",
+      "formal_name": "",
+      "aliases": [],
+      "start": {
+        "date": "",
+        "time": "",
+        "specific_time": ""
+      },
+      "end": {
+        "date": "",
+        "time": "",
+        "specific_time": "",
+        "_message_node": "42_1_1"
+      },
+      "summary": "",
+      "catalyst": "",
+      "outcome": "",
+      "participants": {},
+      "importance": {
+        "score": 0,
+        "reason": "",
+        "faction": ""
+      },
+      "learned": {},
+      "title": ""
+    }
+  },
   "scenes": {
-    "Surviving The First Incursion": {
-      "name": "Surviving The First Incursion",
-      "formal_name": "The First Incursion Survival",
-      "aliases": ["Survival", "The First Attack"],
-      "importance": {"score": 90, "reason": "Formation of the Rebel Force", "faction": "positive"},
-      "start": {"_message_node": "1_1_1", "date": "2027-09-05", "time": "Noon", "specific_time": "12:07"},
-      "end": {"_message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon", "specific_time": "14:32"},
-      "summary": "Group survived first attack.",
-      "catalyst": "First major Subterranean attack.",
-      "outcome": "Rebel Force formed.",
-      "participants": {
-        "John Jones": {"importance": {"score": 100, "reason": "Leader", "faction": "positive"}},
-        "Amy Harrison": {"importance": {"score": 80, "reason": "Key survivor", "faction": "positive"}}
-      }
-    },
-    "Escaping The First Incursion": {
-      "name": "Escaping The First Incursion",
-      "formal_name": "Escape from the First Incursion",
-      "aliases": ["The Escape", "Harry's Death"],
-      "importance": {"score": 85, "reason": "Key character death and escape from danger", "faction": "positive"},
-      "start": {"_message_node": "7_4_1", "date": "2027-09-08", "time": "Afternoon"},
-      "end": {"_message_node": "10_2_5", "date": "2027-09-08", "time": "Evening"},
-      "summary": "Escaped but Harry was killed.",
-      "catalyst": "Subterranean pursuit.",
-      "outcome": "Harry Kristi killed.",
-      "participants": {
-        "John Jones": {"importance": {"score": 90, "reason": "Protagonist", "faction": "positive"}},
-        "Paul Jones": {"importance": {"score": 80, "reason": "Family", "faction": "positive"}},
-        "Angelina Kristi": {"importance": {"score": 50, "reason": "Witness", "faction": "neutral"}}
-      }
-    },
-    "Quick Scout Sighting": {
-      "name": "Quick Scout Sighting",
+    "Complications in the Concourse": {
       "formal_name": "N/A",
-      "aliases": ["Scout Glimpse", "First Contact"],
-      "importance": {"score": 30, "reason": "Introduced Subterranean scouts", "faction": "negative"},
-      "start": {"date": "2027-10-15", "time": "Dawn"},
-      "end": {"date": "2027-10-15", "time": "Dawn"},
-      "summary": "Brief glimpse of a Subterranean scout.",
-      "outcome": "Intelligence noted.",
+      "aliases": [],
+      "start": {
+        "date": "N/A",
+        "time": "Night",
+        "specific_time": "02:14",
+        "_message_node": "4_1_1"
+      },
+      "end": {
+        "date": "N/A",
+        "time": "Night",
+        "specific_time": "02:14",
+        "_message_node": "42_1_1"
+      },
+      "summary": "Sable alerts Dex to complications with the job as security patrols close in.",
+      "catalyst": "Sable discovers the internal audit has moved up and the sub-floor lift is locked out.",
+      "outcome": "Sable and Dex recognize they have approximately six minutes before security floods the floor, forcing them to improvise a new plan under immediate pressure.",
       "participants": {
-        "Elena Vasquez": {"importance": {"score": 30, "reason": "Witness", "faction": "positive"}},
-        "Subterranean Scout Alpha": {"importance": {"score": 15, "reason": "Spotted", "faction": "negative"}}
+        "Dex": {
+          "importance": {
+            "score": 50,
+            "reason": "Critical operational asset who must improvise a solution while compromised in the duct.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "importance": {
+            "score": 50,
+            "reason": "Mission commander managing field intelligence and team safety during active complication.",
+            "faction": "positive"
+          }
+        }
+      },
+      "importance": {
+        "score": 50,
+        "reason": "This scene establishes immediate tension and raises stakes for the mission's success.",
+        "faction": "positive"
+      },
+      "learned": {
+        "internal_audit_timeline": "challenged",
+        "sub-floor_lift_status": "challenged"
+      },
+      "title": "Complications in the Concourse"
+    },
+    "Positioning at the Eastern Grid": {
+      "formal_name": "N/A",
+      "aliases": [],
+      "start": {
+        "_message_node": "10_1_1",
+        "date": "N/A",
+        "specific_time": "02:18",
+        "time": "Night"
+      },
+      "end": {
+        "_message_node": "42_1_1",
+        "date": "N/A",
+        "specific_time": "02:18",
+        "time": "Night"
+      },
+      "summary": "Dex positions himself at the eastern grid while Sable confirms a blind spot and disables the local sub-network relay.",
+      "catalyst": "Dex reaches the eastern grid while Sable confirms the security sweep pattern and establishes a silent comms position at the entry point.",
+      "outcome": "Dex successfully positions himself at the eastern grid with a surveillance blind spot, while Sable secures the entry point by disabling the local sub-network relay.",
+      "participants": {
+        "Dex": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Dex is the primary infiltrator in this scene, having successfully navigated to the vault's eastern grid position.",
+            "score": 50
+          }
+        },
+        "Sable": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Sable is maintaining comms silence and securing the entry point, supporting Dex's infiltration position.",
+            "score": 50
+          }
+        }
+      },
+      "importance": {
+        "score": 50,
+        "reason": "This scene represents a successful positioning phase during the heist, critical for establishing the operatives' infiltration points.",
+        "faction": "positive"
+      },
+      "title": "Positioning at the Eastern Grid",
+      "learned": {}
+    },
+    "_history": {
+      "path": "Positioning at the Eastern Grid.importance.score",
+      "old": 50,
+      "new": 50,
+      "formal_name": "",
+      "aliases": [],
+      "start": {
+        "date": "",
+        "time": "",
+        "specific_time": ""
+      },
+      "end": {
+        "date": "",
+        "time": "",
+        "specific_time": "",
+        "_message_node": "42_1_1"
+      },
+      "summary": "",
+      "catalyst": "",
+      "outcome": "",
+      "participants": {},
+      "importance": {
+        "score": 0,
+        "reason": "",
+        "faction": ""
+      },
+      "learned": {},
+      "title": ""
+    },
+    "Dex Infiltrates the Vault's Eastern Quadrant": {
+      "title": "Dex Infiltrates the Vault's Eastern Quadrant",
+      "formal_name": "N/A",
+      "aliases": [],
+      "start": {
+        "_message_node": "16_1_1",
+        "date": "N/A",
+        "specific_time": "02:17",
+        "time": "Night"
+      },
+      "end": {
+        "_message_node": "42_1_1",
+        "date": "N/A",
+        "specific_time": "02:18",
+        "time": "Night"
+      },
+      "summary": "Dex infiltrates the Vault's eastern quadrant",
+      "catalyst": "Dex moves deeper into the Vault while Sable maintains the relay override.",
+      "outcome": "Dex successfully enters the Vault's eastern quadrant undetected, noting the security patrol's timing and identifying an unfamiliar black-box module grafted to the relay.",
+      "participants": {
+        "Dex": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Dex is the infiltrator and primary actor in this scene, operating inside the Vault.",
+            "score": 50
+          }
+        },
+        "Sable": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Sable is providing technical support and monitoring the situation from the relay.",
+            "score": 50
+          }
+        }
+      },
+      "importance": {
+        "score": 50,
+        "reason": "Dex infiltrates the Vault's eastern quadrant",
+        "faction": "positive"
+      },
+      "learned": {
+        "third_party_infiltrator_presence": "established"
       }
     },
-    "Paul's Injury": {
-      "name": "Paul's Injury",
+    "Detection of the Unknown Intruder": {
+      "title": "Detection of the Unknown Intruder",
       "formal_name": "N/A",
-      "aliases": ["The Leg Injury", "Paul wounded"],
-      "importance": {"score": 65, "reason": "Paul's injury affected military capability", "faction": "positive"},
-      "start": {"date": "2028-05-18", "time": "Evening"},
-      "end": {"date": "2028-05-18", "time": "Late Evening"},
-      "summary": "Paul injured during assault.",
-      "outcome": "Leg injury.",
+      "aliases": [],
+      "start": {
+        "_message_node": "22_1_1",
+        "date": "N/A",
+        "specific_time": "02:17",
+        "time": "Night"
+      },
+      "end": {
+        "_message_node": "42_1_1",
+        "date": "N/A",
+        "specific_time": "02:18",
+        "time": "Night"
+      },
+      "summary": "Dex observes the unknown black-box module and the security breach while Sable maintains the relay override. Sable confirms the third-party has already bypassed the primary bus and reveals they are out of cushion as the security sweep timing compresses their window.",
+      "catalyst": "Dex moves deeper into the Vault while Sable maintains the relay override; Sable reveals a third party has already infiltrated the system and the operational window is closing.",
+      "outcome": "Dex confirms the black-box module's non-corporate origins and notes a silent alarm activation at the biometric scanner. Sable warns that the third party has already bypassed the primary bus and they have limited time remaining before the security sweep.",
       "participants": {
-        "Paul Jones": {"importance": {"score": 90, "reason": "Injured", "faction": "positive"}},
-        "Sarah Mitchell": {"importance": {"score": 60, "reason": "Medic", "faction": "positive"}}
+        "Dex": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Dex is the primary infiltrator assessing the immediate security breach while maintaining comms with Sable.",
+            "score": 50
+          }
+        },
+        "Sable": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Sable is maintaining the relay override and providing critical intelligence about the third-party intrusion.",
+            "score": 50
+          }
+        }
+      },
+      "importance": {
+        "score": 50,
+        "reason": "This scene establishes the complication of a third party having already infiltrated the Vault, which forces tactical adaptation from both characters.",
+        "faction": "positive"
+      },
+      "learned": {
+        "third_party_infiltrator_presence": "established",
+        "operational_window_compression": "established"
       }
     },
-    "Rachel's First Day": {
-      "name": "Rachel's First Day",
+    "The Third Party in the Vault": {
       "formal_name": "N/A",
-      "aliases": ["Recruit Orientation", "Rachel joins"],
-      "importance": {"score": 25, "reason": "Minor recruitment event", "faction": "positive"},
-      "start": {"date": "2028-06-01", "time": "Morning"},
-      "end": {"date": "2028-06-01", "time": "Morning"},
-      "summary": "Rachel joined the Rebel Force.",
-      "outcome": "New recruit.",
+      "aliases": [],
+      "start": {
+        "_message_node": "28_1_1",
+        "date": "N/A",
+        "specific_time": "02:17",
+        "time": "Night"
+      },
+      "end": {
+        "_message_node": "42_1_1",
+        "date": "N/A",
+        "specific_time": "02:18",
+        "time": "Night"
+      },
+      "summary": "Dex confirms the presence of an active third-party breach using military-grade tools that impersonates security authentication while Sable maintains the relay override as the security sweep reset window narrows.",
+      "catalyst": "Dex discovers the black-box module's non-corporate frequencies and notices a silent alarm activation at the biometric scanner.",
+      "outcome": "Dex confirms the third party has been using his credentials for forty minutes without tripping alarms; Sable realizes they must now proceed into the Vault while the operational window rapidly closes.",
       "participants": {
-        "Rachel Torres": {"importance": {"score": 100, "reason": "New recruit", "faction": "positive"}},
-        "Captain Rodriguez": {"importance": {"score": 80, "reason": "Trainer", "faction": "positive"}}
+        "Dex": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Primary infiltrator operating under time pressure to assess the breach and prevent immediate security escalation.",
+            "score": 50
+          }
+        },
+        "Sable": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Crew leader managing technical complications and maintaining the override necessary for the heist to proceed.",
+            "score": 50
+          }
+        }
+      },
+      "importance": {
+        "score": 50,
+        "reason": "Crucial scene establishing the complication of a third-party infiltrator and the tightening operational window.",
+        "faction": "positive"
+      },
+      "title": "The Third Party in the Vault",
+      "learned": {}
+    },
+    "Infiltrating the Vault": {
+      "title": "Infiltrating the Vault",
+      "formal_name": "N/A",
+      "aliases": [],
+      "start": {
+        "_message_node": "34_1_1",
+        "date": "N/A",
+        "specific_time": "02:23",
+        "time": "Night"
+      },
+      "end": {
+        "_message_node": "42_1_1",
+        "date": "N/A",
+        "specific_time": "02:23",
+        "time": "Night"
+      },
+      "summary": "Dex enters the Vault interior after the third party's presence is confirmed",
+      "catalyst": "Dex has bypassed security systems and entered the Vault's eastern quadrant to investigate the third party's presence and secure the Ascension Core.",
+      "outcome": "Dex discovers the Ascension Core has already been stolen by an unknown third party who used his own credentials to ghost their presence, leaving residual heat signatures and an empty containment chamber.",
+      "participants": {
+        "Dex": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Dex is the primary infiltrator confronting the theft, needing to track the unknown third party to salvage the mission.",
+            "score": 60
+          }
+        },
+        "Sable": {
+          "importance": {
+            "faction": "positive",
+            "reason": "Sable maintains operational control from the relay, monitoring Dex's position and coordinating escape logistics.",
+            "score": 40
+          }
+        }
+      },
+      "importance": {
+        "score": 50,
+        "reason": "This scene reveals that the objective has already been compromised by a third party, forcing immediate tactical adaptation.",
+        "faction": "positive"
+      },
+      "learned": {}
+    },
+    "The Third Party Infiltrates the Vault": {
+      "formal_name": "N/A",
+      "aliases": [
+        "The Vault Infiltration"
+      ],
+      "start": {
+        "date": "Unknown",
+        "time": "Within the hour prior to message 34",
+        "specific_time": "02:20",
+        "_message_node": "34_1_1"
+      },
+      "end": {
+        "date": "Unknown",
+        "time": "Unknown",
+        "specific_time": "02:20",
+        "_message_node": "42_1_1"
+      },
+      "summary": "An unknown third party successfully breached the Vault's eastern quadrant using a non-corporate black-box module and advanced authentication protocols, bypassing security without triggering alarms. The intruder extracted the Ascension Core, leaving only residual thermal signatures and corrupted grid signals in their wake before Sable and Dex arrived to find the containment chamber empty.",
+      "catalyst": "Unknown third party's infiltration of the Vault's security systems",
+      "outcome": "The Ascension Core is stolen by an unknown third party, leaving Dex and Sable to navigate the compromised security grid with limited time remaining.",
+      "participants": {
+        "Dex": {
+          "importance": {
+            "score": 60,
+            "reason": "Dex discovers the breach and realizes they are investigating a crime already committed, which forces them to adapt their own heist plan mid-operation.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "importance": {
+            "score": 60,
+            "reason": "Sable confirms the security system has been compromised and must maintain control of the sub-network to prevent immediate lockdown during their own extraction attempt.",
+            "faction": "positive"
+          }
+        },
+        "Unknown Third Party": {
+          "importance": {
+            "score": 85,
+            "reason": "This party has already accomplished the primary objective (stealing the Core), fundamentally shifting the stakes from acquisition to survival and pursuit of a new unknown variable.",
+            "faction": "negative"
+          }
+        }
+      },
+      "importance": {
+        "score": 85,
+        "reason": "This event represents the primary plot pivot where the central objective (stealing the Core) is rendered impossible by a third party, forcing the crew to shift to a new objective and adapt to an unknown new complication.",
+        "faction": "negative"
+      },
+      "learned": {
+        "third_party_infiltration_imminent": "debunked",
+        "vault_external_tampering": "reinforced",
+        "vault_eastern_surveillance_blind_spot": "challenged"
+      },
+      "title": "The Third Party Infiltrates the Vault"
+    },
+    "The Empty Plinth": {
+      "title": "The Empty Plinth",
+      "formal_name": "N/A",
+      "aliases": [],
+      "start": {
+        "_message_node": "40_1_1",
+        "date": "N/A",
+        "specific_time": "02:23",
+        "time": "Night"
+      },
+      "end": {
+        "_message_node": "42_1_1",
+        "date": "N/A",
+        "specific_time": "02:23",
+        "time": "Night"
+      },
+      "summary": "Dex discovers the Ascension Core has been stolen and finds evidence of an intruder who used corporate-grade tools and Axiom lubricants",
+      "catalyst": "Dex and Sable have infiltrated the Vault's eastern quadrant to retrieve the Ascension Core, but discover it has already been stolen by an unknown third party with insider access.",
+      "outcome": "Dex locates a black-box drive with Axiom Corp serial numbers that suggests the intruder possesses insider knowledge of the memory grid architecture.",
+      "participants": {
+        "Dex": {
+          "importance": {
+            "faction": "positive",
+            "reason": "primary field agent conducting the investigation",
+            "score": 50
+          }
+        },
+        "Sable": {
+          "importance": {
+            "faction": "positive",
+            "reason": "providing tactical support and intelligence analysis",
+            "score": 50
+          }
+        }
+      },
+      "importance": {
+        "score": 50,
+        "reason": "This scene establishes that the target has been compromised by an inside threat, escalating stakes for the remainder of the heist.",
+        "faction": "positive"
+      },
+      "learned": {
+        "ascension_core_stolen": "confirmed",
+        "third_party_already_inside": "confirmed",
+        "third_party_has_valid_clearance_or_backdoor": "confirmed",
+        "vault_external_tampering": "confirmed"
       }
     },
-    "Trading Deal": {
-      "name": "Trading Deal",
-      "formal_name": "N/A",
-      "aliases": ["Jenkins' Deal", "Supply Run"],
-      "importance": {"score": 20, "reason": "Minor supply acquisition", "faction": "neutral"},
-      "start": {"date": "2028-06-10", "time": "Night"},
-      "end": {"date": "2028-06-10", "time": "Night"},
-      "summary": "Trader Jenkins made a deal.",
-      "outcome": "Supplies acquired.",
+    "Discovery of the Axiom Black-box Drive": {
+      "formal_name": "Discovery of the Axiom Black-box Drive",
+      "aliases": [],
+      "start": {
+        "date": "Unknown",
+        "time": "Early morning",
+        "specific_time": "02:37",
+        "_message_node": "40_1_1"
+      },
+      "end": {
+        "date": "Unknown",
+        "time": "Early morning",
+        "specific_time": "02:37",
+        "_message_node": "42_1_1"
+      },
+      "summary": "Dex discovers a black-box drive containing the third party's transmission logs. The device bears Axiom Corp serial numbers and utilizes encryption protocols identical to the Nereza memory grid's original architecture, revealing that the intruder possesses insider knowledge of the system's backdoors.",
+      "catalyst": "Dex locates the device while investigating the eastern grid's secondary relay bus behind the plinth.",
+      "outcome": "The discovery confirms the thief has access to proprietary Axiom technology and knowledge of the grid's deepest security protocols, escalating the threat level for both Dex and Sable.",
       "participants": {
-        "Trader Jenkins": {"importance": {"score": 95, "reason": "Trader", "faction": "neutral"}},
-        "John Jones": {"importance": {"score": 60, "reason": "Buyer", "faction": "positive"}}
-      }
+        "Dex": {
+          "importance": {
+            "score": 90,
+            "reason": "Dex is the primary actor who discovers the evidence, forcing immediate tactical recalibration for both characters.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "importance": {
+            "score": 70,
+            "reason": "Sable's position as crew leader requires her to manage the new threat profile and plan extraction under increased pressure.",
+            "faction": "positive"
+          }
+        }
+      },
+      "importance": {
+        "score": 75,
+        "reason": "This event establishes that the third party is not just a random intruder but someone with intimate knowledge of Nereza's core infrastructure, raising the stakes for both characters.",
+        "faction": "positive"
+      },
+      "learned": {
+        "third_party_has_valid_clearance_or_backdoor": "reinforced",
+        "third_party_infiltration_imminent": "reinforced"
+      },
+      "title": "The Black-box Drive Discovery"
     }
   },
-  "events": {
-    "The First Incursion": {
-      "name": "The First Incursion",
-      "formal_name": "The First Incursion",
-      "aliases": ["First Attack", "The Emergence"],
-      "importance": {"score": 100, "reason": "Started the war", "faction": "negative"},
-      "start": {"_message_node": "1_1_1", "date": "2027-09-05", "time": "Noon"},
-      "end": {"_message_node": "11_1_3", "date": "2027-09-08", "time": "Late evening"},
-      "summary": "First major attack that started the war.",
-      "catalyst": "Subterraneans emerged.",
-      "outcome": "Massive casualties, Rebel Force formed.",
+  "chapters": {},
+  "beats": {
+    "Infiltration of the Vault": {
+      "formal_name": "Infiltration of the Vault",
+      "aliases": [
+        "The Empty Core Discovery"
+      ],
+      "start": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:35",
+        "_message_node": "34_1_1"
+      },
+      "end": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:38",
+        "_message_node": "42_1_1"
+      },
+      "summary": "Dex infiltrates the Vault's eastern quadrant only to discover the Ascension Core has already been stolen. A third party has bypassed the security systems without triggering alarms, leaving residual thermal signatures and tool marks suggesting a professional breach within the last hour. The theft occurred without forced entry, indicating the infiltrator possesses either high-level clearance or sophisticated knowledge of Vault backdoors.",
+      "catalyst": "Dex's infiltration of the eastern quadrant of the Vault.",
+      "outcome": "The Ascension Core is confirmed stolen, revealing the mission's primary objective has already been compromised by a third party.",
       "participants": {
-        "John Jones": {"importance": {"score": 95, "reason": "Leader", "faction": "positive"}},
-        "Subterranean Leader": {"importance": {"score": 90, "reason": "Commander", "faction": "negative"}},
-        "Captain Rodriguez": {"importance": {"score": 40, "reason": "Veteran", "faction": "positive"}}
-      }
+        "Dex": {
+          "importance": {
+            "score": 85,
+            "reason": "Primary agent in the scene whose discovery of the empty core changes the entire mission dynamic.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "importance": {
+            "score": 60,
+            "reason": "Mission commander who must react to the sudden loss of their target and coordinate extraction.",
+            "faction": "positive"
+          }
+        }
+      },
+      "importance": {
+        "score": 80,
+        "reason": "This event fundamentally changes the heist's premise\u2014the objective has been stolen before they arrived\u2014forcing immediate tactical reassessment.",
+        "faction": "negative"
+      },
+      "learned": {
+        "third_party_infiltration_imminent": "debunked",
+        "vault_external_tampering": "confirmed",
+        "ascension_core_stolen": "established"
+      },
+      "title": "Infiltration of the Vault"
     },
-    "Killing of Harry Kristi": {
-      "name": "Killing of Harry Kristi",
-      "formal_name": "Death of Harry Kristi",
-      "aliases": ["Harry's Death", "The Killing"],
-      "importance": {"score": 70, "reason": "Key character death with lasting consequences", "faction": "negative"},
-      "start": {"date": "2027-09-08", "time": "Evening"},
-      "end": {"date": "2027-09-08", "time": "Evening"},
-      "summary": "Harry killed by John in self-defense.",
-      "catalyst": "Harry attacked John.",
-      "outcome": "Harry killed.",
+    "The Ascension Core Theft": {
+      "formal_name": "The Ascension Core Theft",
+      "aliases": [],
+      "start": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:20",
+        "_message_node": "34_1_1"
+      },
+      "end": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:25",
+        "_message_node": "42_1_1"
+      },
+      "summary": "During the infiltration attempt, Dex discovers that a third party has already stolen the Ascension Core. The theft occurred approximately thirty minutes prior, leaving the containment chamber empty and showing signs of recent access without triggering alarms, suggesting the intruder used advanced credentials or a previously unknown vulnerability.",
+      "catalyst": "Dex's infiltration of the Vault's eastern quadrant.",
+      "outcome": "The crew discovers the target objective has already been taken by unknown third parties; they now face a compromised mission with residual thermal signatures indicating the intruders are nearby.",
       "participants": {
-        "John Jones": {"importance": {"score": 100, "reason": "Killer", "faction": "neutral"}},
-        "Harry Kristi": {"importance": {"score": 80, "reason": "Victim", "faction": "neutral"}},
-        "Angelina Kristi": {"importance": {"score": 70, "reason": "Witness", "faction": "negative"}}
-      }
+        "Dex": {
+          "importance": {
+            "score": 80,
+            "reason": "Dex is the primary operative inside the Vault discovering the theft firsthand, which fundamentally changes his mission parameters and survival strategy.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "importance": {
+            "score": 70,
+            "reason": "Sable provides real-time intelligence from the relay, forcing both characters to adapt to the revelation that they are not the only players in the Vault.",
+            "faction": "positive"
+          }
+        }
+      },
+      "importance": {
+        "score": 90,
+        "reason": "This event removes the primary objective from the crew's control and introduces a third party variable, shifting the story from a heist to a survival and extraction conflict.",
+        "faction": "negative"
+      },
+      "learned": {
+        "third_party_infiltration_imminent": "debunked",
+        "vault_external_tampering": "confirmed",
+        "Ascension Core status: stolen": "established",
+        "third_party_has_valid_clearance_or_backdoor": "established"
+      },
+      "title": "The Ascension Core Theft"
     },
-    "The Jones Offensive": {
-      "name": "The Jones Offensive",
-      "formal_name": "The Jones Offensive Campaign",
-      "aliases": ["The Offensive", "Jones Campaign"],
-      "importance": {"score": 95, "reason": "Major victory", "faction": "positive"},
-      "start": {"date": "2028-05-15", "time": "Morning"},
-      "end": {"date": "2028-05-20", "time": "Evening"},
-      "summary": "Major Rebel offensive.",
-      "catalyst": "John decided to attack.",
-      "outcome": "Strategic victory, Paul injured.",
-      "participants": {
-        "John Jones": {"importance": {"score": 100, "reason": "Lead", "faction": "positive"}},
-        "Paul Jones": {"importance": {"score": 90, "reason": "Deputy", "faction": "positive"}},
-        "Marcus Chen": {"importance": {"score": 85, "reason": "Strategist", "faction": "positive"}},
-        "Amy Harrison": {"importance": {"score": 80, "reason": "Tech", "faction": "positive"}},
-        "Elena Vasquez": {"importance": {"score": 70, "reason": "Operative", "faction": "positive"}},
-        "Subterranean Commander Vex": {"importance": {"score": 75, "reason": "Enemy commander", "faction": "negative"}}
-      }
+    "_history": {
+      "path": "The Ascension Core Theft.end.specific_time",
+      "old": "02:25",
+      "new": "02:25",
+      "formal_name": "",
+      "aliases": [],
+      "start": {
+        "date": "",
+        "time": "",
+        "specific_time": ""
+      },
+      "end": {
+        "date": "",
+        "time": "",
+        "specific_time": "",
+        "_message_node": "42_1_1"
+      },
+      "summary": "",
+      "catalyst": "",
+      "outcome": "",
+      "participants": {},
+      "importance": {
+        "score": 0,
+        "reason": "",
+        "faction": ""
+      },
+      "learned": {},
+      "title": ""
     },
-    "The Second Incursion": {
-      "name": "The Second Incursion",
-      "formal_name": "The Second Incursion",
-      "aliases": ["Second Attack", "The Counter-Invasion"],
-      "importance": {"score": 90, "reason": "Escalated the war", "faction": "negative"},
-      "start": {"date": "2028-08-18", "time": "Morning"},
-      "end": {"date": "2028-09-11", "time": "Dawn"},
-      "summary": "Extended conflict.",
-      "catalyst": "Subterraneans gathered forces.",
-      "outcome": "Extended war.",
+    "Discovery of the Third Party's Backdoor Device": {
+      "formal_name": "Discovery of the Third Party's Backdoor Device",
+      "aliases": [],
+      "start": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:37",
+        "_message_node": "40_1_1"
+      },
+      "end": {
+        "date": "Unknown",
+        "time": "Night",
+        "specific_time": "02:42",
+        "_message_node": "42_1_1"
+      },
+      "summary": "Dex discovers that the third party responsible for the Ascension Core theft utilized a sophisticated black-box device built with proprietary Axiom Corp components that mirrors the layered handshake architecture of the original memory grid. The device's existence confirms the intruder possessed either internal clearance or intimate knowledge of the grid's deepest security backdoors.",
+      "catalyst": "Dex examining the empty Ascension Core plinth and finding residual thermal trails and Axiom lubricant residue.",
+      "outcome": "Dex realizes the security breach was executed by someone with insider access, forcing a re-evaluation of the threat and confirming the heist was not a simple external infiltration.",
       "participants": {
-        "Subterranean Leader": {"importance": {"score": 85, "reason": "Commander", "faction": "negative"}},
-        "Subterranean Commander Vex": {"importance": {"score": 80, "reason": "Ground commander", "faction": "negative"}},
-        "John Jones": {"importance": {"score": 95, "reason": "Commander", "faction": "positive"}}
-      }
-    },
-    "Council Meeting": {
-      "name": "Council Meeting",
-      "formal_name": "N/A",
-      "aliases": ["Elder Council", "War Council"],
-      "importance": {"score": 50, "reason": "Strategic planning among Subterranean leadership", "faction": "negative"},
-      "start": {"date": "2027-10-01", "time": "Night"},
-      "end": {"date": "2027-10-01", "time": "Night"},
-      "summary": "Elders discussed strategy.",
-      "outcome": "Plan approved.",
-      "participants": {
-        "The Council": {"importance": {"score": 100, "reason": "Governing body", "faction": "positive"}},
-        "Subterranean Leader": {"importance": {"score": 80, "reason": "Leader", "faction": "positive"}}
-      }
-    },
-    "Training Exercise": {
-      "name": "Training Exercise",
-      "formal_name": "N/A",
-      "aliases": ["New Recruit Training", "Boot Camp"],
-      "importance": {"score": 20, "reason": "Routine training for new recruits", "faction": "positive"},
-      "start": {"date": "2028-06-05", "time": "Morning"},
-      "end": {"date": "2028-06-05", "time": "Noon"},
-      "summary": "New recruits trained.",
-      "outcome": "Basic training.",
-      "participants": {
-        "Captain Rodriguez": {"importance": {"score": 75, "reason": "Instructor", "faction": "positive"}},
-        "Rachel Torres": {"importance": {"score": 95, "reason": "Recruit", "faction": "positive"}}
-      }
-    },
-    "Medical Emergency": {
-      "name": "Medical Emergency",
-      "formal_name": "N/A",
-      "aliases": ["Paul's Treatment", "Battlefield Medicine"],
-      "importance": {"score": 45, "reason": "Medical treatment following major battle", "faction": "positive"},
-      "start": {"date": "2028-05-19", "time": "Morning"},
-      "end": {"date": "2028-05-19", "time": "Morning"},
-      "summary": "Emergency medical treatment.",
-      "outcome": "Paul stabilized.",
-      "participants": {
-        "Sarah Mitchell": {"importance": {"score": 70, "reason": "Doctor", "faction": "positive"}},
-        "Paul Jones": {"importance": {"score": 95, "reason": "Patient", "faction": "positive"}}
-      }
-    },
-    "Supply Run": {
-      "name": "Supply Run",
-      "formal_name": "N/A",
-      "aliases": ["Jenkins' Supply", "Night Delivery"],
-      "importance": {"score": 15, "reason": "Routine supply acquisition", "faction": "neutral"},
-      "start": {"date": "2028-06-12", "time": "Night"},
-      "end": {"date": "2028-06-12", "time": "Night"},
-      "summary": "Trader delivered supplies.",
-      "outcome": "Supplies got.",
-      "participants": {
-        "Trader Jenkins": {"importance": {"score": 95, "reason": "Trader", "faction": "neutral"}}
-      }
+        "Dex": {
+          "importance": {
+            "score": 80,
+            "reason": "As the systems engineer, his discovery of the device reveals the depth of the intruder's knowledge and raises the stakes of the mission.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "importance": {
+            "score": 60,
+            "reason": "As crew leader, she must react to the complication introduced by the discovery, which changes her tactical calculus.",
+            "faction": "positive"
+          }
+        }
+      },
+      "importance": {
+        "score": 75,
+        "reason": "This discovery shifts the heist from a simple theft recovery into a confrontation with a sophisticated, potentially internal threat that understands the grid as well as the protagonist.",
+        "faction": "negative"
+      },
+      "learned": {
+        "third_party_has_valid_clearance_or_backdoor": "confirmed"
+      },
+      "title": "Discovery of the Third Party's Backdoor Device"
     }
-  },
-  "chapters": {}
+  }
 }

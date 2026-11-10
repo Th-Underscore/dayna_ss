@@ -1,103 +1,48 @@
 {
   "entries": {
-    "Rebel Force": {
-      "aliases": ["Rebels", "The Resistance", "RF"],
-      "description": ["The main resistance against the Subterraneans."],
-      "purpose": "Defend humanity from Subterraneans.",
-      "culture": "Military hierarchy. Values teamwork and loyalty.",
-      "resources": ["Advanced weaponry", "Underground strongholds", "Technology"],
-      "events": ["The First Incursion", "The Jones Offensive"],
-      "relationships": {
-        "Subterraneans": [
-          {"relation": "enemy", "status": "Enemy", "importance": {"score": 100, "reason": "Main enemy", "faction": "negative"}}
-        ]
+    "security patrol": {
+      "aliases": [
+        "Security Force",
+        "Enforcers",
+        "Corporate Security"
+      ],
+      "description": [
+        "The Nereza security forces responsible for maintaining order within the arcology and guarding critical corporate assets."
+      ],
+      "purpose": "To protect corporate property and personnel while enforcing lockdown protocols in response to unauthorized activity.",
+      "culture": "Disciplined, alert, and hierarchical; trained to respond rapidly to security breaches with lethal force if necessary.",
+      "resources": [
+        "Mag-locked security equipment",
+        "Pulse rifles",
+        "Thermal scanners",
+        "Internal security network",
+        "Sub-floor lift systems",
+        "Corporate-issued comms equipment"
+      ],
+      "events": [
+        "The internal audit cleared thirty minutes early, raising operational alertness.",
+        "The security patrol conducting active sweeps of the fire escape and maintenance areas."
+      ],
+      "importance": {
+        "score": 45,
+        "reason": "The security patrol represents the immediate tactical obstacle to the heist, though they are a recurring force rather than a primary faction driving the overarching plot.",
+        "faction": "negative"
       },
-      "characters": {
-        "John Jones": {"position": ["Commander"], "events": ["The Jones Offensive"], "importance": {"score": 100}},
-        "Paul Jones": {"position": ["General"], "events": ["The Jones Offensive"], "importance": {"score": 90}},
-        "Amy Harrison": {"position": ["Chief Scientist"], "events": [], "importance": {"score": 85}},
-        "Marcus Chen": {"position": ["Strategist"], "events": ["The Jones Offensive"], "importance": {"score": 80}},
-        "Elena Vasquez": {"position": ["Operative"], "events": [], "importance": {"score": 75}},
-        "Angelina Kristi": {"position": ["Soldier"], "events": [], "importance": {"score": 45}},
-        "Sarah Mitchell": {"position": ["Medic"], "events": [], "importance": {"score": 40}},
-        "David Park": {"position": ["Comm Specialist"], "events": [], "importance": {"score": 30}},
-        "Captain Rodriguez": {"position": ["Captain"], "events": ["The First Incursion"], "importance": {"score": 35}},
-        "Rachel Torres": {"position": ["Recruit"], "events": [], "importance": {"score": 15}}
-      }
-    },
-    "Subterraneans": {
-      "aliases": ["STs"],
-      "description": ["Enemy forces from underground."],
-      "purpose": "Reclaim Earth from humanity.",
-      "culture": "Warrior culture.",
-      "resources": ["Underground networks", "Advanced weaponry", "Numbers"],
-      "events": ["The First Incursion", "The Second Incursion"],
       "relationships": {
-        "Rebel Force": [
-          {"position": "Enemy", "relation": "enemy", "status": "Enemy", "importance": {"score": 100, "reason": "Main enemy", "faction": "negative"}}
-        ]
+        "The Grifters": {
+          "position": "Enemy",
+          "relation": "Antagonistic",
+          "status": "Hostile",
+          "importance": {
+            "score": 70,
+            "reason": "The security force's primary objective is to intercept and eliminate the thieves, creating constant tension and danger for the crew.",
+            "faction": "negative"
+          }
+        }
       },
-      "characters": {
-        "Subterranean Leader": {"position": ["Leader"], "events": ["The First Incursion"], "importance": {"score": 100}},
-        "Subterranean Commander Vex": {"position": ["Commander"], "events": ["The Second Incursion"], "importance": {"score": 85}},
-        "Subterranean Scout Alpha": {"position": ["Scout"], "events": [], "importance": {"score": 10}}
-      }
-    },
-    "Subterranean Intelligence Unit": {
-      "aliases": ["SIU"],
-      "description": ["Intelligence gathering division."],
-      "purpose": "Gather intelligence on Rebel movements.",
-      "culture": "Secrecy and efficiency.",
-      "resources": ["Scouting equipment", "Encrypted communication lines"],
-      "events": [],
-      "relationships": {},
-      "characters": {}
-    },
-    "Medical Corps": {
-      "aliases": ["Medics"],
-      "description": ["Rebel Force medical division."],
-      "purpose": "Treat the wounded.",
-      "culture": "Care and urgency.",
-      "resources": ["Medical supplies", "Field hospitals", "Surgical equipment"],
-      "events": [],
-      "relationships": {},
-      "characters": {
-        "Sarah Mitchell": {"position": ["Medic"], "events": [], "importance": {"score": 40}}
-      }
-    },
-    "Merchant Guild": {
-      "aliases": ["Traders"],
-      "description": ["Civilian traders who supply both sides."],
-      "purpose": "Profit from war.",
-      "culture": "Neutrality and profit.",
-      "resources": ["Trade routes", "Supply caches", "Currency"],
-      "events": [],
-      "relationships": {},
-      "characters": {
-        "Trader Jenkins": {"position": ["Trader"], "events": [], "importance": {"score": 20}}
-      }
-    },
-    "The Council": {
-      "aliases": ["Elders"],
-      "description": ["Ancient Subterranean governing body."],
-      "purpose": "Rule the Subterraneans.",
-      "culture": "Ancient tradition and hierarchy.",
-      "resources": ["Authority", "Ancient knowledge"],
-      "events": [],
-      "relationships": {},
-      "characters": {}
-    },
-    "Recruit Training Division": {
-      "aliases": ["Training"],
-      "description": ["Training new Rebel recruits."],
-      "purpose": "Train soldiers.",
-      "culture": "Discipline and growth.",
-      "resources": ["Training grounds", "Training equipment", "Instructors"],
-      "events": [],
-      "relationships": {},
-      "characters": {
-        "Captain Rodriguez": {"position": ["Instructor"], "events": [], "importance": {"score": 35}},
-        "Rachel Torres": {"position": ["Recruit"], "events": [], "importance": {"score": 15}}
+      "characters": {},
+      "knows": {
+        "Ascension Core heist": "knows"
       }
     }
   }

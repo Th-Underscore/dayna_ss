@@ -1,0 +1,1072 @@
+{
+  "entries": {
+    "the duct": {
+      "kind": "location",
+      "description": [
+        "A maintenance passage running above the vault, constructed of corrugated metal that carries the constant vibration of Nereza's mechanical systems."
+      ],
+      "traits": [
+        "narrow",
+        "metallic",
+        "corroded",
+        "vibrating"
+      ],
+      "attributes": [
+        "structural integrity compromised by corrosion",
+        "conducts sound easily",
+        "vibrates with building systems"
+      ],
+      "properties": {
+        "material": "corrugated metal",
+        "condition": "corroded",
+        "acoustic properties": "conductive of vibration and sound"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "occupies",
+          "status": "active",
+          "importance": {
+            "score": 45,
+            "reason": "Provides essential cover for Dex during the infiltration",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "relation": "above",
+          "status": "active",
+          "importance": {
+            "score": 30,
+            "reason": "Serves as Dex's position relative to Sable's location below",
+            "faction": "neutral"
+          }
+        }
+      },
+      "events": [
+        "Dex wedges himself into the duct to avoid detection while monitoring the vault security."
+      ],
+      "importance": {
+        "score": 40,
+        "reason": "Crucial environmental element for stealth and positioning during the heist",
+        "faction": "positive"
+      }
+    },
+    "the console": {
+      "kind": "item",
+      "description": [
+        "A communication device that receives Sable's cut-in, pinging during a critical moment of the job."
+      ],
+      "traits": [
+        "encrypted comms-link capability",
+        "low-volume alert function"
+      ],
+      "attributes": [
+        "Signal Range: limited to internal network",
+        "Encryption Level: standard corporate grade"
+      ],
+      "properties": {
+        "status": "active",
+        "connection_type": "comm-bead wired comms"
+      },
+      "relationships": {
+        "Sable": {
+          "relation": "user",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "essential for coordinated action between infiltrators",
+            "faction": "positive"
+          }
+        },
+        "Dex": {
+          "relation": "recipient",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "primary alert system for the engineer",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Sable's cut-in transmission"
+      ],
+      "importance": {
+        "score": 30,
+        "reason": "serves as the primary trigger for the scene's immediate tension",
+        "faction": "neutral"
+      }
+    },
+    "fire escape": {
+      "kind": "location",
+      "description": [
+        "A maintenance structure positioned three tiers below the duct junction, connecting various service levels of the Nereza arcology."
+      ],
+      "traits": [
+        "exposed",
+        "metallic",
+        "industrial"
+      ],
+      "attributes": [
+        "material - corroded steel",
+        "structure - multi-tiered grating and supports",
+        "visibility - partially concealed by shadows and machinery"
+      ],
+      "properties": {
+        "connection": "links maintenance tiers",
+        "condition": "weathered by condensation and neglect",
+        "accessibility": "restricted access route for security patrols"
+      },
+      "relationships": {
+        "Sable": {
+          "relation": "occupying",
+          "status": "active",
+          "importance": {
+            "score": 30,
+            "reason": "temporary position for cover during extraction attempt",
+            "faction": "neutral"
+          }
+        },
+        "security patrols": {
+          "relation": "traversing",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "tactical choke point for security movement",
+            "faction": "negative"
+          }
+        },
+        "thermal scanner": {
+          "relation": "sweeping",
+          "status": "active",
+          "importance": {
+            "score": 35,
+            "reason": "immediate environmental threat to the operative",
+            "faction": "negative"
+          }
+        }
+      },
+      "events": [
+        "Sable uses the escape as cover during the audit lockdown",
+        "Security patrols navigate the fire escape while sweeping the floor"
+      ],
+      "importance": {
+        "score": 40,
+        "reason": "critical tactical location for the current extraction scene",
+        "faction": "neutral"
+      }
+    },
+    "the ventilation system": {
+      "kind": "location",
+      "description": [
+        "A network of corroded metal passages spanning the arcology's interior, designed for climate control and airflow."
+      ],
+      "traits": [
+        "narrow",
+        "metallic",
+        "noisy"
+      ],
+      "attributes": [
+        "structural integrity - degraded",
+        "acoustics - amplifies movement",
+        "visibility - obstructed"
+      ],
+      "properties": {
+        "material": "corroded metal",
+        "sound_profile": "vibrating ducts",
+        "layout": "network of passages"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "using",
+          "status": "active",
+          "importance": {
+            "score": 45,
+            "reason": "Provides momentary cover and positioning for Dex during the infiltration, but is a temporary tactical tool rather than a long-term structural element.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Dex uses the ventilation system to position himself above the vault."
+      ],
+      "importance": {
+        "score": 30,
+        "reason": "A transient environmental element providing tactical opportunity in this specific moment; not a major plot-driving location or resource.",
+        "faction": "neutral"
+      }
+    },
+    "the building's lifeblood": {
+      "kind": "resource",
+      "description": [
+        "The building's lifeblood \u2014 the complex network of power, air, water, and data flowing through the structure's systems."
+      ],
+      "traits": [
+        "ubiquitous",
+        "essential",
+        "constant"
+      ],
+      "attributes": [
+        "uninterrupted flow",
+        "audible hum",
+        "tactile vibration"
+      ],
+      "properties": {
+        "state": "active",
+        "audibility": "constant low hum",
+        "tactile_feedback": "vibrating through metal surfaces"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "interacts_with",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "Provides sensory feedback to Dex during infiltration but is not a primary plot driver.",
+            "faction": "neutral"
+          }
+        }
+      },
+      "events": [
+        "serves as sensory feedback during infiltration"
+      ],
+      "importance": {
+        "score": 30,
+        "reason": "Environmental detail that provides atmosphere and sensory grounding rather than driving narrative change.",
+        "faction": "neutral"
+      }
+    },
+    "the grating": {
+      "kind": "location",
+      "description": [
+        "A section of the ductwork ceiling in the fire escape area, consisting of corroded metal with structural support beams."
+      ],
+      "traits": [
+        "corroded",
+        "structural"
+      ],
+      "attributes": [
+        "Supports Dex's weight"
+      ],
+      "properties": {
+        "material": "corroded metal",
+        "feature": "structural support beam"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "contains",
+          "status": "active",
+          "importance": {
+            "score": 30,
+            "reason": "Temporary cover for Dex during the infiltration attempt",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Dex uses the duct grating to maintain position while observing the security patrol"
+      ],
+      "importance": {
+        "score": 30,
+        "reason": "Minor environmental detail providing temporary cover",
+        "faction": "neutral"
+      }
+    },
+    "the security patrol": {
+      "kind": "creature",
+      "description": [
+        "Armed security personnel conducting sweeps in the Nereza lower levels, equipped with pulse-rifles and thermal scanners."
+      ],
+      "traits": [
+        "synchronized movement",
+        "high alert status"
+      ],
+      "attributes": [
+        "equipment: pulse-rifles, thermal scanners, mag-locks"
+      ],
+      "properties": {
+        "scan_cycle": "3 seconds",
+        "weaponry": "pulse-rifles"
+      },
+      "relationships": {
+        "Sable": {
+          "relation": "hunting",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "Immediate threat to mission success, but their presence is a routine environmental hazard rather than a plot-defining faction.",
+            "faction": "negative"
+          }
+        },
+        "Dex": {
+          "relation": "hunting",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "",
+            "faction": "negative"
+          }
+        }
+      },
+      "events": [
+        "patrols lower concourse near fire escape during security breach"
+      ],
+      "importance": {
+        "score": 35,
+        "reason": "A situational obstacle in this scene with limited long-term impact on the heist's overall outcome.",
+        "faction": "negative"
+      }
+    },
+    "the eastern grid loggers": {
+      "kind": "item",
+      "description": [
+        "Secondary security devices embedded throughout the Vault's eastern grid, designed to detect physical tampering through continuous sub-network pings."
+      ],
+      "traits": [
+        "active monitoring",
+        "tamper-sensitive"
+      ],
+      "attributes": [
+        "Ping frequency - 30 seconds",
+        "Detection method - sub-network connectivity checks"
+      ],
+      "properties": {
+        "status": "active",
+        "location": "Vault eastern grid"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "monitors",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "The loggers present a tactical obstacle that forces Dex to maintain constant vigilance during the infiltration.",
+            "faction": "negative"
+          }
+        },
+        "Sable": {
+          "relation": "bypasses",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "Sable's ability to temporarily disable the relay is critical for maintaining the blind spot needed for the operation.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Sable uses a blank polymer card to jam the sub-network relay's manual override."
+      ],
+      "importance": {
+        "score": 35,
+        "reason": "The loggers represent a temporary environmental hazard that raises tension but is not a long-term structural element of the story.",
+        "faction": "negative"
+      }
+    },
+    "the sub-network relay": {
+      "kind": "item",
+      "description": [
+        "A secondary network node positioned outside the Vault's eastern quadrant, containing a mechanical override panel."
+      ],
+      "traits": [
+        "mechanical override panel",
+        "secondary grid pings active"
+      ],
+      "attributes": [
+        "status: vulnerable to manual bypass",
+        "function: secondary grid monitoring"
+      ],
+      "properties": {
+        "location": "outside Vault eastern quadrant",
+        "status": "compromised via manual override"
+      },
+      "relationships": {
+        "Sable": {
+          "relation": "compromised by",
+          "status": "active",
+          "importance": {
+            "score": 45,
+            "reason": "Sable's temporary disabling of the relay provides a moment of cover but leaves the crew exposed to potential detection if security checks the relay's status.",
+            "faction": "positive"
+          }
+        },
+        "Dex": {
+          "relation": "monitors via",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "Dex needs the relay functional to maintain his tactical awareness of the eastern grid loggers.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Sable jams the manual override with a blank polymer card to disable circuit."
+      ],
+      "importance": {
+        "score": 45,
+        "reason": "The relay's functionality directly impacts the crew's stealth window, but it's a tactical obstacle rather than a story-defining element.",
+        "faction": "neutral"
+      },
+      "_history": [
+        {
+          "path": "properties.status",
+          "old": "compromised via manual override",
+          "new": "compromised via manual override"
+        },
+        {
+          "path": "relationships.Sable.status",
+          "old": "active",
+          "new": "active"
+        },
+        {
+          "path": "relationships.Dex.status",
+          "old": "active",
+          "new": "active"
+        }
+      ]
+    },
+    "the access door": {
+      "kind": "item",
+      "description": [
+        "A reinforced polymer barrier protecting the vault's eastern quadrant, equipped with biometric authentication systems."
+      ],
+      "traits": [
+        "biometric-locked",
+        "surveillance-monitored"
+      ],
+      "attributes": [
+        "security level - Tier-4 authorization required",
+        "scan time - 3 seconds"
+      ],
+      "properties": {
+        "material": "reinforced polymer",
+        "scanner_type": "biometric",
+        "alarm_delay": "3 seconds"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "attempts to bypass",
+          "status": "bypassed",
+          "importance": {
+            "score": 65,
+            "reason": "The door represents the immediate tactical obstacle between the crew and their objective.",
+            "faction": "negative"
+          }
+        }
+      },
+      "events": [
+        "Dex bypasses biometric scanner using Zeiss-7 with Sable's forged credentials"
+      ],
+      "importance": {
+        "score": 45,
+        "reason": "A critical scene obstacle that raises tension but is a single-use environmental hurdle.",
+        "faction": "negative"
+      },
+      "_history": [
+        {
+          "path": "relationships.Dex.status",
+          "old": "active",
+          "new": "bypassed"
+        },
+        {
+          "path": "events.0",
+          "old": "Dex attempts biometric entry using Sable's forged clearance",
+          "new": ""
+        }
+      ]
+    },
+    "Zeiss-7 scanner": {
+      "kind": "item",
+      "description": [
+        "A specialized biometric and thermal scanner used by Dex for infiltration."
+      ],
+      "traits": [
+        "tactical scanner"
+      ],
+      "attributes": [
+        "biometric authentication bypass",
+        "thermal imaging overlays",
+        "real-time targeting data"
+      ],
+      "properties": {
+        "model": "Zeiss-7",
+        "status": "active"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "wields",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "The scanner is a critical tool for Dex's infiltration, but its importance is limited to the immediate scene's tactical needs.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "used to bypass the Vault's eastern entrance biometric scanner",
+        "revealed laser tripwire grid during infiltration",
+        "attempted to handshake with relay - failed due to unknown black-box module interference",
+        "used to locate thermal signatures and residual heat from third-party activity in the main chamber",
+        "triggered haptic feedback alerts upon approaching emergency exit with residual heat signatures"
+      ],
+      "importance": {
+        "score": 30,
+        "reason": "A tool used for the immediate infiltration, but not structurally essential for the overall plot arc.",
+        "faction": "positive"
+      },
+      "_history": [
+        {
+          "path": "events.2",
+          "old": null,
+          "new": ""
+        },
+        {
+          "path": "events.3",
+          "old": null,
+          "new": ""
+        },
+        {
+          "path": "events.4",
+          "old": null,
+          "new": ""
+        }
+      ]
+    },
+    "laser tripwires": {
+      "kind": "item",
+      "description": [
+        "A series of security lasers positioned throughout the eastern grid that pulse at 435 nanometers."
+      ],
+      "traits": [
+        "invisible to the naked eye",
+        "requires Zeiss-7 thermal imaging to detect"
+      ],
+      "attributes": [
+        "pulse frequency - 880 milliseconds per cycle",
+        "wavelength - 435 nanometers"
+      ],
+      "properties": {
+        "detection_method": "thermal imaging required",
+        "alarm_trigger": "immediate security alert"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "evades",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "presents immediate tactical obstacle to Dex's movement within the Vault",
+            "faction": "negative"
+          }
+        }
+      },
+      "events": [
+        "Dex identifies their position using thermal imaging during infiltration"
+      ],
+      "importance": {
+        "score": 35,
+        "reason": "serves as a minor environmental obstacle requiring careful navigation",
+        "faction": "negative"
+      },
+      "_history": [
+        {
+          "path": "attributes.0",
+          "old": "pulse frequency - 880 milliseconds",
+          "new": "pulse frequency - 880 milliseconds per cycle"
+        }
+      ]
+    },
+    "server stacks": {
+      "kind": "item",
+      "description": [
+        "A series of towering, black monoliths arranged in parallel rows throughout the eastern grid of the Vault, housing the core memory systems.",
+        "The stacks produce a low-frequency vibration that rattles teeth and carries the sharp bite of liquid nitrogen coolant.",
+        "Serves as a concealment point for infiltration, with server surfaces displaying micro-scratches from recent unauthorized access attempts.",
+        "Their position between the eastern entry point and the central containment chamber allows for quick concealment during the brief seconds between security patrol sweeps."
+      ],
+      "traits": [
+        "structural component of the eastern grid",
+        "audible vibration from internal cooling systems"
+      ],
+      "attributes": [
+        "surface texture: brushed metal",
+        "internal components: quantum processors, coolant systems, memory storage arrays"
+      ],
+      "properties": {
+        "material": "reinforced polymer housing",
+        "orientation": "parallel rows",
+        "environmental factors": "audible hum, coolant-scented air"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "uses as cover",
+          "status": "active",
+          "importance": {
+            "score": 30,
+            "reason": "Provides momentary concealment for Dex during the infiltration.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Dex uses server racks for cover while observing security patrol patterns."
+      ],
+      "importance": {
+        "score": 40,
+        "reason": "A functional setpiece element that provides cover but holds no long-term narrative weight.",
+        "faction": "neutral"
+      },
+      "_history": [
+        {
+          "path": "description.0",
+          "old": "",
+          "new": ""
+        },
+        {
+          "path": "description.1",
+          "old": null,
+          "new": ""
+        },
+        {
+          "path": "description.2",
+          "old": null,
+          "new": ""
+        },
+        {
+          "path": "description.0",
+          "old": "",
+          "new": ""
+        },
+        {
+          "path": "description.1",
+          "old": "",
+          "new": ""
+        },
+        {
+          "path": "description.2",
+          "old": "",
+          "new": ""
+        },
+        {
+          "path": "description.3",
+          "old": null,
+          "new": ""
+        }
+      ]
+    },
+    "coolant pipe": {
+      "kind": "location",
+      "description": [
+        "A reinforced coolant line running behind the central terminal, retrofitted during the 2082 hardening."
+      ],
+      "traits": [
+        "structural support"
+      ],
+      "attributes": [
+        "liquid nitrogen circulation"
+      ],
+      "properties": {
+        "location": "behind the central terminal",
+        "purpose": "quantum processor cooling"
+      },
+      "relationships": {},
+      "events": [],
+      "importance": {
+        "score": 25,
+        "reason": "Minor environmental detail used for tactical positioning",
+        "faction": "neutral"
+      }
+    },
+    "the Ascension Core": {
+      "kind": "item",
+      "description": [
+        "A prototype quantum-processing unit containing encrypted memory banks from Nereza's founding, housed in a reinforced containment chamber."
+      ],
+      "traits": [
+        "quantum-encrypted",
+        "high-security containment"
+      ],
+      "attributes": [
+        "Processing Power - Exascale quantum operations",
+        "Security - Biometric and proximity-based lockout systems",
+        "Containment - Reinforced polymer casing with internal sensor array"
+      ],
+      "properties": {
+        "location": "Unknown location - stolen by unknown third party",
+        "status": "Stolen by third party using unknown backdoors or valid credentials; residual thermal signatures indicate recent extraction"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "target_of_extraction",
+          "status": "active",
+          "importance": {
+            "score": 85,
+            "reason": "The heist's primary objective; its extraction defines the scene's tension and stakes.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "relation": "extraction_target",
+          "status": "active",
+          "importance": {
+            "score": 85,
+            "reason": "The core represents the heist's objective and driving force.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Stolen by unknown third party using either valid clearance codes or previously unknown backdoor",
+        "Target of ongoing heist by Sable and Dex"
+      ],
+      "importance": {
+        "score": 75,
+        "reason": "The Ascension Core remains the primary objective, but its theft by an unknown third party introduces a new complication that raises immediate stakes while potentially reducing long-term salience as a controllable asset.",
+        "faction": "positive"
+      },
+      "_history": [
+        {
+          "path": "properties.status",
+          "old": "Under active theft attempt by third party",
+          "new": "Stolen by third party"
+        },
+        {
+          "path": "properties.location",
+          "old": "Vault's eastern quadrant, main containment chamber",
+          "new": "Unknown location - stolen"
+        },
+        {
+          "path": "events.0",
+          "old": "Infiltrated by unknown third party within the last hour",
+          "new": ""
+        },
+        {
+          "path": "events.1",
+          "old": "Target of ongoing heist by Sable and Dex",
+          "new": "Target of ongoing heist by Sable and Dex"
+        },
+        {
+          "path": "importance.score",
+          "old": 85,
+          "new": 75
+        },
+        {
+          "path": "importance.reason",
+          "old": "The Ascension Core is the central object of the heist, making it the primary driver of conflict and tension in the scene.",
+          "new": ""
+        },
+        {
+          "path": "properties.location",
+          "old": "Unknown location - stolen",
+          "new": "Unknown location - stolen by unknown third party"
+        },
+        {
+          "path": "properties.status",
+          "old": "Stolen by third party",
+          "new": ""
+        }
+      ]
+    },
+    "the junction box": {
+      "kind": "item",
+      "description": [
+        "A reinforced electrical junction point within the eastern grid, containing exposed circuitry and a manual override mechanism."
+      ],
+      "traits": [
+        "exposed circuitry",
+        "manual override functionality"
+      ],
+      "attributes": [
+        "electrical interface capacity - 12-pin configuration",
+        "override response time - 0.3 seconds",
+        "structural integrity - corroded but intact"
+      ],
+      "properties": {
+        "status": "compromised",
+        "connection_type": "hardwired",
+        "last_maintenance": "2082"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "manipulates",
+          "status": "used",
+          "importance": {
+            "score": 45,
+            "reason": "Dex uses the junction box as a tactical tool to short the relay and prevent third-party detection.",
+            "faction": "positive"
+          }
+        },
+        "Sable": {
+          "relation": "monitors",
+          "status": "used",
+          "importance": {
+            "score": 45,
+            "reason": "Sable observes the relay's behavior and the effects of third-party infiltration through the junction box interface.",
+            "faction": "positive"
+          }
+        },
+        "the sub-network relay": {
+          "relation": "connects_to",
+          "status": "compromised",
+          "importance": {
+            "score": 60,
+            "reason": "The junction box serves as the physical interface point between Dex and the relay Sable is maintaining.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Dex shorts the relay before the third party can purge logs; the Zeiss-7's manual override circuit creates a temporary bypass that prevents the third party from wiping authentication traces."
+      ],
+      "importance": {
+        "score": 35,
+        "reason": "A critical environmental object in this scene, but not a long-term plot driver.",
+        "faction": "positive"
+      },
+      "_history": [
+        {
+          "path": "properties.status",
+          "old": "active",
+          "new": "compromised"
+        },
+        {
+          "path": "relationships.Dex.status",
+          "old": "active",
+          "new": "used"
+        },
+        {
+          "path": "relationships.Sable.status",
+          "old": "active",
+          "new": "used"
+        },
+        {
+          "path": "relationships.the sub-network relay.status",
+          "old": "active",
+          "new": "compromised"
+        },
+        {
+          "path": "events.0",
+          "old": "Dex shorts the relay before the third party can purge logs.",
+          "new": ""
+        }
+      ]
+    },
+    "emergency exit": {
+      "kind": "location",
+      "description": [
+        "A reinforced emergency egress point leading out of the Vault's eastern quadrant."
+      ],
+      "traits": [
+        "reinforced exit",
+        "currently compromised"
+      ],
+      "attributes": [
+        "height clearance - standard personnel height",
+        "structural integrity - compromised by third party"
+      ],
+      "properties": {
+        "security_status": "breached",
+        "last_activity_detected": "minutes ago"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "traversed by",
+          "status": "active",
+          "importance": {
+            "score": 30,
+            "reason": "Secondary exit used during infiltration; currently the point of pursuit.",
+            "faction": "neutral"
+          }
+        }
+      },
+      "events": [
+        "used as escape route by third party"
+      ],
+      "importance": {
+        "score": 35,
+        "reason": "Temporary tactical point of interest for immediate pursuit, not a structurally critical element.",
+        "faction": "neutral"
+      },
+      "_history": [
+        {
+          "path": "properties.last_activity_detected",
+          "old": "minutes ago",
+          "new": "minutes ago"
+        },
+        {
+          "path": "relationships.Dex.status",
+          "old": "active",
+          "new": "active"
+        }
+      ]
+    },
+    "black-box drive": {
+      "kind": "item",
+      "description": [
+        "A black-box drive containing encrypted packet streams, bearing Axiom Corp markings and featuring layered handshake architecture identical to the original Nereza memory grid's backdoors, discovered in the eastern grid by Dex while investigating the empty Ascension Core containment chamber."
+      ],
+      "traits": [
+        "encrypted",
+        "residual thermal signature",
+        "corporate-issue hardware"
+      ],
+      "attributes": [
+        "contains active transmission loop",
+        "emits traceable beacon signal",
+        "uses proprietary Axiom Corp encryption"
+      ],
+      "properties": {
+        "serial_number": "Axiom-88-Alpha",
+        "current_state": "active transmission",
+        "last_known_user": "Unknown Third Party"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "analyzed by",
+          "status": "active",
+          "importance": {
+            "score": 60,
+            "reason": "The drive provides immediate tactical intelligence and raises stakes by revealing the third party's intimate knowledge of Nereza's grid architecture.",
+            "faction": "positive"
+          }
+        }
+      },
+      "events": [
+        "Dex discovers the drive containing a transmission loop using the same layered handshake architecture as Nereza's original memory grid."
+      ],
+      "importance": {
+        "score": 70,
+        "reason": "This object contains the core evidence linking the theft to someone with intimate knowledge of the grid's architecture, shifting the investigation from random thieves to internal threats.",
+        "faction": "positive"
+      },
+      "_history": [
+        {
+          "path": "description.0",
+          "old": "A black-box drive containing encrypted packet streams, bearing Axiom Corp markings and featuring layered handshake architecture identical to the original Nereza memory grid's backdoors.",
+          "new": ""
+        },
+        {
+          "path": "traits.0",
+          "old": "encrypted",
+          "new": "encrypted"
+        },
+        {
+          "path": "traits.1",
+          "old": "residual thermal signature",
+          "new": "residual thermal signature"
+        },
+        {
+          "path": "traits.2",
+          "old": "corporate-issue hardware",
+          "new": "corporate-issue hardware"
+        },
+        {
+          "path": "attributes.0",
+          "old": "contains active transmission loop",
+          "new": "contains active transmission loop"
+        },
+        {
+          "path": "attributes.1",
+          "old": "emits traceable beacon signal",
+          "new": "emits traceable beacon signal"
+        },
+        {
+          "path": "attributes.2",
+          "old": "uses proprietary Axiom Corp encryption",
+          "new": "uses proprietary Axiom Corp encryption"
+        },
+        {
+          "path": "properties.serial_number",
+          "old": "Axiom-88-Alpha",
+          "new": "Axiom-88-Alpha"
+        },
+        {
+          "path": "properties.current_state",
+          "old": "active transmission",
+          "new": "active transmission"
+        },
+        {
+          "path": "properties.last_known_user",
+          "old": "Unknown Third Party",
+          "new": "Unknown Third Party"
+        },
+        {
+          "path": "relationships.Dex.relation",
+          "old": "analyzed by",
+          "new": "analyzed by"
+        },
+        {
+          "path": "relationships.Dex.status",
+          "old": "active",
+          "new": "active"
+        },
+        {
+          "path": "relationships.Dex.importance.score",
+          "old": 60,
+          "new": 60
+        },
+        {
+          "path": "relationships.Dex.importance.reason",
+          "old": "",
+          "new": ""
+        },
+        {
+          "path": "relationships.Dex.importance.faction",
+          "old": "positive",
+          "new": "positive"
+        },
+        {
+          "path": "events.0",
+          "old": "",
+          "new": ""
+        }
+      ]
+    },
+    "maintenance hatch": {
+      "kind": "location",
+      "description": [
+        "The emergency exit hatch located directly beneath the Ascension Core's former position, concealing a hidden access shaft."
+      ],
+      "traits": [
+        "concealed entry point",
+        "mechanical vulnerability"
+      ],
+      "attributes": [
+        "access to sub-level systems"
+      ],
+      "properties": {
+        "function": "emergency exit / infiltration route",
+        "status": "compromised by third party"
+      },
+      "relationships": {
+        "Dex": {
+          "relation": "uses",
+          "status": "active",
+          "importance": {
+            "score": 45,
+            "reason": "Immediate tactical escape route for the protagonist during the heist",
+            "faction": "positive"
+          }
+        },
+        "third party": {
+          "relation": "compromised",
+          "status": "active",
+          "importance": {
+            "score": 40,
+            "reason": "Indicates the intruder knows the building's hidden infrastructure",
+            "faction": "negative"
+          }
+        }
+      },
+      "events": [
+        "used by third party to access Vault interior"
+      ],
+      "importance": {
+        "score": 40,
+        "reason": "Temporary setpiece location used for infiltration and extraction",
+        "faction": "neutral"
+      }
+    }
+  }
+}

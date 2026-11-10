@@ -1,0 +1,158 @@
+{
+  "entries": {
+    "internal_audit_cleared_early": {
+      "fact": "The internal audit was completed thirty minutes ahead of schedule.",
+      "type": "revelation",
+      "status": "active",
+      "source": "stated",
+      "importance": {
+        "score": 65,
+        "reason": "This new complication compresses the operational window, forcing immediate tactical improvisation from the crew.",
+        "faction": "negative"
+      }
+    },
+    "sub_floor_lift_locked_out": {
+      "fact": "the sub-floor lift is locked out",
+      "type": "fact",
+      "status": "active",
+      "source": "stated",
+      "importance": {
+        "score": 65,
+        "reason": "This environmental obstacle forces an immediate change in extraction plans and heightens tension during the heist.",
+        "faction": "negative"
+      }
+    },
+    "security_patrol_alert_status": {
+      "fact": "Security patrol has been placed on high alert due to the early internal audit.",
+      "type": "fact",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 65,
+        "reason": "The heightened security posture directly threatens the crew's six-minute window and requires immediate tactical adaptation.",
+        "faction": "negative"
+      }
+    },
+    "eastern_grid_loggers_active": {
+      "fact": "the eastern grid loggers are still active",
+      "type": "fact",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 35,
+        "reason": "The active loggers present immediate tactical risk to Dex's position, requiring precise timing to avoid detection during the vault infiltration.",
+        "faction": "negative"
+      }
+    },
+    "vault_eastern_surveillance_blind_spot": {
+      "fact": "The Vault's eastern quadrant contains a surveillance blind spot.",
+      "type": "secret",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 65,
+        "reason": "This blind spot provides a tactical advantage for infiltration but its temporary nature requires immediate exploitation before security response protocols adapt.",
+        "faction": "positive"
+      }
+    },
+    "vault_biometric_scanner_location": {
+      "fact": "The vault's biometric scanner is located on the reinforced polymer wall near the eastern quadrant's service panel.",
+      "type": "fact",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 75,
+        "reason": "The scanner's location is critical to the heist's immediate success and represents a significant obstacle requiring precise coordination between Dex and Sable.",
+        "faction": "positive"
+      }
+    },
+    "third_party_infiltration_imminent": {
+      "fact": "A third party has infiltrated the Vault's eastern security systems within the last hour.",
+      "type": "revelation",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 65,
+        "reason": "This revelation introduces a new complication that forces immediate tactical adaptation from both Dex and Sable, as the job is no longer a two-person operation and they must now contend with unknown variables within the high-security zone.",
+        "faction": "negative"
+      }
+    },
+    "vault_external_tampering": {
+      "fact": "The Vault's security seal shows recent signs of tampering within the last hour.",
+      "type": "revelation",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 65,
+        "reason": "This introduces a third party as a complication to the heist, forcing both Dex and Sable to adapt their plans on the fly.",
+        "faction": "negative"
+      }
+    },
+    "ascension_core_stolen": {
+      "fact": "The Ascension Core is gone from its containment chamber.",
+      "type": "revelation",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 90,
+        "reason": "The core's theft by a third party fundamentally alters the heist's objective and introduces a new, unknown threat, forcing immediate tactical adaptation.",
+        "faction": "negative"
+      }
+    },
+    "third_party_already_inside": {
+      "fact": "A third party already bypassed the Vault's security before the crew's arrival.",
+      "type": "revelation",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 85,
+        "reason": "This information fundamentally shifts the mission's parameters, introducing an unknown variable with superior capabilities and altering both the crew's tactical options and long-term stakes.",
+        "faction": "negative"
+      }
+    },
+    "third_party_has_valid_clearance_or_backdoor": {
+      "fact": "The third party possesses either valid clearance codes or knowledge of a security backdoor.",
+      "type": "revelation",
+      "status": "active",
+      "source": "inferred",
+      "importance": {
+        "score": 85,
+        "reason": "This knowledge reveals the heist has been compromised by someone with insider-level access, forcing immediate tactical adaptation and shifting the threat from external security to an active unknown intruder with equal access.",
+        "faction": "negative"
+      }
+    },
+    "axiom_corp_insider_involvement": {
+      "fact": "The thief used Axiom Corp-grade lubricant and a black-box device with proprietary alloy components containing Dex's own specifications.",
+      "type": "revelation",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 75,
+        "reason": "The discovery that the thief used corporate-specific materials and equipment containing Dex's personal engineering specifications introduces an immediate personal connection to the crime and raises the stakes from an unknown intruder to a potential personal betrayal or corporate conspiracy.",
+        "faction": "negative"
+      }
+    },
+    "third_party_routing_to_the_ring": {
+      "fact": "The third party has rerouted data traffic through a transmission loop leading directly up to the ring level.",
+      "type": "revelation",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 60,
+        "reason": "Reveals the intruder's escape route and current location, forcing immediate tactical repositioning while confirming the third party possesses advanced knowledge of Nereza's infrastructure.",
+        "faction": "negative"
+      }
+    },
+    "black_box_drive_contains_legacy_architecture_backdoor": {
+      "fact": "The black-box drive contains a back-door access tool built into the original Nereza memory grid architecture.",
+      "type": "revelation",
+      "status": "active",
+      "source": "witnessed",
+      "importance": {
+        "score": 85,
+        "reason": "This revelation confirms the intruder has intimate knowledge of the grid's original design, raising the stakes from random theft to targeted infiltration by someone with inside knowledge of the system's deepest vulnerabilities.",
+        "faction": "negative"
+      }
+    }
+  }
+}
