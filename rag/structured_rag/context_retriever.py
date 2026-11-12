@@ -224,8 +224,14 @@ class StoryContextRetriever:
             return None
 
     def _create_character_patterns(self) -> dict[str, re.Pattern]:
-        """Create regex patterns for character name recognition."""
+        """Create regex patterns for character name recognition.
+
+        Each pattern matches the full name, first name, and last name as
+        whole words (\\b boundaries). Aliases are included so that
+        _extract_character_names can resolve them to the canonical key.
+        """
         patterns = {}
+        self._char_alias_map: dict[str, str] = {}
 
         # Get characters from graph (primary source)
         char_names = []
@@ -238,27 +244,41 @@ class StoryContextRetriever:
             characters_data = self._get_entries(self.characters, "Character")
             char_names = list(characters_data.keys())
 
+        # Collect aliases from JSON entries
+        char_entries = self._get_entries(self.characters, "Character")
+
         for char_name in char_names:
-            # Create pattern that matches full name and possible first/last name only
             names = char_name.split()
-            safe_full = re.escape(char_name)
-            safe_first = re.escape(names[0])
-            safe_last = re.escape(names[-1])
-            pattern = f"({safe_full}"
+            alternatives = [re.escape(char_name)]
             if len(names) > 1:
-                pattern += f"|{safe_first}|{safe_last}"
-            pattern += ")"
+                alternatives.append(re.escape(names[0]))
+                alternatives.append(re.escape(names[-1]))
+            # Add aliases as alternatives and build alias→canonical map
+            entry = char_entries.get(char_name, {})
+            for alias in self._get_field_value(entry, "Character", "aliases", []):
+                if alias and alias != char_name:
+                    alternatives.append(re.escape(alias))
+                    self._char_alias_map[alias.lower()] = char_name
+            pattern = "(" + "|".join(f"\\b{a}\\b" for a in alternatives) + ")"
             patterns[char_name] = re.compile(pattern, flags=re.IGNORECASE)
         return patterns
 
     def _extract_character_names(self, text: str) -> list[str]:
-        """Extract character names from text using regex patterns."""
-        found_names = []
+        """Extract character names from text using regex patterns.
+
+        Returns canonical names only; alias matches are resolved via
+        _char_alias_map.
+        """
+        found_names = set()
         for char_name, pattern in self.character_patterns.items():
             if pattern.search(text):
-                if char_name not in found_names:
-                    found_names.append(char_name)
-        return found_names
+                found_names.add(char_name)
+        # Resolve any alias matches to canonical names (word-boundary safe)
+        alias_map = getattr(self, '_char_alias_map', {})
+        for alias, canonical in alias_map.items():
+            if re.search(r'\b' + re.escape(alias) + r'\b', text, flags=re.IGNORECASE):
+                found_names.add(canonical)
+        return list(found_names)
 
     def _get_relevant_groups(self, characters: list[str], context: str) -> dict[str, dict]:
         """Get groups relevant to the current context and characters."""
@@ -281,35 +301,55 @@ class StoryContextRetriever:
         for group_name, group_data in groups_data.items():
             if group_name in relevant_groups:
                 continue
+            escaped_name = re.escape(group_name)
             group_aliases = self._get_field_value(group_data, "Group", "aliases", [])
-            if re.search(group_name, context, flags=re.IGNORECASE) or any(
-                alias for alias in group_aliases if re.search(alias, context, flags=re.IGNORECASE)
+            if re.search(escaped_name, context, flags=re.IGNORECASE) or any(
+                re.search(re.escape(alias), context, flags=re.IGNORECASE)
+                for alias in group_aliases
             ):
                 relevant_groups[group_name] = group_data
 
         return {"entries": relevant_groups}
 
     def _create_element_patterns(self) -> dict[str, re.Pattern]:
-        """Create regex patterns for element name recognition."""
+        """Create regex patterns for element name recognition.
+
+        Same design as _create_character_patterns: whole-word matching
+        with \\b boundaries, plus alias support.
+        """
         patterns = {}
+        self._elem_alias_map: dict[str, str] = {}
         elements_data = self.elements.get("entries", self.elements)
         for element_name in elements_data:
             names = element_name.split()
-            pattern = f"({re.escape(element_name)}"
+            alternatives = [re.escape(element_name)]
             if len(names) > 1:
-                pattern += f"|{re.escape(names[0])}|{re.escape(names[-1])}"
-            pattern += ")"
+                alternatives.append(re.escape(names[0]))
+                alternatives.append(re.escape(names[-1]))
+            entry = elements_data[element_name] if isinstance(elements_data[element_name], dict) else {}
+            for alias in self._get_field_value(entry, "Element", "aliases", []):
+                if alias and alias != element_name:
+                    alternatives.append(re.escape(alias))
+                    self._elem_alias_map[alias.lower()] = element_name
+            pattern = "(" + "|".join(f"\\b{a}\\b" for a in alternatives) + ")"
             patterns[element_name] = re.compile(pattern, flags=re.IGNORECASE)
         return patterns
 
     def _extract_element_names(self, text: str) -> list[str]:
-        """Extract element names from text using regex patterns."""
-        found_names = []
+        """Extract element names from text using regex patterns.
+
+        Returns canonical names only; alias matches are resolved via
+        _elem_alias_map.
+        """
+        found_names = set()
         for element_name, pattern in self.element_patterns.items():
             if pattern.search(text):
-                if element_name not in found_names:
-                    found_names.append(element_name)
-        return found_names
+                found_names.add(element_name)
+        alias_map = getattr(self, '_elem_alias_map', {})
+        for alias, canonical in alias_map.items():
+            if re.search(r'\b' + re.escape(alias) + r'\b', text, flags=re.IGNORECASE):
+                found_names.add(canonical)
+        return list(found_names)
 
     def _get_relevant_elements(self, characters: list[str], context: str) -> dict[str, dict]:
         """Get elements relevant to the current context and characters."""
@@ -318,7 +358,7 @@ class StoryContextRetriever:
 
         for element_name, element_data in elements_data.items():
             # Check if element is mentioned in context
-            if re.search(element_name, context, flags=re.IGNORECASE):
+            if re.search(re.escape(element_name), context, flags=re.IGNORECASE):
                 relevant_elements[element_name] = element_data
                 continue
 
