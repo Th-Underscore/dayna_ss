@@ -172,7 +172,11 @@
             "bidirectional": false
           }
         },
-        "knows_placeholder": "Knowledge item slugs this character is aware of, mapped to their epistemic stance. Stance values: 'knows' (neutral awareness of a confirmed fact), 'believes' (accepts as true — rumors, lies, unconfirmed claims), 'suspects' (has it in mind with doubt), 'spreading' (actively sharing/repeating it), 'sees_through' (knows it is false). Only include items where the character has a SPECIFIC stance that differs from the default. A character who simply knows a confirmed fact does NOT need an entry here — that's the default."
+        "knows_placeholder": "Knowledge item slugs this character is aware of, mapped to their epistemic stance. Stance values: 'knows' (neutral awareness of a confirmed fact), 'believes' (accepts as true — rumors, lies, unconfirmed claims), 'suspects' (has it in mind with doubt), 'spreading' (actively sharing/repeating it), 'sees_through' (knows it is false). Only include items where the character has a SPECIFIC stance that differs from the default. A character who simply knows a confirmed fact does NOT need an entry here — that's the default.",
+        "relevance": [
+          "text",
+          "semantic"
+        ]
       },
       "triggers": {
         "on_new_scene": [
@@ -322,7 +326,12 @@
             "bidirectional": false
           }
         },
-        "knows_placeholder": "Knowledge item slugs this group is aware of, mapped to their epistemic stance. Same stance vocabulary as characters: 'knows', 'believes', 'suspects', 'spreading', 'sees_through'. Only include items where the group has a specific stance that differs from the default."
+        "knows_placeholder": "Knowledge item slugs this group is aware of, mapped to their epistemic stance. Same stance vocabulary as characters: 'knows', 'believes', 'suspects', 'spreading', 'sees_through'. Only include items where the group has a specific stance that differs from the default.",
+        "relevance": [
+          "text",
+          "topology",
+          "relationship"
+        ]
       },
       "triggers": {
         "on_new_scene": [
@@ -873,7 +882,14 @@
         "past_placeholder": "Example_Past_Event_Before_Story_Start",
         "scenes_placeholder": "Example_Story_Scene",
         "events_placeholder": "Example_Major_Story_Event",
-        "chapters_placeholder": "Example_Chapter"
+        "chapters_placeholder": "Example_Chapter",
+        "relevance": [
+          "text",
+          {
+            "signal": "structural",
+            "field": "scenes"
+          }
+        ]
       },
       "triggers": {}
     },
@@ -999,7 +1015,11 @@
             "target_type": "event",
             "bidirectional": false
           }
-        }
+        },
+        "relevance": [
+          "text",
+          "relationship"
+        ]
       },
       "triggers": {
         "on_new_scene": [
@@ -1160,5 +1180,11 @@
     "general_info": "World-level writing style and background — not entities.",
     "arcs": "High-level narrative arcs — not entities.",
     "knowledge": "Epistemic state: what each character knows, suspects, or is keeping secret. One shared subject; per-character views are derived at prompt-build time."
-  }
+  },
+  "retrieval_order": [
+    "Character",
+    "Group",
+    "Element",
+    "Events"
+  ]
 }

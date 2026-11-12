@@ -261,11 +261,11 @@ class ContextEngineMixin:
         # FALLBACK for runs whose template yields nothing (previously BOTH rendered,
         # duplicating the full synopsis + premise meta twice per prompt).
         has_archived_scenes = bool(
-            (getattr(retrieval_context, "events_full", None) or retrieval_context.events).get("scenes", {})
+            (getattr(retrieval_context, "events_full", None) or retrieval_context.subjects.get("events", {})).get("scenes", {})
         )
         gi_fallback_render = ""
         if has_archived_scenes:
-            gi_fallback_render = self._format_general_info_static(retrieval_context.general_info)
+            gi_fallback_render = self._format_general_info_static(retrieval_context.subjects.get("general_info", {}))
         else:
             custom_state["context"] += f"\n\n{current_context}"
 
@@ -282,11 +282,11 @@ class ContextEngineMixin:
 
         print(f"{_BOLD}Retrieving context for {formatted_last_x} messages:", retrieval_context, _RESET)
         print(f"{_HILITE}RetrievalContext attributes:")
-        print(f"  general_info: {retrieval_context.general_info}")
+        print(f"  general_info: {retrieval_context.subjects.get('general_info', {})}")
         print(f"  current_scene: {retrieval_context.current_scene}")
-        print(f"  characters: {retrieval_context.characters}")
-        print(f"  groups: {retrieval_context.groups}")
-        print(f"  events: {retrieval_context.events}")
+        print(f"  characters: {retrieval_context.subjects.get('characters', {})}")
+        print(f"  groups: {retrieval_context.subjects.get('groups', {})}")
+        print(f"  events: {retrieval_context.subjects.get('events', {})}")
         print(f"  messages: {retrieval_context.messages}")
         print(f"  messages_metadata: {retrieval_context.messages_metadata}{_RESET}")
 
@@ -311,7 +311,7 @@ class ContextEngineMixin:
         # Canon Synopsis P0: roster-demotion set, computed once per turn and
         # injected for every subject render (templates consult _stale_entities).
         _demote_window = int(self.config.get("demote_after_scenes", 6) or 6)
-        _events_for_stale = getattr(retrieval_context, "events_full", None) or retrieval_context.events
+        _events_for_stale = getattr(retrieval_context, "events_full", None) or retrieval_context.subjects.get("events", {})
         stale_entities = compute_stale_entities(
             (_events_for_stale or {}).get("scenes", {}),
             (retrieval_context.current_scene or {}).get("now", {}).get("who", {}),
@@ -325,7 +325,9 @@ class ContextEngineMixin:
             no_prompt = item.get("no_prompt", False)
 
             attr_name = item.get("attr", data_type)
-            data = getattr(retrieval_context, attr_name, None) if attr_name else None
+            data = retrieval_context.subjects.get(attr_name) if attr_name else None
+            if data is None and attr_name:
+                data = getattr(retrieval_context, attr_name, None)
 
             if no_prompt:
                 formatted = FormattedData(data if data is not None else {}, data_type, parser=None, context_cache=self.last).st
@@ -347,7 +349,7 @@ class ContextEngineMixin:
                     "metadata": messages_metadata,
                 }
                 scene_names = getattr(
-                    getattr(retrieval_context, "events_full", None) or retrieval_context.events,
+                    getattr(retrieval_context, "events_full", None) or retrieval_context.subjects.get("events", {}),
                     "get", lambda k, d={}: d.get(k, "Unknown"),
                 )("scenes", {})
                 scene_name_map = {name.lower(): name for name in scene_names.keys()} if isinstance(scene_names, dict) else {}
@@ -625,7 +627,8 @@ class ContextEngineMixin:
             schema_classes = {k: v for k, v in schema_classes.items() if v}
 
             _rag_anchor_count = int(self.config.get("rag_anchor_count", 5) or 5)
-            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes, summarizer=self, rag_anchor_count=_rag_anchor_count)
+            _retrieval_order = schema_parser.schema.get("retrieval_order", [])
+            context_retriever = StoryContextRetriever(history_path, schema_classes=schema_classes, summarizer=self, rag_anchor_count=_rag_anchor_count, retrieval_order=_retrieval_order)
 
             # Retrieve last x messages (scene-bounded: the recent-dialogue window
             # is capped to the current scene so it cannot reach across a scene

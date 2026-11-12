@@ -194,12 +194,12 @@ class InstructionGeneratorMixin:
                     else:
                         try:
                             if model is not None:
-                                 print(f"{_SUCCESS}State set{_RESET}")
-                                 _do_instr = kwargs.get("do_instr", self.config.get("do_instr", False))
-                                 _reply_params = self.config.get("custom_reply_parameters", {})
-                                 print(f"{_HILITE}Reply config: do_instr={_do_instr}, reply_params={_reply_params if _reply_params else 'none'}{_RESET}")
+                                print(f"{_SUCCESS}State set{_RESET}")
+                                _do_instr = kwargs.get("do_instr", self.config.get("do_instr", False))
+                                _reply_params = self.config.get("custom_reply_parameters", {})
+                                print(f"{_HILITE}Reply config: do_instr={_do_instr}, reply_params={_reply_params if _reply_params else 'none'}{_RESET}")
 
-                                 if _do_instr:
+                                if _do_instr:
                                     # Ground the plan in the LIVE scene (authoritative,
                                     # current) rather than the stable top of the subject
                                     # block — the source of the prop-recycling loop.
@@ -341,7 +341,7 @@ class InstructionGeneratorMixin:
                     instr_prompt = ""
                     writing_style = ""
                     try:
-                        gi = (retrieval_ctx.general_info or {}) if retrieval_ctx else {}
+                        gi = (retrieval_ctx.subjects.get("general_info", {}) or {}) if retrieval_ctx else {}
                         writing_style = (gi.get("writing_style") or "").strip()
                     except Exception:
                         writing_style = ""

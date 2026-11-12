@@ -281,7 +281,7 @@ def _search_info(summarizer: "Summarizer", query: str) -> dict:
     results = []
 
     for attr_name in ["characters", "groups", "elements", "events", "general_info", "current_scene", "arcs"]:
-        data = getattr(retrieval_context, attr_name, None)
+        data = retrieval_context.subjects.get(attr_name) or getattr(retrieval_context, attr_name, None)
         if data is not None:
             results.extend(_search_in_dict(data, attr_name, query_lower))
 

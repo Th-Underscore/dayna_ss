@@ -74,14 +74,9 @@ from .decay_config import DecayConfig
 class RetrievalContext:
     context: str = ""
     current_scene: dict[str, dict] = field(default_factory=dict)
-    characters: dict[str, dict] = field(default_factory=dict)
-    groups: dict[str, dict] = field(default_factory=dict)
-    elements: dict[str, dict] = field(default_factory=dict)
-    events: dict[str, dict] = field(default_factory=dict)
-    chapters: dict[str, dict] = field(default_factory=dict)
-    arcs: dict[str, dict] = field(default_factory=dict)
-    general_info: dict[str, dict] = field(default_factory=dict)
-    knowledge: dict[str, dict] = field(default_factory=dict)
+    # Subject data keyed by subject name ("characters", "groups", etc.)
+    # New subjects need a schema entry, not a dataclass field.
+    subjects: dict[str, dict] = field(default_factory=dict)
     messages: list[str] = field(default_factory=list)
     messages_metadata: list[dict] = field(default_factory=list)
     character_status: dict[str, dict] = field(default_factory=dict)
@@ -102,7 +97,7 @@ _RAG_ANCHOR_COUNT_DEFAULT = 5
 
 
 class StoryContextRetriever:
-    def __init__(self, history_path: PathLike, schema_classes: dict | None = None, summarizer: 'Summarizer' | None = None, rag_anchor_count: int | None = None):
+    def __init__(self, history_path: PathLike, schema_classes: dict | None = None, summarizer: 'Summarizer' | None = None, rag_anchor_count: int | None = None, retrieval_order: list[str] | None = None):
         """Initialize the context retriever with a history path.
 
         Args:
@@ -147,6 +142,7 @@ class StoryContextRetriever:
 
         # Initialize entity graph for relationship tracking
         self.schema_classes = schema_classes or {}
+        self.retrieval_order = retrieval_order or []
         self.schema_wrapper = SchemaWrapper(self.schema_classes) if self.schema_classes else None
         try:
             self.entity_graph = EntityGraph(history_path, persist=True, schema_classes=schema_classes)
@@ -168,10 +164,12 @@ class StoryContextRetriever:
             print("[RAG] RAG similarity search disabled; entity graph traversal still active.")
             self.chunker = self._build_docstore_shim(history_path)
 
-        # Create character name patterns for recognition (from both JSON and graph)
-        self.character_patterns = self._create_character_patterns()
-        # Create element name patterns for recognition
-        self.element_patterns = self._create_element_patterns()
+        # Create entity name patterns for recognition (from both JSON and graph)
+        self._entity_patterns: dict[str, dict[str, re.Pattern]] = {}
+        self._entity_alias_maps: dict[str, dict[str, str]] = {}
+        for _st in self.retrieval_order:
+            _st_cap = _st.capitalize()
+            self._entity_patterns[_st_cap], self._entity_alias_maps[_st_cap] = self._create_entity_patterns(_st_cap)
 
         self.rag_anchor_count = int(rag_anchor_count) if rag_anchor_count else _RAG_ANCHOR_COUNT_DEFAULT
 
@@ -223,133 +221,69 @@ class StoryContextRetriever:
             print(f"[RAG] docstore shim failed: {e}")
             return None
 
-    def _create_character_patterns(self) -> dict[str, re.Pattern]:
-        """Create regex patterns for character name recognition.
+    # Subjects whose entries are referenced by name in prose and therefore
+    # need compiled name patterns for text extraction. Adding a new subject
+    def _create_entity_patterns(self, subject_type: str) -> tuple[dict[str, re.Pattern], dict[str, str]]:
+        """Create regex name patterns for a subject type (generic).
 
-        Each pattern matches the full name, first name, and last name as
-        whole words (\\b boundaries). Aliases are included so that
-        _extract_character_names can resolve them to the canonical key.
+        Collects names from JSON entries and (if available) entity-graph
+        nodes of the matching type. Builds whole-word patterns (\b
+        boundaries) over the full name, first token, last token, and any
+        declared aliases. Returns (patterns, alias_map) where alias_map
+        maps lowercase alias → canonical name.
         """
-        patterns = {}
-        self._char_alias_map: dict[str, str] = {}
+        patterns: dict[str, re.Pattern] = {}
+        alias_map: dict[str, str] = {}
 
-        # Get characters from graph (primary source)
-        char_names = []
-        if hasattr(self, 'entity_graph') and self.entity_graph:
-            graph_char_nodes = self.entity_graph.get_nodes_by_type("character")
-            char_names = [node.name for node in graph_char_nodes]
+        data = getattr(self, subject_type.lower(), {})
+        entries = self._get_entries(data, subject_type)
 
-        # Fallback to JSON if no graph characters
-        if not char_names:
-            characters_data = self._get_entries(self.characters, "Character")
-            char_names = list(characters_data.keys())
+        # Names: JSON entries first, then any graph-only names
+        names = list(entries.keys())
+        if self.entity_graph:
+            graph_nodes = self.entity_graph.get_nodes_by_type(subject_type.lower())
+            for node in graph_nodes:
+                if node.name not in names:
+                    names.append(node.name)
 
-        # Collect aliases from JSON entries
-        char_entries = self._get_entries(self.characters, "Character")
-
-        for char_name in char_names:
-            names = char_name.split()
-            alternatives = [re.escape(char_name)]
-            if len(names) > 1:
-                alternatives.append(re.escape(names[0]))
-                alternatives.append(re.escape(names[-1]))
-            # Add aliases as alternatives and build alias→canonical map
-            entry = char_entries.get(char_name, {})
-            for alias in self._get_field_value(entry, "Character", "aliases", []):
-                if alias and alias != char_name:
+        for name in names:
+            tokens = name.split()
+            alternatives = [re.escape(name)]
+            if len(tokens) > 1:
+                alternatives.append(re.escape(tokens[0]))
+                alternatives.append(re.escape(tokens[-1]))
+            entry = entries.get(name, {})
+            if not isinstance(entry, dict):
+                entry = {}
+            for alias in self._get_field_value(entry, subject_type, "aliases", []):
+                if alias and alias != name:
                     alternatives.append(re.escape(alias))
-                    self._char_alias_map[alias.lower()] = char_name
-            pattern = "(" + "|".join(f"\\b{a}\\b" for a in alternatives) + ")"
-            patterns[char_name] = re.compile(pattern, flags=re.IGNORECASE)
-        return patterns
+                    alias_map[alias.lower()] = name
+            patterns[name] = re.compile(
+                "(" + "|".join(f"\\b{a}\\b" for a in alternatives) + ")",
+                flags=re.IGNORECASE,
+            )
+        return patterns, alias_map
 
-    def _extract_character_names(self, text: str) -> list[str]:
-        """Extract character names from text using regex patterns.
+    def _extract_entity_names(
+        self,
+        patterns: dict[str, re.Pattern],
+        alias_map: dict[str, str],
+        text: str,
+    ) -> list[str]:
+        """Extract canonical entity names from text (generic).
 
-        Returns canonical names only; alias matches are resolved via
-        _char_alias_map.
+        Uses pre-compiled patterns for primary matching, then resolves
+        any alias hits to their canonical name.
         """
-        found_names = set()
-        for char_name, pattern in self.character_patterns.items():
+        found: set[str] = set()
+        for name, pattern in patterns.items():
             if pattern.search(text):
-                found_names.add(char_name)
-        # Resolve any alias matches to canonical names (word-boundary safe)
-        alias_map = getattr(self, '_char_alias_map', {})
+                found.add(name)
         for alias, canonical in alias_map.items():
             if re.search(r'\b' + re.escape(alias) + r'\b', text, flags=re.IGNORECASE):
-                found_names.add(canonical)
-        return list(found_names)
-
-    def _get_relevant_groups(self, characters: list[str], context: str) -> dict[str, dict]:
-        """Get groups relevant to the current context and characters."""
-        relevant_groups = {}
-        groups_data = self._get_entries(self.groups, "Group")
-
-        if hasattr(self, 'entity_graph') and self.entity_graph:
-            graph_groups = self.entity_graph.get_relevant_groups(characters, context)
-            for group_name in graph_groups:
-                if group_name in groups_data:
-                    relevant_groups[group_name] = groups_data[group_name]
-        else:
-            for group_name, group_data in groups_data.items():
-                for char in characters:
-                    group_chars = self._get_field_value(group_data, "Group", "characters", {})
-                    if char in group_chars:
-                        relevant_groups[group_name] = group_data
-                        break
-
-        for group_name, group_data in groups_data.items():
-            if group_name in relevant_groups:
-                continue
-            escaped_name = re.escape(group_name)
-            group_aliases = self._get_field_value(group_data, "Group", "aliases", [])
-            if re.search(escaped_name, context, flags=re.IGNORECASE) or any(
-                re.search(re.escape(alias), context, flags=re.IGNORECASE)
-                for alias in group_aliases
-            ):
-                relevant_groups[group_name] = group_data
-
-        return {"entries": relevant_groups}
-
-    def _create_element_patterns(self) -> dict[str, re.Pattern]:
-        """Create regex patterns for element name recognition.
-
-        Same design as _create_character_patterns: whole-word matching
-        with \\b boundaries, plus alias support.
-        """
-        patterns = {}
-        self._elem_alias_map: dict[str, str] = {}
-        elements_data = self.elements.get("entries", self.elements)
-        for element_name in elements_data:
-            names = element_name.split()
-            alternatives = [re.escape(element_name)]
-            if len(names) > 1:
-                alternatives.append(re.escape(names[0]))
-                alternatives.append(re.escape(names[-1]))
-            entry = elements_data[element_name] if isinstance(elements_data[element_name], dict) else {}
-            for alias in self._get_field_value(entry, "Element", "aliases", []):
-                if alias and alias != element_name:
-                    alternatives.append(re.escape(alias))
-                    self._elem_alias_map[alias.lower()] = element_name
-            pattern = "(" + "|".join(f"\\b{a}\\b" for a in alternatives) + ")"
-            patterns[element_name] = re.compile(pattern, flags=re.IGNORECASE)
-        return patterns
-
-    def _extract_element_names(self, text: str) -> list[str]:
-        """Extract element names from text using regex patterns.
-
-        Returns canonical names only; alias matches are resolved via
-        _elem_alias_map.
-        """
-        found_names = set()
-        for element_name, pattern in self.element_patterns.items():
-            if pattern.search(text):
-                found_names.add(element_name)
-        alias_map = getattr(self, '_elem_alias_map', {})
-        for alias, canonical in alias_map.items():
-            if re.search(r'\b' + re.escape(alias) + r'\b', text, flags=re.IGNORECASE):
-                found_names.add(canonical)
-        return list(found_names)
+                found.add(canonical)
+        return list(found)
 
     # Cosine threshold for semantic entity matching. High on purpose:
     # this is a fallback for names the regex stage missed, so precision
@@ -394,44 +328,135 @@ class StoryContextRetriever:
         except Exception:
             return []
 
-    def _get_relevant_elements(self, characters: list[str], context: str) -> dict[str, dict]:
-        """Get elements relevant to the current context and characters."""
-        relevant_elements = {}
-        elements_data = self.elements.get("entries", {})
+    # ── Schema-driven relevance dispatcher ──────────────────────────────────
 
-        for element_name, element_data in elements_data.items():
-            # Check if element is mentioned in context
-            if re.search(re.escape(element_name), context, flags=re.IGNORECASE):
-                relevant_elements[element_name] = element_data
+    def _get_relevance_config(self, subject_type: str) -> list:
+        """Read the relevance signal list from the schema for a subject type.
+
+        Each entry is a bare string ("text", "topology", "relationship", "semantic")
+        or a dict with a "signal" key plus params (e.g. {"signal": "structural", "field": "scenes"}).
+        """
+        if not self.schema_wrapper:
+            return []
+        fields = self.schema_wrapper.get_entity_fields(subject_type.capitalize())
+        rel = fields.get("relevance", {}).get("default", [])
+        return rel if isinstance(rel, list) else []
+
+    def _signal_text(self, subject_type: str, context: str, entries: dict) -> set[str]:
+        """Text co-occurrence: entry name/alias appears in the prose."""
+        patterns, alias_map = self._create_entity_patterns(subject_type)
+        found = self._extract_entity_names(patterns, alias_map, context)
+        return set(n for n in found if n in entries)
+
+    def _signal_relationship(self, subject_type: str, anchors: dict[str, set[str]], entries: dict) -> set[str]:
+        """Relationship reference: an entry's own data references an already-relevant entity.
+
+        Reads relationship_format from the schema to discover which fields
+        hold references and what target type they point to.
+        """
+        if not self.schema_wrapper:
+            return set()
+        rel_fields = self.schema_wrapper.get_relationship_fields(subject_type.capitalize())
+        matched: set[str] = set()
+        for field_name, config in rel_fields.items():
+            target_type = config.get("target_type", "").capitalize()
+            anchor_names = anchors.get(target_type, set())
+            if not anchor_names:
                 continue
-
-            # Check if element is referenced via relationship to any character
-            for char in characters:
-                if "relationships" in element_data and isinstance(element_data["relationships"], dict):
-                    if char in element_data["relationships"]:
-                        relevant_elements[element_name] = element_data
-                        break
-
-        return {"entries": relevant_elements}
-
-    def _get_relevant_events(self, characters: list[str], groups: dict[str, dict], context: str) -> dict[str, dict]:
-        """Get events relevant to the current context and groups."""
-        relevant_events = {}
-
-        scenes = self._get_field_value(self.events, "Event", "scenes", {})
-        if scenes:
-            for scene_name, scene in scenes.items():
-                if re.search(scene_name, context, flags=re.IGNORECASE):
-                    relevant_events[scene_name] = scene
+            for entry_name, entry_data in entries.items():
+                if not isinstance(entry_data, dict):
                     continue
+                field_val = entry_data.get(field_name, {})
+                if isinstance(field_val, dict):
+                    if any(a in field_val for a in anchor_names):
+                        matched.add(entry_name)
+        return matched
 
-                for group_data in groups.values():
-                    group_events = self._get_field_value(group_data, "Group", "events", [])
-                    if scene_name in group_events:
-                        relevant_events[scene_name] = scene
-                        break
+    def _signal_topology(self, subject_type: str, anchors: dict[str, set[str]], entries: dict) -> set[str]:
+        """Topological proximity: the entity graph has a qualifying edge
+        from an already-relevant entity to this subject's entry."""
+        if not self.entity_graph:
+            return set()
+        matched: set[str] = set()
+        target_lower = subject_type.lower()
+        for anchor_type, anchor_names in anchors.items():
+            if not anchor_names:
+                continue
+            for name in anchor_names:
+                try:
+                    neighbors = self.entity_graph.get_neighbors(
+                        name, anchor_type.lower(), target_type=target_lower,
+                    )
+                    matched.update(n for n in neighbors if n in entries)
+                except Exception:
+                    pass
+        return matched
 
-        return relevant_events
+    def _signal_structural(self, field: str, context: str, entries: dict) -> set[str]:
+        """Structural membership: entry is a named child of a container field.
+
+        Navigates into entries[field] to get the actual sub-entries, then
+        checks if any sub-entry name appears in the context.
+        """
+        sub = entries.get(field, {})
+        if not isinstance(sub, dict):
+            return set()
+        matched: set[str] = set()
+        for name in sub:
+            if re.search(r'\b' + re.escape(name) + r'\b', context, flags=re.IGNORECASE):
+                matched.add(name)
+        return matched
+
+    def _signal_semantic(self, subject_type: str, context: str, entries: dict, already: set[str]) -> set[str]:
+        """Semantic fallback: embedding similarity for names the other signals missed."""
+        all_names = list(entries.keys())
+        return set(self._semantic_entity_fallback(context, already, all_names))
+
+    def _get_relevant_entries(
+        self,
+        subject_type: str,
+        anchors: dict[str, set[str]],
+        context: str,
+    ) -> dict[str, dict]:
+        """Schema-driven relevance dispatcher.
+
+        Runs each signal from the subject's schema-declared relevance list,
+        unioning the results. Returns {name: entry_data}.
+        """
+        entries = self._get_entries(
+            getattr(self, subject_type.lower(), {}),
+            subject_type,
+        )
+        if not entries:
+            return {}
+
+        config = self._get_relevance_config(subject_type)
+        if not config:
+            return {}
+
+        matched: set[str] = set()
+        for signal in config:
+            if isinstance(signal, str):
+                sig = signal
+                params = {}
+            else:
+                sig = signal.get("signal", "")
+                params = signal
+
+            if sig == "text":
+                matched |= self._signal_text(subject_type, context, entries)
+            elif sig == "relationship":
+                matched |= self._signal_relationship(subject_type, anchors, entries)
+            elif sig == "topology":
+                matched |= self._signal_topology(subject_type, anchors, entries)
+            elif sig == "structural":
+                field = params.get("field", "")
+                if field:
+                    matched |= self._signal_structural(field, context, entries)
+            elif sig == "semantic":
+                matched |= self._signal_semantic(subject_type, context, entries, matched)
+
+        return {n: entries[n] for n in matched if n in entries}
 
     def _select_relevant_events(
         self,
@@ -716,9 +741,9 @@ class StoryContextRetriever:
         # 2) Mentioned-entity anchors: entities actually mentioned in the recent
         #    dialogue, each paired with its freshest recent state (the delta).
         recent_text = "\n".join(last_x_messages or [])
-        mentioned = self._extract_character_names(recent_text)
+        mentioned = self._extract_entity_names(self._entity_patterns.get("Character", {}), self._entity_alias_maps.get("Character", {}), recent_text)
         if not mentioned:
-            mentioned = self._extract_character_names(context)
+            mentioned = self._extract_entity_names(self._entity_patterns.get("Character", {}), self._entity_alias_maps.get("Character", {}), context)
         recent_state = self._recent_state_map(mentioned)
         for name in mentioned:
             if len(anchors) >= n:
@@ -1589,7 +1614,7 @@ class StoryContextRetriever:
 
     def retrieve_context(self, current_context: str, last_x_messages: list[str]) -> RetrievalContext:
         """Main method to retrieve all relevant context based on current state."""
-        result = RetrievalContext(general_info=self.general_info)
+        result = RetrievalContext(subjects={"general_info": self.general_info})
         current_scene = self.get_current_scene()
         result.current_scene = current_scene
 
@@ -1605,7 +1630,7 @@ class StoryContextRetriever:
 
         # Add characters mentioned in context and last messages
         context_to_search = current_context + "\n" + "\n".join(last_x_messages)
-        mentioned_characters = self._extract_character_names(context_to_search)
+        mentioned_characters = self._extract_entity_names(self._entity_patterns.get("Character", {}), self._entity_alias_maps.get("Character", {}), context_to_search)
         for char in mentioned_characters:
             if char not in scene_characters:
                 scene_characters.append(char)
@@ -1630,7 +1655,7 @@ class StoryContextRetriever:
                     scene_elements.append(element["name"])
 
         # Add elements mentioned in context and last messages
-        mentioned_elements = self._extract_element_names(context_to_search)
+        mentioned_elements = self._extract_entity_names(self._entity_patterns.get("Element", {}), self._entity_alias_maps.get("Element", {}), context_to_search)
         for element in mentioned_elements:
             if element not in scene_elements:
                 scene_elements.append(element)
@@ -1655,8 +1680,40 @@ class StoryContextRetriever:
                 elif isinstance(grp, str) and grp and grp not in scene_groups:
                     scene_groups.append(grp)
 
+        # Dedup guards make this a no-op for subjects already fully covered
+        # (Character: text+semantic); it adds new signals for the rest.
+        if self.retrieval_order:
+            _anchor_map: dict[str, set[str]] = {
+                "Character": set(scene_characters),
+                "Element": set(scene_elements),
+                "Group": set(scene_groups),
+            }
+            for _st in self.retrieval_order:
+                _st_cap = _st.capitalize()
+                _rel = self._get_relevant_entries(_st_cap, _anchor_map, context_to_search)
+                if not _rel:
+                    continue
+                _names = set(_rel.keys())
+                if _st_cap == "Character":
+                    for n in _names:
+                        if n not in scene_characters:
+                            scene_characters.append(n)
+                    _anchor_map["Character"] = set(scene_characters)
+                elif _st_cap == "Element":
+                    for n in _names:
+                        if n not in scene_elements:
+                            scene_elements.append(n)
+                    _anchor_map["Element"] = set(scene_elements)
+                elif _st_cap == "Group":
+                    for n in _names:
+                        if n not in scene_groups:
+                            scene_groups.append(n)
+                    _anchor_map["Group"] = set(scene_groups)
+                if _names:
+                    print(f"{_DEBUG}relevance dispatcher: {_st_cap} +{len(_names)} {sorted(_names)}{_RESET}")
+
         try:
-            print(f"{_DEBUG}retrieve_context try block starting. general_info type: {type(result.general_info)}, is empty: {not result.general_info}{_RESET}")
+            print(f"{_DEBUG}retrieve_context try block starting. general_info type: {type(result.subjects.get('general_info', {}))}, is empty: {not result.subjects.get('general_info', {})}{_RESET}")
             print(f"{_DEBUG}scene_characters to look up: {scene_characters}{_RESET}")
             print(f"{_DEBUG}scene_elements to look up: {scene_elements}{_RESET}")
             print(f"{_DEBUG}self.characters keys: {list(self.characters.keys()) if self.characters else 'empty'}{_RESET}")
@@ -1698,21 +1755,21 @@ class StoryContextRetriever:
             base_chars = [c for c in scene_characters if c]
             extra_chars = [c for c in unified_chars if c not in base_chars]
             all_chars = base_chars + extra_chars
-            result.characters = _safe_subject(
+            result.subjects["characters"] = _safe_subject(
                 "characters",
                 lambda: self._get_all_relevant_character_relationships(all_chars),
             ) or {}
-            print(f"{_DEBUG}characters retrieved: type={type(result.characters).__name__}, count: {len(result.characters.get('entries', {})) if result.characters else 0}{_RESET}")
+            print(f"{_DEBUG}characters retrieved: type={type(result.subjects.get('characters', {})).__name__}, count: {len(result.subjects.get('characters', {}).get('entries', {})) if result.subjects.get('characters') else 0}{_RESET}")
             # Scene groups are always included; graph adds extras
             base_groups = [g for g in scene_groups if g]
             extra_groups = [g for g in unified_groups if g not in base_groups]
             all_groups = base_groups + extra_groups
             groups_entries = self._get_entries(self.groups, "Group")
-            result.groups = _safe_subject(
+            result.subjects["groups"] = _safe_subject(
                 "groups",
                 lambda: {"entries": {g: groups_entries.get(g, {}) for g in all_groups}},
             ) or {}
-            print(f"{_DEBUG}groups retrieved: type={type(result.groups).__name__}, count: {len(result.groups) if result.groups else 0}{_RESET}")
+            print(f"{_DEBUG}groups retrieved: type={type(result.subjects.get('groups', {})).__name__}, count: {len(result.subjects.get('groups', {})) if result.subjects.get('groups') else 0}{_RESET}")
             _MAX_CONTEXT_ELEMENTS = 25
             def _graph_scored_elements():
                 entries = self.elements.get("entries", {})
@@ -1728,11 +1785,11 @@ class StoryContextRetriever:
                 if not selected:
                     return {"entries": {}}
                 return {"entries": {n: entries[n] for n in selected}}
-            result.elements = _safe_subject(
+            result.subjects["elements"] = _safe_subject(
                 "elements",
                 _graph_scored_elements,
             ) or {}
-            print(f"{_DEBUG}elements retrieved: type={type(result.elements).__name__}, count: {len(result.elements.get('entries', {})) if result.elements else 0}{_RESET}")
+            print(f"{_DEBUG}elements retrieved: type={type(result.subjects.get('elements', {})).__name__}, count: {len(result.subjects.get('elements', {}).get('entries', {})) if result.subjects.get('elements') else 0}{_RESET}")
 
             scenes = self._get_field_value(self.events, "Event", "scenes", {}) or {}
             events = self._get_field_value(self.events, "Event", "events", {}) or {}
@@ -1742,7 +1799,7 @@ class StoryContextRetriever:
                 "events",
                 lambda: self._select_relevant_events(
                     context_to_search, scene_characters,
-                    result.groups, current_scene,
+                    result.subjects.get('groups', {}), current_scene,
                 ),
             ) or {}
             # Union with the graph-aggregation picks so edges never drop a
@@ -1761,7 +1818,7 @@ class StoryContextRetriever:
                         continue
                     events_selected.setdefault(_cat, {})[e] = events_dict[e]
                     events_selected["entries"][e] = events_dict[e]
-            result.events = events_selected
+            result.subjects["events"] = events_selected
             # Uncapped bucketed view for boundary/scene-key consumers (the capped
             # ``events`` block must not lose far-away archived scenes to them).
             full_chapters = self._get_field_value(self.events, "Event", "chapters", {}) or {}
@@ -1772,17 +1829,17 @@ class StoryContextRetriever:
             print(f"{_DEBUG}events retrieved: selected={len(events_selected.get('entries', {}))}/{len(events_dict)} ({list(events_selected.get('entries', {}))[:3]}...){_RESET}")
 
             if self.arcs:
-                result.arcs = _safe_subject("arcs", lambda: self.arcs) or {}
-                print(f"{_DEBUG}arcs retrieved: type={type(result.arcs).__name__}, count: {len(result.arcs) if result.arcs else 0}{_RESET}")
+                result.subjects["arcs"] = _safe_subject("arcs", lambda: self.arcs) or {}
+                print(f"{_DEBUG}arcs retrieved: type={type(result.subjects.get('arcs', {})).__name__}, count: {len(result.subjects.get('arcs', {})) if result.subjects.get('arcs') else 0}{_RESET}")
                   
             if self.knowledge:
-                result.knowledge = _safe_subject("knowledge", lambda: self.knowledge) or {}
-                print(f"{_DEBUG}knowledge retrieved: type={type(result.knowledge).__name__}, count: {len(result.knowledge.get('entries', result.knowledge)) if result.knowledge else 0}{_RESET}")
+                result.subjects["knowledge"] = _safe_subject("knowledge", lambda: self.knowledge) or {}
+                print(f"{_DEBUG}knowledge retrieved: type={type(result.subjects.get('knowledge', {})).__name__}, count: {len(result.subjects.get('knowledge', {}).get('entries', result.subjects.get('knowledge', {}))) if result.subjects.get('knowledge') else 0}{_RESET}")
 
             chapters_data = self._get_field_value(self.events, "Event", "chapters", {})
             if chapters_data:
-                result.chapters = _safe_subject("chapters", lambda: chapters_data) or {}
-                print(f"{_DEBUG}chapters retrieved: type={type(result.chapters).__name__}, count: {len(result.chapters) if result.chapters else 0}{_RESET}")
+                result.subjects["chapters"] = _safe_subject("chapters", lambda: chapters_data) or {}
+                print(f"{_DEBUG}chapters retrieved: type={type(result.subjects.get('chapters', {})).__name__}, count: {len(result.subjects.get('chapters', {})) if result.subjects.get('chapters') else 0}{_RESET}")
 
             # 3c: per-entity 'current state' annotation. Entries are copied so the
             # stored JSON is never polluted; each entry gains a `_recent_state`
@@ -1793,7 +1850,7 @@ class StoryContextRetriever:
                 recent_map = self._recent_state_map(recent_names)
                 if recent_map:
                     for subject_key in ("characters", "elements", "groups"):
-                        subj = getattr(result, subject_key, None) or {}
+                        subj = result.subjects.get(subject_key, {})
                         entries = subj.get("entries") if isinstance(subj, dict) else None
                         if not isinstance(entries, dict):
                             continue
@@ -1842,7 +1899,7 @@ class StoryContextRetriever:
 
         except Exception as e:
             print(f"{_ERROR}EXCEPTION in retrieve_context: {str(e)}{_RESET}")
-            print(f"{_ERROR}general_info is: {result.general_info}{_RESET}")
+            print(f"{_ERROR}general_info is: {result.subjects.get('general_info', {})}{_RESET}")
             traceback.print_exc()
 
         return result
