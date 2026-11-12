@@ -351,6 +351,49 @@ class StoryContextRetriever:
                 found_names.add(canonical)
         return list(found_names)
 
+    # Cosine threshold for semantic entity matching. High on purpose:
+    # this is a fallback for names the regex stage missed, so precision
+    # matters more than recall. 0.85 ≈ same entity referred to
+    # descriptively; near-names ("Kael" vs "Kaelan") typically score
+    # 0.75-0.82 and are correctly rejected.
+    _SEMANTIC_ENTITY_THRESHOLD = 0.85
+
+    def _semantic_entity_fallback(
+        self, text: str, known_names: set[str], all_names: list[str],
+    ) -> list[str]:
+        """Semantic fallback for entity resolution.
+
+        Encodes the search text and each unmatched entity name with the
+        shared embedding model, then returns names whose cosine similarity
+        exceeds _SEMANTIC_ENTITY_THRESHOLD. Only considers names NOT
+        already in known_names (the regex stage's results).
+
+        Returns an empty list if the embed model is unavailable.
+        """
+        unmatched = [n for n in all_names if n not in known_names]
+        if not unmatched:
+            return []
+
+        try:
+            from .message_chunker import MessageChunker
+            embed_model = MessageChunker._embed_model
+            if embed_model is None:
+                return []
+            # HuggingFaceEmbedding wraps a SentenceTransformer in ._model
+            sf_model = embed_model._model
+            import numpy as np
+            text_emb = sf_model.encode(text, normalize_embeddings=True)
+            name_embs = sf_model.encode(unmatched, normalize_embeddings=True)
+            # Cosine similarity (vectors are already normalized → dot product)
+            sims = name_embs @ text_emb
+            matched = []
+            for name, sim in zip(unmatched, sims):
+                if sim >= self._SEMANTIC_ENTITY_THRESHOLD:
+                    matched.append(name)
+            return matched
+        except Exception:
+            return []
+
     def _get_relevant_elements(self, characters: list[str], context: str) -> dict[str, dict]:
         """Get elements relevant to the current context and characters."""
         relevant_elements = {}
@@ -1567,6 +1610,18 @@ class StoryContextRetriever:
             if char not in scene_characters:
                 scene_characters.append(char)
 
+        # Semantic fallback: catch characters referred to descriptively
+        # that the regex stage missed (e.g. "the security captain" → "Captain Kael")
+        _all_char_names = list(self._get_entries(self.characters, "Character").keys())
+        _semantic_chars = self._semantic_entity_fallback(
+            context_to_search, set(scene_characters), _all_char_names
+        )
+        for char in _semantic_chars:
+            if char not in scene_characters:
+                scene_characters.append(char)
+        if _semantic_chars:
+            print(f"{_DEBUG}semantic entity fallback: +{len(_semantic_chars)} characters {_semantic_chars}{_RESET}")
+
         # Get elements from current scene
         scene_elements = []
         if current_scene and "who" in current_scene.get("now", {}):
@@ -1579,6 +1634,17 @@ class StoryContextRetriever:
         for element in mentioned_elements:
             if element not in scene_elements:
                 scene_elements.append(element)
+
+        # Semantic fallback for elements (same rationale as characters)
+        _all_elem_names = list(self.elements.get("entries", self.elements).keys())
+        _semantic_elems = self._semantic_entity_fallback(
+            context_to_search, set(scene_elements), _all_elem_names
+        )
+        for element in _semantic_elems:
+            if element not in scene_elements:
+                scene_elements.append(element)
+        if _semantic_elems:
+            print(f"{_DEBUG}semantic entity fallback: +{len(_semantic_elems)} elements {_semantic_elems}{_RESET}")
 
         # Get groups from current scene
         scene_groups = []
