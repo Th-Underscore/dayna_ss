@@ -68,6 +68,24 @@ RESTATE_MAP_THRESHOLD_CHARS = 10000
 
 
 class DSPromptsMixin:
+    def _get_relevance_names(self, branch_name: str) -> set[str] | None:
+        """Return the set of relevant entry names for a branch, or None if no
+        relevance data is available (meaning: don't filter)."""
+        try:
+            ctx = self.summarizer.last.context[0]
+            rel = ctx.relevant_entities
+        except (AttributeError, IndexError, KeyError):
+            return None
+        if not rel:
+            return None
+        # Map branch name to entity type: try exact, then singular (strip trailing 's')
+        lower = branch_name.lower()
+        if lower in rel:
+            return set(rel[lower].keys())
+        if lower.endswith("s") and lower[:-1] in rel:
+            return set(rel[lower[:-1]].keys())
+        return None
+
     def _build_subject_routing_guide(self, subject_name: str) -> str:
         """Compose a dynamic routing block listing every subject and what belongs in each.
 
@@ -391,6 +409,19 @@ class DSPromptsMixin:
         if path_to_value:
             current_value = recursive_get(formatted_data.data, path_to_value, default=None)
 
+        # Filter branch entries by entity graph relevance (data structure unchanged,
+        # only the set of entries shown to the LLM is narrowed)
+        if current_value is not None and isinstance(current_value, dict):
+            rel_names = self._get_relevance_names(item_name)
+            if rel_names is not None and rel_names:
+                filtered = {
+                    k: v for k, v in current_value.items()
+                    if k.startswith("_") or k in rel_names
+                }
+                if 0 < len(filtered) < len(current_value):
+                    print(f"{_DEBUG}Filtered '{item_name}': {len(current_value)} → {len(filtered)} entries (graph relevance){_RESET}")
+                    current_value = filtered
+
         schema_snippet_str = ""
         example_json_str = ""
         branch_list_str = ""
@@ -417,6 +448,13 @@ class DSPromptsMixin:
 
         if formatted_data:
             branch_data = recursive_get(formatted_data.data, keys, default=None)
+            if isinstance(branch_data, dict):
+                rel_names = self._get_relevance_names(item_name)
+                if rel_names is not None and rel_names:
+                    branch_data = {
+                        k: v for k, v in branch_data.items()
+                        if k.startswith("_") or k in rel_names
+                    }
             existing_keys = list(branch_data.keys()) if isinstance(branch_data, dict) else []
             if existing_keys:
                 branch_list_str = lambda: "\n".join(f"- {k}" for k in existing_keys)
