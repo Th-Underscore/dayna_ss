@@ -438,6 +438,17 @@ class EntityGraph:
                     node_id, entity_name, target_type, field_data, field_name
                 )
 
+    def _resolve_target_id(self, target_type, target_name: str) -> str:
+        """Resolve a target name to a node ID, trying each type in a polymorphic target_type list."""
+        if isinstance(target_type, list):
+            for t in target_type:
+                candidate = f"{t}:{target_name}"
+                if candidate in self.nodes:
+                    return candidate
+            # Fall back to first type in the list
+            return f"{target_type[0]}:{target_name}" if target_type else f"unknown:{target_name}"
+        return f"{target_type}:{target_name}"
+
     def _process_relationship_dict(
         self,
         source_id: str,
@@ -456,7 +467,7 @@ class EntityGraph:
         """
         for target_name, rel_list in rel_dict.items():
             if isinstance(rel_list, str):
-                target_id = f"{target_type}:{target_name}"
+                target_id = self._resolve_target_id(target_type, target_name)
                 self.relationships.append(Relationship(
                     source_id=source_id,
                     target_id=target_id,
@@ -470,7 +481,7 @@ class EntityGraph:
             if not isinstance(rel_list, list):
                 continue
 
-            target_id = f"{target_type}:{target_name}"
+            target_id = self._resolve_target_id(target_type, target_name)
 
             for rel in rel_list:
                 if not isinstance(rel, dict):
@@ -554,7 +565,7 @@ class EntityGraph:
             if not target_name:
                 continue
 
-            target_id = f"{target_type}:{target_name}"
+            target_id = self._resolve_target_id(target_type, target_name)
             relationship = Relationship(
                 source_id=source_id,
                 target_id=target_id,
@@ -756,15 +767,32 @@ class EntityGraph:
         # Build offscreen events
         offscreen = events_data.get("offscreen", {})
         for event_name, event_data in offscreen.items():
-            node_id = f"event:{event_name}"
+            node_id = f"offscreen:{event_name}"
             node = EntityNode(
                 id=node_id,
-                type="event",
+                type="offscreen",
                 name=event_name,
                 data=event_data
             )
 
             participants = event_data.get("participants", [])
+            if participants:
+                node.data["participants"] = participants
+            self._attach_participants_to_event(node_id, participants)
+            self.nodes[node_id] = node
+
+        # Build beats
+        beats = events_data.get("beats", {})
+        for beat_name, beat_data in beats.items():
+            node_id = f"beat:{beat_name}"
+            node = EntityNode(
+                id=node_id,
+                type="beat",
+                name=beat_name,
+                data=beat_data
+            )
+
+            participants = beat_data.get("participants", [])
             if participants:
                 node.data["participants"] = participants
             self._attach_participants_to_event(node_id, participants)
@@ -1063,7 +1091,7 @@ class EntityGraph:
                             continue
                     relevant.update(r.events)
                     for rel_id in (r.source_id, r.target_id):
-                        if rel_id != character_id and (rel_id.startswith("event:") or rel_id.startswith("scene:")):
+                        if rel_id != character_id and (rel_id.startswith("event:") or rel_id.startswith("scene:") or rel_id.startswith("offscreen:") or rel_id.startswith("beat:") or rel_id.startswith("chapter:") or rel_id.startswith("arc:")):
                             event_or_scene_name = rel_id.split(":", 1)[1] if ":" in rel_id else rel_id
                             relevant.add(event_or_scene_name)
 
@@ -1168,7 +1196,7 @@ class EntityGraph:
 
     def get_entities_involved_in_event(self, event_name: str) -> list[str]:
         """Get all entities involved in an event."""
-        for prefix in ["event:", "scene:"]:
+        for prefix in ["event:", "scene:", "offscreen:", "beat:", "chapter:", "arc:"]:
             event_id = f"{prefix}{event_name}"
             node = self.get_node(event_id)
             if node:

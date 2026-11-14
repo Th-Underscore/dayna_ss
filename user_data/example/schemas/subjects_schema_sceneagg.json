@@ -105,7 +105,7 @@
       "defaults": {
         "relationship_format": {
           "_self": {
-            "target_type": "event",
+            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
             "bidirectional": false,
             "relationship_definition": "CharacterMilestone"
           }
@@ -160,7 +160,7 @@
             "relationship_definition": "CharacterGroupStatus"
           },
           "milestones": {
-            "target_type": "event",
+            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
             "bidirectional": false,
             "relationship_definition": "CharacterMilestone"
           },
@@ -241,7 +241,7 @@
             "traversal_direction": "outgoing"
           },
           "milestones": {
-            "target_type": "event",
+            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
             "bidirectional": false,
             "relationship_definition": "CharacterMilestone",
             "traversal_direction": "outgoing"
@@ -1009,7 +1009,7 @@
             "relationship_definition": "ElementRelationships"
           },
           "events": {
-            "target_type": "event",
+            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
             "bidirectional": false
           }
         },
@@ -1073,7 +1073,7 @@
             "traversal_direction": "both"
           },
           "events": {
-            "target_type": "event",
+            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
             "bidirectional": false,
             "traversal_direction": "outgoing"
           }
