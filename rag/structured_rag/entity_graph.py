@@ -1492,18 +1492,25 @@ class EntityGraph:
             if current_scene is not None and rel.scenes:
                 scene_match = current_scene in rel.scenes
 
+            def _type_match(prefix, tt):
+                if not tt:
+                    return True
+                if isinstance(tt, list):
+                    return prefix in tt
+                return prefix == tt.lower()
+
             if direction == "outgoing":
                 source_match = source_name == source_entity if source_entity else True
-                type_match = source_prefix == source_type.lower() if source_type else True
-                target_type_match = target_prefix == target_type.lower() if target_type else True
+                type_match = _type_match(source_prefix, source_type)
+                target_type_match = _type_match(target_prefix, target_type)
             elif direction == "incoming":
                 source_match = target_name == source_entity if source_entity else True
-                type_match = target_prefix == source_type.lower() if source_type else True
-                target_type_match = source_prefix == target_type.lower() if target_type else True
+                type_match = _type_match(target_prefix, source_type)
+                target_type_match = _type_match(source_prefix, target_type)
             else:
                 source_match = (source_name == source_entity if source_entity else True) or (target_name == source_entity if source_entity else True)
-                type_match = (source_prefix == source_type.lower() if source_type else True) or (target_prefix == source_type.lower() if source_type else True)
-                target_type_match = (target_prefix == target_type.lower() if target_type else True) or (source_prefix == target_type.lower() if target_type else True)
+                type_match = _type_match(source_prefix, source_type) or _type_match(target_prefix, source_type)
+                target_type_match = _type_match(target_prefix, target_type) or _type_match(source_prefix, target_type)
 
             if source_match and type_match and target_type_match and field_match and importance_match and scene_match:
                 results.append(rel)

@@ -824,7 +824,7 @@ class Summarizer(LLMClientMixin, InstructionGeneratorMixin, ContextEngineMixin, 
             events_data = (
                 self.last.context[0].events_full
                 if self.last and self.last.context and getattr(self.last.context[0], "events_full", None)
-                else (self.last.context[0].events if self.last and self.last.context else {})
+                else (self.last.context[0].subjects.get("events", {}) if self.last and self.last.context else {})
             )
             has_archived_scenes = bool(events_data.get("scenes", {}))
 
