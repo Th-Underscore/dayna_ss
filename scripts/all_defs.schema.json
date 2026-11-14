@@ -740,9 +740,9 @@
     "Events": {
       "type": "object",
       "properties": {
-        "past": {
-          "description": "Example_Past_Event_Before_Story_Start",
-          "$ref": "#/definitions/PastEvents"
+        "offscreen": {
+          "description": "Example_Offscreen_Event",
+          "$ref": "#/definitions/OffscreenEvents"
         },
         "scenes": {
           "description": "Example_Story_Scene",
@@ -757,14 +757,14 @@
         }
       },
       "required": [
-        "past",
+        "offscreen",
         "scenes",
         "chapters",
         "beats"
       ]
     },
-    "PastEvents": {
-      "description": "Past_Event_Before_Story_Start",
+    "OffscreenEvents": {
+      "description": "Offscreen_Event",
       "$ref": "#/definitions/StoryEvents"
     },
     "Scenes": {

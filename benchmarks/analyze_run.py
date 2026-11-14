@@ -160,7 +160,7 @@ def scan_turn_state(turn_dir: Path) -> dict | None:
         if v is None:
             return 0
         return len(v) if isinstance(v, (dict, list)) else 0
-    row["ev_past"] = ev_count("past")
+    row["ev_offscreen"] = ev_count("offscreen")
     row["ev_scenes"] = ev_count("scenes")
     row["ev_chapters"] = ev_count("chapters")
     row["ev_beats"] = ev_count("beats")
@@ -212,7 +212,7 @@ def write_state_section(L, run_dir: Path, turn_dirs: list[Path]):
     for r in rows:
         L.append(f"| {r['dir']} | {r['scene_no']} | {r['chapter_no']} | {r['arc_no']} | "
                  f"{r['characters']} | {r['elements']} | {r['groups']} | {r['knowledge']} | "
-                 f"{r['ev_past']} | {r['ev_scenes']} | {r['ev_chapters']} | {r['ev_beats']} | "
+                 f"{r['ev_offscreen']} | {r['ev_scenes']} | {r['ev_chapters']} | {r['ev_beats']} | "
                  f"{r['total_bytes']:,} |\n")
     L.append("")
 

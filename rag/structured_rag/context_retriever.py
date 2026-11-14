@@ -476,10 +476,10 @@ class StoryContextRetriever:
         against the query context, (2) events of the CURRENT scene (start at/after
         the scene's opening message node), (3) recency fill (freshest remaining)
         up to max_events. Returns the FULL category shape the events format
-        template renders (``{past, scenes, events, chapters, entries}``).
+        template renders (``{offscreen, scenes, events, chapters, entries}``).
         """
         by_cat: dict[str, dict] = {}
-        for bucket in ("past", "scenes", "events", "chapters"):
+        for bucket in ("offscreen", "scenes", "events", "chapters"):
             bd = self._get_field_value(self.events, "Event", bucket, {}) or {}
             by_cat[bucket] = {k: v for k, v in bd.items() if isinstance(v, dict)} if isinstance(bd, dict) else {}
 
@@ -605,7 +605,7 @@ class StoryContextRetriever:
                 continue
             # events fallback: freshest event/scene whose text mentions the entity
             combined: dict[str, dict] = {}
-            for bucket in ("past", "scenes", "events"):
+            for bucket in ("offscreen", "scenes", "events"):
                 bd = self._get_field_value(self.events, "Event", bucket, {}) or {}
                 if isinstance(bd, dict):
                     combined.update({k: v for k, v in bd.items() if isinstance(v, dict)})
@@ -723,7 +723,7 @@ class StoryContextRetriever:
         #    instinct, in embedding form). Each = event title + its scoped cast +
         #    "what is new/developing within it".
         ev_flat: list[tuple[str, dict]] = []
-        for bucket in ("past", "scenes", "events", "chapters"):
+        for bucket in ("offscreen", "scenes", "events", "chapters"):
             bd = self._get_field_value(self.events, "Event", bucket, {}) or {}
             if isinstance(bd, dict):
                 ev_flat.extend((nm, d) for nm, d in bd.items() if isinstance(d, dict))
@@ -1793,8 +1793,8 @@ class StoryContextRetriever:
 
             scenes = self._get_field_value(self.events, "Event", "scenes", {}) or {}
             events = self._get_field_value(self.events, "Event", "events", {}) or {}
-            past = self._get_field_value(self.events, "Event", "past", {}) or {}
-            events_dict = {**scenes, **events, **past}
+            offscreen = self._get_field_value(self.events, "Event", "offscreen", {}) or {}
+            events_dict = {**scenes, **events, **offscreen}
             events_selected = _safe_subject(
                 "events",
                 lambda: self._select_relevant_events(
@@ -1806,7 +1806,7 @@ class StoryContextRetriever:
             # relevant stored event, but the data-driven selection is primary.
             if isinstance(events_selected, dict):
                 cat_of: dict[str, str] = {}
-                for _cat, _src in (("scenes", scenes), ("events", events), ("past", past)):
+                for _cat, _src in (("scenes", scenes), ("events", events), ("offscreen", offscreen)):
                     if isinstance(_src, dict):
                         for k in _src:
                             cat_of[k] = _cat
@@ -1823,7 +1823,7 @@ class StoryContextRetriever:
             # ``events`` block must not lose far-away archived scenes to them).
             full_chapters = self._get_field_value(self.events, "Event", "chapters", {}) or {}
             result.events_full = {
-                "past": past, "scenes": scenes, "events": events,
+                "offscreen": offscreen, "scenes": scenes, "events": events,
                 "chapters": full_chapters if isinstance(full_chapters, list) else (list(full_chapters.values()) if isinstance(full_chapters, dict) else []),
             }
             print(f"{_DEBUG}events retrieved: selected={len(events_selected.get('entries', {}))}/{len(events_dict)} ({list(events_selected.get('entries', {}))[:3]}...){_RESET}")

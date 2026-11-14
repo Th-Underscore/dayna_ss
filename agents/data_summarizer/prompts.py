@@ -330,7 +330,7 @@ class DSPromptsMixin:
         return "\n".join(lines)
 
     def _scene_events_text(self, max_entries: int = 12) -> str:
-        """Compact rendering of the events store (scenes/crucial events/past
+        """Compact rendering of the events store (scenes/crucial events/offscreen
         events/chapters) for scene-aggregation (Type 2) schema prompts.
         Only rendered when a template references {{ scene_events }}.
         """
@@ -338,7 +338,7 @@ class DSPromptsMixin:
         if not isinstance(events, dict):
             return "(no events recorded yet)"
         sections = []
-        for key in ("past", "scenes", "beats", "chapters"):
+        for key in ("offscreen", "scenes", "beats", "chapters"):
             d = events.get(key)
             if not isinstance(d, dict) or not d:
                 continue

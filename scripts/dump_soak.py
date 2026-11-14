@@ -9,7 +9,7 @@ Commands:
   history <run_dir> [--upto N]             assembled user/reply transcript
   trace   <run_dir> <file.path.to.field>   field value across every snapshot (staleness hunter);
                                            file is a snapshot stem: current_scene characters groups
-                                           elements events general_info past  e.g.
+                                           elements events general_info offscreen  e.g.
                                              trace RUN current_scene.now.what
                                              trace RUN characters.entries.Juno.locket_ritual
   compare <run_dir> <a> <b>                coarse snapshot diff between two turns
@@ -31,7 +31,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 SNAP_FILES = ["current_scene", "characters", "groups", "elements", "events",
-              "general_info", "past"]
+              "general_info", "offscreen"]
 
 
 def _load(path: Path):

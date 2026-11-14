@@ -753,9 +753,9 @@ class EntityGraph:
             self._attach_participants_to_event(node_id, participants)
             self.nodes[node_id] = node
 
-        # Build past events
-        past = events_data.get("past", {})
-        for event_name, event_data in past.items():
+        # Build offscreen events
+        offscreen = events_data.get("offscreen", {})
+        for event_name, event_data in offscreen.items():
             node_id = f"event:{event_name}"
             node = EntityNode(
                 id=node_id,

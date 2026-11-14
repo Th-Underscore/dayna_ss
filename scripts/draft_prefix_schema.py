@@ -11,7 +11,7 @@ Explicit behavioral changes (all flagged for review):
   1. The "This is a MEMORY-MANAGEMENT TASK..." footer moves to the top as a
      lead-in for query-type templates, and its tail line becomes
      "Re-read the instruction below and complete ONLY the requested task."
-  2. Discovery queries of the events family (StoryEvents/PastEvents/CrucialEvents)
+  2. Discovery queries of the events family (StoryEvents/OffscreenEvents/CrucialEvents)
      GAIN that lead (they lacked it) to unify the family prefix.
   3. "{{ branch_name }}" is lifted out of the aperture sentence into a trailing
      "List to update: '{{ branch_name }}'" line.
@@ -170,7 +170,7 @@ set_new("ElementMap", "new_entry_query_prompt_template", discovery(
     '["The Old Bunker", "Subterranean Patrol", "Emergency Radio"]',
     extra_guidance_anchor="WHAT NOT TO INCLUDE in elements:"))
 
-# StoryEvents / PastEvents / CrucialEvents  (no recap originally — keep lean, gain LEAD)
+# StoryEvents / OffscreenEvents / CrucialEvents  (no recap originally — keep lean, gain LEAD)
 def discovery_lean(defname, noun_phrase_end, list_clause, guidance_anchor, example_anchor):
     q = t(defname, "new_entry_query_prompt_template")
     bs = paragraphs(q)
@@ -188,8 +188,8 @@ set_new("StoryEvents", "new_entry_query_prompt_template", discovery_lean(
     "Any significant events should be added to the list.",
     '["The Ambush at Dawn", "Discovery of the Old Bunker"]'))
 
-set_new("PastEvents", "new_entry_query_prompt_template", discovery_lean(
-    "PastEvents",
+set_new("OffscreenEvents", "new_entry_query_prompt_template", discovery_lean(
+    "OffscreenEvents",
     "new backstory scenes/events", " that should be added to the list?",
     "Significant past events should be added to the list",
     '["Melissa\'s Anguish", "The Founding of the New Order"]'))
@@ -274,8 +274,8 @@ for defname in ("StoryEvents", "CrucialEvents"):
         [("The entry to populate: '{{ entry_name }}'", "{{ entry_name }}")],
         ["Current message node: {{ current_message_node }}"]))
 
-set_new("PastEvents", "new_entry_prompt_template", gen_entry(
-    "PastEvents",
+set_new("OffscreenEvents", "new_entry_prompt_template", gen_entry(
+    "OffscreenEvents",
     ("Based on all of the information in the last scene, generate the full data for the new ",
      "backstory event described here."),
     [("Please provide your response as a complete JSON object for this new event.", "this new event."),

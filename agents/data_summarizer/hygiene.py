@@ -361,7 +361,7 @@ def _entry_map(v) -> bool:
 def _walk_entity_groups(node, path="", out=None):
     """Yield (holder_path, dict_ref) for every title->row mapping reached
     within two levels of the subject root. Covers 'entries'-wrapped stores
-    and multi-section stores (events.past/scenes/events/chapters) alike."""
+    and multi-section stores (events.offscreen/scenes/events/chapters) alike."""
     if out is None:
         out = []
     if not isinstance(node, dict):

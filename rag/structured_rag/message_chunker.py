@@ -228,7 +228,7 @@ class MessageChunker:
 
         event_names = []
         for event_list_key in [
-            "past",
+            "offscreen",
             "scenes",
             "beats",
         ]:  # Iterate through different event categories

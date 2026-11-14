@@ -287,14 +287,14 @@ class Sampler(threading.Thread):
 # --------------------------------------------------------------------------- #
 
 
-ENTRY_FILES = {"characters.json", "groups.json", "elements.json"}
-EVENT_CONTAINERS = ("past", "scenes", "chapters", "beats")
+ENTRY_FILES = {"characters.json", "groups.json", "elements.json", "knowledge.json"}
+EVENT_CONTAINERS = ("offscreen", "scenes", "chapters", "beats")
 
 
 def state_counts(name: str, data) -> tuple[int | None, str]:
     """(entries, breakdown) for a state snapshot file, following the subject
     schema: characters/groups/elements wrap a name->entry dict in "entries";
-    events.json aggregates its containers (past, scenes, chapters, beats, ...);
+    events.json aggregates its containers (offscreen, scenes, chapters, beats, ...);
     arcs.json is a flat title->arc dict. Other files (current_scene,
     general_info, format_templates, subjects_schema) are single records rather
     than collections, so they report a field count instead of entries."""
