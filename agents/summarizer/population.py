@@ -368,21 +368,25 @@ class PopulationMixin:
         if individual_schema and isinstance(individual_schema, ParsedSchemaClass):
             ref_format = individual_schema.defaults.get("relationship_format", {})
             for field_name, ref_cfg in ref_format.items():
-                target_type = ref_cfg.get("target_type")
-                if not target_type:
+                raw_target = ref_cfg.get("target_type")
+                if not raw_target:
                     continue
-                target_subject = target_type + "s"
-                ref_path = initial_world_data_path / f"{target_subject}.json"
+                if isinstance(raw_target, list):
+                    target_subjects = [t + "s" for t in raw_target]
+                else:
+                    target_subjects = [raw_target + "s"]
                 ref_data = {}
-                if ref_path.exists():
-                    loaded = load_json(ref_path)
-                    entries = loaded.get("entries", loaded)
-                    if isinstance(entries, dict):
-                        ref_data = entries
+                for ts in target_subjects:
+                    ref_path = initial_world_data_path / f"{ts}.json"
+                    if ref_path.exists():
+                        loaded = load_json(ref_path)
+                        entries = loaded.get("entries", loaded)
+                        if isinstance(entries, dict):
+                            ref_data.update(entries)
                 field_type = individual_schema.fields.get(field_name, "str")
                 is_dict = field_type.startswith("dict[")
                 cross_refs[field_name] = {
-                    "target_subject": target_subject,
+                    "target_subject": ", ".join(target_subjects),
                     "entries": ref_data,
                     "is_dict": is_dict,
                 }

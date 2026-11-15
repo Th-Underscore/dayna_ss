@@ -623,8 +623,12 @@ class EntityGraph:
             for config in rel_fields.values():
                 if config.get("bidirectional", False):
                     source_type = self._singularize(schema_name)
-                    target_type = self._singularize(config.get("target_type", "unknown"))
-                    bidir_rules.append((source_type, target_type))
+                    raw_target = config.get("target_type", "unknown")
+                    if isinstance(raw_target, list):
+                        for t in raw_target:
+                            bidir_rules.append((source_type, self._singularize(t)))
+                    else:
+                        bidir_rules.append((source_type, self._singularize(raw_target)))
 
         # Mark relationships as bidirectional in metadata
         for rel in self.relationships:
@@ -1826,12 +1830,17 @@ class EntityGraph:
         for schema_name, schema_class in self.schema_classes.items():
             source_type = self._singularize(schema_name)
             for field_name, config in schema_class.get_relationship_fields().items():
-                target_type = self._singularize(config.get("target_type", "unknown"))
-                _add(source_type, field_name, target_type, "outgoing")
-                if config.get("traversal_direction") == "both":
-                    # Reverse reachability: the target type can walk back to the
-                    # source type along this field.
-                    _add(target_type, field_name, source_type, "incoming")
+                raw_target = config.get("target_type", "unknown")
+                if isinstance(raw_target, list):
+                    target_types = [self._singularize(t) for t in raw_target]
+                else:
+                    target_types = [self._singularize(raw_target)]
+                for target_type in target_types:
+                    _add(source_type, field_name, target_type, "outgoing")
+                    if config.get("traversal_direction") == "both":
+                        # Reverse reachability: the target type can walk back to the
+                        # source type along this field.
+                        _add(target_type, field_name, source_type, "incoming")
 
         # Merge complementary outgoing+incoming entries that share a target into a
         # single "both" entry (e.g. a symmetric character <-> character tie).

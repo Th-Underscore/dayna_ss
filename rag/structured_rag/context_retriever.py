@@ -359,17 +359,22 @@ class StoryContextRetriever:
         rel_fields = self.schema_wrapper.get_relationship_fields(subject_type.capitalize())
         matched: set[str] = set()
         for field_name, config in rel_fields.items():
-            target_type = config.get("target_type", "").capitalize()
-            anchor_names = anchors.get(target_type, set())
-            if not anchor_names:
-                continue
-            for entry_name, entry_data in entries.items():
-                if not isinstance(entry_data, dict):
+            raw_target = config.get("target_type", "")
+            if isinstance(raw_target, list):
+                target_types = [t.capitalize() for t in raw_target]
+            else:
+                target_types = [raw_target.capitalize()]
+            for target_type in target_types:
+                anchor_names = anchors.get(target_type, set())
+                if not anchor_names:
                     continue
-                field_val = entry_data.get(field_name, {})
-                if isinstance(field_val, dict):
-                    if any(a in field_val for a in anchor_names):
-                        matched.add(entry_name)
+                for entry_name, entry_data in entries.items():
+                    if not isinstance(entry_data, dict):
+                        continue
+                    field_val = entry_data.get(field_name, {})
+                    if isinstance(field_val, dict):
+                        if any(a in field_val for a in anchor_names):
+                            matched.add(entry_name)
         return matched
 
     def _signal_topology(self, subject_type: str, anchors: dict[str, set[str]], entries: dict) -> set[str]:
