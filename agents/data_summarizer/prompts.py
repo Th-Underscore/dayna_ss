@@ -79,7 +79,7 @@ class DSPromptsMixin:
         if not rel:
             return None
 
-        lower = branch_name.lower()
+        lower = branch_name.lower().rsplit(".", 1)[-1]
         if lower in rel:
             return set(rel[lower].keys())
 
