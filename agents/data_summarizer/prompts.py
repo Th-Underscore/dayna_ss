@@ -78,12 +78,15 @@ class DSPromptsMixin:
             return None
         if not rel:
             return None
-        # Map branch name to entity type: try exact, then singular (strip trailing 's')
+
         lower = branch_name.lower()
         if lower in rel:
             return set(rel[lower].keys())
-        if lower.endswith("s") and lower[:-1] in rel:
-            return set(rel[lower[:-1]].keys())
+
+        singular = lower.removesuffix("s")
+        if singular in rel:
+            return set(rel[singular].keys())
+
         return None
 
     def _build_subject_routing_guide(self, subject_name: str) -> str:
@@ -170,13 +173,13 @@ class DSPromptsMixin:
     ):
         """
         Traverse alias-wrapped schema layers to locate and return the innermost schema field that holds the final (non-alias) schema type.
-        
+
         Parameters:
             target_schema_class (ParsedSchemaClass): Starting schema class to traverse. Traversal proceeds through alias wrappers whose `. _field.type` is another `ParsedSchemaClass`.
             defaults_to_inherit (list[str] | None): Names of default attributes to inherit from parent schemas when creating effective intermediate schema copies; passed to `_inherit_defaults_from_parent`.
             do_inherit_triggers (bool): If True, merge trigger mappings from parent schemas into intermediate effective schema copies.
             depth (int): Maximum alias-wrapping levels to traverse. A value of -1 means no limit; a non-negative integer stops traversal after that many alias hops.
-        
+
         Returns:
             ParsedSchemaField: The schema field object (`_field`) from the deepest inspected schema class (the field that holds the final schema type).
         """
@@ -428,7 +431,7 @@ class DSPromptsMixin:
         enum_constraints = []
 
         target_name = ""
-        
+
         if target_schema_or_type:
             target_name: str = getattr(target_schema_or_type, "name", str(target_schema_or_type))
             print(f"{_INPUT}Generating schema snippet and example JSON for {target_name}{_RESET}")

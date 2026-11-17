@@ -473,7 +473,7 @@ class DSDiscoveryMixin:
             child_unit = span_source
             suggested_min = int(d.get(f"suggested_min_{child_unit}", 1))
             suggested_max = int(d.get(f"suggested_max_{child_unit}", suggested_min))
-            max_hard = int(d.get(f"max_{child_unit}_before_required", suggested_min))
+            hard_max = int(d.get(f"max_{child_unit}_before_required", suggested_min))
             hard_min = int(d.get(f"hard_min_{child_unit}", suggested_min))
 
             # Current position in the span source (e.g. _scene_number for chapters, _chapter_number for arcs)
@@ -518,7 +518,7 @@ class DSDiscoveryMixin:
         force = self._check_force_override(d.get("numbering_field"))
         if force:
             print(f"{_BOLD}Forcing archive via override.{_RESET}")
-        elif gate_template and span_source and span_count < max_hard:
+        elif gate_template and span_source and span_count < hard_max:
             # Render gate prompt with span data
             unit_label = span_source  # "scenes" or "chapters"
             total_count = len([k for k in self.all_subjects_data.get("events", {}).get(unit_label, {}) if not k.startswith("_")])
@@ -528,7 +528,7 @@ class DSDiscoveryMixin:
                 f"{unit_label}_count": total_count,
                 "suggested_min": suggested_min,
                 "suggested_max": suggested_max,
-                f"max_{unit_label}_before_required": max_hard,
+                f"max_{unit_label}_before_required": hard_max,
                 digest_key: span_digest,
             }
             gate_prompt = render_jinja_template(gate_template, **gate_vars)

@@ -3,6 +3,8 @@ __pycache__
 test.py
 user_data/history
 benchmarks/runs
+benchmarks/docs/*analysis.md
+benchmarks/docs/*interim.md
 benchmarks/user_data
 _runs
 tmp.sh
