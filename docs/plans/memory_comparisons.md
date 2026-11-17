@@ -15,9 +15,9 @@ This extends the Smart-Memory-only matrix in `docs/comparison.html` (referenced 
 | TunnelVision | LLM-navigated tree index over lorebooks | SillyTavern extension (JS) | `cf84ad1`, 2026-10-11 | 14 |
 | Talemate | Full roleplay and narrative application | Standalone (FastAPI and Vue) | `7db12b0`, 2026-10-27 | 432 |
 | Luker | Typed memory graph with per-card schemas, LLM or vector recall, commit-log state | SillyTavern fork (JS) | `da96c88`, 2026-11-06 | 550 |
-| OpenVault | Witness-filtered memories, hybrid retrieval, reflections, entity graph | SillyTavern extension (JS), upstream `vadash/openvault` v26.00 | `b6284c7`, 2026-07-20 | 47 |
+| OpenVault | Witness-filtered memories, hybrid retrieval, reflections, entity graph | SillyTavern extension (JS), upstream `vadash/openvault` v26.00, **archived by its author** | `b6284c7`, 2026-07-20 | 47 |
 | Graphiti | Bi-temporal knowledge graph for agents | Python library, server and MCP server (v0.31.2) | `747b480`, 2026-11-06 | 32.6k |
-| Summaryception | Layered rolling summaries | SillyTavern extension (JS, v5.5.4) | `6a0afdc`, 2026-09-06 | 187 |
+| Summaryception | Layered rolling summaries | SillyTavern extension (JS). Read: the original single-file v5.5.4 (`Lodactio`). A maintained fork, `vadash/Extension-Summaryception` v24.29.0, is much larger | `6a0afdc`, 2026-09-06 | 188 (fork 41) |
 
 Method: shallow clones and a static read of the source, not the READMEs. Things I ran:
 
@@ -26,7 +26,7 @@ Method: shallow clones and a static read of the source, not the READMEs. Things 
 - **Talemate:** not run. About 8.8k test functions in about 400 files were counted.
 - **DSS:** not run. Timing figures come from a `deep_timing.py` report for `sci_fi_heist__26d93cf1`.
 - **OpenVault:** the vitest suite. 1,184 of 1,184 tests pass in 64 files (the dependency install needed `--legacy-peer-deps`). I read its `AGENTS.md` files and `include/DATA_SCHEMA.md` more closely than its code, so its formulas come from its own documentation, checked against the source layout and tests. I first read the README of a further fork (`7n1m4/vault`) for the feature list and could not clone it; the code reviewed is upstream `vadash/openvault` (v26.00). The `Shaderx/openvault` fork shows an older version number (v23.00).
-- **Luker, Graphiti, Summaryception:** not run. Luker's Memory Graph extension (about 33.7k lines, 52 test files) and Graphiti (about 40.8k lines of core code, about 65 test files, plus an evaluation harness that needs a database and an LLM) were read statically. Summaryception is one JavaScript file (2,779 lines) with no tests.
+- **Luker, Graphiti, Summaryception:** not run. Luker's Memory Graph extension (about 33.7k lines, 52 test files) and Graphiti (about 40.8k lines of core code, about 65 test files, plus an evaluation harness that needs a database and an LLM) were read statically. Summaryception, as read, is one JavaScript file (2,779 lines) with no tests. The maintained fork (`vadash/Extension-Summaryception`, last commit 2026-11-05) is far larger: about 20.3k lines of source, 79 test files (about 14.6k lines), a retry policy, a refusal guard, parse recovery and an opt-in Continuity Auditor. I surveyed its structure and README only, so the Summaryception entries below describe the original unless they say otherwise.
 
 Limits: no system was run end-to-end against a model, so there are no cross-system speed or quality numbers. Everything here is a reading of code and should be treated as a hypothesis until `retrieval R0` and the `quality §9` probes produce measurements. Items marked "unverified" were not traced. Smart-Memory's golden replay uses recorded model output, so it checks parsing and not model quality. The four systems added on 2026-11-06 were read once and in less depth than the first four, so weight their entries accordingly.
 
@@ -78,6 +78,8 @@ Confidence: **High** means both sides were read in code or measured. **Medium** 
 - **Lead (+1):** 4 and the state-evaluation half of 13.
 
 The cheapest meaningful closes are 8 (nearest-prefix snapshot), 12 (a bounded transport retry), 17 (a turn-to-snapshot index) and 6 (`node` and `actor` on `_history`), each an S-size change. The two far gaps are both L.
+
+A caution on "Best now": it reflects design and engineering evidence, not outcomes. OpenVault appears under several criteria, but its own author archived it and recommends a different tool after poor results in long roleplays (see its profile in section 5). Treat its designs as ideas to test, not as proven.
 
 ## 3. Criteria
 
@@ -266,18 +268,18 @@ Recommendations: soak §36 S6 (now with Retry-After handling, a failure limit an
 
 ### 13. Evaluation and tests
 
-- **DSS:** the most developed narrative-state evaluation: soak runs with a judge, an auditor, planted-note probes and a calibration ladder, plus hermetic golden scenarios. There is no retrieval-only evaluation. In the public clone, `run_tests.py` imports `boundary_persistence_test`, `cadence_profiles_test` and `force_boundary_test`, which are not present; they may be unpushed.
+- **DSS:** the most developed narrative-state evaluation: soak runs with a judge, an auditor, planted-note probes and a calibration ladder, plus hermetic golden scenarios. There is no retrieval-only evaluation.
 - **Smart-Memory:** 75 of 76 unit tests pass, and the golden replay covers parsing.
 - **TunnelVision:** 756 tests with 28 stale failures in one file.
 - **Talemate:** about 8.8k test functions, with more test code than source code.
 - **OpenVault:** 64 test files (about 18.2k lines, roughly the size of the source). 1,184 of 1,184 tests pass.
 - **Luker:** 52 memory-graph test files (about 10.6k lines). Not run.
 - **Graphiti:** about 65 test files (about 23.7k lines), plus `tests/evals` with a LongMemEval dataset and an end-to-end graph-building evaluation. Not run (it needs a database and an LLM). LongMemEval measures conversational recall, not story-state consistency.
-- **Summaryception:** none.
+- **Summaryception:** none in the original. The maintained fork has 79 test files (about 14.6k lines); not run.
 
 Gap: **+1, lead** ▲ on state evaluation (probes, judge, planted notes) and **−2, moderate** ▮▮▯ on retrieval-only evaluation, which does not exist. Test volume was not compared.
 Effort to close: M (retrieval R0). Confidence: Medium.
-Recommendations: retrieval R0; the new probes in quality §9. The missing test modules are a repo check, not a plan item.
+Recommendations: retrieval R0; the new probes in quality §9.
 
 ### 14. User editability and UI
 
@@ -356,7 +358,93 @@ Recommendations: headless P1 (`state_version` and ordered, backfill-only migrati
 - Cost instrumentation and cache-aware prompt ordering (criteria 9 and 16).
 - Typed epistemic stances (criterion 1).
 
-## 5. Ideas from the others considered and not adopted
+## 5. Project profiles
+
+One block per project. Goals are paraphrased from each project's own README or description. "Advantages" and "Disadvantages" are relative to the other seven, and each claim is backed by a criterion above. Each of the other seven blocks ends with what DSS does better and what DSS can take.
+
+#### DSS (dayna_ss)
+
+- **Stated goal:** an autonomous agent that manages a story's long-term memory. A JSON schema tells it how, when and why to update each field; after each scene it updates a structured world model, archives a summary, and on the next response pulls relevant context back in.
+- **Advantages:** a user-defined, typed schema with enums and declared graph edges (2); weighted, decayed multi-hop graph retrieval (4); field-level change history (6); per-turn content-addressed snapshots, so the latest turn rewinds by construction (8, 17); the only long-horizon evaluation harness with probes, a judge and planted notes (13); cache-aware prompt ordering and per-subject timing (9, 16).
+- **Disadvantages:** the highest LLM cost per turn, about 17 calls on average and 33 to 53 on a scene turn (9); no UI (14); weak read-side entity resolution with silent failures (3); no lexical or rerank retrieval (5); a mid-history edit appears to lose state (8); no transport retry (12); no schema migrations (18); tied to text-generation-webui (15).
+- **Maturity:** 6 stars, one developer. Strong internal measurement, thin outside adoption.
+- **Best fit:** long, structured stories (heists, mysteries) where consistency over 100 or more turns matters, on a local backend with prefix caching, for users who want to define their own state schema.
+
+#### Smart-Memory
+
+- **Stated goal:** a SillyTavern extension that runs quietly in the background, keeping the AI oriented in long stories, aware of the session, and grounded in facts learned across earlier chats. Group chats give each character an independent memory.
+- **Advantages:** minimal setup and few background calls (9); per-character private knowledge injected only for the responding character (1); per-tier token budgets with trim telemetry (10); an alias-aware entity registry (3); a unit-test and golden-replay safety net (13).
+- **Disadvantages:** a fixed taxonomy with hardcoded state-card fields (2); text injection with no graph traversal (4); hand-tuned scoring weights with no evaluation behind them (5); long-term facts live in SillyTavern's global extension settings, which grow with every character; no retrieval measurements.
+- **Maturity:** 73 stars, one developer, active (last commit 2026-10-01).
+- **Best fit:** SillyTavern users who want memory that works with little configuration and little cost.
+- **What DSS does better:** a user-defined typed schema instead of a fixed taxonomy (2); weighted graph retrieval instead of a hand-weighted score over injected text (4); field-level history and per-turn snapshots (6, 8); a long-horizon evaluation that measures state quality, where Smart-Memory's golden replays check parsing (13); per-subject cost timing and cache-aware prompts (9, 16).
+- **What DSS can take:** the per-character knowledge rendering with explicit `unaware`, per-tier budgets with trim telemetry, `[retire]` supersession inside the extraction call, and place-state fields.
+
+#### TunnelVision
+
+- **Stated goal:** a proof of concept for SillyTavern. The AI is given a structured index of the lorebook and browses it to decide what to retrieve, on the thesis that actively retrieving information makes the model use it better than silent injection.
+- **Advantages:** a distinctive LLM-navigated tree retrieval (4, 5); works on native lorebooks, so data stays portable inside SillyTavern (15); the best write protection of the group, with static entries never rewritten, per-book permissions and snapshot revert on swipe or delete (7, 8); a circuit breaker on the sidecar (12); a drag-and-drop tree editor (14).
+- **Disadvantages:** about one extra model call per turn when the sidecar is on (9); most features off by default; a sprawl of heuristics; 28 stale failing tests (13); anecdotal community reports of degradation over long chats; very little adoption.
+- **Maturity:** 14 stars, self-described proof of concept, last commit 2026-10-11.
+- **Best fit:** users with large existing lorebooks who accept a model call per turn for smarter retrieval.
+- **What DSS does better:** structured, typed state instead of prose lorebook entries (2); a retrieval step that needs no model call, where TunnelVision adds one per turn when its sidecar is on (9); typed knowledge stances, where it has none (1); outcome-level evaluation of long runs, where its tests are unit tests (13).
+- **What DSS can take:** static-entry protection, snapshot revert keyed on message identity, a relevance-feedback signal, a computed `stalled` thread status, and the circuit breaker.
+
+#### Talemate
+
+- **Stated goal:** roleplay with AI, with a focus on narration and consistent world and game-state tracking, through cooperating agents (dialogue, narration, summarization, direction, world state) and a full application around them.
+- **Advantages:** the most complete product, with a world editor, a node editor, director chat and many backends (14, 15); the most complete ranking pipeline I read in code (5); presence-derived knowledge with per-character perspective views (1); a small decision model for cheap classification (9); the largest test suite (13).
+- **Disadvantages:** a heavy install and a large surface area; no prefix-cache awareness (9); state tracking is user-declared questions, not a typed schema (2); knowledge is opt-in; cost depends on how many agents are enabled.
+- **Maturity:** 432 stars, active (last commit 2026-10-27), about 158k lines of Python source.
+- **Best fit:** users who want an all-in-one application, not an add-on.
+- **What DSS does better:** a typed, schema-driven world model with declared graph edges, where Talemate tracks user-declared questions (2); weighted graph retrieval (4); field-level change history (6); prefix-cache-aware prompt ordering, which Talemate lacks (9); a probe-based long-horizon evaluation (13).
+- **What DSS can take:** the ranking defaults (recency weight, MMR, optional cross-encoder with fallback), the decision-model pattern, a `legacy` versus `perception` flag for introducing new semantics, and world-editor patterns for the UI.
+
+#### Luker
+
+- **Stated goal:** a next-generation roleplay chat platform, built as a SillyTavern fork, with a Memory Graph of typed nodes as its flagship memory feature.
+- **Advantages:** user-defined typed schemas saved with the character card, with per-type extraction and injection settings (2); automatic, complete rollback through commit-log replay (8); an AI revision workbench with approval cards and `{applied, rejected}` writes (7, 14); a recall view and request inspector (16); per-type recall buckets (5, 10); the most active project of the eight by stars.
+- **Disadvantages:** it is a fork, so users must switch applications (15); LLM recall by default costs a call per message (9); no epistemics found (1); a large and fast-moving codebase (about 33.7k lines in the extension); I read it less deeply than the others.
+- **Maturity:** 550 stars, last commit 2026-11-06, 52 memory-graph test files.
+- **Best fit:** SillyTavern users willing to change application for a built-in, editable graph memory.
+- **What DSS does better:** weighted, decayed graph traversal over typed state, where Luker recalls by LLM exploration or vector search (4); a retrieval step with no model call, where Luker's default recall is LLM-driven (9); typed epistemic stances, where I found no knowledge model in Luker (1); a probe-based long-horizon evaluation (13).
+- **What DSS can take:** the commit-log design (as an alternative to inverse patches), the approval workbench, a per-subject `always | retrieved` flag, per-type bucketing, and import and export bound to chat floors.
+
+#### OpenVault
+
+- **Stated goal:** long-term memory for SillyTavern that tracks what happened, who was there, and how relationships evolve, without external databases, and that fixes "omniscient" characters by tracking witnesses.
+- **Advantages:** witness-based point-of-view filtering (1); hybrid scoring with age buckets (5, 10); merge redirects (3); schema-validated storage with numbered migrations (18); the cleanest test discipline of the group, 1,184 of 1,184 passing (13); UI to edit, delete and merge (14).
+- **Disadvantages:** **archived by its author, whose README says they did not like how it worked after a few roleplays and recommends Summaryception instead.** A fixed schema (2); a multi-stage extraction pipeline with its own cost (9); its designs have not been shown to hold up in long use.
+- **Maturity:** 47 stars, archived, v26.00, last commit 2026-07-20.
+- **Best fit:** a source of ideas, not a tool to adopt.
+- **What DSS does better:** a user-defined schema where OpenVault's is fixed (2); richer typed knowledge stances, with status and source, than witness lists (1); weighted graph retrieval (4); measured long-horizon behavior, where I found no published measurements behind OpenVault's design (13).
+- **What DSS can take (as hypotheses to test with `retrieval R0`):** witness lists, age buckets, two-pass scoring, ordered migrations, an AIMD queue, and the commit-lag idea.
+
+#### Graphiti
+
+- **Stated goal:** a framework for building and querying temporal context graphs for AI agents, as opposed to static knowledge graphs.
+- **Advantages:** bi-temporal facts that are invalidated, not deleted, with source provenance (6, 17); a staged entity resolver that tries deterministic matching before any LLM call (3); hybrid search with several rerankers (5); developer-defined types (2); library, server and MCP interfaces over several graph databases (15); by far the largest adoption.
+- **Disadvantages:** not story-oriented, with no scenes, arcs, importance or per-character perspective (1); it needs a graph database and several LLM calls per episode (9, 15); its published benchmarks are vendor-reported and measure conversational recall, not story consistency (13).
+- **Maturity:** 32.6k stars, active (last commit 2026-11-06), v0.31.2, backed by a company, about 65 test files and an evaluation harness.
+- **Best fit:** agent memory where facts change over time and provenance matters; not narrative state.
+- **What DSS does better:** story-native structure (scenes, chapters, arcs, importance, per-character knowledge stances) where Graphiti stores generic facts (1, 11); no graph database to run, since state is JSON on disk (15); long-horizon story evaluation, where Graphiti's harness measures conversational recall (13); cache-aware prompt ordering (9).
+- **What DSS can take:** the staged resolver with its entropy guard, as-of reads, invalidate-not-delete semantics and declared identity fields.
+
+#### Summaryception
+
+- **Stated goal:** layered recursive memory for SillyTavern. Compress aggressively and lose nothing, keeping thousands of turns in a small prompt, non-destructively.
+- **Advantages:** the cheapest and simplest design, about one call per 3 turns plus promotions (9); a prompt block that changes only when a summary is added, so the cache stays warm (9); non-destructive (messages are hidden, not deleted) (8); real traction for its size. The maintained fork adds a retry policy, a refusal guard, parse recovery and an opt-in Continuity Auditor that keeps a fixed-schema live state (12, 1, 2).
+- **Disadvantages:** no retrieval, since everything is injected every turn (5, 10); in the original, no entities, no relationships and no knowledge model (1, 3, 4); summaries blur detail, which is the weakness it sets out to reduce; SillyTavern only (15).
+- **Maturity:** the original has 188 stars and is a single file with no tests. The fork has 41 stars, 1,044 commits, 79 test files, and its last commit was 2026-11-05. OpenVault's author points users to the fork.
+- **Best fit:** users who want cheap, robust long-chat memory with minimal setup.
+- **What DSS does better:** retrieval that selects relevant state, where the original injects everything every turn (5, 10); structured entities, relationships and knowledge, where the original has none and the fork adds a fixed-schema continuity state (1, 3, 4); detail kept as typed fields instead of prose that blurs (2); a long-horizon evaluation (13).
+- **What DSS can take:** retry with Retry-After handling and a failure limit, the delta-only summarizer framing (the prompt sees what is already summarized and outputs only what is new), the verbatim-window commit lag, and the foreground-gate idea of not mutating the prompt during a generation.
+
+## 6. DSS in short
+
+**Good at:** keeping a long, structured story consistent. DSS is strongest where the others are thinnest: a user-defined, typed world model with weighted graph retrieval, field-level history, per-turn snapshots, and the only long-horizon evaluation harness of the eight. **Not good at:** being cheap or finished. It makes about 17 LLM calls per turn, has no UI, resolves names poorly on the read side, loses state on a mid-history edit, has no transport retry, and runs only inside text-generation-webui. **What to take:** Graphiti's staged entity resolution and as-of reads; Luker's approval workbench and per-subject injection flag; Talemate's ranking defaults and small decision model; Smart-Memory's per-character knowledge rendering and per-tier budgets; TunnelVision's write protection and snapshot revert; Summaryception's retry policy and delta-only prompts; and from OpenVault only ideas to test (witness lists, age buckets, migrations), since its author archived it. Measure with `retrieval R0` before adopting any of them.
+
+## 7. Ideas from the others considered and not adopted
 
 See `retrieval_plan.md` section 6 for the reasoning:
 
@@ -370,7 +458,7 @@ See `retrieval_plan.md` section 6 for the reasoning:
 - Summaryception's inject-everything summary: fine for prose memory, but it does not scale to structured state. Its verbatim window and layer caps match what DSS's archives already do.
 - OpenVault's fixed schema: conflicts with `quality §2`. Its witness lists are a cheaper alternative to `knows` edges only if the schema allowed them.
 
-## 6. Unverified items
+## 8. Unverified items
 
 - TunnelVision's secret-tag handling, alias handling, and write permissions in practice.
 - Smart-Memory's graph and edit UI behavior; Talemate's per-field locks, swipe behavior and prompt budgets.
@@ -380,8 +468,9 @@ See `retrieval_plan.md` section 6 for the reasoning:
 - Luker: how well its LLM recall performs, whether its rollback covers every path (for example after compression rollups), and the per-message variables and state-system pages, which I did not read.
 - OpenVault: retrieval formulas, merge guards and token budgets come from its documentation. Current-code behavior is checked only against the layout and its tests. The features in the `7n1m4/vault` fork README are not reviewed.
 - Graphiti: the number of LLM calls per episode, which I describe as "several" without counting.
-- Summaryception: injection-depth semantics beyond the defaults, and whether snippet edits survive a later promotion.
+- Summaryception: injection-depth semantics beyond the defaults, and whether snippet edits survive a later promotion. The maintained fork's Continuity Auditor, retry policy and ghosting were surveyed, not read in code.
+- OpenVault: why its author was dissatisfied. The README says only that the author did not like how it worked after a few roleplays; I have no detail on which part (extraction, retrieval or reflection) degraded.
 
-## 7. Refreshing this document
+## 9. Refreshing this document
 
 Re-clone each system at its latest revision, update the table in section 1, re-run the TunnelVision and Smart-Memory tests, recount Talemate's tests, and re-check each unverified item. When a recommendation ships, change the position here and link to the commit. When `retrieval R0` has numbers, replace the criterion 4 and 5 positions with measured ones.

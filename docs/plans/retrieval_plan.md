@@ -42,6 +42,7 @@ Not reviewed: the internals of `_unified_entity_aggregation`, event selection, a
 - **Every injected item can say why it is there.**
 - **Weights live in config and are tuned against R0.** No unexplained constants in code.
 - **Keep fixes that were measured.** The recency band exists because pure similarity re-served a stale beat (the pact-hall beat stayed a top hit at consecutive checkpoints). Any ranking change must keep that case passing.
+- **Precedents are hypotheses.** OpenVault, the closest published design for hybrid scoring and age buckets, was archived by its own author after poor results in long roleplays (`memory_comparisons.md`, section 5). Treat borrowed designs as ideas to test with R0, not as proven.
 - **Degrade, never fail.** Optional components (reranker, embedder) fall back to the simpler path and report once.
 
 ## 4. Items

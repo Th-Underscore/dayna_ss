@@ -113,6 +113,139 @@ context clean. The critical constraint still applies:
 > script that does the mechanical I/O and writes the deliverable `.md` to disk.
 > The subagent's context should only see the script's small stdout.
 
+## Timing Interpretation
+
+### What the numbers mean
+
+`deep_timing.py` reads `dss_calls.jsonl` — one record per LLM call. Each record has:
+- `turn` — the soak turn number
+- `subject` — the phase_id path (e.g. `events.scenes`, `elements.entries.foo`)
+- `action` — the DSS action (`apply_updates`, `add_new`, `perform_update`, etc.)
+- `total` — wall time for that single call (seconds)
+- `ttft` — time to first token (prefill phase, seconds)
+- `in` — input tokens for that call
+- `out` — output tokens for that call
+- `cached` — cached tokens (prefix cache hits; 0 if not logged)
+
+### DSS vs Writer
+
+- **DSS** (DataSummarizer) = the local 26B model doing structured JSON summarization. This IS the "engine" — it produces the state data (characters, elements, events, etc.) that feeds the writer.
+- **Writer** = the local gemma-4 model generating the in-character reply. Separate model, separate calls.
+
+The "DSS share" percentage tells you how much of total local LLM time goes to summarization vs. response generation.
+
+### Per-call vs per-turn
+
+- **`Avg in`** in the subject/action tables is the mean input tokens **per call**, not per turn. A turn typically has 5-30 DSS calls, so per-turn input is the sum across those calls.
+- **`Avg/call`** is mean wall time per individual LLM call (typically 3-30s).
+- **Per-turn total** = sum of all DSS + writer call times in that turn. See the "PER-TURN DETAIL" section for individual turn totals.
+
+### Slices
+
+`--slices N` divides the turn range into N equal groups. The per-slice tables show **cumulative** totals across all turns in that slice — NOT per-turn values. A slice showing "12,918s" for events across 36 turns means ~358s/turn for that subject in that slice, not 12,918s per turn.
+
+### What does NOT appear in dss_calls.jsonl
+
+- **Rolling overviews** — cloud-side (gemini), not local. Never in the DSS call log.
+- **Judge verdicts** — cloud-side. Not in the DSS call log.
+- **Guide/replan calls** — cloud-side. Not in the DSS call log.
+- **Cloud failures/cooldowns** — not LLM calls at all; they appear only in the soak log.
+
+The DSS call log captures ONLY local model invocations (DSS + writer). Cloud-side latency is visible only in the soak log's `done: turn N in Xs (cloud Ys, local Zs)` lines.
+
+### Prefix cache
+
+If `cached` is 0 across all records, the run's vLLM server did not report `cached_tokens` in its responses (older server version or config). The TTFT-based estimation fallback is then used. A healthy prefix-cache setup shows 40-70% cached on repeated subjects.
+
+### Scene turns vs non-scene turns
+
+Scene turns (>20 DSS calls) are turns where a scene transition was detected — the DSS processes all subjects (events, elements, characters, groups, etc.). Non-scene turns (≤20 calls) typically only touch `current_scene`. This is why the subject breakdown differs dramatically between the two groups.
+
+## Prompt-Level Timing Analysis
+
+When a run's scene turns are too slow, the next question is: **which prompts are causing the delay?**
+This section documents the method for answering that from `dss_calls.jsonl` + schema templates.
+
+### Step 1: Identify worst turns
+
+Use `deep_timing.py --turns N,N` for specific turns to see the per-call breakdown. The worst
+turns are typically the ones with the most DSS calls (scene turns that trigger cascades):
+
+```bash
+python3 benchmarks/deep_timing.py <run_dir> --turns 60,60
+python3 benchmarks/deep_timing.py <run_dir> --turns 84,84
+```
+
+This shows which subjects/actions fired and their individual call times.
+
+### Step 2: Per-subject:action time accumulation
+
+Parse `dss_calls.jsonl` to get total time per `subject:action` pair across the whole run.
+This reveals which prompt templates are the biggest cumulative cost drivers:
+
+```python
+# Pseudocode: group by subject:action, sum total time
+# Sort descending, take top 10
+# For each: show call count, total time, avg time, avg input tokens
+```
+
+Key columns to track: `calls`, `total_s`, `avg_s`, `avg_in` (mean input tokens).
+
+### Step 3: Input token growth per subject:action
+
+For the top offenders, track `in` (input tokens) across turns. This reveals the growth
+mechanism. Two patterns:
+
+- **Linear growth** (e.g., `events.beats:apply_updates`: 14K → 53K over 90 turns):
+  The prompt includes a full-data dump of a growing branch. Map to the template variable:
+  `branch_update_prompt_template` has `{{ value | tojsonc }}` which serializes the entire
+  branch's entries. At ~940 tokens/entry, 42 beats = ~39K tokens just for the data section.
+
+- **Sublinear growth** (e.g., `events.beats:add_new`: 14K → 30K):
+  The prompt includes a name list (`{{ branch_list }}`) that grows with entry count but
+  carries no per-entry data. Slower growth, same root cause (branch expansion).
+
+- **Flat** (e.g., `message_summary:summarize_msg_1`: 13K → 29K):
+  The prompt is bounded by the writer's conversation context, not by entity state.
+
+### Step 4: Map to schema templates
+
+For each growing subject:action, find the corresponding prompt template in the schema:
+
+1. Open `user_data/example/schemas/subjects_schema_noschema.json` (the run's actual schema)
+2. Navigate to `definitions.<SubjectType>.defaults.<action>_prompt_template`
+3. Identify which template variable is the growth driver (usually `{{ value | tojsonc }}`
+   for `apply_updates`, `{{ branch_list }}` for `add_new_query`)
+4. Check the static template size vs the dynamic data size to quantify the signal-to-noise ratio
+
+### Step 5: Quantify the fan-out inefficiency
+
+The core metric: **prompt size / useful signal size**.
+
+- `apply_updates` sends the full branch (O(N) entries) but the LLM only needs to diff
+  against 1-2 entries affected by the latest exchange (O(1) useful signal).
+- As N grows, the model spends most of its prefill tokens reading data it will ignore.
+- The fix direction is to narrow the prompt to only the entries that could be affected
+  (e.g., entries whose participants overlap with the current scene's cast).
+
+### Quick one-liner for the top offenders
+
+```bash
+# Top 10 subject:action by total time, with input growth
+python3 -c "
+import json; from collections import defaultdict
+calls = [json.loads(l) for l in open('dss_calls.jsonl')]
+sa = defaultdict(lambda: {'t':0,'n':0,'in_first':0,'in_last':0,'turns':[]})
+for c in sorted(calls, key=lambda x: x['turn']):
+    k = f\"{c['subject']}:{c['action']}\"
+    sa[k]['t'] += c['total']; sa[k]['n'] += 1
+    if not sa[k]['turns']: sa[k]['in_first'] = c['in']
+    sa[k]['in_last'] = c['in']; sa[k]['turns'].append(c['turn'])
+for k, v in sorted(sa.items(), key=lambda x: x[1]['t'], reverse=True)[:10]:
+    print(f\"{k:55} {v['n']:3d} {v['t']:7.0f}s {v['in_first']:6d}→{v['in_last']:6d}\")
+"
+```
+
 ## Log Format Reference
 
 Key log line patterns (regex):
@@ -186,59 +319,60 @@ mid-run review (general health) or the 3-axis subagent analysis (general quality
 these verify a specific feature landed correctly. Remove the section once the run attains
 excellent quality for this standard.
 
-### Knowledge "YES" echo fix (s546+)
+### Validated checks
 
-The branch query→update handoff previously appended the query's `"YES"` response
-to the conversation history, causing the LLM to echo `"YES"` instead of generating
-JSON in the `apply_updates` call. Fixed by removing the history append
-(`6123ec9e`). Verify:
+These checks were added for specific features and are now confirmed working.
+Keep them for regression monitoring but they are no longer the primary focus.
 
-- **No `Failed to parse LLM response as JSON ... Raw response: YES`** in the log.
-- **`knowledge.json` entries** — `apply_updates` calls should produce valid JSON
-  path-patch arrays, not bare `"YES"` tokens.
+- **Knowledge population** — 29 entries in s562. Clean vocab. ✅
+- **CHECK_ARCHIVE trigger system** — Scenes 1:1 with scene turns, chapters
+  increment at boundaries, synopsis updates. ✅
+- **Format template restructure** — No `_history`/`_message_node` in rendered
+  prompts, no bare `N/A` artifacts, path markers stripped. ✅
+- **`stamp_end_message_nodes` guard** — 15/16 unique `_message_node` values
+  (1 shared due to placeholder scene). ✅
+- **PATH SCOPE integrity** — Clean top-level keys, no corruption. ✅
+- **Schema-agnostic retrieval** — `subjects` dict, 0 errors, all subjects
+  populated. ✅
+- **Chapter LLM gate check** — Signal-detection framing (s563: 11 chapters,
+  proper titles). ✅
 
-### Knowledge in writer prompts (s546+)
+### Offscreen events (renamed from PastEvents)
 
-`RetrievalContext` now carries a `knowledge` field populated from `knowledge.json`,
-so writer (gemma-4) prompts include knowledge entries (`15587c51`). Verify via
-oaiproxy:
+The `events.past` field is now `events.offscreen`. Verify:
 
-- **Writer prompt** — knowledge entries (e.g. `black_key_cipher_function`) should
-  appear in the system context of gemma-4 calls, not just in DSS calls.
+- **`events.offscreen` key present** in `events.json` (not `events.past`).
+- **Offscreen entries appear** — at least 1 entry by mid-run (backstory
+  events from late-introduced characters, timeskips).
+- **Offscreen nodes in entity graph** — `offscreen:` prefix nodes exist.
 
-### Cloud/local time split (s546+)
+### Beat nodes in entity graph
 
-Turn completion lines now show the split: `done: turn N in Xs (cloud Ys, local Zs)`
-(`514575dc`). Verify:
+Beats were previously absent from the entity graph. Verify:
 
-- **Log format** — every `done: turn` line includes `(cloud ...s, local ...s)`.
-- **Cloud share** — `cloud_s / dt_s` ratio per turn. A high ratio (>50%) on
-  non-scene turns indicates guide hangs, not DSS slowness.
+- **`beat:` nodes** — at least 1 beat node in `entity_graph.json` by turn 5+.
+- **Beat count correlates** — graph beat nodes ≈ `events.beats` entry count.
 
-### Knowledge subject population (ongoing)
+### Polymorphic target_type
 
-Knowledge `add_new_query` was rewritten with concrete criteria, JSON example,
-`branch_list`, and scene grounding (`96be4dd4`). Verify after next run:
+`CharacterMilestone.target_type` is now a list (e.g.
+`["offscreen","beat","scene","chapter","arc"]`). Verify:
 
-- **Knowledge population** — `knowledge.json` should have entries by mid-run
-  (s545 had 2 entries; expect 5+ with the grounded prompt).
-- **`knows` on Characters** — `dict[str, EpistemicStance]` with in-vocab values
-  only. Flag any out-of-vocab values (e.g. `"confirmed"`).
-- **`learned` on StoryEvents** — `dict[str, EventKnowledgeRole]` with in-vocab
-  values only.
+- **No crashes** — 0 `AttributeError` in the run log (the list-vs-string
+  `.lower()`/`.capitalize()`/`+ "s"` crashes are the regression risk).
+- **No `no matching step`** errors related to milestone/relationship fields.
 
-### Scene archival cascade (known broken)
+### Graph-relevance filtering in apply_updates
 
-The `add_new_query` prompt for `events.scenes` is vague (same failure mode as
-Knowledge before its rewrite). Scenes never get archived, which blocks the entire
-cascade: scenes → chapters → canon digest → synopsis updates. Verify it's still
-broken (confirming the fix is needed) or fixed if the prompt was updated:
+`_create_update_prompt` now filters `current_value` to only entries in the
+entity graph's relevance set. Verify:
 
-- **`events.json` → `scenes`** — should have entries. If always empty, the cascade
-  is still blocked.
-- **`events.json` → `chapters`** — should increment at archival boundaries.
-- **`general_info.json` → `synopsis`** — should update at chapter/arc archival,
-  not just once at the end.
+- **Filter activates** — in a long run (50+ turns), the input token count for
+  `apply_updates` on growing branches (beats, scenes) should plateau or grow
+  sublinearly, NOT linearly with entry count. Compare `avg_in` across slices:
+  if it stays roughly flat while entry count grows, the filter is working.
+- **No data loss** — filtered entries should still be present in the state
+  files (the filter only narrows the LLM prompt, not the data).
 
 ## Lessons Learned
 

@@ -184,3 +184,48 @@ The quality check is critical: if the model's update quality degrades when the c
 Items 1-3 are independent and can be applied together. Item 4 needs a separate quality validation. Item 5 is a nice-to-have.
 
 **Combined realistic target: 40-55% reduction in DSS time** (from 31,287s to ~14,000-19,000s for a 100-turn run).
+
+---
+
+## 7. Dynamic-Suffix Optimizations (s570/s571 baseline)
+
+**Baseline (shounen_adventure, MeroMero 26B, NVFP4-W4ATTN-AWQ):**
+- s570: 53 turns, 1,335 DSS calls, 0 errors, 127 graph nodes
+- s571: 39 turns, 964 DSS calls, 0 errors, 57 graph nodes
+
+**Key confirmation (TTFT analysis):** vLLM APC is working. The static prefix (system message + internal history) is fully cached after the first call in a turn. Per-call cost is the **dynamic suffix only**: the rendered DSS prompt template + branch JSON + response generation. TTFT drops from 11-16s (cold) to 0.3-2.8s (warm) within a turn. The `cached` field in soak data is non-functional (requires vLLM-specific hooking); TTFT is the correct proxy.
+
+### 7.1 Relevance-filter `_context_restatement`
+
+**Problem:** `_context_restatement` (prompts.py:112-162) renders the full subject map for the DSS prompt via `formatted_data.mark_field(branch_name)`. No filtering — all entries are included regardless of relevance. For a branch with 42 beats, all 42 are sent.
+
+**Fix:** Apply the existing `_get_relevance_names` filter (already used for `current_value` and `branch_data` in `_create_update_prompt`) to `_context_restatement`. Thread `rel_names` through; filter both the full-map path (line 148-149) and the fallback roster path (line 157).
+
+**Known limitation:** `_get_relevance_names` is a coarse binary gate — it takes all keys from `ctx.relevant_entities[lower]` and discards the score values. An entity at relevance 75 (barely passed `final_threshold`) is treated identically to one at 99. A score-graded filter (top-N by score, or a higher threshold for DSS prompt filtering) would be more effective for prompt size reduction. The mechanism is the same; just use the float values.
+
+### 7.2 Enable `skip_query` for `query_changes` branches
+
+**Problem:** `query_changes` (branch pre-query) runs 56 times/run × 2.66s = ~149s/run. The pre-query returns YES almost every turn in a live story, so it's pure overhead — the follow-up `apply_updates` call is the one that does the work.
+
+**Fix:** The mechanism already exists — `skip_query` in the branch schema `defaults` (core.py:344). When `skip_query=True`, `_perform_branch_query` skips the pre-query and calls `_branch_update_only` directly, which uses the self-detecting `NO_UPDATES_REQUIRED` stopping string. Setting `skip_query: true` in the relevant branch defaults eliminates the pre-query overhead.
+
+**Risk:** Low. The `NO_UPDATES_REQUIRED` self-detection already handles the "no changes" case. The only cost saved is the pre-query LLM call itself.
+
+### 7.3 Gate `add_new_query` with entity graph presence
+
+**Problem:** `add_new_query` runs for every subject on every scene turn — 83 calls/run × 7.24s = ~600s/run in s571. Most return NO/[] (no new entries).
+
+**Fix:** Before the `add_new_query` LLM call (discovery.py:125), check whether the subject type has any entries in `relevant_entities`. If `_get_relevance_names` returns an empty set for the subject type, skip the query. This uses the same mechanism as 7.1 — no new method.
+
+**Risk:** Low. A genuinely new entity (first appearance) would be in the relevance set because the graph builds nodes from the current scene's `who` cast and entity mentions. The gate only skips when the subject type has zero presence in the current scene's context — exactly when `add_new_query` would return NO anyway.
+
+### 7.4 Implementation order
+
+| # | Change | Type | Risk | Expected saving |
+|---|--------|------|------|----------------|
+| 1 | Enable `skip_query` in branch defaults | Schema edit | Low | ~149s/run |
+| 2 | Gate `add_new_query` with relevance presence | Code (discovery.py) | Low | ~300-400s/run |
+| 3 | Relevance-filter `_context_restatement` | Code (prompts.py) | Low | Prompt size reduction (reduces decode time on large branches) |
+| 4 | Score-graded relevance filter (use float values) | Code (prompts.py) | Medium (quality) | Further prompt size reduction |
+
+Items 1-3 are independent. Item 4 is a refinement of 3. All use the existing `_get_relevance_names` / entity graph mechanism — no new standalone methods.

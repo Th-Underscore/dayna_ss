@@ -171,7 +171,7 @@
 
 ---
 
-## Auto-Generated Notes
+## AI-Generated Notes
 
 - [ ] Revise initial population mechanism (wrapper vs individual type mismatch):
     - Current: population prompts use wrapper type (e.g. `Elements`) for schema + example, but the LLM produces a single entity object; the `#!/definitions/` ref is empty because `schema_class` is never passed
