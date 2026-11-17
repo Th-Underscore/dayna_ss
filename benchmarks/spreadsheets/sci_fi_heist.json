@@ -31,6 +31,38 @@
       "No soft-science hand-waving"
     ]
   },
+  "extra_context": "Story structure definitions:\n- A SCENE is one continuous stretch of story; shifts in action, tone, character presence, or physical setting begin a new one.\n- A CHAPTER works like a full episode of a TV show, or a few chapters of a graphic novel: several scenes that together carry ONE dramatic movement from setup through complication to a resolution or a deliberate resting point.\n- An ARC is like a full season of a TV show, or a few volumes of a graphic novel: multiple chapters carrying one long-range conflict from its premise to its resolution, with the cast and stakes meaningfully changed by the end.",
+  "structure": {
+    "chapters": [
+      {
+        "after_note": "n31",
+        "label": "The Warning",
+        "margin_scenes": 3
+      },
+      {
+        "after_note": "n41",
+        "label": "Fabricated Memories",
+        "margin_scenes": 4
+      },
+      {
+        "after_note": "n44",
+        "label": "Calloway Alive",
+        "margin_scenes": 4
+      },
+      {
+        "after_note": "n69",
+        "label": "The Orbital Pivot",
+        "margin_scenes": 4
+      }
+    ],
+    "arcs": [
+      {
+        "after_note": "n74",
+        "label": "The Heist",
+        "margin_chapters": 1
+      }
+    ]
+  },
   "specificity_profile": "mixed",
   "notes": [
     {

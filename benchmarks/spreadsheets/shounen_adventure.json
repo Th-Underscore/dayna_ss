@@ -1,6 +1,6 @@
 {
-  "id": "shounen_ember_trials",
-  "genre": "Shounen battle adventure",
+  "id": "shounen_adventure",
+  "genre": "Shounen action adventure",
   "premise": "A boy whose Ember refuses to light enters Halcyon Forge Academy and the Ninefold Trial to prove an unlit flame can still burn, never suspecting that the seal on his chest is what the Pale Choir has hunted for a generation.",
   "setting": "The Cinder Reach: a chain of basalt isles joined by rope-bridges and sky-rails above a sea of cloud, where everyone carries an Ember fed by resolve. Halcyon Forge Academy sits beneath the Beacon Spire, with its Ashen Gate, the neglected Ember Annex, the Basalt Maze and the Trial Ring.",
   "greeting": "Dawn bleeds orange over the Ashen Gate, and you stand at the back of the line with a hundred applicants pressing around you, every one of them already glowing. The Examiner calls the next name. It is not yours yet. It will be soon.",
@@ -32,6 +32,7 @@
       "No power jumps without cost, training or sacrifice"
     ]
   },
+  "extra_context": "Story structure definitions:\n- A SCENE is one continuous stretch of story; shifts in action, tone, character presence, or physical setting begin a new one.\n- A CHAPTER works like a full episode of a TV show, or a few chapters of a graphic novel: several scenes that together carry ONE dramatic movement from setup through complication to a resolution or a deliberate resting point.\n- An ARC is like a full season of a TV show, or a few volumes of a graphic novel: multiple chapters carrying one long-range conflict from its premise to its resolution, with the cast and stakes meaningfully changed by the end.",
   "specificity_profile": "mixed",
   "notes": [
     {
