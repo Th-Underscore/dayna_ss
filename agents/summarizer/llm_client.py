@@ -137,6 +137,7 @@ class LLMClientMixin:
 
             # Emit LLM generation started
             eval_start_time = time.time()
+            print(f"[DSS] {phase_id}/{step_id} prompt={len(prompt)}ch")
             self._update_queue.publish({
                 "type": "step_update",
                 "phase": {"id": phase_id},
@@ -225,6 +226,7 @@ class LLMClientMixin:
             print(f"{_ERROR}Error writing closing marker to dump.txt: {str(e)}{_RESET}")
             traceback.print_exc()
 
+        print(f"[DSS] {phase_id}/{step_id} done out={len(text)}ch dur={(time.time()-eval_start_time):.2f}s")
         return text.strip(), stop
 
     def generate_summary_with_streaming(
