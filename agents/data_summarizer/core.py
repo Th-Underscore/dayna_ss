@@ -455,7 +455,6 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
                 print(f"{_ERROR}Memory hygiene pass failed (non-fatal): {e}{_RESET}")
 
             print(f"{_HILITE}Summary for {data_type} completed in {time.time() - start:.2f} seconds.{_RESET}")
-            save_json(data, self.history_path / f"{data_type}.json")
             if data:
                 _lkg = getattr(self.summarizer, "_last_good_subjects", None)
                 if _lkg is not None:

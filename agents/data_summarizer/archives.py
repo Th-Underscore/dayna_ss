@@ -20,7 +20,6 @@ from ...utils.helpers import (
     _RESET,
     _DEBUG,
     _WARNING,
-    load_json,
     save_json,
     split_keys_to_list,
     recursive_set,
@@ -190,12 +189,7 @@ class DSArchivesMixin:
                 return
 
             chapters = [c for c in _entries_as_list(events_data.get("chapters")) if isinstance(c, dict)]
-            # Arcs are their own subject persisted to arcs.json (dict keyed by
-            # title); read them from disk so an arc archived earlier in this
-            # same boundary pass is already visible.
-            arcs_source = load_json(self.history_path / "arcs.json")
-            if not isinstance(arcs_source, (dict, list)) or not arcs_source:
-                arcs_source = self.all_subjects_data.get("arcs", {})
+            arcs_source = self.all_subjects_data.get("arcs", {})
             arcs = [a for a in _entries_as_list(arcs_source) if isinstance(a, dict)]
             if not chapters and not arcs:
                 return  # nothing archived yet; leave the field alone
@@ -242,7 +236,6 @@ class DSArchivesMixin:
 
             previous = str(general_info.get("synopsis", "") or "")
             general_info["synopsis"] = digest
-            save_json(general_info, self.history_path / "general_info.json")
 
             current_scene_data = self.all_subjects_data.get("current_scene", {})
             history_entry = {
@@ -537,16 +530,6 @@ Scenes in this chapter ({len(scene_names[span_start:])}):
                 new_chapter_number = current_chapter_number + 1
                 current_scene_data["_chapter_number"] = new_chapter_number
                 print(f"{_SUCCESS}Archived chapter {current_chapter_number} and set new chapter number to {new_chapter_number}.{_RESET}")
-                # Persist the mutation: per-subject files were already saved
-                # inside DataSummarizer.generate BEFORE the boundary checks ran,
-                # so without an explicit save the chapter + numbering exist only
-                # in memory and are lost when the next turn loads from disk
-                # (found live: chapter 1 archived at t2, every events.json on
-                # disk still chapters=[]). The arc path saves its own file; the
-                # scene-numbering stamps ride current_scene.json.
-                save_json(events_data, self.history_path / "events.json")
-                if isinstance(current_scene_data, dict) and current_scene_data:
-                    save_json(current_scene_data, self.history_path / "current_scene.json")
                 # Canon Synopsis P0: refresh the story-so-far digest now that
                 # the new chapter is part of the archive chain.
                 self._regenerate_canon_digest(f"chapter_{current_chapter_number}")
@@ -582,9 +565,8 @@ Scenes in this chapter ({len(scene_names[span_start:])}):
         current_chapter_number = current_scene_data.get("_chapter_number", 1)
         current_arc_number = current_scene_data.get("_arc_number", 1)
 
-        # Load arcs data
-        arcs_path = self.history_path / "arcs.json"
-        arcs_data = load_json(arcs_path) or {}
+        # Get arcs data (already in all_subjects_data from _load_all_subjects_data)
+        arcs_data = self.all_subjects_data.get("arcs", {})
 
         # Count chapters in the CURRENT arc: archived chapters after the last
         # arc's ending_chapter boundary (index-based; 0 when no arc exists yet).
@@ -600,7 +582,7 @@ Scenes in this chapter ({len(scene_names[span_start:])}):
             print(f"{_WARNING}Dropping {len(raw_arcs) - len(arcs_list)} malformed "
                   f"arc entr(y/ies) from arcs.json.{_RESET}")
             arcs_data = arcs_list
-            save_json(arcs_data, arcs_path)
+            self.all_subjects_data["arcs"] = arcs_list
         last_ending_chapter = 0
         for arc_entry in reversed(arcs_list):
             if isinstance(arc_entry, dict):
@@ -806,15 +788,10 @@ Chapters in this arc:
                 # Add arc to dict keyed by title
                 arc_key = arc_data.get("title", arc_title)
                 arcs_data[arc_key] = arc_data
-                save_json(arcs_data, arcs_path)
 
                 new_arc_number = current_arc_number + 1
                 current_scene_data["_arc_number"] = new_arc_number
                 print(f"{_SUCCESS}Archived arc {current_arc_number} and set new arc number to {new_arc_number}.{_RESET}")
-                # arcs.json was saved above; the _arc_number stamp lives in
-                # current_scene, which generate() saved before this check ran.
-                if isinstance(current_scene_data, dict) and current_scene_data:
-                    save_json(current_scene_data, self.history_path / "current_scene.json")
                 # Canon Synopsis P0: refresh the digest with the arc's
                 # long-range framing folded in.
                 self._regenerate_canon_digest(f"arc_{current_arc_number}")

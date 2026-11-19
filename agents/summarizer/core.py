@@ -864,6 +864,9 @@ class Summarizer(LLMClientMixin, InstructionGeneratorMixin, ContextEngineMixin, 
             if stopped:
                 return None
 
+            for name, data in all_subjects_data.items():
+                save_json(data, new_history_path / f"{name}.json")
+
             # --- Summarize New Messages ---
             pm.start_phase("message_summary", "Message Summarization")
             pm.start_step("message_summary", "summarize", "Preparing message summary...")
