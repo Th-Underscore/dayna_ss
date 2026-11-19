@@ -681,37 +681,6 @@ class Summarizer(LLMClientMixin, InstructionGeneratorMixin, ContextEngineMixin, 
 
         return processed_subjects_data, False
 
-    def _run_boundary_checks(self, data_summarizer) -> bool:
-        """Run chapter/arc boundary checks on a scene turn; returns True when the run was stopped."""
-        pm = self._phase_manager
-        if self.last and self.last.is_new_scene_turn:
-            pm.start_phase("chapter_check", "Chapter Boundary Check")
-            self.log_activity("Chapter Check", "Checking chapter boundary", "info")
-            data_summarizer.check_and_archive_chapter()
-            if runtime.stop_everything:
-                pm.done_phase("chapter_check", "Stopped")
-                pm.end_turn()
-                pm.end_session(publish=False)
-                return None
-            self.log_activity("Chapter Check", "Complete", "success")
-            pm.done_phase("chapter_check")
-
-            pm.start_phase("arc_check", "Arc Boundary Check")
-            self.log_activity("Arc Check", "Checking arc boundary", "info")
-            data_summarizer.check_and_archive_arc()
-            if runtime.stop_everything:
-                pm.done_phase("arc_check", "Stopped")
-                pm.end_turn()
-                pm.end_session(publish=False)
-                return None
-            self.log_activity("Arc Check", "Complete", "success")
-            pm.done_phase("arc_check")
-        else:
-            pm.skip_phase("chapter_check", "Not a scene transition")
-            pm.skip_phase("arc_check", "Not a scene transition")
-
-        return False
-
     def _update_chunk_scene_event_metadata(self, processed_subjects_data: dict) -> None:
         """Update scene_id/event_id metadata on stored message chunks from processed events data."""
         pm = self._phase_manager
