@@ -72,10 +72,9 @@ from .prompts import DSPromptsMixin
 from .discovery import DSDiscoveryMixin
 from .updates import DSUpdatesMixin
 from .traversal import DSTraversalMixin
-from .archives import DSArchivesMixin
 
 
-class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTraversalMixin, DSArchivesMixin):
+class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTraversalMixin):
     def __init__(
         self,
         summarizer: Summarizer,

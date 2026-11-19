@@ -465,7 +465,7 @@ class DSDiscoveryMixin:
         d = branch_schema_class.defaults or {}
 
         # 1. Span-aware cadence gate
-        span_source = d.get("span_source")
+        span_source: str = d.get("span_source")
         span_count = 0
         span_digest = "(no archived entries yet)"
         if span_source:
@@ -477,7 +477,7 @@ class DSDiscoveryMixin:
             hard_min = int(d.get(f"hard_min_{child_unit}", suggested_min))
 
             # Current position in the span source (e.g. _scene_number for chapters, _chapter_number for arcs)
-            span_num_field = f"_{span_source.rstrip('s')}_number"
+            span_num_field = f"_{span_source.removesuffix('s')}_number"
             current_scene_data = self.all_subjects_data.get("current_scene", {})
             current_num = int(current_scene_data.get(span_num_field, 1))
 
@@ -561,10 +561,6 @@ class DSDiscoveryMixin:
         if num_field:
             current_scene = self.all_subjects_data.get("current_scene", {})
             current_scene[num_field] = current_scene.get(num_field, 1) + 1
-
-        # 5. Canon digest (schema flag)
-        if d.get("regenerate_digest"):
-            self._regenerate_canon_digest(f"{branch_name.lower()}_archive")
 
         return data
 

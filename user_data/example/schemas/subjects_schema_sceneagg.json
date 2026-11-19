@@ -703,7 +703,6 @@
         "key_field": "title",
         "storage": "dict",
         "stamp_message_node": true,
-        "regenerate_digest": false,
         "suggested_min_scenes": 1,
         "suggested_max_scenes": 1,
         "max_scenes_before_required": 1,
@@ -791,8 +790,7 @@
         "numbering_field": "_arc_number",
         "key_field": "title",
         "storage": "dict",
-        "stamp_message_node": false,
-        "regenerate_digest": true
+        "stamp_message_node": false
       },
       "triggers": {
         "on_new_scene": [
@@ -845,8 +843,8 @@
       "field": "dict[str, Chapter]",
       "defaults": {
         "suggested_min_scenes": 4,
-        "suggested_max_scenes": 8,
-        "max_scenes_before_required": 10,
+        "suggested_max_scenes": 10,
+        "max_scenes_before_required": 24,
         "field_placeholder": "Chapter_Title",
         "gate_check_prompt_template": "A scene has just been archived. This is a CHAPTER-BOUNDARY decision: should the current stretch of scenes be archived as a complete chapter?\n\nCurrent state: {{ scenes_in_chapter }} scene(s) since the last chapter boundary (of {{ scenes_count }} total). Expected: {{ suggested_min }}-{{ suggested_max }} scenes per chapter; mandatory at {{ max_scenes_before_required }}.\n\nScenes in the current chapter:\n{{ span_digest }}\n\nLook for chapter-boundary signals in the story so far:\n- A complete shift in setting, time of day, or location\n- A revelation, resolution, or plot turn that changes the situation\n- A dramatic movement reaching a natural resting point (not mid-cliffhanger)\n- A change in which characters are in focus\n- A new day, timeskip, or phase transition\n\nIf you see one or more of these signals and the scene count is within the expected range, answer YES. The count being in range is itself a mild signal that a boundary is appropriate.\n\nAnswer NO only if the story is clearly mid-movement: the complication hasn't resolved, the scene ends on an unresolved tension that the next scene must continue, or the scenes read as one continuous beat split artificially.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\nRespond ONLY with: YES or NO",
         "new_entry_query_prompt_template": "Should we create a new chapter?\n\nIf a new chapter is needed, respond with its title as a JSON array containing a single string, e.g. [\"Chapter Nine: The Door Unseals\"]. Otherwise respond with exactly NO.\n\n\nActive Chapters:\n{{ formatted_data }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
@@ -857,8 +855,7 @@
         "numbering_field": "_chapter_number",
         "key_field": "title",
         "storage": "dict",
-        "stamp_message_node": false,
-        "regenerate_digest": true
+        "stamp_message_node": false
       },
       "triggers": {
         "on_new_scene": [
@@ -965,7 +962,7 @@
         "rules_query_prompt_template": "A new scene has just concluded. Did this scene demonstrate any world rules — deviations from real-world expectations, or hard-set laws of this world (how its technology, physics, institutions, economy, or society work)? These are rules about the WORLD itself, not about individual characters.\n\nRespond with only 'YES' if new world rules were demonstrated or stated, or 'NO' if none.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\n",
         "rules_placeholder": "A map of world-building rules keyed by short slug (e.g., 'mana_crystals', 'comms_down'). Each rule is a WorldRule with: text (the rule statement, as a list of lines for multi-part rules), domain (technology, physics, economy, society, magic, meta), scope (who or what it applies to, e.g., 'all characters', 'corporations only'), source (where it was established). Include deviations from real-world expectations AND hard-set laws of the world. Nothing character-specific.",
         "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
-        "synopsis_placeholder": "A concise summary of the main plot points so far. Crucially, this should also highlight the primary goal or current unresolved conflict that is driving the story forward."
+        "synopsis_placeholder": "A plot-level summary of the story so far, structured as: what happened (key developments and their significance), who drove it (central characters and their motivations), and what remains unresolved (open threads, active conflicts, pending revelations). This digest replaces the previous one entirely \u2014 do not refer to 'previously' or append to prior content. Do not enumerate scenes, repeat raw dialogue, or log events chronologically; distill only the essential through-line. Character beliefs and suspicions may be stated only as facts the scenes established. Target ~450 tokens."
       },
       "triggers": {
         "on_new_scene": [
