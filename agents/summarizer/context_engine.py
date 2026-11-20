@@ -522,18 +522,6 @@ class ContextEngineMixin:
                 print(f"{_INPUT}Cache miss for initial world data. Populating cache at {initial_world_data_path}...{_RESET}")
                 initial_world_data_path.mkdir(parents=True, exist_ok=True)
 
-                try:
-                    with open(initial_world_data_path.parent / "dump.txt", "w", encoding="utf-8") as f:
-                        dump_str = str(json.dumps(kwargs, indent=2))
-                        dump_str += "\n\n========================== ORIGINAL STATE\n\n"
-                        dump_str += str(json.dumps(state, indent=2))
-                        dump_str += "\n\n==========================\n"
-                        f.write(dump_str)
-                        f.close()
-                except Exception as e:
-                    print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
-                    traceback.print_exc()
-
                 # Copy global subjects_schema.json to initial_world_data_path
                 schema_cache_path = initial_world_data_path / "subjects_schema.json"
                 if not GLOBAL_SUBJECTS_SCHEMA_TEMPLATE_PATH.exists():

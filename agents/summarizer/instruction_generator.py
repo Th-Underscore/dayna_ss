@@ -89,7 +89,6 @@ class InstructionGeneratorMixin:
 
         Side effects:
             - May persist generated instruction text to <history_path>/instructions.json.
-            - Writes a diagnostic dump file (dump.txt) next to the history directory.
             - Logs activity and updates phase/step tracking for UI telemetry.
         """
         print(f"{_HILITE}generate_instr_prompt{_RESET} {kwargs}")
@@ -417,26 +416,6 @@ class InstructionGeneratorMixin:
                     )
 
                     print(f"{_SUCCESS}State set{_RESET}")
-
-                    try:
-                        with open(history_path.parent / "dump.txt", "w", encoding="utf-8") as f:
-                            dump_str = str(json.dumps(kwargs, indent=2))
-                            dump_str += "\n\n========================== INSTRUCTION GENERATION PROMPT\n\n"
-                            dump_str += str(prompt)
-                            dump_str += "\n\n========================== CUSTOM STATE\n\n"
-                            dump_str += str(json.dumps(custom_state, indent=2))
-                            dump_str += "\n\n========================== ORIGINAL STATE\n\n"
-                            dump_str += str(json.dumps(state, indent=2))
-                            dump_str += "\n\n==========================\n\n"
-                            dump_str += str(instr)
-                            dump_str += "\n\n==========================\n\n"
-                            dump_str += str(instr_prompt)
-                            dump_str += "\n\n==========================\n"
-                            f.write(dump_str)
-                            f.close()
-                    except Exception as e:
-                        print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
-                        traceback.print_exc()
 
                     print(f"{_SUCCESS}Generated instruction prompt{_RESET}")
                     self.log_activity("Instructions Ready", f"Path: {history_path.name}", "success")

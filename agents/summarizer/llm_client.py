@@ -6,8 +6,6 @@ accessed via self (duck-typed).
 """
 from __future__ import annotations
 
-import json
-import jsonc
 from pathlib import Path
 import time
 import traceback
@@ -88,20 +86,6 @@ class LLMClientMixin:
 
         internal_history = state.get("history", {}).get("internal", [])
         history_str = self.hash_key(internal_history, precision=24)
-        try:
-            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
-                dump_str = str(json.dumps(kwargs, indent=2))
-                dump_str += f"\n\n========================== INTERNAL CONTEXT ({history_str})\n\n"
-                dump_str += str(json.dumps(internal_history, indent=2))
-                dump_str += "\n\n=========================="
-                dump_str += "\n========================== NEW PROMPT\n\n"
-                dump_str += str(prompt)
-                dump_str += "\n\n==========================\n"
-                f.write(dump_str)
-                f.close()
-        except Exception as e:
-            print(f"{_ERROR}Error writing dump.txt: {str(e)}{_RESET}")
-            traceback.print_exc()
 
         use_tool_loop = self.retrieval_mode == "active"
         last_emit_len = 0
@@ -177,14 +161,6 @@ class LLMClientMixin:
                     last_emit_len = len(text)
                     last_emit_time = now
 
-                    try:
-                        with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
-                            f.write(snippet)
-                            f.close()
-                    except Exception as e:
-                        print(f"{_ERROR}Error appending to dump.txt: {str(e)}{_RESET}")
-                        traceback.print_exc()
-
                 if s and s not in ("tool_call", ""):
                     break
 
@@ -215,16 +191,6 @@ class LLMClientMixin:
             "phase": {"id": phase_id},
             "step": {"id": step_id, "complete": True, "message": final_text},
         })
-
-        try:
-            with open(history_path.parent / "dump.txt", "a", encoding="utf-8") as f:
-                f.write("\n\n========================== OUTPUT\n\n")
-                f.write(text.strip())
-                f.write("\n\n==========================\n")
-                f.close()
-        except Exception as e:
-            print(f"{_ERROR}Error writing closing marker to dump.txt: {str(e)}{_RESET}")
-            traceback.print_exc()
 
         print(f"[DSS] {phase_id}/{step_id} done out={len(text)}ch dur={(time.time()-eval_start_time):.2f}s")
         return text.strip(), stop

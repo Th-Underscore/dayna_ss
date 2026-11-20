@@ -156,14 +156,6 @@ def custom_generate_chat_prompt(user_input: str, state: dict, history: Histories
 
         kwargs.pop("_continue", False)
         prompt = generate_chat_prompt(instr_prompt, custom_state, **kwargs)
-        with open(history_path.parent / "dump.txt", "a") as f:
-            dump_str = "==========================\n"
-            dump_str += "==========================\n"
-            dump_str += "==========================\n"
-            dump_str += "==========================\n\n"
-            dump_str += prompt
-            f.write(dump_str)
-            f.close()
         print(f"{_BILITE}Prompt generated in {time.time() - start:.2f} seconds.{_RESET}")
         dss_shared.custom_state.value = custom_state
         return prompt
