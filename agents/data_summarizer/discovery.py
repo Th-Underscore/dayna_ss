@@ -106,6 +106,12 @@ class DSDiscoveryMixin:
             )
             return
 
+        # Gate: skip the query if the entity type has zero presence in the
+        # relevance graph — no connected entities means no new ones to discover.
+        if not self._branch_has_relevance_presence(branch_name):
+            print(f"{_GRAY}add_new_query: no {branch_name} entities in relevance graph; skipping query.{_RESET}")
+            return
+
         print(f"{_INPUT}Querying for new entries to add to '{branch_name}'...{_RESET}")
 
         # Step 1: Query for names of new entries

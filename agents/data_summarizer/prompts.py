@@ -89,6 +89,25 @@ class DSPromptsMixin:
 
         return None
 
+    def _branch_has_relevance_presence(self, branch_name: str) -> bool:
+        """True if the branch's entity type has at least one entity in
+        relevant_entities, or if no relevance data is available (fail-open)."""
+        try:
+            ctx = self.summarizer.last.context[0]
+            rel = ctx.relevant_entities
+        except (AttributeError, IndexError, KeyError):
+            return True
+        if not rel:
+            return True
+        lower = branch_name.lower().rsplit(".", 1)[-1]
+        # "entries" is a branch suffix, not an entity type — use the parent
+        if lower == "entries":
+            lower = branch_name.lower().split(".")[0]
+        if lower in rel:
+            return len(rel[lower]) > 0
+        # Entity type not tracked in the graph — fail-open
+        return True
+
     def _build_subject_routing_guide(self, subject_name: str) -> str:
         """Compose a dynamic routing block listing every subject and what belongs in each.
 
