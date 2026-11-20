@@ -105,7 +105,13 @@
       "defaults": {
         "relationship_format": {
           "_self": {
-            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
+            "target_type": [
+              "offscreen",
+              "beat",
+              "scene",
+              "chapter",
+              "arc"
+            ],
             "bidirectional": false,
             "relationship_definition": "CharacterMilestone"
           }
@@ -160,7 +166,13 @@
             "relationship_definition": "CharacterGroupStatus"
           },
           "milestones": {
-            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
+            "target_type": [
+              "offscreen",
+              "beat",
+              "scene",
+              "chapter",
+              "arc"
+            ],
             "bidirectional": false,
             "relationship_definition": "CharacterMilestone"
           },
@@ -241,7 +253,13 @@
             "traversal_direction": "outgoing"
           },
           "milestones": {
-            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
+            "target_type": [
+              "offscreen",
+              "beat",
+              "scene",
+              "chapter",
+              "arc"
+            ],
             "bidirectional": false,
             "relationship_definition": "CharacterMilestone",
             "traversal_direction": "outgoing"
@@ -696,7 +714,7 @@
         "new_entry_query_prompt_template": "The current scene (the one tracked in CurrentScene) has just ended. This happens on scene transitions (either triggered manually with 'NEXT SCENE:' or auto-detected after generation). The completed scene should be archived to scenes.json. List the title of the one (1) new scene that should be added to the '{{ branch_name }}' list.\n\nOne new scene must be added to this list. Provide its name/title as a JSON array containing a single string.\n\nExample:\n```json\n[\"The First Incursion Erupts\"]\n```\n\nREMEMBER: One (1) scene *must* be added; no more, no less. This scene should have been tracked in CurrentScene before being archived here.\n\nHere is the current list of existing entries:\n{{ branch_list }}",
         "new_entry_prompt_template": "A new scene has been completed and needs to be archived. Below is the auto-generated archive data, pre-filled from the scene's tracking state.\n\n```jsonc\n{{ temp_data }}\n```\n\nReplace the \"SCENE #N\" placeholder in \"title\" with a short descriptive title (a few words to a short phrase) capturing the scene's core action, location, or turning point — e.g. \"The Broker's Warning\", \"Breach of the Outer Shell\", \"Sable Calls the Job\". Also fill in any empty fields (\"outcome\", \"importance.reason\", participant importance details) based on the conversation.\n\nRelevant Schema:\n#!/definitions/{{ schema_class }}\n\nExample JSON structure:\n```json\n{{ example_json }}\n```\n\nPlease provide your response as a complete JSON object for the entry.\n\nIMPORTANT: Output ONLY the entry's fields directly as a JSON object. Do NOT wrap it in a parent object. Keep all pre-filled values that are already correct; only change what needs changing.",
         "field_placeholder": "Scene_Using_Data_From_Current_Scene",
-        "archive_template": "{\n  \"title\": \"SCENE #{{ current_scene._scene_number }} — REPLACE with a descriptive title\",\n  \"formal_name\": \"N/A\",\n  \"aliases\": [],\n  \"start\": {{ current_scene.start.when | tojson }},\n  \"end\": {{ current_scene.now.when | tojson }},\n  \"summary\": \"{{ current_scene.what }}\",\n  \"catalyst\": \"{{ current_scene.start.why[0].details if current_scene.start.why else 'N/A' }}\",\n  \"outcome\": \"\",\n  \"participants\": {{ current_scene.now.who.get('characters', []) | participants | tojson }},\n  \"importance\": {\"score\": 50, \"reason\": \"\", \"faction\": \"positive\"}\n}",
+        "archive_template": "{\n  \"title\": \"SCENE #{{ current_scene._scene_number | default(1) }} — REPLACE with a descriptive title\",\n  \"formal_name\": \"N/A\",\n  \"aliases\": [],\n  \"start\": {{ current_scene.start.when | tojson }},\n  \"end\": {{ current_scene.now.when | tojson }},\n  \"summary\": \"{{ current_scene.what }}\",\n  \"catalyst\": \"{{ current_scene.start.why[0].details if current_scene.start.why else 'N/A' }}\",\n  \"outcome\": \"\",\n  \"participants\": {{ current_scene.now.who.get('characters', []) | participants | tojson }},\n  \"importance\": {\"score\": 50, \"reason\": \"\", \"faction\": \"positive\"}\n}",
         "span_source": null,
         "span_end_field": null,
         "numbering_field": "_scene_number",
@@ -784,7 +802,7 @@
         "gate_check_prompt_template": "A chapter has just been archived. This is an ARC-BOUNDARY decision: should the current stretch of chapters be archived as a complete arc?\n\nCurrent state: {{ chapters_in_arc }} chapter(s) in the current arc (of {{ chapters_count }} total). Expected: {{ suggested_min }}-{{ suggested_max }} chapters per arc; mandatory at {{ max_chapters_before_required }}.\n\nChapters in the current arc:\n{{ chapters_digest }}\n\nLook for arc-boundary signals in the story so far:\n- A major conflict, event, or campaign has fully concluded (not paused)\n- A long timeskip or phase transition in the story\n- The stakes, cast dynamics, or central question have fundamentally shifted\n- The story has moved into a new long-range situation that would feel like a fresh start\n- The emotional/tonal register has changed significantly\n\nIf you see one or more of these signals and the chapter count is within the expected range, answer YES. The count being in range is itself a mild signal that a boundary is appropriate.\n\nAnswer NO only if the arc's core conflict is still actively unfolding: escalation is ongoing, the central question is unresolved, or the chapters read as one continuous campaign.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\nRespond ONLY with: YES or NO",
         "new_entry_query_prompt_template": "Should we create a new narrative arc?\n\nIf a new arc is needed, respond with its title as a JSON array containing a single string, e.g. [\"The Unsealing of the North Door\"]. Otherwise respond with exactly NO.\n\n\nActive Arcs:\n{{ formatted_data }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
         "new_entry_prompt_template": "A new arc has been detected. This is the current archive data:\n```jsonc\n{{ temp_data }}\n```\nReplace the \"ARC #N\" placeholder in \"title\" with a descriptive arc title (a few words to a short phrase) capturing the arc's central conflict or journey — e.g. \"The Heist\", \"The Erasure War\", \"Reclaiming the Grid\". Fill in the summary, character_arcs, relationship_shifts, and plot_threads based on the chapters covered. Leave structural fields (starting_chapter, ending_chapter, chapters, status) unchanged.\n\nSchema:\n#!/definitions/{{ schema_class }}\n\nExample:\n```json\n{{ example_json }}\n```\n\nIMPORTANT: Output ONLY the arc's JSON data. Never reproduce the schema definition, the example JSON, or any other text from this prompt.",
-        "archive_template": "{% set start = 1 if arcs | length == 0 else (arcs | last).get('ending_chapter', 0) + 1 %}\n{\n  \"title\": \"ARC #{{ current_scene._arc_number }}\",\n  \"starting_chapter\": {{ start }},\n  \"ending_chapter\": {{ current_scene._chapter_number }},\n  \"chapters\": {{ start | range_list(current_scene._chapter_number) | tojson }},\n  \"summary\": \"\",\n  \"character_arcs\": \"\",\n  \"relationship_shifts\": \"\",\n  \"plot_threads\": [],\n  \"status\": \"complete\"\n}",
+        "archive_template": "{% set start = 1 if arcs | length == 0 else ((arcs | last).get('ending_chapter') or 0) + 1 %}\n{\n  \"title\": \"ARC #{{ current_scene._arc_number | default(1) }}\",\n  \"starting_chapter\": {{ start }},\n  \"ending_chapter\": {{ current_scene._chapter_number | default(1) }},\n  \"chapters\": {{ start | range_list(current_scene._chapter_number | default(1)) | tojson }},\n  \"summary\": \"\",\n  \"character_arcs\": \"\",\n  \"relationship_shifts\": \"\",\n  \"plot_threads\": [],\n  \"status\": \"complete\"\n}",
         "span_source": "chapters",
         "span_end_field": "ending_chapter",
         "numbering_field": "_arc_number",
@@ -849,7 +867,7 @@
         "gate_check_prompt_template": "A scene has just been archived. This is a CHAPTER-BOUNDARY decision: should the current stretch of scenes be archived as a complete chapter?\n\nCurrent state: {{ scenes_in_chapter }} scene(s) since the last chapter boundary (of {{ scenes_count }} total). Expected: {{ suggested_min }}-{{ suggested_max }} scenes per chapter; mandatory at {{ max_scenes_before_required }}.\n\nScenes in the current chapter:\n{{ span_digest }}\n\nLook for chapter-boundary signals in the story so far:\n- A complete shift in setting, time of day, or location\n- A revelation, resolution, or plot turn that changes the situation\n- A dramatic movement reaching a natural resting point (not mid-cliffhanger)\n- A change in which characters are in focus\n- A new day, timeskip, or phase transition\n\nIf you see one or more of these signals and the scene count is within the expected range, answer YES. The count being in range is itself a mild signal that a boundary is appropriate.\n\nAnswer NO only if the story is clearly mid-movement: the complication hasn't resolved, the scene ends on an unresolved tension that the next scene must continue, or the scenes read as one continuous beat split artificially.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\nRespond ONLY with: YES or NO",
         "new_entry_query_prompt_template": "Should we create a new chapter?\n\nIf a new chapter is needed, respond with its title as a JSON array containing a single string, e.g. [\"Chapter Nine: The Door Unseals\"]. Otherwise respond with exactly NO.\n\n\nActive Chapters:\n{{ formatted_data }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
         "new_entry_prompt_template": "A new chapter has been detected. This is the current archive data:\n```jsonc\n{{ temp_data }}\n```\nReplace the \"CHAPTER #N\" placeholder in \"title\" with a descriptive chapter title (a few words to a short phrase) capturing the chapter's dramatic arc — e.g. \"Assembling the Crew\", \"The Memory Market Run\", \"Into the Vault\". Fill in the summary and key_changes based on the scenes covered. Leave structural fields (starting_scene, ending_scene, scenes, status) unchanged.\nSchema:\n#!/definitions/{{ schema_class }}\n\nExample:\n```json\n{{ example_json }}\n```\n\nIMPORTANT: Output ONLY the chapter's JSON data. Never reproduce the schema definition, the example JSON, or any other text from this prompt.",
-        "archive_template": "{% set start = 1 if chapters | length == 0 else (chapters | last).get('ending_scene', 0) + 1 %}\n{\n  \"title\": \"CHAPTER #{{ current_scene._chapter_number }}\",\n  \"starting_scene\": {{ start }},\n  \"ending_scene\": {{ current_scene._scene_number }},\n  \"scenes\": {{ start | range_list(current_scene._scene_number) | tojson }},\n  \"summary\": \"\",\n  \"key_changes\": [],\n  \"status\": \"complete\"\n}",
+        "archive_template": "{% set start = 1 if chapters | length == 0 else ((chapters | last).get('ending_scene') or 0) + 1 %}\n{\n  \"title\": \"CHAPTER #{{ current_scene._chapter_number | default(1) }}\",\n  \"starting_scene\": {{ start }},\n  \"ending_scene\": {{ current_scene._scene_number | default(1) }},\n  \"scenes\": {{ start | range_list(current_scene._scene_number | default(1)) | tojson }},\n  \"summary\": \"\",\n  \"key_changes\": [],\n  \"status\": \"complete\"\n}",
         "span_source": "scenes",
         "span_end_field": "ending_scene",
         "numbering_field": "_chapter_number",
@@ -962,7 +980,7 @@
         "rules_query_prompt_template": "A new scene has just concluded. Did this scene demonstrate any world rules — deviations from real-world expectations, or hard-set laws of this world (how its technology, physics, institutions, economy, or society work)? These are rules about the WORLD itself, not about individual characters.\n\nRespond with only 'YES' if new world rules were demonstrated or stated, or 'NO' if none.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\n",
         "rules_placeholder": "A map of world-building rules keyed by short slug (e.g., 'mana_crystals', 'comms_down'). Each rule is a WorldRule with: text (the rule statement, as a list of lines for multi-part rules), domain (technology, physics, economy, society, magic, meta), scope (who or what it applies to, e.g., 'all characters', 'corporations only'), source (where it was established). Include deviations from real-world expectations AND hard-set laws of the world. Nothing character-specific.",
         "main_objective_placeholder": "A single sentence describing the main, active goal the protagonists are currently pursuing (e.g., 'Find a cure for the nanite plague'). This is extremely important; consequently, it shouldn't be decided too hastily. If a story is still too fresh (within ~3 messages) to have a clear main objective, this field should be left blank in exchange for a secondary objective. Additionally, this is likely to change over time as the story progresses; don't overthink it.",
-        "synopsis_placeholder": "A plot-level summary of the story so far, structured as: what happened (key developments and their significance), who drove it (central characters and their motivations), and what remains unresolved (open threads, active conflicts, pending revelations). This digest replaces the previous one entirely \u2014 do not refer to 'previously' or append to prior content. Do not enumerate scenes, repeat raw dialogue, or log events chronologically; distill only the essential through-line. Character beliefs and suspicions may be stated only as facts the scenes established. Target ~450 tokens."
+        "synopsis_placeholder": "A plot-level summary of the story so far, structured as: what happened (key developments and their significance), who drove it (central characters and their motivations), and what remains unresolved (open threads, active conflicts, pending revelations). This digest replaces the previous one entirely — do not refer to 'previously' or append to prior content. Do not enumerate scenes, repeat raw dialogue, or log events chronologically; distill only the essential through-line. Character beliefs and suspicions may be stated only as facts the scenes established. Target ~450 tokens."
       },
       "triggers": {
         "on_new_scene": [
@@ -1006,7 +1024,13 @@
             "relationship_definition": "ElementRelationships"
           },
           "events": {
-            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
+            "target_type": [
+              "offscreen",
+              "beat",
+              "scene",
+              "chapter",
+              "arc"
+            ],
             "bidirectional": false
           }
         },
@@ -1070,7 +1094,13 @@
             "traversal_direction": "both"
           },
           "events": {
-            "target_type": ["offscreen", "beat", "scene", "chapter", "arc"],
+            "target_type": [
+              "offscreen",
+              "beat",
+              "scene",
+              "chapter",
+              "arc"
+            ],
             "bidirectional": false,
             "traversal_direction": "outgoing"
           }

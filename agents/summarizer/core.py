@@ -462,15 +462,6 @@ class Summarizer(LLMClientMixin, InstructionGeneratorMixin, ContextEngineMixin, 
         """On a scene turn, advance scene numbering and stamp scene-start/chapter/arc metadata."""
         if self.last and self.last.is_new_scene_turn:
             if "current_scene" in all_subjects_data:
-                events_data = all_subjects_data.get("events", {})
-                scenes_count = len(events_data.get("scenes", {})) if events_data else 0
-                new_scene_number = scenes_count + 1
-                current_scene_number = all_subjects_data["current_scene"].get("_scene_number")
-                if current_scene_number is not None:
-                    new_scene_number = current_scene_number + 1
-                all_subjects_data["current_scene"]["_scene_number"] = new_scene_number
-                print(f"{_DEBUG}Setting '_scene_number' to {new_scene_number} for new scene.{_RESET}")
-
                 # Track the message index where this scene part begins so the
                 # hard message-budget split can count messages per part.
                 all_subjects_data["current_scene"]["_scene_start_message"] = max(
@@ -495,16 +486,6 @@ class Summarizer(LLMClientMixin, InstructionGeneratorMixin, ContextEngineMixin, 
                     _start_block["when"] = _start_when
                 _start_when["_message_node"] = f"{max(0, (len(history) * 2) - 2)}_1_1"
                 print(f"{_DEBUG}Stamped current_scene.start.when._message_node = {_start_when['_message_node']}{_RESET}")
-
-                # Initialize _chapter_number if not set
-                if "_chapter_number" not in all_subjects_data["current_scene"]:
-                    all_subjects_data["current_scene"]["_chapter_number"] = 1
-                    print(f"{_DEBUG}Setting initial '_chapter_number' to 1.{_RESET}")
-
-                # Initialize _arc_number if not set
-                if "_arc_number" not in all_subjects_data["current_scene"]:
-                    all_subjects_data["current_scene"]["_arc_number"] = 1
-                    print(f"{_DEBUG}Setting initial '_arc_number' to 1.{_RESET}")
 
 
     def _maybe_populate_first_scene(self, user_input: str, output: str, state: dict, last_history_path: Path, new_history_path: Path, all_subjects_data: dict, has_archived_scenes: bool) -> dict:

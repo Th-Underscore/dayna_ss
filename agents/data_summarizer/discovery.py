@@ -551,14 +551,15 @@ class DSDiscoveryMixin:
                 print(f"{_GRAY}Archive gate: LLM says NO (response: {llm_response[:50]}...). Continuing.{_RESET}")
                 return data
 
-        # 3. Execute: _archive_boundary_entry (existing, already schema-driven)
+        # 3. Archive
+        prev_len = len(data)
         data = self._archive_boundary_entry(
             branch_name, data, formatted_data, branch_schema_class, keys
         )
 
-        # 4. Numbering increment
+        # 4. Numbering increment (only on successful archive)
         num_field = d.get("numbering_field")
-        if num_field:
+        if num_field and len(data) > prev_len:
             current_scene = self.all_subjects_data.get("current_scene", {})
             current_scene[num_field] = current_scene.get(num_field, 1) + 1
 
