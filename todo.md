@@ -227,6 +227,7 @@ Open: how to structure spreadsheets to serve both modes (e.g. ability/role field
 
 ### Production reliability
 
+- [ ] Archive failure recovery — if a scene archive fails (e.g. LLM returns garbage), the `_scene_number` stays put (correct), but downstream chapter/arc archives may reference a scene that was never persisted. No fix-later mechanism exists to retry or reconcile. Low priority: failures are rare and the story continues; a stale `ending_scene` pointer is cosmetic.
 - [ ] Handle `_continue` — debug how TGWUI passes `_continue`, `user_input`, and `state["history"]` during "Continue"
 - [ ] Handle message edits — detect changes, re-summarize only affected fields (pairs with the change-diff persistence item above)
 - [ ] Stop/cancel mid-generation — restore original seed, clean partial summaries
