@@ -113,7 +113,7 @@ class ParsedSchemaClass:
         fields: list[ParsedSchemaField] | None = None,
         field: ParsedSchemaField | None = None,
         defaults: dict[str, Any] | None = None,
-        triggers: dict[Trigger, list[tuple[Action, dict | None]]] | None = None,
+        triggers: dict[Trigger | str, list[tuple[Action, dict | None]]] | None = None,
     ):
         self.name = name
         self.definition_type = definition_type
@@ -700,7 +700,7 @@ class SchemaParser:
             #       -> (Action.QUERY_BRANCH_FOR_CHANGES, {"prompt_template": "..."})
             parsed_triggers = {}
             for trigger_key, actions in triggers_data.items():
-                trigger_enum = getattr(Trigger, trigger_key.upper())
+                trigger_enum = getattr(Trigger, trigger_key.upper(), trigger_key)  # schema-derived dynamic trigger (e.g. "on_chapter_archived")
                 action_list = []
                 for action_entry in actions:
                     if isinstance(action_entry, str):

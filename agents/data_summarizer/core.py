@@ -122,6 +122,14 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
         # (a fresh entry needs initial population even if the selection call
         # did not name it).
         self._new_entry_names: dict[str, set[str]] = {}
+        # Snapshot of _{unit}_number fields at turn start, used to detect
+        # which units were archived this turn (for dynamic on_{unit}_archived triggers).
+        self._turn_start_numbers: dict[str, int] = {}
+        cs = all_subjects_data.get("current_scene", {})
+        if isinstance(cs, dict):
+            for k, v in cs.items():
+                if k.startswith("_") and k.endswith("_number") and isinstance(v, int):
+                    self._turn_start_numbers[k] = v
 
     def _get_effective_setting(
         self,
@@ -196,14 +204,26 @@ class DataSummarizer(DSPromptsMixin, DSDiscoveryMixin, DSUpdatesMixin, DSTravers
         # Boolean flags for actions are now handled by trigger_map.
         return None
 
-    def _get_current_event_triggers(self, schema_class: ParsedSchemaClass | None = None) -> list[Trigger]:
+    def _get_current_event_triggers(self, schema_class: ParsedSchemaClass | None = None) -> list["Trigger | str"]:
         """Get the current event triggers based on the last turn, which can be used to determine whether an action is triggered.
         """
-        current_event_triggers = [Trigger.ALWAYS]
+        current_event_triggers: list[Trigger | str] = [Trigger.ALWAYS]
         if self.summarizer.last and self.summarizer.last.is_new_scene_turn:
             current_event_triggers.append(Trigger.ON_NEW_SCENE)
         else:
             current_event_triggers.append(Trigger.ON_EXISTING_SCENE)
+
+        # Dynamic on_{unit}_archived triggers: fire when a unit's number field
+        # was incremented this turn (i.e., that unit was archived).
+        cs = self.all_subjects_data.get("current_scene", {})
+        if isinstance(cs, dict):
+            for num_field, start_val in self._turn_start_numbers.items():
+                current_val = cs.get(num_field)
+                if isinstance(current_val, int) and current_val > start_val:
+                    unit = num_field.lstrip("_").removesuffix("_number")
+                    trigger_key = f"on_{unit}_archived"
+                    if trigger_key not in current_event_triggers:
+                        current_event_triggers.append(trigger_key)
 
         return current_event_triggers
 
