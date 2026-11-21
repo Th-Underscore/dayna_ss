@@ -79,10 +79,10 @@ class DSUpdatesMixin:
         hist = data["_history"]
         hist.append({"path": path_str, "old": old_value, "new": new_value})
         # Compact: count entries for this path, collapse oldest if over cap
-        count = sum(1 for h in hist if h["path"] == path_str)
+        count = sum(1 for h in hist if h.get("path") == path_str)
         if count > self._HISTORY_CAP:
             # Find entries for this path, keep newest N, collapse the rest
-            path_entries = [i for i, h in enumerate(hist) if h["path"] == path_str]
+            path_entries = [i for i, h in enumerate(hist) if h.get("path") == path_str]
             excess = count - self._HISTORY_CAP
             to_remove = path_entries[:excess]
             for idx in sorted(to_remove, reverse=True):
@@ -558,6 +558,10 @@ class DSUpdatesMixin:
                 if _parent is None:
                     _term = self._path_terminal_default(keyList, schema_class)
                     recursive_set(data, keyList[:-1], _term)
+                elif isinstance(_parent, (str, int, float, bool)):
+                    _traversed = '.'.join(str(k) for k in keyList[:-1])
+                    errors.append(f"path '{path_str}': cannot traverse into scalar at '{_traversed}'")
+                    continue
 
             # Layer 3: schema conformity
             if schema_class is not None and len(keyList) > 1:

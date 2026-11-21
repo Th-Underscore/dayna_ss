@@ -132,7 +132,7 @@ class PopulationMixin:
             # every DSS call sees the complete schema at a stable prefix position
             # (prefix-cache anchor). Gated by config['embed_full_schema']. Mirrors
             # the injection in context_engine.py for the normal DSS path.
-            if self.config.get("embed_full_schema", False) and self.last.schema_parser:
+            if self.config.get("embed_full_schema", False) and self.last is not None and self.last.schema_parser:
                 custom_state["context"] += f"\n\nFULL SCHEMA (all subjects):\n```json\n{self.last.schema_parser.get_full_schema_str()}\n```"
 
             max_retries = 2
