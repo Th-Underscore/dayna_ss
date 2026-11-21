@@ -658,20 +658,19 @@
         "importance_detail_threshold": 50,
         "suggested_min_turns": 2,
         "suggested_max_turns": 4,
-        "max_turns_before_required": 6
+        "max_turns_before_required": 6,
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which existing entries in this section/category plausibly need any update (new or changed details, status, participants, summary, or outcome)?\n\nName every entry that MIGHT have changed or been involved in the latest exchange(s). Err on the side of naming: naming an entry that turns out to be unchanged is harmless (its own update call will report no changes); omitting an entry leaves it stale. If a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of entry names, e.g.:\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n\nAn empty array means none of these entries need updating.\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry names, or exactly NO.\n",
+        "select_entries_min_size": 4
       },
       "triggers": {
         "on_new_scene": [
           "add_new",
           {
             "action": "query_branch_for_changes",
-            "skip_query": true
-          },
-          {
-            "action": "query_branch_for_changes",
             "prompt_template": "importance_update_prompt_template",
             "when": "gate_check_fail"
-          }
+          },
+          "select_entries_to_update"
         ]
       }
     },
@@ -690,20 +689,19 @@
         "update_prompt_template": "Based on the latest exchange, is the summary below inaccurate or incomplete?\nRelevant Schema:\n```json\n{{ schema_snippet }}\n```\n\nExample JSON structure (the structure you are modifying — do NOT output this full structure in your response; only output the fields that changed):\n```json\n{{ example_json }}\n```\nIf yes, respond with the updated summary.\nIf no, respond \"UNCHANGED\".\nIf unsure, respond \"UNCHANGED\".\n\nREMEMBER: Do not add anything else to the response. Only respond with the updated or unchanged summary.\n\nCurrent summary: \"\"\"{{ value | tojsonc }}\"\"\"\n\nSummary to review: '{{ item_name }}' (field '{{ field_name }}')",
         "suggested_min_turns": 2,
         "suggested_max_turns": 4,
-        "max_turns_before_required": 6
+        "max_turns_before_required": 6,
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which existing entries in this section/category plausibly need any update (new or changed details, status, participants, summary, or outcome)?\n\nName every entry that MIGHT have changed or been involved in the latest exchange(s). Err on the side of naming: naming an entry that turns out to be unchanged is harmless (its own update call will report no changes); omitting an entry leaves it stale. If a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of entry names, e.g.:\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n\nAn empty array means none of these entries need updating.\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry names, or exactly NO.\n",
+        "select_entries_min_size": 4
       },
       "triggers": {
         "on_new_scene": [
           "add_new",
           {
             "action": "query_branch_for_changes",
-            "skip_query": true
-          },
-          {
-            "action": "query_branch_for_changes",
             "prompt_template": "importance_update_prompt_template",
             "when": "gate_check_fail"
-          }
+          },
+          "select_entries_to_update"
         ]
       }
     },
@@ -732,20 +730,19 @@
         "importance_detail_threshold": 50,
         "suggested_min_turns": 2,
         "suggested_max_turns": 4,
-        "max_turns_before_required": 6
+        "max_turns_before_required": 6,
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which existing entries in this section/category plausibly need any update (new or changed details, status, participants, summary, or outcome)?\n\nName every entry that MIGHT have changed or been involved in the latest exchange(s). Err on the side of naming: naming an entry that turns out to be unchanged is harmless (its own update call will report no changes); omitting an entry leaves it stale. If a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of entry names, e.g.:\n[\"The Ambush at Dawn\", \"Discovery of the Old Bunker\"]\n\nAn empty array means none of these entries need updating.\n\nHere is the current list of existing entries:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry names, or exactly NO.\n",
+        "select_entries_min_size": 4
       },
       "triggers": {
         "on_new_scene": [
           "check_archive",
           {
             "action": "query_branch_for_changes",
-            "skip_query": true
-          },
-          {
-            "action": "query_branch_for_changes",
             "prompt_template": "importance_update_prompt_template",
             "when": "gate_check_fail"
-          }
+          },
+          "select_entries_to_update"
         ]
       }
     },
@@ -873,11 +870,14 @@
         "numbering_field": "_chapter_number",
         "key_field": "title",
         "storage": "dict",
-        "stamp_message_node": false
+        "stamp_message_node": false,
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which chapters plausibly need any update (status, summary, key_changes, scenes)?\n\nTypically only the most recent (current/active) chapter needs updating. Previously archived chapters rarely change. Name every chapter that MIGHT have changed. Err on the side of naming: naming a chapter that turns out to be unchanged is harmless; omitting one leaves it stale.\n\nIf a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of chapter names, e.g.:\n[\"Chapter Three: The Memory Market\", \"Chapter Four: Into the Vault\"]\n\nAn empty array means no chapters need updating.\n\nHere is the current list of existing chapters:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of chapter names, or exactly NO.\n",
+        "select_entries_min_size": 3
       },
       "triggers": {
         "on_new_scene": [
-          "check_archive"
+          "check_archive",
+          "select_entries_to_update"
         ]
       }
     },
