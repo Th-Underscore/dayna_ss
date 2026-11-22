@@ -815,7 +815,7 @@
         "starting_chapter_placeholder": "The chapter index where this arc began.",
         "ending_chapter_placeholder": "The chapter index where this arc concluded, or null if still active.",
         "chapters_placeholder": "List of chapter indices where this arc was active or referenced.",
-        "summary_placeholder": "A 1-2 paragraph summary of what this arc is about - the core conflict, stakes, and progression.",
+        "summary_placeholder": "2-3 paragraph summary of what this arc is about - the core conflict, stakes, and progression. Aim for ~300 tokens.",
         "character_arcs_placeholder": "How have the main characters involved in this arc changed or been revealed?",
         "relationship_shifts_placeholder": "How have relationships between characters shifted during this arc?",
         "plot_threads_placeholder": "What plot threads or mysteries are associated with this arc?",
