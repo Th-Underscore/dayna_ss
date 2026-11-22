@@ -112,7 +112,8 @@ def _soak_log_call(phase_id: str, step_id: str, ttft: float, total: float, pt: i
                  f"in={pt} out={ct} tok{cache_str} ({(pt / total / 1000):.1f}K tok/s)")
     # Structured JSONL sidecar (opt-in via SOAK_JSONL_PATH env var)
     if _SOAK_JSONL_PATH:
-        rec = {"turn": _SOAK_TURN, "subject": phase_id, "action": step_id,
+        rec = {"ts": round(time.time(), 3),
+               "turn": _SOAK_TURN, "subject": phase_id, "action": step_id,
                "ttft": round(ttft, 3) if ttft is not None else None,
                "total": round(total, 3), "in": pt, "out": ct, "cached": cached_pt}
         with _SOAK_JSONL_LOCK:
@@ -165,6 +166,13 @@ def _arg_parser() -> argparse.ArgumentParser:
                         "Each run lands in <runs-dir>/<spreadsheet>__<hash>/")
     p.add_argument("--final-overview", metavar="RUN_DIR", default=None,
                    help="standalone: write a final overview for an existing run dir, then exit")
+    p.add_argument("--backfill", action="store_true",
+                    help="standalone: backfill missing judge/audit/overview for completed turns "
+                         "(requires --resume); no new guide turns are run")
+    p.add_argument("--clear-from", type=int, default=0,
+                    help="standalone: clear judge/audit/overview data from turn N (0-indexed) onward "
+                         "in an existing run (requires --resume); makes way for --backfill with a "
+                         "new cloud model. Composes with --backfill to clear-then-re-backfill in one call")
     p.add_argument("--backfill-rolling-overview", nargs=2, metavar=("RUN_DIR", "N"),
                    action="append", default=None,
                    help="standalone: re-write the rolling overview checkpoint N (turn count, e.g. 32 "
@@ -231,6 +239,16 @@ def _arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--cloud-endpoint", default=None, help="common self-hosted OpenAI-compatible base URL for all cloud models (e.g. http://localhost:9931). Overrides default cloud endpoint.")
     p.add_argument("--cloud-provider", default=None, help="auth.json entry name to use as the API key for --cloud-endpoint (e.g. 'llama' or 'textgen'). When omitted, resolve_local_api_key() picks from its default order.")
     p.add_argument("--judge-window", type=int, default=12, help="exchanges shown to the judge")
+    p.add_argument("--guide-memory", choices=("full", "names", "off"), default="full",
+                   help="how much of DSS's memory the cloud guide/planner sees: 'full' (default, unchanged), "
+                        "'names' (who and what exists, no detail), or 'off'. The guide restating details it read in "
+                        "the memory keeps refreshing DSS, which flatters retention; 'names' or 'off' removes that loop")
+    p.add_argument("--audit-retry-every", type=int, default=10,
+                   help="every N turns, re-audit beats whose latest verdict is not 'saved' (default 10; 0 = off). "
+                        "The auditor accepts late saves, so a beat audited once at its scheduled turn is judged too early")
+    p.add_argument("--memory-grace", type=int, default=MEMORY_GRACE_DEFAULT,
+                   help="exchanges a planted note/beat gets before a missing memory save counts against DSS "
+                        f"(default {MEMORY_GRACE_DEFAULT}; scene-level subjects only update at scene boundaries)")
     p.add_argument("--max-update-history", type=int, default=0,
                    help="max engine internal-history exchanges sent per DataSummarizer call (0 = unlimited); "
                         "composes with the rolling window as sent = history[-min(rolling_window, this):]")
@@ -717,6 +735,21 @@ def _apply_embed_device(device: str) -> None:
         os.environ["CUDA_VISIBLE_DEVICES"] = idx
 
 
+# --------------------------------------------------- history stripping ----
+
+def _strip_history_keys(node: Any) -> Any:
+    """Recursively remove any dict key ending in ``_history`` from a JSON-loaded
+    structure. These are engine-internal bookkeeping fields (per-field update
+    history) that bloat cloud prompts without being relevant to the guide,
+    judge, or auditor."""
+    if isinstance(node, dict):
+        return {k: _strip_history_keys(v)
+                for k, v in node.items() if not k == "_history"}
+    if isinstance(node, list):
+        return [_strip_history_keys(item) for item in node]
+    return node
+
+
 # ------------------------------------------------------------- needles -----
 
 def _find_needle(needle: str, node, path: str = "") -> list[str]:
@@ -885,7 +918,882 @@ def guide_turn_with_retry(guide: "CloudModel", spreadsheet: dict, msgs: list[dic
             f"no meta-commentary, no outline text.")}
     raise RuntimeError(f"guide produced unusable {label}")  # unreachable
 
-_SCORE_ANCHORS = """SCORE CALIBRATION — use the FULL scale; anchor every numeric score you return to these meanings:
+# ---------------------------------------------------------------------------
+# Memory fidelity v2: answer key, evidence-audited verification, code-computed
+# score. The judge never writes a memory number; it verifies items and cites
+# evidence, and the harness turns verdicts into a score (see score_memory_checks).
+# ---------------------------------------------------------------------------
+import math as _math
+
+_NON_SUBJECT_JSON = ("subjects_schema.json", "format_templates.json", "entity_graph.json")
+MEMORY_GRACE_DEFAULT = 3  # exchanges a detail gets before a missing save counts against DSS
+
+_NOTE_CREDIT = {"retained": 1.0, "partial": 0.5, "missing": 0.0, "contradicted": 0.0}
+_BEAT_CREDIT = {"saved": 1.0, "partial": 0.5, "wrong": 0.0, "missing": 0.0}
+_FACT_CREDIT = {"retained": 1.0, "partial": 0.5, "stale": 0.25, "missing": 0.0, "contradicted": 0.0}
+_FACT_WEIGHT = {"high": 3.0, "medium": 2.0, "low": 1.0}
+_MEMORY_WEIGHTS = {"notes": 0.35, "beats": 0.25, "facts": 0.40}
+_MEMORY_MIN_ITEMS_FOR_TOP = 6  # fewer checked items than this cannot earn above 4.5
+_CLAIM_PENALTY = 0.5
+_CLAIM_PENALTY_CAP = 1.5
+_DEMOTE = {"retained": "partial", "saved": "partial", "partial": "missing", "stale": "missing"}
+
+
+def _text_tokens(text: str) -> set[str]:
+    cleaned = (text or "").lower().replace("'", "").replace("\u2019", "")
+    return set(re.findall(r"[a-z0-9]{3,}", cleaned))
+
+
+def _quote_supported(quote: str, haystack_tokens: set[str], min_ratio: float = 0.75) -> bool:
+    """True when most content words of ``quote`` occur in the haystack (tolerates light paraphrase)."""
+    q = _text_tokens(quote)
+    if not q:
+        return False
+    return len(q & haystack_tokens) / len(q) >= min_ratio
+
+
+def _first_seen(terms: list[str], history: list[list[str]]) -> int | None:
+    terms = [t.strip().lower() for t in terms if t and t.strip()]
+    if not terms:
+        return None
+    for i, (u, r) in enumerate(history):
+        blob = f"{u or ''}\n{r or ''}".lower()
+        if any(t in blob for t in terms):
+            return i
+    return None
+
+
+def memory_answer_key(spreadsheet: dict, history: list[list[str]], grace: int = MEMORY_GRACE_DEFAULT,
+                      in_beat_ids: set[str] | None = None) -> dict:
+    """What the memory is expected to hold right now, derived in code from the outline + transcript.
+
+    A planted note (needle seen in the story) or an expected beat (entity seen in the story) becomes
+    checkable ``grace`` exchanges after it first appeared; earlier than that it is listed as pending so
+    DSS is not charged for a save it has not had time to make.
+    """
+    last = len(history) - 1
+    in_beat_ids = set(in_beat_ids or ())
+    notes, pending_notes = [], []
+    for n in spreadsheet.get("notes", []):
+        needle = (n.get("needle") or "").strip()
+        if not needle or n.get("type") == "style_hold":
+            continue
+        first = _first_seen([needle], history)
+        if first is None:
+            continue
+        age = last - first
+        if age < grace:
+            pending_notes.append(n["id"])
+        else:
+            lm = _last_seen([needle], history)
+            notes.append({"id": n["id"], "type": n.get("type"), "content": n.get("content"),
+                          "age_exchanges": age, "silent_exchanges": last - lm if lm is not None else age,
+                          "in_beat": n["id"] in in_beat_ids})
+    beats, pending_beats = [], []
+    for b in spreadsheet.get("dss_beats", []) or []:
+        if int(b.get("turn", 0) or 0) > last:
+            continue
+        name = ((b.get("expect") or {}).get("name") or "").strip()
+        first = _first_seen([name], history) if name else None
+        if name and first is None:
+            continue  # the entity has not appeared in the story yet
+        if first is not None and last - first < grace:
+            pending_beats.append(b["id"])
+            continue
+        beats.append({"id": b["id"], "subject": b.get("subject"), "content": b.get("content"),
+                      "expect": b.get("expect")})
+    return {"notes": notes, "beats": beats, "pending_notes": pending_notes, "pending_beats": pending_beats}
+
+
+def score_memory_checks(checks, key: dict, state_text: str, window_text: str = "",
+                        wrong_character: bool = False, notes_by_id: dict | None = None):
+    """Turn the judge's verification checklist into (score 0-5 | None, breakdown).
+
+    Safeguards against leniency, all deterministic:
+    - retained/saved/partial/stale must carry a state_quote that really occurs in the state, else the
+      verdict is demoted one level;
+    - a note judged retained whose needle (and synonyms) is absent from the whole state is demoted to partial;
+    - story facts whose source quote is not in the transcript are dropped (the judge invented them);
+    - a contradicted claim without a source quote that exists in the transcript/notes is treated as unverifiable;
+    - fewer than _MEMORY_MIN_ITEMS_FOR_TOP checked items cannot reach 5; the score is floored to 0.5.
+    """
+    if not isinstance(checks, dict):
+        return None, {"error": "memory_checks missing or not an object"}
+    notes_by_id = notes_by_id or {}
+    state_tokens = _text_tokens(state_text)
+    state_low = (state_text or "").lower()
+    source_tokens = _text_tokens(window_text)
+    for n in notes_by_id.values():
+        source_tokens |= _text_tokens(n.get("content", ""))
+    flags: list[str] = []
+    failures: list[dict] = []
+
+    def items(name):
+        v = checks.get(name)
+        return [x for x in v if isinstance(x, dict)] if isinstance(v, list) else []
+
+    def verify(it, status, valid):
+        """Apply the quote requirement; returns the audited status."""
+        status = str(status or "").strip().lower()
+        if status not in valid:
+            return None
+        if status in _DEMOTE and not _quote_supported(str(it.get("state_quote", "")), state_tokens):
+            flags.append(f"quote_not_in_state:{it.get('id') or str(it.get('fact', ''))[:30]}")
+            status = _DEMOTE[status]
+        it["status_audited"] = status
+        return status
+
+    # ---- A. planted notes
+    expected_notes = {n["id"] for n in key.get("notes", [])}
+    seen: dict[str, str] = {}
+    for it in items("note_retention"):
+        nid = str(it.get("id", ""))
+        if nid not in expected_notes or nid in seen:
+            continue
+        st = verify(it, it.get("status"), _NOTE_CREDIT)
+        if st is None:
+            continue
+        spec = notes_by_id.get(nid, {})
+        terms = [t for t in [spec.get("needle", "")] + list(spec.get("needle_syns") or []) if t]
+        if st == "retained" and terms and not any(t.lower() in state_low for t in terms):
+            flags.append(f"needle_absent:{nid}")
+            st = it["status_audited"] = "partial"
+        seen[nid] = st
+        if st != "retained":
+            failures.append({"kind": "note", "id": nid, "status": st})
+    note_credits = [(_NOTE_CREDIT[s], 1.0) for s in seen.values()]
+
+    # ---- B. memory beats
+    expected_beats = {b["id"] for b in key.get("beats", [])}
+    bseen: dict[str, str] = {}
+    for it in items("beat_checks"):
+        bid = str(it.get("id", ""))
+        if bid not in expected_beats or bid in bseen:
+            continue
+        st = verify(it, it.get("status"), _BEAT_CREDIT)
+        if st is None:
+            continue
+        bseen[bid] = st
+        if st != "saved":
+            failures.append({"kind": "beat", "id": bid, "status": st})
+    beat_credits = [(_BEAT_CREDIT[s], 1.0) for s in bseen.values()]
+
+    # ---- C. story facts
+    fact_credits, fact_rows = [], []
+    basis = {"explicit": 0, "implicit": 0}
+    for it in items("story_facts")[:12]:
+        if not _quote_supported(str(it.get("source", "")), source_tokens):
+            flags.append(f"fact_source_not_in_story:{str(it.get('fact', ''))[:30]}")
+            continue
+        st = verify(it, it.get("status"), _FACT_CREDIT)
+        if st is None:
+            continue
+        w = _FACT_WEIGHT.get(str(it.get("importance", "medium")).lower(), 2.0)
+        fact_credits.append((_FACT_CREDIT[st], w))
+        b = str(it.get("basis", "")).lower()
+        if b in basis:
+            basis[b] += 1
+        fact_rows.append((st, str(it.get("era", "")).lower(), _FACT_CREDIT[st], w))
+        if st != "retained":
+            failures.append({"kind": "fact", "fact": str(it.get("fact", ""))[:90], "status": st,
+                             "importance": str(it.get("importance", "medium")).lower()})
+
+    # ---- precision audit
+    claims = items("state_claims")[:8]
+    contradicted = 0
+    for it in claims:
+        st = str(it.get("status", "")).strip().lower()
+        if st == "contradicted":
+            if _quote_supported(str(it.get("source", "")), source_tokens):
+                contradicted += 1
+                failures.append({"kind": "claim", "claim": str(it.get("claim", ""))[:90], "status": "contradicted"})
+            else:
+                flags.append(f"contradiction_without_source:{str(it.get('claim', ''))[:30]}")
+                it["status_audited"] = "unverifiable"
+    penalty = min(_CLAIM_PENALTY_CAP, _CLAIM_PENALTY * contradicted)
+
+    # ---- combine
+    def cat(credits):
+        if not credits:
+            return None
+        return sum(c * w for c, w in credits) / sum(w for _, w in credits)
+
+    cats = {"notes": cat(note_credits), "beats": cat(beat_credits), "facts": cat(fact_credits)}
+    present = {k: v for k, v in cats.items() if v is not None}
+    n_items = len(note_credits) + len(beat_credits) + len(fact_credits)
+    if not present:
+        return None, {"error": "no checkable memory items in the judge output", "flags": flags[:20]}
+    wsum = sum(_MEMORY_WEIGHTS[k] for k in present)
+    raw = sum(_MEMORY_WEIGHTS[k] * v for k, v in present.items()) / wsum
+    score = raw * 5.0 - penalty
+    caps = []
+    if n_items < _MEMORY_MIN_ITEMS_FOR_TOP:
+        score = min(score, 4.5)
+        caps.append(f"thin_evidence(<{_MEMORY_MIN_ITEMS_FOR_TOP}_items)")
+    if wrong_character:
+        score = min(score, 2.0)
+        caps.append("wrong_character")
+    score = max(0.0, min(5.0, _math.floor(score * 2.0 + 1e-9) / 2.0))
+
+    def counts(vals):
+        out: dict[str, int] = {}
+        for v in vals:
+            out[v] = out.get(v, 0) + 1
+        return out
+
+    by_era = {}
+    for era in ("early", "middle", "late"):
+        rows = [(c, w) for _, e, c, w in fact_rows if e == era]
+        if rows:
+            by_era[era] = round(sum(c * w for c, w in rows) / sum(w for _, w in rows), 2)
+    breakdown = {
+        "score": score, "raw": round(raw, 3), "n_items": n_items,
+        "categories": {
+            "notes": {"n": len(note_credits), "score": None if cats["notes"] is None else round(cats["notes"], 3),
+                      "counts": counts(seen.values()), "coverage": f"{len(seen)}/{len(expected_notes)}"},
+            "beats": {"n": len(beat_credits), "score": None if cats["beats"] is None else round(cats["beats"], 3),
+                      "counts": counts(bseen.values()), "coverage": f"{len(bseen)}/{len(expected_beats)}"},
+            "facts": {"n": len(fact_credits), "score": None if cats["facts"] is None else round(cats["facts"], 3),
+                      "counts": counts(r[0] for r in fact_rows), "basis": basis},
+        },
+        "claims": {"checked": len(claims), "contradicted": contradicted, "penalty": penalty},
+        "caps": caps, "flags": flags[:20], "failures": failures[:12],
+    }
+    # retention split by silence: a note the story keeps repeating is refreshed, not remembered
+    sil = {n["id"]: n.get("silent_exchanges") for n in key.get("notes", [])}
+    split = {"refreshed": [], "silent": []}
+    for nid, st in seen.items():
+        bucket = "silent" if (sil.get(nid) or 0) >= 5 else "refreshed"
+        split[bucket].append(_NOTE_CREDIT[st])
+    breakdown["notes_by_silence"] = {k: {"n": len(v), "score": round(sum(v) / len(v), 3) if v else None}
+                                     for k, v in split.items()}
+    if by_era:
+        breakdown["facts_by_era"] = by_era
+    return score, breakdown
+
+
+def compact_judge_record(rec: dict) -> dict:
+    """Judge record minus the bulky checklist, for prompts that carry every record (overviews)."""
+    out = {k: rec[k] for k in ("turn", "style_score", "quality_score", "memory_fidelity", "notes", "abort", "summary")
+           if k in rec}
+    bd = rec.get("memory_breakdown")
+    if isinstance(bd, dict):
+        out["memory_breakdown"] = {k: bd[k] for k in ("n_items", "categories", "claims", "caps", "failures") if k in bd}
+    return out
+
+
+def memory_ledger(judge_records: list[dict]) -> str:
+    """Computed per-turn memory scores as text, so overviews anchor on numbers, not impressions."""
+    rows = [(r.get("turn"), r.get("memory_fidelity")) for r in judge_records
+            if isinstance(r, dict) and isinstance(r.get("memory_fidelity"), (int, float))]
+    if not rows:
+        return "(no per-turn memory checks were recorded)"
+    rows.sort(key=lambda x: (x[0] is None, x[0]))
+    vals = [v for _, v in rows]
+    legacy = not any(isinstance(r.get("memory_breakdown"), dict) for r in judge_records if isinstance(r, dict))
+    lines = [f"Judged turns: {len(rows)}. Computed memory score per judged turn: "
+             + ", ".join(f"t{t}={v:.1f}" for t, v in rows),
+             f"Mean {sum(vals) / len(vals):.2f}; first-third mean "
+             f"{sum(vals[:max(1, len(vals) // 3)]) / max(1, len(vals) // 3):.2f}; last-third mean "
+             f"{sum(vals[-max(1, len(vals) // 3):]) / max(1, len(vals) // 3):.2f}."]
+    if legacy:
+        lines.append("NOTE: these per-turn scores are holistic impressions from the older rubric, not computed checks; "
+                     "weigh them less than your own verification.")
+    tally: dict[str, int] = {}
+    for r in judge_records:
+        for f in ((r.get("memory_breakdown") or {}).get("failures") or []):
+            label = f.get("id") or f.get("fact") or f.get("claim") or "?"
+            label = f"{f.get('kind')}:{label}:{f.get('status')}"
+            tally[label] = tally.get(label, 0) + 1
+    if tally:
+        top = sorted(tally.items(), key=lambda kv: -kv[1])[:10]
+        lines.append("Most repeated non-retained items (judged turns in which each failed): "
+                     + "; ".join(f"{k} x{v}" for k, v in top))
+    return "\n".join(lines)
+
+
+def overview_memory_inputs(spreadsheet: dict, history: list[list[str]], judge_records: list[dict],
+                           grace: int = MEMORY_GRACE_DEFAULT):
+    return memory_answer_key(spreadsheet, history, grace), memory_ledger(judge_records)
+
+
+def finalize_overview_memory(result, spreadsheet: dict, history: list[list[str]], state_summary: str, key: dict):
+    """Compute memory_fidelity_score / memory_breakdown on an overview result (keeps the text field intact)."""
+    if not isinstance(result, dict) or "error" in result:
+        return result
+    window_text = "\n".join(f"{u}\n{r}" for u, r in history)
+    notes_by_id = {n["id"]: n for n in spreadsheet.get("notes", [])}
+    score, breakdown = score_memory_checks(result.get("memory_checks"), key, state_summary, window_text,
+                                           wrong_character=bool(result.get("wrong_character")),
+                                           notes_by_id=notes_by_id)
+    result["memory_fidelity_score"] = score
+    result["memory_breakdown"] = breakdown
+    return result
+
+
+def render_memory_summary(state_dir: Path | None) -> str:
+    """Bounded DSS-state inventory for guide/judge/auditor/overview (single shared renderer).
+
+    Every character, group, element, event and arc is listed with per-entry detail truncated so the
+    list is never cut short; ``_history`` keys are stripped. Any other subject file in the state dir
+    (for example ``knowledge.json``) is rendered generically, so the judge sees every subject the
+    engine saves, not a hard-coded subset.
+    """
+    if not state_dir or not state_dir.exists():
+        return "(no structured memory yet)"
+    parts = []
+
+    def compact_entries(data: dict, per_entry: int = 50000, max_total: int = 200000) -> str:
+        entries = data.get("entries", data) if isinstance(data, dict) else {}
+        if not isinstance(entries, dict) or not entries:
+            return ""
+        lines = []
+        for name, entry in entries.items():
+            try:
+                blob = json.dumps(entry, ensure_ascii=False, indent=2)[:per_entry]
+            except Exception:
+                blob = ""
+            lines.append(f"- {name}: {blob}")
+        total = "\n".join(lines)
+        if len(total) > max_total:
+            total = "\n".join(f"- {n}" for n in entries.keys())
+        return total[:max_total]
+
+    for fname in ("characters.json", "groups.json", "elements.json"):
+        p = state_dir / fname
+        if p.exists():
+            try:
+                data = _strip_history_keys(json.loads(p.read_text(encoding="utf-8")))
+                summary = compact_entries(data)
+                if summary:
+                    parts.append(f"== {fname.removesuffix('.json')} ==\n" + summary)
+                else:
+                    parts.append(f"== {fname.removesuffix('.json')} == (EMPTY — no entries saved)")
+            except Exception:
+                continue
+        else:
+            parts.append(f"== {fname.removesuffix('.json')} == (EMPTY — no entries saved)")
+
+    for fname in ("events.json", "arcs.json"):
+        p = state_dir / fname
+        if p.exists():
+            try:
+                data = _strip_history_keys(json.loads(p.read_text(encoding="utf-8")))
+                if not data:
+                    parts.append(f"== {fname.removesuffix('.json')} == (EMPTY — nothing saved)")
+                else:
+                    parts.append(f"== {fname.removesuffix('.json')} ==\n" + json.dumps(data, ensure_ascii=False)[:50000])
+            except Exception:
+                continue
+        else:
+            parts.append(f"== {fname.removesuffix('.json')} == (EMPTY — nothing saved)")
+
+    for fname in ("general_info.json", "current_scene.json"):
+        p = state_dir / fname
+        if p.exists():
+            try:
+                data = _strip_history_keys(json.loads(p.read_text(encoding="utf-8")))
+                parts.append(f"== {fname} ==\n" + json.dumps(data, indent=1)[:50000])
+            except Exception:
+                continue
+        else:
+            parts.append(f"== {fname} == (EMPTY — no data saved)")
+
+    rendered = {"characters.json", "groups.json", "elements.json", "events.json", "arcs.json",
+                "general_info.json", "current_scene.json", *_NON_SUBJECT_JSON}
+    for p in sorted(state_dir.glob("*.json")):
+        if p.name in rendered:
+            continue
+        try:
+            data = _strip_history_keys(json.loads(p.read_text(encoding="utf-8")))
+        except Exception:
+            continue
+        stem = p.name.removesuffix(".json")
+        if not data:
+            parts.append(f"== {stem} == (EMPTY — nothing saved)")
+            continue
+        summary = compact_entries(data) if isinstance(data, dict) and isinstance(data.get("entries", data), dict) else ""
+        parts.append(f"== {stem} ==\n" + (summary or json.dumps(data, ensure_ascii=False)[:50000]))
+    return "\n".join(parts) if parts else "(no structured memory yet)"
+
+
+
+# ---------------------------------------------------------------------------
+# Retrieval precision (deterministic, no LLM): how accurately DSS's memory was
+# actually INSERTED into the writer's context this turn. Pure function of the
+# rendered payload + the state the retriever saw + the story so far, so it can
+# be recomputed offline from turn_NNN/retrieval_payload.json.
+#
+# The payload is the engine's artificial history ([prompt, text] pairs) plus
+# custom_state["context"]. Entity blocks are recognised by the format-template
+# path markers ("<<<<<<<<<<<< .Name.field"), which every rendered entity line
+# carries, so the detail each entity received is measured, not guessed. The
+# subject comes from the section the block sits in (the marker path may or may
+# not repeat it).
+# ---------------------------------------------------------------------------
+_MARKER_RE = re.compile(r"<{8,}\s*(?P<path>[^\n]*?)\s*$")
+_ENTITY_SUBJECTS = ("characters", "groups", "elements")
+_LINE_ITEM_RE = re.compile(r"^\s*\[\d+\]\s+(?P<label>[^:\n]{0,90}):\s*(?P<text>.+?)\s*$", re.M)
+_LEAK_RE = re.compile(r"\{\{|\}\}|\{%|%\}|\|\s*join\b|\bd\.description\b|\(\(\(")
+_TIER_OF_TYPE = {
+    "current_scene": "short_term", "current_scene2": "short_term", "recent_dialogue": "short_term",
+    "general_info": "history", "events": "history", "chapters": "history", "arcs": "history",
+    "message_summaries": "history", "canon": "history",
+    "lines": "long_term_messages",
+    "characters": "entities", "character_list": "entities", "groups": "entities",
+    "elements": "entities", "knowledge": "entities",
+}
+RELEVANCE_WINDOW = 10      # exchanges of story that count toward an entity's relevance
+RELEVANCE_DECAY = 0.8      # weight of each exchange further back
+RELEVANCE_HIGH = 0.8       # >= this: mentioned in the current or previous exchange
+RELEVANCE_JUSTIFIED = 0.2  # >= this: mentioned within roughly the last 6 exchanges
+RECENT_NOTE_SILENCE = 8    # note silent for fewer exchanges than this = "recent", else "long-term"
+
+
+def _norm_name(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", (s or "").lower()).strip()
+
+
+def _term_regex(term: str):
+    t = re.escape(term.strip())
+    return re.compile(rf"(?<![A-Za-z0-9]){t}(?![A-Za-z0-9])", re.I) if t else None
+
+
+def _last_seen(terms: list[str], history: list[list[str]]) -> int | None:
+    terms = [t.strip().lower() for t in terms if t and t.strip()]
+    if not terms:
+        return None
+    for i in range(len(history) - 1, -1, -1):
+        blob = f"{history[i][0] or ''}\n{history[i][1] or ''}".lower()
+        if any(t in blob for t in terms):
+            return i
+    return None
+
+
+def build_entity_index(state_dir: Path | None) -> dict:
+    """{(subject, name): {terms, importance, text, _res}} for characters/groups/elements in a state dir."""
+    index: dict[tuple[str, str], dict] = {}
+    if not state_dir or not Path(state_dir).exists():
+        return index
+    for subject in _ENTITY_SUBJECTS:
+        p = Path(state_dir) / f"{subject}.json"
+        if not p.exists():
+            continue
+        try:
+            data = _strip_history_keys(json.loads(p.read_text(encoding="utf-8")))
+        except Exception:
+            continue
+        entries = data.get("entries", data) if isinstance(data, dict) else {}
+        if not isinstance(entries, dict):
+            continue
+        for name, entry in entries.items():
+            if not isinstance(name, str) or not name.strip():
+                continue
+            terms = [name]
+            aliases = entry.get("aliases") if isinstance(entry, dict) else None
+            if isinstance(aliases, dict):
+                terms += [str(v) for v in aliases.values()]
+            elif isinstance(aliases, list):
+                terms += [str(v) for v in aliases]
+            imp = None
+            if isinstance(entry, dict) and isinstance(entry.get("importance"), dict):
+                try:
+                    imp = int(entry["importance"].get("score"))
+                except Exception:
+                    imp = None
+            index[(subject, name)] = {"terms": [t for t in terms if len(t.strip()) >= 3], "importance": imp,
+                                      "text": json.dumps(entry, ensure_ascii=False).lower()}
+    # first/last-name partials for people, only when unique across the whole universe
+    counts: dict[str, int] = {}
+    for (subject, name) in index:
+        for tok in set(_norm_name(name).split()):
+            counts[tok] = counts.get(tok, 0) + 1
+    for (subject, name), info in index.items():
+        if subject != "characters":
+            continue
+        for tok in set(_norm_name(name).split()):
+            if len(tok) >= 4 and counts.get(tok) == 1 and tok not in {t.lower() for t in info["terms"]}:
+                info["terms"].append(tok)
+    for info in index.values():
+        info["_res"] = [r for r in (_term_regex(t) for t in info["terms"]) if r]
+    return index
+
+
+def _mentioned(text: str, index: dict) -> set:
+    return {k for k, info in index.items() if any(r.search(text) for r in info["_res"])}
+
+
+def entity_relevance(index: dict, history: list[list[str]], user_input: str) -> dict:
+    """Story-derived relevance of each entity right now (independent of DSS's own importance score)."""
+    exchanges = [user_input or ""] + [f"{u}\n{r}" for u, r in reversed(history)]
+    rel = {k: 0.0 for k in index}
+    for i, text in enumerate(exchanges[:RELEVANCE_WINDOW]):
+        w = RELEVANCE_DECAY ** i
+        for k in _mentioned(text, index):
+            rel[k] += w
+    return rel
+
+
+def parse_context_payload(pairs: list, section_types: dict | None = None) -> list[dict]:
+    """Split the payload into sections: {type, tier, text}. ``pairs`` = [[prompt, text], ...]."""
+    section_types = {re.sub(r"\s+", " ", (k or "")).strip(): v for k, v in (section_types or {}).items()}
+    out = []
+    for item in pairs or []:
+        if not isinstance(item, (list, tuple)) or len(item) < 2:
+            continue
+        prompt, text = str(item[0] or ""), str(item[1] or "")
+        key = re.sub(r"\s+", " ", prompt).strip()
+        low = key.lower()
+        if key == "__context__":
+            typ = "context"
+        elif key in section_types:
+            typ = section_types[key]
+        elif low.startswith("summaries of earlier messages"):
+            typ = "message_summaries"
+        elif low.startswith("analyze all of the above"):
+            typ = "framing"
+        elif low.startswith("current context"):
+            typ = "retrieved_block"
+        else:
+            typ = "recent_dialogue"  # rolling mode: raw user/assistant pairs are the recent window
+            text = f"{prompt}\n{text}"
+        out.append({"type": typ, "tier": _TIER_OF_TYPE.get(typ, "overhead"), "text": text})
+    return out
+
+
+def _parse_markers(text: str, names_by_subject: dict[str, list[str]], subject: str | None) -> dict:
+    """Per-entity rendered detail from marker lines: {(subject, name): {chars, segments, first}}."""
+    all_names = [(s, n) for s, ns in names_by_subject.items() for n in ns]
+    blocks: dict[tuple[str, str], dict] = {}
+    buf: list[str] = []
+    for line in text.splitlines():
+        m = _MARKER_RE.search(line)
+        if not m:
+            buf.append(line)
+            continue
+        segment = "\n".join(buf + [line[:m.start()]]).strip()
+        buf = []
+        rest = m.group("path").split(", ")[0].lstrip(".")
+        subj = subject
+        pm = re.match(r"^(characters|groups|elements)\.(.*)$", rest)
+        if pm:
+            rest = pm.group(2)
+            if not subj:  # the section the block sits in wins; the path prefix is only a fallback
+                subj = pm.group(1)
+        name = None
+        if rest.startswith("["):
+            end = rest.find("]")
+            name = rest[1:end] if end > 0 else None
+        if name is None:
+            pool = [(subj, n) for n in names_by_subject.get(subj, [])] if subj else all_names
+            for s_, cand in sorted(pool, key=lambda sn: len(sn[1]), reverse=True):
+                if rest == cand or rest.startswith(cand + "."):
+                    name, subj = cand, s_
+                    break
+        if name is None:
+            name = rest.split(".")[0]
+        if not subj:
+            continue
+        b = blocks.setdefault((subj, name), {"chars": 0, "segments": 0, "first": ""})
+        b["chars"] += len(segment)
+        b["segments"] += 1
+        if not b["first"]:
+            b["first"] = segment
+    return blocks
+
+
+def _form(block: dict) -> str:
+    first = block.get("first", "")
+    if "[past chapters]" in first:
+        return "stale"
+    if "dormant" in first.lower() and block.get("segments", 0) <= 1:
+        return "dormant"
+    return "detailed" if block.get("segments", 0) >= 3 else "brief"
+
+
+_FORM_RANK = {"stale": 0, "dormant": 0, "brief": 1, "detailed": 2}
+
+
+def retrieval_metrics(pairs: list, state_dir: Path | None, history: list[list[str]], user_input: str,
+                      notes: list[dict] | None = None, due_note_ids: set[str] | None = None,
+                      section_types: dict | None = None) -> dict:
+    """Deterministic retrieval-precision report for one turn (see module comment).
+
+    ``history`` is the story BEFORE this turn's exchange; ``state_dir`` is the state the retriever saw.
+    """
+    sections = parse_context_payload(pairs, section_types)
+    if not sections:
+        return {"available": False, "reason": "no payload captured"}
+    index = build_entity_index(state_dir)
+    all_text = "\n".join(s["text"] for s in sections)
+    tier_chars: dict[str, int] = {}
+    for s in sections:
+        tier_chars[s["tier"]] = tier_chars.get(s["tier"], 0) + len(s["text"])
+    total_chars = max(1, sum(tier_chars.values()))
+    names_by_subject: dict[str, list[str]] = {}
+    for (subject, name) in index:
+        names_by_subject.setdefault(subject, []).append(name)
+    blocks: dict[tuple[str, str], dict] = {}
+    roster: set[tuple[str, str]] = set()
+    for s in sections:
+        default_subject = s["type"] if s["type"] in _ENTITY_SUBJECTS else ("characters" if s["type"] == "character_list" else None)
+        for k, b in _parse_markers(s["text"], names_by_subject, default_subject).items():
+            if s["type"] == "character_list":
+                roster.add(k)  # a roster line is not a full entry; tracked separately
+                continue
+            cur = blocks.setdefault(k, {"chars": 0, "segments": 0, "first": ""})
+            cur["chars"] += b["chars"]
+            cur["segments"] += b["segments"]
+            cur["first"] = cur["first"] or b["first"]
+    report: dict = {"available": True, "n_entities_in_state": len(index), "n_entities_included": len(blocks),
+                    "n_roster": len(roster),
+                    "tiers": {"tokens": {t: c // 4 for t, c in tier_chars.items()},
+                              "share": {t: round(c / total_chars, 3) for t, c in tier_chars.items()}},
+                    "template_leak_chars": sum(len(l) for l in all_text.splitlines() if _LEAK_RE.search(l))}
+    components: dict[str, float] = {}
+    rel: dict = {}
+    high: set = set()
+    if index:
+        rel = entity_relevance(index, history, user_input)
+        high = {k for k, v in rel.items() if v >= RELEVANCE_HIGH}
+    if index and blocks:
+        adj_to_high = set()
+        for h in high:
+            h_text = index[h]["text"]
+            for k, info in index.items():
+                if k != h and (any(r.search(h_text) for r in info["_res"]) or any(r.search(info["text"]) for r in index[h]["_res"])):
+                    adj_to_high.add(k)
+        included = {k for k in blocks if k in index}
+        justified = {k for k in included if rel[k] >= RELEVANCE_JUSTIFIED or k in adj_to_high}
+        forms = {k: _form(blocks[k]) for k in included}
+        report["included_by_subject"] = {s: sum(1 for k in included if k[0] == s) for s in _ENTITY_SUBJECTS}
+        report["recall_high"] = round(len(high & included) / len(high), 3) if high else None
+        report["n_high"] = len(high)
+        report["missing_high"] = sorted(f"{k[0]}:{k[1]}" for k in high - included)[:8]
+        mentioned_now = _mentioned(user_input or "", index)
+        report["recall_mentioned_now"] = round(len(mentioned_now & included) / len(mentioned_now), 3) if mentioned_now else None
+        report["precision_entities"] = round(len(justified) / len(included), 3) if included else None
+        inc_chars = sum(blocks[k]["chars"] for k in included) or 1
+        report["token_waste"] = round(sum(blocks[k]["chars"] for k in included - justified) / inc_chars, 3)
+        report["unjustified"] = sorted(f"{k[0]}:{k[1]}" for k in included - justified)[:8]
+        # detail calibration: relevant entities should get more rendered detail than irrelevant ones
+        hi = [k for k in included if rel[k] >= RELEVANCE_HIGH]
+        lo = [k for k in included if rel[k] < RELEVANCE_JUSTIFIED]
+        # compared within a subject only: a character entry is not comparable in length to an element entry
+        pairs = [(a, b) for a in hi for b in lo if a[0] == b[0]]
+        if pairs:
+            wins = sum(1.0 if blocks[a]["chars"] > blocks[b]["chars"] else 0.5 if blocks[a]["chars"] == blocks[b]["chars"] else 0.0
+                       for a, b in pairs)
+            report["detail_concordance"] = round(wins / len(pairs), 3)
+            report["detail_high_tokens"] = round(sum(blocks[k]["chars"] for k in hi) / len(hi) / 4)
+            report["detail_low_tokens"] = round(sum(blocks[k]["chars"] for k in lo) / len(lo) / 4)
+        elif hi and lo:
+            report["detail_concordance"] = None  # relevant and irrelevant entities never share a subject
+        else:
+            report["detail_concordance"] = None
+        report["under_detailed_high"] = sorted(f"{k[0]}:{k[1]}" for k in hi if _FORM_RANK[forms[k]] < 2)[:8]
+        report["over_detailed_low"] = sorted(f"{k[0]}:{k[1]}" for k in lo if _FORM_RANK[forms[k]] == 2)[:8]
+        report["forms"] = {f: sum(1 for v in forms.values() if v == f) for f in ("detailed", "brief", "stale", "dormant")}
+        if report["recall_high"] is not None:
+            components["recall_high"] = report["recall_high"]
+        if report["precision_entities"] is not None:
+            components["precision_entities"] = report["precision_entities"]
+        if report.get("detail_concordance") is not None:
+            components["detail_concordance"] = report["detail_concordance"]
+    elif index and high:
+        # entities exist and are relevant, yet no entity block was recognised: that is itself a recall failure
+        # (unless the payload simply has no markers, which `n_roster`/tiers will show)
+        report["recall_high"] = 0.0 if any(s["tier"] == "entities" for s in sections) else None
+        report["n_high"] = len(high)
+        if report["recall_high"] is not None:
+            components["recall_high"] = 0.0
+    # retrieved earlier messages ("lines"): are they relevant, and not just repeating the recent window?
+    line_items = [m.group("text") for s in sections if s["type"] == "lines" for m in _LINE_ITEM_RE.finditer(s["text"])]
+    if line_items:
+        recent_norm = _norm_name("\n".join(f"{u}\n{r}" for u, r in history[-4:]))
+        notes_terms: list[str] = []
+        for n in notes or []:
+            notes_terms += [t.lower() for t in [n.get("needle", "")] + list(n.get("needle_syns") or []) if t]
+        high_res = [r for k in high for r in index[k]["_res"]] if index else []
+        user_words = set(re.findall(r"[a-z]{5,}", (user_input or "").lower()))
+        relevant = dup = 0
+        for item in line_items:
+            low = item.lower()
+            if any(r.search(item) for r in high_res) or any(t in low for t in notes_terms) \
+                    or len(user_words & set(re.findall(r"[a-z]{5,}", low))) >= 2:
+                relevant += 1
+            head = _norm_name(item)[:80]
+            if head and head in recent_norm:
+                dup += 1
+        report["lines"] = {"n": len(line_items), "precision": round(relevant / len(line_items), 3),
+                           "dup_recent": round(dup / len(line_items), 3)}
+        components["lines_precision"] = report["lines"]["precision"]
+    # planted notes that are due now: is the detail actually in the context?
+    due = [n for n in (notes or []) if due_note_ids and n.get("id") in due_note_ids and (n.get("needle") or "").strip()]
+    if due:
+        low_all = all_text.lower()
+        rows = []
+        for n in due:
+            terms = [t.lower() for t in [n["needle"]] + list(n.get("needle_syns") or []) if t]
+            if _first_seen([n["needle"]], history) is None:
+                continue  # not in the story yet, nothing to retrieve
+            last = _last_seen([n["needle"]], history)
+            rows.append({"id": n["id"], "present": any(t in low_all for t in terms),
+                         "silent": (len(history) - 1 - last) if last is not None else None})
+        if rows:
+            rec = [r for r in rows if r["silent"] is not None and r["silent"] < RECENT_NOTE_SILENCE]
+            lng = [r for r in rows if r["silent"] is None or r["silent"] >= RECENT_NOTE_SILENCE]
+            report["notes"] = {"due": len(rows), "recall": round(sum(r["present"] for r in rows) / len(rows), 3),
+                               "recall_recent": round(sum(r["present"] for r in rec) / len(rec), 3) if rec else None,
+                               "recall_long_term": round(sum(r["present"] for r in lng) / len(lng), 3) if lng else None,
+                               "missing": [r["id"] for r in rows if not r["present"]][:8]}
+            components["note_recall"] = report["notes"]["recall"]
+    # short-term: the most recent exchange must actually be in the prompt
+    if history:
+        recent_secs = [s["text"] for s in sections if s["tier"] == "short_term"]
+        probe = _norm_name(history[-1][1])[:60]
+        ok = (bool(probe) and any(probe in _norm_name(t) for t in recent_secs)) if recent_secs else None
+        report["short_term_last_present"] = ok
+        if ok is not None:
+            components["short_term"] = 1.0 if ok else 0.0
+    weights = {"recall_high": 0.30, "precision_entities": 0.20, "detail_concordance": 0.15,
+               "lines_precision": 0.10, "note_recall": 0.15, "short_term": 0.10}
+    if components:
+        wsum = sum(weights[k] for k in components)
+        report["score"] = round(sum(weights[k] * v for k, v in components.items()) / wsum, 3)
+    else:
+        report["score"] = None
+    report["components"] = {k: round(v, 3) for k, v in components.items()}
+    return report
+
+
+def section_types_from_templates(path: Path | None) -> dict:
+    """{prompt text -> section type} from the sandbox's format_templates.json (_context_order)."""
+    if not path or not Path(path).exists():
+        return {}
+    try:
+        order = json.loads(Path(path).read_text(encoding="utf-8")).get("_context_order") or []
+    except Exception:
+        return {}
+    out = {}
+    for it in order:
+        if isinstance(it, dict):
+            p, t = it.get("prompt"), it.get("type")
+        elif isinstance(it, (list, tuple)) and len(it) >= 2:
+            t, p = it[0], it[1]
+        else:
+            continue
+        if p and t:
+            out[str(p)] = str(t)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Beat audit helpers: decide what code can decide, evidence-check the rest.
+# ---------------------------------------------------------------------------
+
+def _state_entries(state_dir: Path | None) -> dict[str, dict]:
+    out: dict[str, dict] = {}
+    if not state_dir or not Path(state_dir).exists():
+        return out
+    for p in sorted(Path(state_dir).glob("*.json")):
+        if p.name in _NON_SUBJECT_JSON:
+            continue
+        try:
+            data = _strip_history_keys(json.loads(p.read_text(encoding="utf-8")))
+        except Exception:
+            continue
+        entries = data.get("entries", data) if isinstance(data, dict) else {}
+        if isinstance(entries, dict):
+            out[p.name.removesuffix(".json")] = entries
+    return out
+
+
+def beat_precheck(beat: dict, state_dir: Path | None, history: list[list[str]]) -> dict | None:
+    """Code-side verdict for a beat with a structured expectation, or None if not applicable.
+
+    Returns {"decisive": bool, "status": ..., "detail": ..., "facts": text}. Decisive verdicts:
+    unassessable (the entity never appeared in the story), missing (no entry and the name is absent from
+    the whole state), saved (an entry exists in the target subject and covers every expected attribute).
+    Anything else is left to the LLM auditor, which is given the facts.
+    """
+    expect = beat.get("expect")
+    if not isinstance(expect, dict) or not str(expect.get("name", "")).strip():
+        return None
+    name = str(expect["name"]).strip()
+    if _first_seen([name], history) is None:
+        return {"decisive": True, "status": "unassessable", "facts": "",
+                "detail": f"Deterministic: '{name}' never appeared in the story, so DSS could not have saved it."}
+    entries = _state_entries(state_dir)
+    target = beat.get("subject")
+    nn = _norm_name(name)
+    found = None
+    for subj in ([target] if target in entries else []) + [s for s in entries if s != target]:
+        for key, entry in entries[subj].items():
+            k = _norm_name(str(key))
+            alias_hit = False
+            if isinstance(entry, dict) and isinstance(entry.get("aliases"), (dict, list)):
+                vals = entry["aliases"].values() if isinstance(entry["aliases"], dict) else entry["aliases"]
+                alias_hit = any(_norm_name(str(a)) == nn for a in vals)
+            if k == nn or alias_hit or (len(nn) >= 5 and (nn in k or (len(k) >= 5 and k in nn))):
+                found = (subj, key, entry)
+                break
+        if found:
+            break
+    name_tokens = [t for t in nn.split() if len(t) >= 4] or nn.split()
+    whole = " ".join(json.dumps(e, ensure_ascii=False).lower() for ents in entries.values() for e in ents.values())
+    whole += " " + " ".join(str(k).lower() for ents in entries.values() for k in ents)
+    if not found:
+        if name_tokens and not any(t in whole for t in name_tokens):
+            return {"decisive": True, "status": "missing", "facts": "",
+                    "detail": f"Deterministic: '{name}' appeared in the story but nothing resembling it exists anywhere in DSS's memory."}
+        return {"decisive": False, "status": None,
+                "facts": f"- Deterministic pre-check: no entry keyed '{name}' was found, but parts of the name occur elsewhere in the state; it may be stored under a different key."}
+    subj, key, entry = found
+    text = json.dumps(entry, ensure_ascii=False).lower()
+    cov, lines = [], []
+    for attr, val in expect.items():
+        if attr == "name":
+            continue
+        toks = re.findall(r"[a-z0-9]{4,}", str(val).lower())
+        if not toks:
+            continue
+        hit = sum(1 for t in toks if t in text) / len(toks)
+        cov.append(hit)
+        lines.append(f"{attr}: {hit:.0%} of its words appear in the entry")
+    facts = (f"- Deterministic pre-check: an entry '{key}' exists in the '{subj}' subject. Expected-attribute coverage: "
+             + ("; ".join(lines) if lines else "(no attributes to compare)") + ".")
+    if subj == target and cov and min(cov) >= 0.6:
+        return {"decisive": True, "status": "saved", "facts": facts,
+                "detail": f"Deterministic: entry '{key}' in '{subj}' covers every expected attribute ({'; '.join(lines)})."}
+    if subj != target:
+        facts += f" It is stored under '{subj}', not the beat's '{target}'."
+    return {"decisive": False, "status": None, "facts": facts}
+
+
+def verify_audit_verdict(verdict: dict, state_summary: str) -> dict:
+    """Demote an LLM 'saved' that carries no quote actually found in the memory (leniency guard)."""
+    if not isinstance(verdict, dict):
+        return verdict
+    status = str(verdict.get("status", "")).strip().lower()
+    verdict["status_raw"] = verdict.get("status")
+    if status == "saved":
+        ev = str(verdict.get("evidence", ""))
+        if not _quote_supported(ev, _text_tokens(state_summary)):
+            verdict["status"] = "partial"
+            verdict["audit_flag"] = "saved_without_verifiable_evidence"
+    return verdict
+
+
+def render_memory_names(state_dir: Path | None) -> str:
+    """Names only: who and what exists in DSS's memory, without any detail (guide-memory 'names' mode)."""
+    entries = _state_entries(state_dir)
+    lines = [f"== {s} == " + ", ".join(str(k) for k in ents) for s, ents in entries.items() if ents]
+    return "\n".join(lines) or "(no structured memory yet)"
+
+
+
+_SCORE_ANCHORS = """SCORE CALIBRATION for prose-based scores (style_score, quality_score, overall_score). Memory fidelity is NOT scored on this ladder: it is verified item by item and computed from the checklist. Use the FULL scale; anchor each prose-based score to these meanings:
 - 5.0 — Exceptional. A sentence or passage that would stand out in a published anthology: original imagery, precise diction, emotional resonance that goes beyond the expected. Zero flaws AND at least one moment of genuine surprise. Most turns will NOT reach this.
 - 4.5 — Distinctive. Clearly above the norm of competent AI prose: a fresh angle, an unexpected detail, or a line of dialogue that reveals character in a way the instructions didn't mandate. The reader notices something specific and appreciable beyond "this is well-written."
 - 4.0 — Solid. Competent, coherent, no flaws that call for revision. Reads well but does not surprise; the kind of prose that fills a page without distinguishing itself.
@@ -905,17 +1813,19 @@ Calibration rules:
 
 JUDGE_SYSTEM_TMPL = """You are a quality auditor grading ONE writer — {name2} ({role2}), the DSS-driven writer — on a single turn of a collaborative story. {name1} ({role1}) writes the OTHER writer's turns; those turns are provided ONLY as CONTEXT (what {name2} was responding to). Do not credit or penalize {name2} for anything {name1} wrote, and never score {name1}'s prose or the joint plot. The verdict measures {name2} alone.
 
-Score four things, all about {name2}'s turn:
+You grade three things about {name2}:
 (1) style_score: did {name2}'s reply hold THEIR directed voice ({dss_directive}) and its hard rules;
 (2) quality_score: the narrative quality of {name2}'s reply itself (not the story's plot);
-(3) memory_fidelity: does {name2}'s private memory of the story so far reflect what actually happened;
-(4) per-note adherence: for the IN-BEAT notes (those part of this turn's beat), did {name2}'s turn plant/echo/honor them. PAST notes are continuity context only — never scored for adherence.
+(3) memory fidelity: how faithfully {name2}'s private memory (the STATE, last in the user message) captured what the story was MEANT to establish and what it ACTUALLY established. You do NOT give a number for this. You verify specific items against the state and report evidence in "memory_checks"; the harness computes the score from your verdicts.
+You also fill the per-note list for the reply (reply adherence, IN-BEAT notes only).
 
-NOTES COME IN TWO LISTS. IN-BEAT NOTES are the notes whose prop/concept is part of THIS turn's active beat (the harness instruction text for this turn names it). Score adherence ONLY against IN-BEAT notes: 'echoed' when the reply handles one, 'missed' only when the reply drops an IN-BEAT note with no handling. PAST NOTES are every other planted note — its needle appeared earlier in the story but it is NOT part of this turn's beat. PAST notes are context for continuity and contradiction checks only: use them to catch the reply BREAKING an established fact, but NEVER mark a PAST note 'missed' and NEVER let an unmentioned PAST note lower the score — the writer is correctly moving on from it. A story that advances past a prop is not dropping it.
+NOTES HAVE TWO SEPARATE JOBS:
+- Reply adherence (the "notes" list): IN-BEAT NOTES are the notes whose prop/concept is part of THIS turn's active beat (the harness instruction text for this turn names it). Mark 'echoed' when the reply handles one, 'planted' when it introduces one, and 'missed' only when the reply drops an IN-BEAT note with no handling. A story that has moved on from a prop is not dropping it: NEVER mark a note that is not IN-BEAT as 'missed' in this list, and never let it lower style_score or quality_score.
+- Memory retention (inside "memory_checks"): EVERY planted note in the MEMORY ANSWER KEY, in-beat or not, is checked against the STATE. Whether the reply mentions the note is irrelevant for this job; the only question is whether the memory recorded it.
 
 {anchors}
 
-SCORING RUBRIC (be strict — a mediocre turn must NOT score 4+):
+SCORING RUBRIC for style_score and quality_score (be strict — a mediocre turn must NOT score 4+):
 style_score:
 - 5: the whole turn holds {name2}'s directed voice and hard rules with zero violations.
 - 4: a single minor slip (one stray word in the wrong person — e.g. one 'I' when the directive demands third person, or one 'he/she' when it demands first — one slightly repetitive phrase) that does not break voice.
@@ -928,22 +1838,37 @@ quality_score:
 - 3: repetitive imagery or metaphor, OR a scene inconsistency (a character present who is established absent, a location mismatch), OR the reply is largely atmospheric with no concrete action, dialogue, or new detail.
 - 2: multiple scene inconsistencies or heavy self-repetition, or it ignores nearly all IN-BEAT notes.
 - 1: incoherent, off-topic, or content-free.
-memory_fidelity (state completeness and freshness — NOT consistency):
-Grade whether the DSS state is a COMPLETE and CURRENT record of what has happened in the story. The state was generated by the same system that wrote the reply, so consistency is expected by construction — do NOT award 5.0 merely because the reply does not contradict the state. Instead, check:
-- COMPLETENESS: are all characters, groups, and elements mentioned in the recent window present in the state? If a character appears in the last few turns but has no entry (or an entry with no relationships), that is a gap.
-- FRESHNESS: do the state entries reflect the LATEST state of affairs? If a character's location, status, or relationships changed in recent turns, does the state show the updated values? Stale entries (e.g. a character still listed at a location they left 5 turns ago) are failures.
-- RELATIONSHIP INTEGRITY: are the relationships between scene participants correctly tracked? If two characters interacted in recent turns but no relationship edge exists, that is a gap.
-Scoring:
-- 5: the state is complete (all window participants have entries), current (reflects the latest known state), and relationships between active scene participants are tracked. No gaps or stale data visible in the window.
-- 4: one minor gap (a peripheral element missing) or one mildly stale field (a location or status 1-2 turns out of date) that does not affect the current scene.
-- 3: two or more gaps, OR one actively relevant entry is stale (a current-scene participant's location/status is outdated), OR a key relationship between scene participants is missing.
-- 2: the state is noticeably incomplete or stale — multiple current-scene participants missing entries, or several relationships not tracked, making the state unreliable as a record.
-- 1: the state is wholesale wrong, empty, or contradicts the premise.
+MEMORY FIDELITY — VERIFY EACH ITEM, DO NOT JUDGE BY IMPRESSION
+You never write a memory score. You fill in "memory_checks" and the harness computes the score. Three kinds of item are checked against the STATE:
+A. PLANTED NOTES: details the outline meant to establish (MEMORY ANSWER KEY, part 1). Did the memory record each one?
+B. MEMORY BEATS: specific saves the outline expected DSS to make, in a named subject, with expected data (MEMORY ANSWER KEY, part 2).
+C. STORY FACTS: details the transcript itself established, whether EXPLICIT or IMPLICIT. YOU choose these (rules below).
+Items listed as EXCLUDED appeared too recently for DSS to have saved them: ignore them, and do not add your own "too recent" excuses.
 
-GROUND MEMORY SCORES IN THE RECENT WINDOW: to judge completeness and freshness, compare the state against what actually HAPPENED in the recent window (the [CONTEXT] and [EVALUATED] turns provided). If a character or element is mentioned in the window but absent from the state, that is a completeness failure. If the state shows a value that the window has since superseded, that is a freshness failure. Do NOT invent contradictions that are not visible in the stored state, and do not infer a fact the memory does not contain. If a subject is shown as "(EMPTY)" (e.g. '== characters == (EMPTY — no entries saved)'), that emptiness IS a memory failure — score it down accordingly and say so explicitly.
+VERDICTS
+- Notes (A) and story facts (C): retained | partial | missing | contradicted, and for facts also stale.
+  retained = the state records the substance accurately. partial = the gist is there but a specific that a later scene would need is missing, vague or generalized (e.g. "a key" where the story says "the vestry key"; the right object in the wrong place). stale = the state holds an earlier version that the story has since changed. missing = nothing in the state records it. contradicted = the state says something incompatible with it.
+- Beats (B): saved | partial | wrong | missing. saved = the expected entry exists with the expected data; partial = some of it; wrong = an entry exists but its data contradicts the expectation; missing = no such entry.
+
+EVIDENCE RULES (these decide whether a verdict counts)
+- Search the WHOLE state, every subject, not just the obvious one. A detail stored under another subject, key or wording still counts. Judge substance, not formatting or phrasing.
+- "retained", "saved", "partial" and "stale" REQUIRE "state_quote": a short verbatim excerpt (15 words or fewer) copied from the state. The harness checks that the excerpt really appears in the state, and a quote that is not there downgrades the verdict. No quote means not retained.
+- "missing" REQUIRES "looked_in": the subjects you searched.
+- Absence is absence. Never assume the state "probably" holds something, and never credit it for something that only the transcript or the reply says. Consistency between the reply and the state is expected by construction and earns nothing.
+- Never invent a contradiction. Use "contradicted" only when the state says something incompatible, and quote it in "state_quote".
+
+CHOOSING STORY FACTS (C): select them from the transcript FIRST, and only then look in the state. Do not pick a fact because you can already see it in the state.
+- List 6 to 8 facts that later scenes would most need to get right.
+- At least 3 must be IMPLICIT: not stated in so many words but necessarily true given what was written (someone who hands over a key no longer holds it; someone who leaves through the door is no longer in the room; a reaction that shows a character now knows the secret; a motive the scene makes plain; the order in which things happened).
+- At least 3 must come from the OLDER half of the window, so forgetting becomes visible.
+- Cover different kinds: who is where and who is present; who holds or controls which object; relationships and attitudes that shifted; what each character knows, suspects or hides; promises, deadlines and goals; physical or emotional condition; the order and timing of events.
+- Include a fact even if the harness instructions mandated it, as long as it appears in the story text. Skip trivia the story could drop without consequence.
+- For each fact, "source" is a short verbatim quote (12 words or fewer) from the transcript that establishes it (for an implicit fact, the quote it follows from). "importance" is high (a later scene breaks if it is wrong), medium (it affects continuity) or low (color). The harness drops any fact whose source quote it cannot find in the transcript.
+
+PRECISION AUDIT ("state_claims"): pick 4 to 6 entries or fields in the state about characters and elements active in the window, preferring fields that changed recently, and test each against the transcript and the notes. supported = the transcript or notes back it. contradicted = the transcript or notes show it is wrong or already superseded (quote that source in "source"). unverifiable = neither confirms nor refutes it, for example because it comes from before the window: this is NEUTRAL and never penalized. Never mark a claim contradicted without a source quote.
 
 MANDATORY FLOORS (apply regardless of how pretty the prose is):
-- If {name2} casts themself as the wrong character (e.g. as {name1}'s identity/role), memory_fidelity is at most 2 and overall cannot reach 4. (Exception: if the premise explicitly establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT, not a violation.)
+- If {name2} casts themself as the wrong character (e.g. as {name1}'s identity/role), set wrong_character to true: the harness caps memory fidelity at 2, and overall cannot reach 4. (Exception: if the premise establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT.)
 - If the turn re-quotes {name1} verbatim or repeats an earlier turn's closing line, style_score is at most 3.
 - If a scene inconsistency exists, quality_score is at most 3.
 - Missed notes lower quality only through the anchors above; a craft-strong reply (concrete action, new detail, fresh imagery) is NOT capped for missing notes. The per-note statuses carry the note-adherence verdict — never double-penalize the same missed note in both quality_score and the per-note list.
@@ -960,41 +1885,21 @@ persists across MULTIPLE consecutive turns. A single style slip, an occasional w
 phrase, or a missed note is NEVER enough — grade it with the scores instead and set abort=false. When in doubt,
 set abort=false.
 
-Return STRICT JSON only, exactly this shape:
+Return STRICT JSON only, exactly this shape. Inside each memory_checks item, fill the fields in the order shown (evidence before verdict). Use [] for a list with nothing to check:
 {{
   "style_score": 0-5, may use 0.5 steps ({name2}'s voice adherence to {dss_directive}),
   "quality_score": 0-5, may use 0.5 steps (quality of {name2}'s reply),
-  "memory_fidelity": 0-5, may use 0.5 steps,
-  "notes": [{{"id": "<note id>", "status": "planted|echoed|missed|superseded|n/a", "detail": "one sentence on what {name2}'s turn did with this note"}}],
+  "notes": [{{"id": "<in-beat note id>", "status": "planted|echoed|missed|superseded|n/a", "detail": "one sentence on what {name2}'s turn did with this note"}}],
+  "memory_checks": {{
+    "story_facts": [{{"fact": "<one sentence>", "basis": "explicit|implicit", "importance": "high|medium|low", "source": "<12 words or fewer, quoted from the transcript>", "state_quote": "<15 words or fewer, quoted from the state, or empty>", "looked_in": "<subjects searched; required when missing>", "status": "retained|partial|stale|missing|contradicted"}}],
+    "note_retention": [{{"id": "<answer-key note id>", "state_quote": "<15 words or fewer, quoted from the state, or empty>", "looked_in": "<subjects searched; required when missing>", "status": "retained|partial|missing|contradicted"}}],
+    "beat_checks": [{{"id": "<answer-key beat id>", "state_quote": "<15 words or fewer, quoted from the state, or empty>", "looked_in": "<subjects searched; required when missing>", "status": "saved|partial|wrong|missing"}}],
+    "state_claims": [{{"claim": "<what the state says>", "path": "<subject/key/field>", "source": "<quote from the transcript or notes; required when contradicted>", "status": "supported|contradicted|unverifiable"}}]
+  }},
+  "wrong_character": <true|false>,
   "abort": <true|false>,
   "summary": "two-sentence editorial note on {name2}'s turn only"
 }}"""
-
-
-SYNTHETIC_REPLY_SYSTEM_TMPL = """You are writing {name2}'s ({role2}) reply to {name1}'s ({role1}) latest turn, as a HIGH-QUALITY substitute for the small local writer being tested. Write in strict {name2}-voice per the DSS writing-style directive — the person, tense, and register it specifies. One scene beat, 2-4 paragraphs, no meta-commentary, no recapping {name1}'s input verbatim."""
-
-
-def build_synthetic_reply_messages(spreadsheet: dict, recent: list[list[str]], user_input: str) -> list[dict]:
-    chars = spreadsheet["characters"]
-    ws = spreadsheet["writing_style"]
-    n1, n2 = chars["name1"], chars["name2"]
-    system = SYNTHETIC_REPLY_SYSTEM_TMPL.format(
-        name1=n1["name"], role1=n1.get("role", "the other character"),
-        name2=n2["name"], role2=n2.get("role", "the protagonist"),
-    )
-    parts = [
-        f"Writing-style directive for {n2['name']}: {ws['dss_directive']}",
-        "Recent exchanges:",
-    ]
-    for u, r in recent[-8:]:
-        parts.append(f"{n1['name']}: {u}")
-        parts.append(f"{n2['name']}: {r}")
-    parts.append(f"{n1['name']} just said: {user_input}")
-    parts.append(f"Write {n2['name']}'s reply now.")
-    return [
-        {"role": "system", "content": system},
-        {"role": "user", "content": "\n".join(parts)},
-    ]
 
 
 def build_guide_messages(spreadsheet: dict, active_notes: list[dict], recent: list[list[str]],
@@ -1037,11 +1942,39 @@ def build_guide_messages(spreadsheet: dict, active_notes: list[dict], recent: li
     ]
 
 
+SYNTHETIC_REPLY_SYSTEM_TMPL = """You are writing {name2}'s ({role2}) reply to {name1}'s ({role1}) latest turn, as a HIGH-QUALITY substitute for the small local writer being tested. Write in strict {name2}-voice per the DSS writing-style directive — the person, tense, and register it specifies. One scene beat, 2-4 paragraphs, no meta-commentary, no recapping {name1}'s input verbatim."""
+
+
+def build_synthetic_reply_messages(spreadsheet: dict, recent: list[list[str]], user_input: str) -> list[dict]:
+    chars = spreadsheet["characters"]
+    ws = spreadsheet["writing_style"]
+    n1, n2 = chars["name1"], chars["name2"]
+    system = SYNTHETIC_REPLY_SYSTEM_TMPL.format(
+        name1=n1["name"], role1=n1.get("role", "the other character"),
+        name2=n2["name"], role2=n2.get("role", "the protagonist"),
+    )
+    parts = [
+        f"Writing-style directive for {n2['name']}: {ws['dss_directive']}",
+        "Recent exchanges:",
+    ]
+    for u, r in recent[-8:]:
+        parts.append(f"{n1['name']}: {u}")
+        parts.append(f"{n2['name']}: {r}")
+    parts.append(f"{n1['name']} just said: {user_input}")
+    parts.append(f"Write {n2['name']}'s reply now.")
+    return [
+        {"role": "system", "content": system},
+        {"role": "user", "content": "\n".join(parts)},
+    ]
+
+
+
 def build_judge_messages(spreadsheet: dict, in_beat_notes: list[dict], past_notes: list[dict],
                          window: list[list[str]],
                          state_summary: str, reply: str, synthetic: bool = False,
                          unplanted_ids: list[str] | None = None,
-                         instructions: str = "") -> list[dict]:
+                         instructions: str = "",
+                         memory_key: dict | None = None) -> list[dict]:
     chars = spreadsheet["characters"]
     ws = spreadsheet["writing_style"]
     taboos = "\n".join(f"- {t}" for t in ws.get("taboos", [])) or "- none"
@@ -1055,13 +1988,12 @@ def build_judge_messages(spreadsheet: dict, in_beat_notes: list[dict], past_note
     role1 = chars["name1"].get("role", "the user")
     name2 = chars["name2"]["name"]
     role2 = chars["name2"].get("role", "the other character")
+    # Order matters: what to grade and the answer key come first, the transcript next, the STATE last,
+    # so the judge chooses story facts from the transcript before it can anchor on what the state contains.
     user_parts = [
         f"Story premise (context): {spreadsheet['premise']}",
-        "IN-BEAT NOTES (part of this turn's beat — grade {name2}'s adherence to these only, not {name1}'s)".format(name1=name1, name2=name2),
+        "IN-BEAT NOTES (part of this turn's beat — grade {name2}'s reply adherence to these only, not {name1}'s)".format(name1=name1, name2=name2),
         json.dumps([{"id": n["id"], "type": n["type"], "content": n["content"]} for n in in_beat_notes], indent=1) if in_beat_notes else "(none — no planted note is part of this turn's beat)",
-        "PAST NOTES (planted earlier, NOT in this turn's beat — continuity/contradiction context only, NEVER scored for adherence)",
-        json.dumps([{"id": n["id"], "type": n["type"], "content": n["content"]} for n in past_notes], indent=1) if past_notes else "(none)",
-        "Recent window — [CONTEXT] is {name1}'s guide turn (NOT scored); [EVALUATED] is {name2}'s DSS output (the object of grading).".format(name1=name1, name2=name2),
     ]
     if unplanted_ids:
         user_parts.append(
@@ -1069,6 +2001,25 @@ def build_judge_messages(spreadsheet: dict, in_beat_notes: list[dict], past_note
             f"scope for this grade: {sorted(unplanted_ids)}. Never mark them 'missed' — the guide "
             f"never planted them, so {name2} could not have honored them."
         )
+    _structure = spreadsheet.get("structure")
+    if _structure:
+        _notes_by_id = {n["id"]: n for n in spreadsheet.get("notes", [])}
+        _lines = ["STORY STRUCTURE (expected chapter/arc boundaries, for context):"]
+        for ch in _structure.get("chapters", []):
+            _ref = _notes_by_id.get(ch.get("after_note", ""), {})
+            _turn = _ref.get("plant", {}).get("turn", "?")
+            _lines.append(
+                f"- Chapter '{ch['label']}': expected around turn {_turn} "
+                f"(±{ch.get('margin_scenes', 3)} scenes)"
+            )
+        for arc in _structure.get("arcs", []):
+            _ref = _notes_by_id.get(arc.get("after_note", ""), {})
+            _turn = _ref.get("plant", {}).get("turn", "?")
+            _lines.append(
+                f"- Arc '{arc['label']}': expected around turn {_turn} "
+                f"(±{arc.get('margin_chapters', 1)} chapters)"
+            )
+        user_parts.append("\n".join(_lines))
     if instructions:
         user_parts.append(
             f"INSTRUCTIONS {name2} WAS GIVEN for this reply (the harness-generated instruction block):\n{instructions}\n"
@@ -1078,23 +2029,50 @@ def build_judge_messages(spreadsheet: dict, in_beat_notes: list[dict], past_note
             f"animal, a specified ending) as if it were {name2}'s own creative choice, and do NOT score it as a "
             f"memory error or identity confusion — {name2} was told to write it."
         )
+    if memory_key is not None:
+        user_parts.append(
+            "MEMORY ANSWER KEY — part 1: PLANTED NOTES. Every note below needs one verdict in "
+            "memory_checks.note_retention, checked against the STATE (in-beat or not; whether the reply "
+            "mentions it is irrelevant). \"age_exchanges\" is how long ago the note first appeared in the story; \"silent_exchanges\" is how long since the story last mentioned it (a note that has been silent for many exchanges is the real test of memory)."
+        )
+        user_parts.append(json.dumps(memory_key.get("notes", []), indent=1) if memory_key.get("notes") else "(none)")
+        user_parts.append(
+            "MEMORY ANSWER KEY — part 2: MEMORY BEATS DSS was expected to have saved by now (the named "
+            "subject, with the expected data). Every beat below needs one verdict in memory_checks.beat_checks."
+        )
+        user_parts.append(json.dumps(memory_key.get("beats", []), indent=1) if memory_key.get("beats") else "(none)")
+        excluded = sorted(memory_key.get("pending_notes", []) + memory_key.get("pending_beats", []))
+        if excluded:
+            user_parts.append(f"EXCLUDED (appeared too recently for DSS to have saved them; do not check): {excluded}")
+    elif past_notes:
+        user_parts.append("PAST NOTES (planted earlier, NOT in this turn's beat — continuity context only):")
+        user_parts.append(json.dumps([{"id": n["id"], "type": n["type"], "content": n["content"]} for n in past_notes], indent=1))
+    user_parts.append(
+        "TRANSCRIPT WINDOW — [CONTEXT] is {name1}'s guide turn (NOT scored); [EVALUATED] is {name2}'s DSS output "
+        "(the object of grading). Choose the story facts from here.".format(name1=name1, name2=name2)
+    )
     for u, r in window:
         user_parts.append(f"[CONTEXT — {name1} ({role1}), NOT scored]: {u}")
         user_parts.append(f"[EVALUATED — {name2} ({role2})]: {r}")
     if synthetic:
         user_parts.append(
             f"SYNTHETIC-CHAT ISOLATION MODE: the [EVALUATED] {name2} reply was written by the "
-            f"CLOUD model, NOT by DSS. Score ONLY DSS's MEMORY FIDELITY (did its private memory track "
-            f"what happened) and NOTE RETENTION. Set voice/style/progression to a neutral pass — DSS "
+            f"CLOUD model, NOT by DSS. Fill in memory_checks (DSS's private memory is what is being "
+            f"verified). Set style_score and quality_score to a neutral pass — DSS "
             f"did not write the reply this turn."
         )
     user_parts.append(f"[EVALUATED] Latest {name2} reply: {reply}")
-    user_parts.append(f"[EVALUATED] {name2}'s private memory of the story so far:\n{state_summary}")
-    user_parts.append("Score the four dimensions for {name2}'s turn now.".format(name2=name2))
+    user_parts.append(f"[EVALUATED] {name2}'s private memory of the story so far (the STATE — verify against this, last):\n{state_summary}")
+    user_parts.append(
+        "Produce the JSON for {name2}'s turn now. Work in this order: (1) choose the story facts from the "
+        "transcript, (2) give a verdict for EVERY answer-key note and beat, (3) audit state claims, "
+        "(4) then style_score and quality_score.".format(name2=name2)
+    )
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": "\n".join(user_parts)},
     ]
+
 
 
 FINAL_OVERVIEW_SYSTEM_TMPL = """You are a quality auditor evaluating ONE writer only: {name2} ({role2}) — the DSS-driven writer. {name1} ({role1}) wrote the OTHER writer's turns. This overview measures {name2}'s performance ALONE, never the story as a whole and never {name1}.
@@ -1111,13 +2089,20 @@ SCORING RUBRIC (be strict — a mediocre run must NOT score 4+):
 - overall_score is NOT the joint story quality and NOT a straight average of the sub-scores. Weigh:
   voice adherence ~30%, memory fidelity ~25%, note/clue usage ~25%, scene progression ~20%.
 - voice: 5 = zero voice violations across the run; 4 = an occasional single slip; 3 = recurring slips or repeated verbatim re-quotes of {name1} or repeated closing lines; 2 = wholesale wrong-person drift (first person where the directive demands third, or vice versa, or a second-person 'you' slipping into 'I'/'he') or habitual re-quoting; 1 = never in character.
-- memory (state completeness and freshness over the run): 5 = the state is a complete and current record: all characters/elements that appeared have entries, relationships between active participants are tracked, and entries reflect the latest known state (not stale); 4 = a few minor gaps (a peripheral element missing) or mildly stale fields that do not affect the current scene; 3 = two or more notable gaps, OR actively relevant entries are stale (current-scene participants' locations/statuses outdated), OR key relationships between scene participants are missing; 2 = the state is noticeably incomplete — multiple current-scene participants missing entries, or several relationships not tracked; 1 = wholesale wrong, empty, or contradicts the premise. Do NOT award 5 merely because the reply is consistent with the state — consistency is expected by construction; grade COMPLETENESS and FRESHNESS. (Exception: if the premise establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT.)
+- memory fidelity (how faithfully the private memory captured what the outline meant to establish AND what the story actually established, explicit or implicit): this is VERIFIED item by item in memory_checks, not judged by impression and not by counting entries; the harness computes memory_fidelity_score from your verdicts. For overall_score take the memory component from that verification and from the MEMORY LEDGER (the computed per-turn scores). A tidy, well-populated state earns nothing by itself, and excellent prose must not lift it. If your checklist and the ledger's recent mean differ by more than 0.5, say why in the memory_fidelity text. Consistency between the replies and the state is expected by construction and earns nothing. (Exception: if the premise establishes that {name1} and {name2} share one identity — a 'same-perspective' story — shared-identity narration is CORRECT.)
 - notes: grade ONLY the notes marked in scope (the unplanted ones are excluded — {name2} cannot honor a note the other writer never planted). 5 = most in-scope notes planted/echoed at the right turns; 4 = most notes used but some fumbled; 3 = roughly half the in-scope notes missed; 2 = the clear majority missed; 1 = notes essentially ignored.
 - progression: 5 = their turns consistently advanced the beats; 4 = mostly advancing but some beats fumbled; 3 = imagery over action, several beats missed; 2 = rarely advanced anything; 1 = static or regressive.
 
 {anchors}
 
-GROUND MEMORY SCORES IN THE TRANSCRIPT AND STATE: to judge completeness and freshness, compare the state against what actually happened in the transcript. If a character or element is mentioned in the story but absent from the state, that is a completeness failure. If the state shows a value that the story has since superseded, that is a freshness failure. Do NOT invent contradictions not visible in the stored state, and do not infer facts the memory does not contain. A subject shown as "(EMPTY)" (e.g. '== characters == (EMPTY — no entries saved)') IS a memory failure — say so and score it down. Attribution: {name2} receives per-turn instructions generated by the harness; if a recurring flaw in their turns was explicitly mandated by those instructions (a specified prop, animal, or ending), weigh it as weak EXECUTION, not as {name2}'s own creative choice or a memory error.
+MEMORY VERIFICATION (fill "memory_checks"; the harness computes the score). Check the END-OF-RUN memory against what the outline intended and what the story actually established, with the same evidence rules as the per-turn judge:
+- note_retention: a verdict (retained | partial | missing | contradicted) for EVERY note id in the MEMORY ANSWER KEY. Search the whole state; judge substance, not wording.
+- beat_checks: a verdict (saved | partial | wrong | missing) for every beat in the answer key.
+- story_facts: 9 to 12 facts the story established, EXPLICIT or IMPLICIT, chosen from the transcript BEFORE you look at the state: at least 3 from the first third of the story ("era": "early"), 3 from the middle ("middle") and 3 from the last third ("late"), and at least 4 implicit ones (necessarily true though not stated outright: who now holds an object, who is where, who knows what, what a reaction reveals, the order of events). The eras exist to expose forgetting over the run: early items that are gone by the end are the main long-horizon failure.
+- state_claims: 6 to 8 entries from the final state, tested against the transcript. contradicted needs a quoted source; unverifiable is neutral.
+- retained, saved, partial and stale require "state_quote" (a verbatim excerpt of 15 words or fewer from the final state; the harness verifies it and downgrades a quote it cannot find). missing requires "looked_in". Each story fact needs a "source" quote (12 words or fewer) from the transcript; the harness drops a fact whose source it cannot find.
+- A subject shown as "(EMPTY ...)" is a real memory failure: every item that belongs in it is missing. Never invent a contradiction, and never credit the state for something only the transcript says.
+- Attribution: {name2} receives per-turn instructions generated by the harness; if a recurring flaw in their turns was explicitly mandated by those instructions (a specified prop, animal, or ending), weigh it as weak EXECUTION, not as {name2}'s own creative choice or a memory error.
 
 MANDATORY FLOORS (apply regardless of how pretty the prose is):
 - Recurring identity confusion ({name2} as the wrong character) caps overall_score at 3, and memory-fidelity discussion must call it out explicitly.
@@ -1135,8 +2120,8 @@ Style directives (for reference only — {name1}'s voice is not scored):
 {taboos}
 
 You are given: the premise, the full outline notes, the entire transcript (each line labeled
-CONTEXT or EVALUATED), the per-turn judge records produced during the run, and {name2}'s
-private memory at the end.
+CONTEXT or EVALUATED), the per-turn judge records produced during the run (compacted), the MEMORY
+ANSWER KEY, the MEMORY LEDGER, and {name2}'s private memory at the end.
 
 Return STRICT JSON only, exactly this shape:
 {{
@@ -1144,7 +2129,14 @@ Return STRICT JSON only, exactly this shape:
   "verdict": "one-sentence verdict on {name2}'s performance alone",
   "arc_progression": "2-3 sentences on how well {name2}'s turns advanced or landed the intended beats (what the DSS contributed), not how good the plot is",
   "style_consistency": "2-3 sentences on whether {name2} held THEIR directed voice ({dss_directive}) and its hard rules; {name1}'s voice is not scored",
-  "memory_fidelity": "2-3 sentences on whether {name2}'s private memory tracked the actual story",
+  "memory_fidelity": "2-3 sentences summarizing the memory checklist: what was retained, the most important misses, and whether early-story items decayed",
+  "memory_checks": {{
+    "story_facts": [{{"fact": "<one sentence>", "era": "early|middle|late", "basis": "explicit|implicit", "importance": "high|medium|low", "source": "<12 words or fewer, quoted from the transcript>", "state_quote": "<15 words or fewer, quoted from the final state, or empty>", "looked_in": "<subjects searched; required when missing>", "status": "retained|partial|stale|missing|contradicted"}}],
+    "note_retention": [{{"id": "<answer-key note id>", "state_quote": "<...>", "looked_in": "<...>", "status": "retained|partial|missing|contradicted"}}],
+    "beat_checks": [{{"id": "<answer-key beat id>", "state_quote": "<...>", "looked_in": "<...>", "status": "saved|partial|wrong|missing"}}],
+    "state_claims": [{{"claim": "<what the state says>", "path": "<subject/key/field>", "source": "<quote; required when contradicted>", "status": "supported|contradicted|unverifiable"}}]
+  }},
+  "wrong_character": <true|false>,
   "notes": [{{"id": "<note id>", "status": "planted|echoed|missed|superseded", "detail": "one sentence on what {name2}'s turns did with this note"}}],
   "strengths": ["2-4 strengths specific to {name2}'s turns"],
   "weaknesses": ["2-4 weaknesses specific to {name2}'s turns"],
@@ -1154,7 +2146,8 @@ Return STRICT JSON only, exactly this shape:
 
 def build_final_overview_messages(spreadsheet: dict, notes: list[dict], history: list[list[str]],
                                   judge_records: list[dict], state_summary: str,
-                                  scope: str = "final", unplanted_ids: list[str] | None = None) -> list[dict]:
+                                  scope: str = "final", unplanted_ids: list[str] | None = None,
+                                  memory_key: dict | None = None, ledger_text: str = "") -> list[dict]:
     chars = spreadsheet["characters"]
     ws = spreadsheet["writing_style"]
     taboos = "\n".join(f"- {t}" for t in ws.get("taboos", [])) or "- none"
@@ -1179,7 +2172,7 @@ def build_final_overview_messages(spreadsheet: dict, notes: list[dict], history:
     name2 = chars["name2"]["name"]
     role2 = chars["name2"].get("role", "the other character")
     user_parts = [f"Story premise (context): {spreadsheet['premise']}"]
-    user_parts.append("Outline notes (the intended arc):")
+    user_parts.append("Outline notes (the intended arc; the in-scope ones are also the MEMORY ANSWER KEY part 1 — see below):")
     user_parts.append(json.dumps([{"id": n["id"], "type": n["type"], "content": n["content"]} for n in notes], indent=1))
     if unplanted_ids:
         user_parts.append(
@@ -1187,6 +2180,40 @@ def build_final_overview_messages(spreadsheet: dict, notes: list[dict], history:
             f"never planted them — so they are NOT in scope and must be marked 'superseded', never "
             f"'missed': {sorted(unplanted_ids)}"
         )
+    if memory_key is not None:
+        user_parts.append(
+            "MEMORY ANSWER KEY — part 1: give a note_retention verdict for each of these note ids (their "
+            "content is in the outline notes above; style-hold notes are not memory items): "
+            f"{[n['id'] for n in memory_key.get('notes', [])]}"
+        )
+        user_parts.append(
+            "MEMORY ANSWER KEY — part 2: MEMORY BEATS DSS was expected to have saved (give each a beat_checks verdict):"
+        )
+        user_parts.append(json.dumps(memory_key.get("beats", []), indent=1) if memory_key.get("beats") else "(none)")
+        _excl = sorted(memory_key.get("pending_notes", []) + memory_key.get("pending_beats", []))
+        if _excl:
+            user_parts.append(f"EXCLUDED (appeared too recently for DSS to have saved them; do not check): {_excl}")
+        if ledger_text:
+            user_parts.append("MEMORY LEDGER (computed from the per-turn judge checks during the run):\n" + ledger_text)
+    _structure = spreadsheet.get("structure")
+    if _structure:
+        _notes_by_id = {n["id"]: n for n in spreadsheet.get("notes", [])}
+        _lines = ["STORY STRUCTURE (expected chapter/arc boundaries — assess whether DSS archived at the right times):"]
+        for ch in _structure.get("chapters", []):
+            _ref = _notes_by_id.get(ch.get("after_note", ""), {})
+            _turn = _ref.get("plant", {}).get("turn", "?")
+            _lines.append(
+                f"- Chapter '{ch['label']}': expected around turn {_turn} "
+                f"(±{ch.get('margin_scenes', 3)} scenes)"
+            )
+        for arc in _structure.get("arcs", []):
+            _ref = _notes_by_id.get(arc.get("after_note", ""), {})
+            _turn = _ref.get("plant", {}).get("turn", "?")
+            _lines.append(
+                f"- Arc '{arc['label']}': expected around turn {_turn} "
+                f"(±{arc.get('margin_chapters', 1)} chapters)"
+            )
+        user_parts.append("\n".join(_lines))
     user_parts.append(
         "Full transcript — [CONTEXT] lines are {name1}'s guide turns (read them to understand what {name2} was "
         "responding to, but do NOT score them); [EVALUATED] lines are {name2}'s DSS output, the object of this review."
@@ -1195,11 +2222,11 @@ def build_final_overview_messages(spreadsheet: dict, notes: list[dict], history:
     for u, r in history:
         user_parts.append(f"[CONTEXT — {name1} ({role1}), NOT scored]: {u}")
         user_parts.append(f"[EVALUATED — {name2} ({role2})]: {r}")
-    user_parts.append(f"[EVALUATED] {name2}'s private memory at the end (score its fidelity):\n{state_summary}")
+    user_parts.append(f"[EVALUATED] {name2}'s private memory at the end (verify the answer key against this):\n{state_summary}")
     if judge_records:
         user_parts.append("Per-turn judge records (from during the run; these already scored {name2} only):".format(name2=name2))
         for rec in judge_records:
-            user_parts.append(json.dumps(rec, indent=1))
+            user_parts.append(json.dumps(compact_judge_record(rec) if memory_key is not None else rec, indent=1))
     if scope == "rolling":
         user_parts.append(
             "Write a MID-RUN rolling overview of {name2}'s performance up to this checkpoint "
@@ -1367,7 +2394,7 @@ def parse_plan(raw: str, prev_plan: dict) -> dict:
 
 AUDITOR_SYSTEM_TMPL = """You are a MEMORY AUDITOR for a collaborative story. Another system (DSS) maintains
 a private structured memory of the story as JSON subject files (characters, groups, elements,
-events, current_scene, general_info).
+events, current_scene, general_info, and any other subject shown, such as knowledge).
 
 The spreadsheet scheduled a memory beat with a target turn. The scheduled turn is the EARLIEST
 intended save, NOT a deadline: the beat is satisfied whenever the expected entry is saved — once
@@ -1385,10 +2412,18 @@ When in doubt, set abort=false.
 Return STRICT JSON only, exactly this shape:
 {{
   "id": "<beat id>",
+  "evidence": "15 words or fewer quoted VERBATIM from DSS's memory that show the expected data, or empty if none",
+  "looked_in": "the subjects you searched (required when the status is missing)",
   "status": "saved|partial|wrong|missing|unassessable",
   "abort": <true|false>,
   "detail": "one-two sentences: what DSS actually saved (or failed to save), and what is wrong if anything"
 }}
+
+EVIDENCE RULES: search the WHOLE memory, every subject, not only the beat's subject; judge substance, not
+wording. "saved" and "partial" REQUIRE "evidence": a short verbatim excerpt copied from DSS's memory. The
+harness checks that the excerpt really appears there, and a "saved" without a verifiable quote is downgraded.
+Absence is absence: never assume the memory "probably" holds something, and never credit it for what only
+the story says. If a DETERMINISTIC PRE-CHECK is given, treat its facts as ground truth about what is present.
 
 - "saved": the expected entry exists and contains the expected data.
 - "partial": something of the expected data exists but is incomplete or mis-fitted.
@@ -1402,7 +2437,7 @@ Return STRICT JSON only, exactly this shape:
 
 
 def build_audit_messages(spreadsheet: dict, beat: dict, state_summary: str,
-                         capability_context: str = "", turn: int = 0) -> list[dict]:
+                         capability_context: str = "", turn: int = 0, precheck_facts: str = "") -> list[dict]:
     """Messages for the auditor: the beat expectation + DSS's actual memory."""
     system = AUDITOR_SYSTEM_TMPL
     user_parts = [
@@ -1418,6 +2453,8 @@ def build_audit_messages(spreadsheet: dict, beat: dict, state_summary: str,
         user_parts.append(f"Expected save: {json.dumps(beat['expect'], indent=1)}")
     if capability_context:
         user_parts.append(capability_context)
+    if precheck_facts:
+        user_parts.append("DETERMINISTIC PRE-CHECK (computed in code from DSS's memory):\n" + precheck_facts)
     user_parts.append(f"DSS's actual private memory at this point:\n{state_summary or '(no structured memory yet)'}")
     user_parts.append("Return your verdict as STRICT JSON now.")
     return [
@@ -1503,6 +2540,9 @@ def build_state(spreadsheet: dict, seed: int, unique_id: str, history: list | No
         f"Taboos: {taboos}\n"
         f"Characters:\n{_char_block(n1)}\n{_char_block(n2)}"
     )
+    extra = spreadsheet.get("extra_context", "").strip()
+    if extra:
+        context += f"\n{extra}"
     greeting = spreadsheet.get("greeting", "").strip()
     if not greeting:
         greeting = f"You walk into {spreadsheet['setting'].split(',')[0].strip() or 'the scene'}."
@@ -1693,6 +2733,7 @@ class SoakRun:
     def _make_judge_task(self, turn: int, active_notes: list[dict], reply: str,
                          state_dir: Path | None):
         window = list(self.history[-self.args.judge_window:])
+        full_history = list(self.history)
         planted = set(self._planted_note_ids())
         judge = self.judge
 
@@ -1702,7 +2743,7 @@ class SoakRun:
             base = judge.stats()
             try:
                 verdict = self._run_judge(turn, active_notes, reply, state_dir,
-                                          window=window, planted=planted)
+                                          window=window, planted=planted, full_history=full_history)
             except Exception as e:
                 soak_log(f"  judge: task failed at turn {turn}: {e}")
                 traceback.print_exc()
@@ -1803,27 +2844,32 @@ class SoakRun:
                 continue
             result = json.loads(result_path.read_text(encoding="utf-8"))
             reply_text = reply_path.read_text(encoding="utf-8")
+            # Live parity: a live run appends the exchange to self.history BEFORE it dispatches the
+            # judge/overview, so the window includes the exchange being judged. Do the same here.
+            user_path = d / "user.txt"
+            if user_path.exists():
+                self.history.append([user_path.read_text(encoding="utf-8"), reply_text])
+            # Point-in-time state: the per-turn snapshot written at checkpoint, not the newest dir on disk
+            # (which, for a finished run, is the FINAL state and would flatter every earlier turn).
+            snap = d / "state_snapshot"
+            point_in_time = snap if snap.exists() else None
             # Judge: missing or error (respect judge_every cadence)
             judge = result.get("judge")
             judge_ok = judge is not None and not (isinstance(judge, dict) and judge.get("error"))
             if self.args.judge_every and ((t + 1) % self.args.judge_every == 0) and not judge_ok:
-                dss_state = self._current_state_dir()
+                dss_state = point_in_time or self._current_state_dir()
                 task = self._make_judge_task(t, [], reply_text, dss_state)
                 if task:
                     self._judge_q.put(task)
             # Audit: missing (respect audit_every cadence)
             if self.args.audit_every and ((t + 1) % self.args.audit_every == 0) and not result.get("audit"):
-                task = self._make_audit_task(t, d)
+                task = self._make_audit_task(t, point_in_time or d)
                 if task:
                     self._audit_q.put(task)
             # Rolling overview: missing (respect overview_every cadence)
             ov_path = self.run_dir / f"rolling_overview_{t+1:03d}.json"
             if self.args.overview_every and ((t + 1) % self.args.overview_every == 0) and not ov_path.exists():
                 self._judge_q.put(self._make_rolling_overview_task(t))
-            # Advance history so next task sees correct window
-            user_path = d / "user.txt"
-            if user_path.exists():
-                self.history.append([user_path.read_text(encoding="utf-8"), reply_text])
         self.history = saved_history
         print(f"[soak] backfill complete")
 
@@ -1849,13 +2895,26 @@ class SoakRun:
         if clamped:
             soak_log(f"  dss: clamped {clamped} plant/recall turns into run horizon ({horizon})")
 
+    def _unresolved_beats(self, turn: int) -> list[dict]:
+        """Beats scheduled at or before ``turn`` whose latest recorded audit verdict is not 'saved'."""
+        latest: dict[str, str] = {}
+        for v in sorted((r for r in self.audit_records if isinstance(r, dict)), key=lambda r: r.get("turn", 0)):
+            if v.get("id") and v.get("status") != "error":
+                latest[v["id"]] = v.get("status")
+        return [b for b in self.spreadsheet.get("dss_beats", [])
+                if b.get("turn") is not None and int(b["turn"]) <= turn and latest.get(b["id"]) != "saved"]
+
+    def _retry_audit_due(self, turn: int) -> bool:
+        every = int(getattr(self.args, "audit_retry_every", 0) or 0)
+        return bool(every and turn > 0 and turn % every == 0 and self._unresolved_beats(turn))
+
     def _beats_due(self, turn: int) -> bool:
         """True if any spreadsheet dss_beat is scheduled for this turn."""
         for beat in self.spreadsheet.get("dss_beats", []):
             due = beat.get("turn")
             if due is not None and int(due) == turn:
                 return True
-        return False
+        return self._retry_audit_due(turn)
 
     def _seed_general_info_style(self, history_path: Path | None) -> None:
         """Pin ``general_info.writing_style`` to the spreadsheet's ``dss_directive``.
@@ -2022,13 +3081,25 @@ class SoakRun:
                        if b.get("turn") is None or int(b["turn"]) <= turn]
         else:
             due = [b for b in beats if b.get("turn") is not None and int(b["turn"]) == turn]
+        if self._retry_audit_due(turn):
+            have = {b["id"] for b in due}
+            due += [b for b in self._unresolved_beats(turn) if b["id"] not in have]
         if not due:
             return None
         state_summary = self._memory_summary(state_dir) if state_dir else "(no state)"
         results = []
         for beat in due:
             capability = self._audit_capability_context(beat, turn)
-            msgs = build_audit_messages(self.spreadsheet, beat, state_summary, capability, turn=turn)
+            pre = beat_precheck(beat, state_dir, list(self.history))
+            if pre and pre.get("decisive"):
+                verdict = {"id": beat["id"], "status": pre["status"], "abort": False,
+                           "detail": pre["detail"], "source": "deterministic",
+                           "turn": turn, "wall_ts": datetime.now().isoformat()}
+                results.append(verdict)
+                soak_log(f"  auditor: beat {beat['id']} -> {verdict['status']} (deterministic)")
+                continue
+            msgs = build_audit_messages(self.spreadsheet, beat, state_summary, capability, turn=turn,
+                                        precheck_facts=(pre or {}).get("facts", ""))
             t0 = time.time()
             soak_log(f"  auditor: beat {beat['id']} vs DSS state ({self.auditor.model}) ...")
             try:
@@ -2037,6 +3108,7 @@ class SoakRun:
                 soak_log(f"  auditor: beat {beat['id']} call failed: {e}")
                 verdict = {"id": beat["id"], "status": "error", "detail": str(e)}
             verdict.setdefault("id", beat["id"])
+            verdict = verify_audit_verdict(verdict, state_summary)
             verdict["turn"] = turn
             verdict["wall_ts"] = datetime.now().isoformat()
             results.append(verdict)
@@ -2088,70 +3160,60 @@ class SoakRun:
 
     # ------------------------------------------------------ state summary ---
 
+    @staticmethod
+    def _retrieval_payload(custom_state: dict) -> list[list[str]]:
+        """The memory the engine actually inserted: artificial-history [prompt, text] pairs + context."""
+        pairs: list[list[str]] = []
+        if not isinstance(custom_state, dict):
+            return pairs
+        for item in ((custom_state.get("history") or {}).get("internal") or []):
+            if isinstance(item, (list, tuple)) and len(item) >= 2:
+                pairs.append([str(item[0]), str(item[1])])
+        if custom_state.get("context"):
+            pairs.append(["__context__", str(custom_state["context"])])
+        return pairs
+
+    def _due_note_ids(self, turn: int, active_notes: list[dict]) -> set[str]:
+        ids = {n["id"] for n in (active_notes or []) if isinstance(n, dict) and n.get("id")}
+        for n in self.spreadsheet.get("notes", []):
+            if (n.get("recall") or {}).get("due") == turn:
+                ids.add(n["id"])
+        return ids
+
+    def _section_types(self) -> dict:
+        cached = getattr(self, "_section_types_cache", None)
+        if cached is not None:
+            return cached
+        found: dict = {}
+        try:
+            from extensions.dayna_ss.runtime import runtime
+            for rel in ("user_data/example/format_templates.json", "user_data/format_templates.json"):
+                p = Path(runtime.extension_dir) / rel
+                if p.exists():
+                    found = section_types_from_templates(p)
+                    break
+        except Exception:
+            found = {}
+        self._section_types_cache = found
+        return found
+
+    def _planted_now(self, user_input: str, reply: str) -> list[str]:
+        blob = f"{user_input}\n{reply}".lower()
+        return [n["id"] for n in self.spreadsheet.get("notes", [])
+                if (n.get("needle") or "").strip() and n["needle"].lower() in blob]
+
+    def _guide_memory_view(self, state_dir: Path | None) -> str:
+        """What the cloud guide/planner may see of DSS's memory (--guide-memory full|names|off)."""
+        mode = getattr(self.args, "guide_memory", "full")
+        if mode == "off":
+            return "(DSS's private memory is not shown to the guide in this run)"
+        if mode == "names":
+            return render_memory_names(state_dir)
+        return self._memory_summary(state_dir)
+
     def _memory_summary(self, state_dir: Path | None) -> str:
-        """Bounded DSS-state inventory for guide/judge/auditor.
-
-        Renders the FULL inventory of what DSS has saved (every character, group,
-        element, event, arc — not just a raw-JSON prefix), with per-entry detail
-        truncated so the list is never cut short. The old implementation dumped
-        ``json.dumps(entries)[:2500]``, which hid every entry after the first two
-        characters and omitted groups/elements/events/arcs entirely — so the
-        auditor judged "missing" on state that was actually saved.
-        """
-        if not state_dir or not state_dir.exists():
-            return "(no structured memory yet)"
-        parts = []
-
-        def compact_entries(data: dict, per_entry: int = 50000, max_total: int = 200000) -> str:
-            entries = data.get("entries", data) if isinstance(data, dict) else {}
-            if not isinstance(entries, dict) or not entries:
-                return ""
-            lines = []
-            for name, entry in entries.items():
-                try:
-                    blob = json.dumps(entry, ensure_ascii=False, indent=0)[:per_entry]
-                except Exception:
-                    blob = ""
-                lines.append(f"- {name}: {blob}")
-            total = "\n".join(lines)
-            if len(total) > max_total:
-                total = "\n".join(f"- {n}" for n in entries.keys())
-            return total[:max_total]
-
-        for fname in ("characters.json", "groups.json", "elements.json"):
-            p = state_dir / fname
-            if p.exists():
-                try:
-                    data = json.loads(p.read_text(encoding="utf-8"))
-                    summary = compact_entries(data)
-                    if summary:
-                        parts.append(f"== {fname.replace('.json', '')} ==\n" + summary)
-                    else:
-                        parts.append(f"== {fname.replace('.json', '')} == (EMPTY — no entries saved)")
-                except Exception:
-                    continue
-
-        for fname in ("events.json", "arcs.json"):
-            p = state_dir / fname
-            if p.exists():
-                try:
-                    data = json.loads(p.read_text(encoding="utf-8"))
-                    if not data:
-                        parts.append(f"== {fname.replace('.json', '')} == (EMPTY — nothing saved)")
-                    else:
-                        parts.append(f"== {fname.replace('.json', '')} ==\n" + json.dumps(data, ensure_ascii=False)[:50000])
-                except Exception:
-                    continue
-
-        for fname in ("general_info.json", "current_scene.json"):
-            p = state_dir / fname
-            if p.exists():
-                try:
-                    data = json.loads(p.read_text(encoding="utf-8"))
-                    parts.append(f"== {fname} ==\n" + json.dumps(data, indent=1)[:50000])
-                except Exception:
-                    continue
-        return "\n".join(parts) if parts else "(no structured memory yet)"
+        """Bounded DSS-state inventory for guide/judge/auditor/overview (see render_memory_summary)."""
+        return render_memory_summary(state_dir)
 
     # ------------------------------------------------------------ needles ---
 
@@ -2229,7 +3291,7 @@ class SoakRun:
         plan_every = self.args.plan_every
         if not plan_every or turn % plan_every != 0:
             return None
-        memory = self._memory_summary(state_dir)
+        memory = self._guide_memory_view(state_dir)
         msgs = build_plan_messages(self.spreadsheet, self.plan, self.history, memory)
         t0 = time.time()
         soak_log(f"  replan: calling cloud guide ({self.guide.model}) json_mode ...", ts=True)
@@ -2283,7 +3345,7 @@ class SoakRun:
         state_dir = self._current_state_dir()
         _cloud_t0 = time.time()
         replanned = self._maybe_replan(turn, state_dir)
-        memory = self._memory_summary(state_dir)
+        memory = self._guide_memory_view(state_dir)
         soak_log(1.5)
         guide_msgs = build_guide_messages(spread, active_notes, self.history, args.guide_style,
                                           memory, self._plan_view(),
@@ -2337,6 +3399,19 @@ class SoakRun:
             user_input, engine_state, history_internal, **_instr_kwargs
         )
         soak_log(f"  engine: instr prompt built in {_elapsed(t0)}")
+        # Retrieval precision: how accurately DSS's memory was inserted into this turn's context.
+        # Computed from the state the retriever saw and the story BEFORE this exchange (history is
+        # appended after the reply). Never allowed to break a turn.
+        try:
+            retrieval_payload = self._retrieval_payload(custom_state)
+            retrieval = retrieval_metrics(
+                retrieval_payload, state_dir, list(self.history), user_input,
+                notes=self.spreadsheet.get("notes", []),
+                due_note_ids=self._due_note_ids(turn, active_notes),
+                section_types=self._section_types())
+        except Exception as e:
+            soak_log(f"  retrieval metrics failed: {e}")
+            retrieval_payload, retrieval = [], {"available": False, "reason": f"error: {e}"}
         self._seed_general_info_style(history_path)
 
         # contamination guard (§6/§7): raw note text must never reach DSS prompts
@@ -2412,6 +3487,9 @@ class SoakRun:
             "reply": reply,
             "instr_prompt": instr_text,
             "context": custom_state.get("context", ""),
+            "retrieval": retrieval,
+            "retrieval_payload": retrieval_payload,
+            "planted_now": self._planted_now(user_input, reply),
             "history_path": str(history_path) if history_path else None,
             "probes": probes,
             "recalls": recalls,
@@ -2442,7 +3520,7 @@ class SoakRun:
 
         # guide writes the turn
         active_notes = notes_visible_at(spread["notes"], turn, self.args.guide_style)
-        memory = self._memory_summary(state_dir)
+        memory = self._guide_memory_view(state_dir)
         replanned = self._maybe_replan(turn, state_dir)
         guide_msgs = build_guide_messages(spread, active_notes, self.history, self.args.guide_style,
                                           memory, self._plan_view(),
@@ -2568,7 +3646,8 @@ class SoakRun:
         return planted
 
     def _run_judge(self, turn: int, active_notes: list[dict], reply: str, state_dir: Path | None,
-                   window: list[list[str]] | None = None, planted: set[str] | None = None) -> dict | None:
+                   window: list[list[str]] | None = None, planted: set[str] | None = None,
+                   full_history: list[list[str]] | None = None) -> dict | None:
         spread = self.spreadsheet
         if window is None:
             window = self.history[-self.args.judge_window:]
@@ -2595,9 +3674,13 @@ class SoakRun:
                 in_beat_notes.append(n)
             else:
                 past_notes.append(n)
+        grace = int(getattr(self.args, "memory_grace", MEMORY_GRACE_DEFAULT))
+        memory_key = memory_answer_key(spread, full_history if full_history is not None else self.history,
+                                       grace=grace, in_beat_ids={n["id"] for n in in_beat_notes})
         msgs = build_judge_messages(spread, in_beat_notes, past_notes, window, state_summary, reply,
                                     unplanted_ids=unplanted_ids, instructions=instr_text,
-                                    synthetic=bool(getattr(self.args, "synthetic_chat", False)))
+                                    synthetic=bool(getattr(self.args, "synthetic_chat", False)),
+                                    memory_key=memory_key)
         try:
             result = self.judge.json_complete(msgs, max_tokens=8000, json_mode=True)
         except CloudError as e:
@@ -2605,6 +3688,16 @@ class SoakRun:
             return {"error": str(e)}
         if result and "error" not in result:
             result["turn"] = turn
+            window_text = "\n".join(f"{u}\n{r}" for u, r in window) + "\n" + reply
+            notes_by_id = {n["id"]: n for n in spread.get("notes", [])}
+            result.pop("memory_fidelity", None)  # the harness computes it; never trust a judge-written number
+            score, breakdown = score_memory_checks(
+                result.get("memory_checks"), memory_key, state_summary, window_text,
+                wrong_character=bool(result.get("wrong_character")), notes_by_id=notes_by_id)
+            if score is None:
+                return {"error": "judge memory_checks unusable: " + str(breakdown.get("error", "unknown"))}
+            result["memory_fidelity"] = score
+            result["memory_breakdown"] = breakdown
         return result
 
     def _run_final_overview(self, state_dir: Path | None) -> dict | None:
@@ -2632,9 +3725,12 @@ class SoakRun:
         all_notes = self.spreadsheet["notes"]
         in_scope_notes = [n for n in all_notes if n["id"] in planted]
         unplanted_ids = [n["id"] for n in all_notes if n["id"] not in planted]
+        grace = int(getattr(self.args, "memory_grace", MEMORY_GRACE_DEFAULT))
+        memory_key, ledger_text = overview_memory_inputs(self.spreadsheet, history, judge_records, grace)
         msgs = build_final_overview_messages(
             self.spreadsheet, in_scope_notes, history, judge_records,
             state_summary, scope=scope, unplanted_ids=unplanted_ids,
+            memory_key=memory_key, ledger_text=ledger_text,
         )
         try:
             result = self.judge.json_complete(
@@ -2643,7 +3739,55 @@ class SoakRun:
         except CloudError as e:
             print(f"[soak] {scope} overview call failed: {e}")
             return {"error": str(e)}
-        return result
+        return finalize_overview_memory(result, self.spreadsheet, history, state_summary, memory_key)
+
+
+def _clear_judge_audit_overview(run_dir: Path, from_turn: int) -> None:
+    """Clear judge/audit/overview data from turn ``from_turn`` onward.
+
+    Removes ``judge``, ``judge_usage``, ``audit``, ``auditor_usage`` keys from
+    each ``turn_NNN/result.json`` (turn N >= from_turn), and deletes
+    ``rolling_overview_NNN.json`` and ``final_overview.json``. The result.json
+    files themselves are preserved (reply/user/instr_prompt/local_usage etc.
+    remain intact), making way for a subsequent ``--backfill`` with a new model.
+    """
+    run_dir = Path(run_dir)
+    cleared = 0
+    for d in sorted(run_dir.glob("turn_*")):
+        if not d.is_dir():
+            continue
+        try:
+            t = int(d.name.split("_")[-1])
+        except (ValueError, IndexError):
+            continue
+        if t < from_turn:
+            continue
+        result_path = d / "result.json"
+        if result_path.exists():
+            try:
+                result = json.loads(result_path.read_text(encoding="utf-8"))
+                removed = [k for k in ("judge", "judge_usage", "audit", "auditor_usage") if k in result]
+                if removed:
+                    for k in removed:
+                        del result[k]
+                    result_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
+                    cleared += 1
+            except Exception:
+                pass
+    # Rolling overviews: rolling_overview_NNN.json where NNN-1 >= from_turn
+    for ov in sorted(run_dir.glob("rolling_overview_*.json")):
+        try:
+            n = int(ov.stem.split("_")[-1])
+        except (ValueError, IndexError):
+            continue
+        if (n - 1) >= from_turn:
+            ov.unlink()
+    # Final overview is derived from all judge records; stale after a partial clear.
+    final_ov = run_dir / "final_overview.json"
+    if final_ov.exists():
+        final_ov.unlink()
+    print(f"[soak] cleared judge/audit/overview from turn {from_turn} onward "
+          f"({cleared} result.json files updated)")
 
 
 def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | None = None,
@@ -2699,28 +3843,6 @@ def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | No
         if snap.exists():
             last_state_dir = snap
 
-    # state summary from the last snapshot (best-effort reconstruction)
-    def _mem(snap: Path | None) -> str:
-        if not snap or not snap.exists():
-            return "(no structured memory yet)"
-        parts = []
-        for fname in ("general_info.json", "current_scene.json"):
-            p = snap / fname
-            if p.exists():
-                try:
-                    data = json.loads(p.read_text(encoding="utf-8"))
-                    parts.append(f"== {fname} ==\n" + json.dumps(data, indent=1)[:50000])
-                except Exception:
-                    continue
-        chars_p = snap / "characters.json"
-        if chars_p.exists():
-            try:
-                chars = json.loads(chars_p.read_text(encoding="utf-8"))
-                parts.append("== characters ==\n" + json.dumps(chars.get("entries", {}), indent=1)[:2500])
-            except Exception:
-                pass
-        return "\n".join(parts) if parts else "(no structured memory yet)"
-
     live_dir = run_dir / "live"
     try:
         live_dir.mkdir(exist_ok=True)
@@ -2739,14 +3861,17 @@ def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | No
     if not judge.api_key:
         print("[soak] ERROR: no cloud API key (set OPENCODE_GO_API_KEY)")
         return 1
-    state_summary = _mem(last_state_dir)
+    state_summary = render_memory_summary(last_state_dir)
     story_text = "\n".join(u + "\n" + r for u, r in history).lower()
     planted = {n["id"] for n in spreadsheet["notes"]
                if not (n.get("needle") or "").strip() or (n.get("needle") or "").strip().lower() in story_text}
     in_scope = [n for n in spreadsheet["notes"] if n["id"] in planted]
     unplanted_ids = [n["id"] for n in spreadsheet["notes"] if n["id"] not in planted]
+    grace = int(m_args.get("memory_grace", MEMORY_GRACE_DEFAULT))
+    memory_key, ledger_text = overview_memory_inputs(spreadsheet, history, judge_records, grace)
     msgs = build_final_overview_messages(spreadsheet, in_scope, history, judge_records,
-                                         state_summary, unplanted_ids=unplanted_ids, scope=scope)
+                                         state_summary, unplanted_ids=unplanted_ids, scope=scope,
+                                         memory_key=memory_key, ledger_text=ledger_text)
     try:
         result = judge.json_complete(
             msgs, max_tokens=16000, json_mode=True, reasoning_effort="low",
@@ -2756,6 +3881,7 @@ def _backfill_overview(run_dir: Path, scope: str = "final", checkpoint: int | No
         return 1
     if not result:
         result = {"error": "empty response"}
+    result = finalize_overview_memory(result, spreadsheet, history, state_summary, memory_key)
     result["turns"] = len(history)
     result["judge_records"] = judge_records
     result["generated_at"] = time.strftime("%Y-%m-%dT%H:%M:%S")
@@ -2987,7 +4113,29 @@ def main() -> int:
                 soak.plan = {}
         print(f"[soak] resumed {len(soak.history)} prior exchanges "
               f"({len(soak.judge_records)} judge records, {len(soak.audit_records)} audit records)")
+
+        if args.clear_from:
+            _clear_judge_audit_overview(run_dir, args.clear_from)
+            # Also drop the in-memory records that were loaded from the now-cleared
+            # disk files, so the report/final-overview don't mix stale + fresh data.
+            if args.clear_from < resume_from:
+                soak.judge_records = [r for r in soak.judge_records
+                                       if r.get("turn", 0) < args.clear_from]
+                soak.audit_records = [r for r in soak.audit_records
+                                       if r.get("turn", 0) < args.clear_from]
+            if not args.backfill:
+                soak_log(f"--clear-from: done. run_dir={run_dir}")
+                return 0
+
         soak.backfill_post_turn_events(resume_from)
+
+        if args.backfill:
+            soak_log("--backfill: joining cloud workers to let backfilled tasks complete ...")
+            soak._join_cloud_workers()
+            from report import write_report
+            write_report(run_dir, spreadsheet, args)
+            soak_log(f"--backfill: done. run_dir={run_dir}")
+            return 0
 
     # graceful stop
     def _sig(signum, frame):
@@ -3051,6 +4199,9 @@ def main() -> int:
             (tmp / "instr_prompt.txt").write_text(result["instr_prompt"], encoding="utf-8")
             if result.get("context"):
                 (tmp / "context.txt").write_text(result["context"], encoding="utf-8")
+            payload = result.pop("retrieval_payload", None)
+            if payload:
+                (tmp / "retrieval_payload.json").write_text(json.dumps(payload), encoding="utf-8")
             (tmp / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
             if soak.plan:
                 (tmp / "plan.json").write_text(json.dumps(soak.plan, indent=2), encoding="utf-8")

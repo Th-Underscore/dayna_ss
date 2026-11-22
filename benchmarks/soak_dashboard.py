@@ -74,18 +74,36 @@ _BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 
 # Plain-text help for (i) tooltips, defined once and shared with the page.
 HELP = {
-    "retention": "Note retention: did DSS keep remembering a planted story detail "
-                 "(needle) across turns, and did it survive supersession/archiving?",
-    "guide_failure": "A note was planted by the guide but never resurfaced because "
-                     "the guide failed to mention it again in its turns.",
+    "save_rate": "Of the notes the story actually planted (their needle appears in the story text), the share "
+                 "that DSS ever recorded in its memory at any turn. This is capture, not retention.",
+    "survival": "Of the notes DSS ever recorded, the share still in its memory at the last turn. Pure "
+                "retention: it ignores notes the guide never planted and notes DSS never saved.",
+    "planted_retention": "Notes still in DSS's memory at the last turn, divided by the notes the story "
+                         "actually planted (supersession notes excluded). End to end: capture and retention.",
+    "never_saved": "Planted in the story text but never found in DSS's memory at any turn. A DSS capture "
+                   "failure, not a guide failure.",
+    "retrieval": "Retrieval precision (0-100%, deterministic, no LLM): how accurately DSS's memory was "
+                 "inserted into the writer's context each turn. Composite of: recall of the entities the story is "
+                 "talking about now; precision (inserted entities that are justified by the recent story or related "
+                 "to it); detail calibration (relevant entities get more rendered detail than irrelevant ones); "
+                 "relevance of retrieved earlier messages; due planted notes being present; the last exchange being "
+                 "in the prompt. Waste = share of entity tokens spent on unjustified entities.",
+    "retention": "Overall retention (legacy definition): notes whose needle is in DSS's memory at the last turn, "
+                 "divided by ALL notes in the spreadsheet, including notes the guide never planted. Compare "
+                 "'Planted retention' and 'Survival of saved', which use planted notes only.",
+    "guide_failure": "The note was scheduled but its needle never appeared in the story text, so the guide "
+                     "failed to plant it (runs without story-text data fall back to the old rule: scheduled "
+                     "but never seen in memory).",
     "dss_retention_loss": "DSS lost the note — it was planted and later recalled by "
                           "the guide, but DSS no longer has it in its private memory.",
     "superseded": "A note was explicitly superseded by a later note (e.g. a plan "
                   "changed), so it is no longer expected to be remembered.",
     "style": "Style score (0-5): how well DSS's reply matched the writing-style "
              "directive (third-person, register, no verbatim echo of the guide).",
-    "fidelity": "Memory fidelity (0-5): how accurately DSS reproduced its stored "
-                "memory (characters, items, events, the scene) in the reply.",
+    "fidelity": "Memory fidelity (0-5, computed by the harness from the judge's verification checklist): "
+                "how faithfully DSS's private memory captured what the outline meant to establish "
+                "(planted notes, beats) and what the story actually established, explicit or implicit. "
+                "The judge verifies items and quotes evidence; it does not write the number.",
     "quality": "Quality score (0-5): overall prose quality — coherence, scene "
                "consistency, plot progression for DSS's reply alone.",
     "scene_part": "Scene-part budget split: when a scene exceeds max_scene_messages "
@@ -317,7 +335,11 @@ def read_scene(turn_dir: Path):
     data = read_json(turn_dir / "state_snapshot" / "current_scene.json")
     if not isinstance(data, dict):
         return None
-    return {k: (data[key] if isinstance(data.get(key), int) else None) for k, key in TRANSITION_KINDS}
+    return {
+        k.removeprefix("_").removesuffix("_number"): (v if isinstance(v, int) else None)  # [1:-7]
+        for k, v in data.items()
+        if isinstance(k, str) and k.startswith("_") and k.endswith("_number") and len(k) > 8
+    }
 
 
 def _merge_cloud_usage(r: dict) -> dict:
@@ -331,6 +353,30 @@ def _merge_cloud_usage(r: dict) -> dict:
     return cu
 
 
+def _memory_view(bd) -> dict | None:
+    """Compact view of a judge record's memory_breakdown (computed memory fidelity)."""
+    if not isinstance(bd, dict):
+        return None
+    cats = bd.get("categories") or {}
+    sil = bd.get("notes_by_silence") or {}
+    return {"notes": (cats.get("notes") or {}).get("score"), "beats": (cats.get("beats") or {}).get("score"),
+            "facts": (cats.get("facts") or {}).get("score"), "n": bd.get("n_items"),
+            "silent": (sil.get("silent") or {}).get("score"), "refreshed": (sil.get("refreshed") or {}).get("score")}
+
+
+def _retrieval_view(rt) -> dict | None:
+    """Compact view of a turn's retrieval-precision report."""
+    if not isinstance(rt, dict) or not rt.get("available"):
+        return None
+    ln, nt = rt.get("lines") or {}, rt.get("notes") or {}
+    return {"score": rt.get("score"), "recall_high": rt.get("recall_high"), "precision": rt.get("precision_entities"),
+            "waste": rt.get("token_waste"), "concordance": rt.get("detail_concordance"),
+            "lines_precision": ln.get("precision"), "lines_dup": ln.get("dup_recent"),
+            "note_recall": nt.get("recall"), "note_recall_long": nt.get("recall_long_term"),
+            "leak": rt.get("template_leak_chars"), "short_term": rt.get("short_term_last_present"),
+            "share": (rt.get("tiers") or {}).get("share")}
+
+
 def summarize(turn_dir: Path, r: dict, st: os.stat_result) -> dict:
     """The small slice of a result.json that aggregates need. Bulky fields
     (prompts, replies, context) stay on disk until a turn is expanded."""
@@ -338,7 +384,7 @@ def summarize(turn_dir: Path, r: dict, st: os.stat_result) -> dict:
     if isinstance(j, dict) and j:
         judge = ({"error": str(j["error"])} if "error" in j else
                  {"style": j.get("style_score"), "quality": j.get("quality_score"),
-                  "fidelity": j.get("memory_fidelity")})
+                  "fidelity": j.get("memory_fidelity"), "memory": _memory_view(j.get("memory_breakdown"))})
     else:
         judge = None
     wall = hms(r.get("wall_ts") or "") or dt.datetime.fromtimestamp(st.st_mtime).strftime("%H:%M:%S")
@@ -355,6 +401,9 @@ def summarize(turn_dir: Path, r: dict, st: os.stat_result) -> dict:
         "present": frozenset(k for k, p in (r.get("probes") or {}).items()
                              if isinstance(p, dict) and p.get("present")),
         "audit": [a for a in (r.get("audit") or []) if isinstance(a, dict)],
+        "planted_now": frozenset(r.get("planted_now") or []),
+        "story_data": "planted_now" in r,
+        "retrieval": _retrieval_view(r.get("retrieval")),
         "lu": r.get("local_usage"),
         "cu": _merge_cloud_usage(r),
         "local_calls": r.get("local_calls"),
@@ -396,14 +445,24 @@ def usage_series(turns: list[dict]) -> list[dict]:
 
 def note_timeline(turns: list[tuple[int, dict]], notes: list[dict], wall: dict) -> list[dict]:
     last_turn = turns[-1][0] if turns else None
+    # New runs record which notes' needles actually appeared in the story text each turn. With that, a note
+    # that was planted but never saved is DSS's failure, not the guide's.
+    has_story = any(s.get("story_data") for _, s in turns)
+    story_planted = set().union(*[s.get("planted_now", frozenset()) for _, s in turns]) if turns else set()
     rows = []
     for note in notes:
         nid = note["id"]
         observed = [n for n, s in turns if nid in s["present"]]
         last_seen = observed[-1] if observed else None
         planted = (note.get("plant") or {}).get("turn")
+        in_story = nid in story_planted
         if not observed:
-            attribution = "guide_failure" if (note["type"] == "supersession" or planted is not None) else "not_planted"
+            if note["type"] == "supersession":
+                attribution = "guide_failure"
+            elif has_story:
+                attribution = "dss_never_saved" if in_story else ("guide_failure" if planted is not None else "not_planted")
+            else:
+                attribution = "guide_failure" if planted is not None else "not_planted"
         elif note["type"] == "supersession":
             attribution = "supersession"
         elif last_seen != last_turn:
@@ -420,6 +479,8 @@ def note_timeline(turns: list[tuple[int, dict]], notes: list[dict], wall: dict) 
             "last_seen": last_seen,
             "last_seen_t": wall.get(last_seen, "") if last_seen is not None else "",
             "survived": bool(observed and last_seen == last_turn),
+            "saved": bool(observed),
+            "in_story": in_story if has_story else None,
             "attribution": attribution,
         })
     return rows
@@ -428,28 +489,32 @@ def note_timeline(turns: list[tuple[int, dict]], notes: list[dict], wall: dict) 
 def type_table(rows: list[dict]) -> list[list]:
     typed: dict[str, dict] = {}
     for r in rows:
-        t = typed.setdefault(r["type"], {"count": 0, "survived": 0, "guide_failure": 0, "dss": 0, "superseded": 0})
+        t = typed.setdefault(r["type"], {"count": 0, "survived": 0, "guide_failure": 0, "dss": 0, "superseded": 0, "never": 0})
         t["count"] += 1
         t["survived"] += r["attribution"] == "survived"
         t["guide_failure"] += r["attribution"] == "guide_failure"
         t["dss"] += r["attribution"] == "dss_retention_loss"
         t["superseded"] += r["attribution"] == "supersession"
+        t["never"] += r["attribution"] == "dss_never_saved"
     return [[k, t["count"], t["survived"], t["guide_failure"], t["dss"], t["superseded"],
-             t["survived"] / t["count"] * 100] for k, t in sorted(typed.items())]
+             t["survived"] / t["count"] * 100, t["never"]] for k, t in sorted(typed.items())]
 
 
 def find_transitions(turns: list[tuple[int, dict]]) -> dict[int, dict]:
-    prev: dict[str, int | None] = {k: None for k, _ in TRANSITION_KINDS}
+    prev: dict[str, int] = {}
     out = {}
     for n, s in turns:
-        nos = s["scene"] or {k: None for k, _ in TRANSITION_KINDS}
-        moved = {k: [prev[k], nos[k]] for k, _ in TRANSITION_KINDS
-                 if prev[k] is not None and nos[k] is not None and nos[k] != prev[k]}
+        nos = s["scene"] or {}
+        moved = {
+            k: [prev.get(k, 1), v]
+            for k, v in nos.items()
+            if v is not None and v != prev.get(k)
+        }
         if moved:
             out[n] = moved
-        for k, _ in TRANSITION_KINDS:
-            if nos[k] is not None:
-                prev[k] = nos[k]
+        for k, v in nos.items():
+            if v is not None:
+                prev[k] = v
     return out
 
 
@@ -573,13 +638,70 @@ class Run:
         notes = note_timeline(turns, sheet.get("notes", []), wall) if sheet else []
         survived = sum(r["attribution"] == "survived" for r in notes)
         count = lambda a: sum(r["attribution"] == a for r in notes)
+        pct = lambda a, b: (a / b * 100.0) if b else None
+        mean = lambda xs: (sum(xs) / len(xs)) if xs else None
+        has_story = any(s.get("story_data") for s in summaries)
+        planted_rows = [r for r in notes if r["type"] != "supersession"
+                        and (r["in_story"] if has_story else r["planted_at"] is not None)]
+        saved_rows = [r for r in planted_rows if r["saved"]]
+        judged = [s["judge"] for s in summaries if s["judge"] and "error" not in s["judge"]
+                  and isinstance(s["judge"].get("fidelity"), (int, float))]
+        fids = [j["fidelity"] for j in judged]
+        mems = [j["memory"] for j in judged if j.get("memory")]
+        rts = [s["retrieval"] for s in summaries if s.get("retrieval")]
+        rmean = lambda k: mean([r[k] for r in rts if isinstance(r.get(k), (int, float)) and not isinstance(r.get(k), bool)])
+        latest: dict[str, str] = {}
+        for _n, s_ in turns:
+            for a in s_["audit"]:
+                if a.get("id") and a.get("status") != "error":
+                    latest[a["id"]] = a.get("status")
+        score_pct = lambda v: None if v is None else v * 100.0
         stats = {
             "notes_total": len(notes),
             "overall_retention": survived / max(1, len(notes)) * 100.0,
             "guide_failure": count("guide_failure"),
             "dss_retention_loss": count("dss_retention_loss"),
+            "dss_never_saved": count("dss_never_saved"),
             "supersession": count("supersession"),
+            "story_data": has_story,
+            "planted_n": len(planted_rows),
+            "saved_n": len(saved_rows),
+            "save_rate": pct(len(saved_rows), len(planted_rows)),
+            "survival_of_saved": pct(sum(r["survived"] for r in saved_rows), len(saved_rows)),
+            "planted_retention": pct(sum(r["survived"] for r in planted_rows), len(planted_rows)),
+            "memory_judged": len(fids),
+            "memory_fidelity_mean": mean(fids),
+            "memory_fidelity_last3": mean(fids[-3:]),
+            "memory_notes": score_pct(mean([m["notes"] for m in mems if m.get("notes") is not None])),
+            "memory_beats": score_pct(mean([m["beats"] for m in mems if m.get("beats") is not None])),
+            "memory_facts": score_pct(mean([m["facts"] for m in mems if m.get("facts") is not None])),
+            "memory_silent_notes": score_pct(mean([m["silent"] for m in mems if m.get("silent") is not None])),
+            "beats_total": len((sheet or {}).get("dss_beats", [])),
+            "beats_seen": len(latest),
+            "beats_saved": sum(v == "saved" for v in latest.values()),
+            "retrieval": {"n": len(rts), "score": score_pct(rmean("score"))},
         }
+        share_keys = ("short_term", "entities", "history", "long_term_messages", "overhead")
+        shares = {k: mean([r["share"][k] for r in rts if isinstance(r.get("share"), dict) and k in r["share"]]) for k in share_keys}
+        fmt = lambda v, p=True: "n/a" if v is None else (f"{v * 100:.0f}%" if p else f"{v:.2f}")
+        retrieval_table = [] if not rts else [
+            ["Turns measured", str(len(rts))],
+            ["Composite score", fmt(rmean("score"))],
+            ["Recall of high-relevance entities", fmt(rmean("recall_high"))],
+            ["Precision of inserted entities", fmt(rmean("precision"))],
+            ["Token waste on unjustified entities", fmt(rmean("waste"))],
+            ["Detail concordance (relevant entities detailed)", fmt(rmean("concordance"))],
+            ["Retrieved lines: relevant", fmt(rmean("lines_precision"))],
+            ["Retrieved lines: duplicating the recent window", fmt(rmean("lines_dup"))],
+            ["Due planted notes present in context", fmt(rmean("note_recall"))],
+            ["Due long-term notes present in context", fmt(rmean("note_recall_long"))],
+            ["Last exchange present (short-term)", fmt(mean([1.0 if r["short_term"] else 0.0 for r in rts if r.get("short_term") is not None]))],
+            ["Template leakage (chars, total)", str(sum(int(r.get("leak") or 0) for r in rts))],
+            ["Token share by tier", " · ".join(f"{k.replace('_', ' ')} {fmt(v)}" for k, v in shares.items() if v is not None) or "n/a"],
+        ]
+        retrieval_rows = [[n, *[s["retrieval"].get(k) for k in ("score", "recall_high", "precision", "waste", "concordance",
+                                                                "lines_precision", "lines_dup", "note_recall", "leak")]]
+                          for n, s in turns if s.get("retrieval")]
 
         series = usage_series(summaries)
         cost = {
@@ -598,7 +720,7 @@ class Run:
         curves = [{"turn": n, "wall": s["wall"], **s["judge"]} for n, s in turns
                   if s["judge"] and "error" not in s["judge"]]
         audits = [[a.get("id", "?"), n, wall.get(n, "") if isinstance(n, int) else "",
-                   a.get("status", "?"), a.get("detail", "")]
+                   str(a.get("status", "?")) + (" (code)" if a.get("source") == "deterministic" else ""), a.get("detail", "")]
                   for tn, s in turns for a in s["audit"] for n in [a.get("turn", tn)]]
 
         rollings = []
@@ -640,6 +762,8 @@ class Run:
             "transitions": [{"turn": n, "moves": m} for n, m in sorted(trans.items())],
             "notes": notes,
             "types": type_table(notes),
+            "retrieval_table": retrieval_table,
+            "retrieval_rows": retrieval_rows,
             "curves": curves,
             "audits": audits,
             "plans": [{"created_turn": k, **v} for k, v in sorted(self.plans.items())],
@@ -1159,11 +1283,19 @@ function renderStats(ov) {
   const s = ov.stats, c = ov.cost, w = ov.last_wall;
   const sub = w ? `as of ${w}` : '';
   const P = $('stat-cards'), C = $('cost-cards');
-  setCard(P, 's-ret', { label: 'Overall retention', value: `${Math.round(s.overall_retention)}%`, sub, tip: HELP.retention });
+  const pct = v => v == null ? 'n/a' : `${Math.round(v)}%`;
+  setCard(P, 's-ret', { label: 'Overall retention (all notes)', value: pct(s.overall_retention), sub, tip: HELP.retention });
+  setCard(P, 's-save', { label: 'Saved by DSS', value: pct(s.save_rate), sub: `${s.saved_n}/${s.planted_n} planted`, tip: HELP.save_rate });
+  setCard(P, 's-surv', { label: 'Survival of saved', value: pct(s.survival_of_saved), sub, tip: HELP.survival });
+  setCard(P, 's-pret', { label: 'Planted retention', value: pct(s.planted_retention), sub: s.story_data ? sub : 'scheduled notes (no story data)', tip: HELP.planted_retention });
+  setCard(P, 's-mem', { label: 'Memory fidelity (computed)', value: s.memory_fidelity_mean == null ? 'n/a' : `${s.memory_fidelity_mean.toFixed(2)}/5`, sub: `last 3 ${s.memory_fidelity_last3 == null ? 'n/a' : s.memory_fidelity_last3.toFixed(2)} · ${s.memory_judged} judged`, tip: HELP.fidelity });
+  setCard(P, 's-rps', { label: 'Retrieval precision', value: pct(s.retrieval.score), sub: `${s.retrieval.n} turns measured`, tip: HELP.retrieval });
+  setCard(P, 's-bs', { label: 'Beats saved (latest verdict)', value: `${s.beats_saved}/${s.beats_total}`, sub: `${s.beats_seen} audited`, tip: HELP.audit_statuses });
   setCard(P, 's-turns', { label: 'Turns run', value: String(ov.turns.length), sub });
   setCard(P, 's-notes', { label: 'Notes', value: String(s.notes_total), sub });
   setCard(P, 's-gf', { label: 'Guide failures', value: String(s.guide_failure), sub, tip: HELP.guide_failure });
   setCard(P, 's-dl', { label: 'DSS retention loss', value: String(s.dss_retention_loss), sub, tip: HELP.dss_retention_loss });
+  setCard(P, 's-nsv', { label: 'DSS never saved', value: String(s.dss_never_saved), sub: s.story_data ? sub : 'needs story data', tip: HELP.never_saved });
   setCard(P, 's-sup', { label: 'Superseded', value: String(s.supersession), sub, tip: HELP.superseded });
   setCard(C, 'c-lc', { label: 'Local LLM calls', value: String(c.local_calls), sub });
   setCard(C, 'c-lt', { label: 'Local ctx (prompt tok)', value: fmtTok(c.local_prompt), sub, tip: HELP.local_ctx });
@@ -1172,7 +1304,11 @@ function renderStats(ov) {
   setCard(C, 'c-wt', { label: 'Total wall time', value: fmtDt(c.dt_s), sub: `cloud ${fmtDt(c.cloud_s)} · local ${fmtDt(c.local_s)}` });
 
   const moves = [];
-  for (const t of ov.transitions) for (const k of ['scene', 'chapter', 'arc']) if (t.moves[k]) moves.push(`turn ${t.turn}: ${k} ${t.moves[k][0]}→${t.moves[k][1]}`);
+  for (const t of ov.transitions) {
+    for (const [k, [from, to]] of Object.entries(t.moves)) {
+      moves.push(`turn ${t.turn}: ${k} ${from}→${to}`);
+    }
+  }
   $('trans').replaceChildren(...(moves.length ? [h('b', null, 'Scene / chapter / arc turns'), ` (scene-part budget splits): ${moves.join(', ')} `, h('span', { title: HELP.scene_part }, 'ℹ')] : []));
 }
 
@@ -1213,18 +1349,27 @@ function buildSections() {
       : 'No DSS save-beat audits in this run (spreadsheet has no dss_beats, or the auditor never ran).'],
     ['curves', 'Judge curves', true, ov => [
       helpNote('style / fidelity / quality', `${HELP.style}\n${HELP.fidelity}\n${HELP.quality}`),
-      table(['turn', 'at', 'style', 'fidelity', 'quality'], ov.curves.map(c => [c.turn, c.wall, c.style, c.fidelity, c.quality]))]],
+      table(['turn', 'at', 'style', 'fidelity', 'quality', 'notes', 'beats', 'facts', 'silent notes'], ov.curves.map(c => {
+        const m = c.memory || {}, p = v => v == null ? '' : `${Math.round(v * 100)}%`;
+        return [c.turn, c.wall, c.style, c.fidelity, c.quality, p(m.notes), p(m.beats), p(m.facts), p(m.silent)];
+      }))]],
+    ['retrieval', 'Retrieval precision', true, ov => ov.retrieval_rows.length ? [
+      helpNote('retrieval precision', HELP.retrieval),
+      table(['measure', 'mean over measured turns'], ov.retrieval_table),
+      table(['turn', 'score', 'recall (high-rel)', 'precision', 'waste', 'detail concordance', 'lines relevant', 'lines dup', 'due notes present', 'leak ch'],
+        ov.retrieval_rows.map(r => [r[0], ...r.slice(1, 9).map(v => v == null ? '' : `${Math.round(v * 100)}%`), r[9] || 0]))]
+      : 'No retrieval metrics in this run (a run from before the metric existed, or the payload could not be parsed).'],
     ['types', 'Retention by type', true, ov => [
       h('div', { class: 'muted' }, `Computed at ${ov.last_wall || '—'} (last checkpoint).`),
       helpNote('retention terms', `${HELP.retention}\nguide-fail = ${HELP.guide_failure}\ndss-loss = ${HELP.dss_retention_loss}\nsuperseded = ${HELP.superseded}`),
-      table(['type', 'count', 'survived', 'guide-fail', 'dss-loss', 'superseded', 'rate %'], ov.types.map(r => [...r.slice(0, 6), r[6].toFixed(1)]))]],
+      table(['type', 'count', 'survived', 'guide-fail', 'dss-loss', 'superseded', 'rate %', 'never-saved'], ov.types.map(r => [...r.slice(0, 6), r[6].toFixed(1), r[7] ?? 0]))]],
     ['notes', 'Per-note retention', true, ov => [
       h('div', { class: 'muted' }, `Planted / last-seen turn@time. Computed at ${ov.last_wall || '—'}.`),
       helpNote('retention per note', HELP.retention),
-      table(['id', 'type', 'specificity', 'needle', 'planted (turn@time)', 'last_seen (turn@time)', 'survived', 'attribution'],
+      table(['id', 'type', 'specificity', 'needle', 'planted (turn@time)', 'last_seen (turn@time)', 'in story', 'survived', 'attribution'],
         ov.notes.map(r => [r.id, r.type, r.specificity, r.needle,
           `${nz(r.planted_at)}${r.planted_t ? ' @' + r.planted_t : ''}`, `${nz(r.last_seen)}${r.last_seen_t ? ' @' + r.last_seen_t : ''}`,
-          r.survived ? 'Y' : 'n', r.attribution]))]],
+          r.in_story == null ? '' : (r.in_story ? 'Y' : 'n'), r.survived ? 'Y' : 'n', r.attribution]))]],
   ];
   const root = $('sections');
   for (const [key, title, def, build] of defs) {
@@ -1246,7 +1391,9 @@ function turnTitle(r) {
   let s = `Turn ${r.turn} · ${fmtDt(r.dt_s)}`;
   if (r.cloud_s > 5) s += ` (cloud ${fmtDt(r.cloud_s)}, local ${fmtDt(r.local_s)})`;
   if (r.judge && !r.judge.error) s += ` · style ${nz(r.judge.style)} fid ${nz(r.judge.fidelity)}`;
-  for (const k of ['scene', 'chapter', 'arc']) if (r.trans && r.trans[k]) s += ` · ⛨ ${k.toUpperCase()} ${r.trans[k][0]}→${r.trans[k][1]}`;
+  for (const [k, [from, to]] of Object.entries(r.trans || {})) {
+    s += ` · ⛨ ${k.toUpperCase()} ${from}→${to}`;
+  }
   return s;
 }
 
