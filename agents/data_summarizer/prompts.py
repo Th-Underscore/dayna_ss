@@ -46,8 +46,6 @@ from ...utils.data_expansion import _make_comments_inline
 from ..formatted_data import FormattedData
 
 from .parsing import (
-    _entries_as_list,
-    _safe_int,
     _normalize_entry_name,
     _collect_entry_aliases,
     _resolve_dict_key,
@@ -491,44 +489,6 @@ class DSPromptsMixin:
         state = self.summarizer.last.state
         current_message_node = self._resolve_current_message_node()
 
-        # Calculate counts for context
-        events_data = self.all_subjects_data.get("events", {})
-        scenes_dict = events_data.get("scenes", {}) if events_data else {}
-        chapters = _entries_as_list(events_data.get("chapters")) if events_data else []
-
-        scenes_count = len(scenes_dict)  # Total scenes in story
-        chapters_count = len(chapters)  # Total chapters in story
-
-        current_scene_data = self.all_subjects_data.get("current_scene", {})
-        current_scene_number = current_scene_data.get("_scene_number", 1)
-        current_chapter_number = current_scene_data.get("_chapter_number", 1)
-        current_arc_number = current_scene_data.get("_arc_number", 1)
-
-        # Calculate relative counts (within current chapter/arc)
-        # For scenes in current chapter: count scenes since last chapter transition
-        scenes_in_chapter = 1
-        if chapters:
-            last_chapter = chapters[-1] if isinstance(chapters[-1], dict) else {}
-            last_chapter_ending_scene = _safe_int(last_chapter.get("ending_scene"))
-            scenes_in_chapter = max(1, scenes_count - last_chapter_ending_scene)
-
-        scene_in_chapter = scenes_in_chapter  # Current scene position within chapter
-
-        # For chapters in current arc: count chapters since last arc transition
-        chapters_in_arc = chapters_count
-        arcs_data = self.all_subjects_data.get("arcs", {})
-        if isinstance(arcs_data, dict) and arcs_data:
-            last_arc = max(
-                (a for a in arcs_data.values() if isinstance(a, dict)),
-                key=lambda a: _safe_int(a.get("ending_chapter")),
-                default=None,
-            )
-            if last_arc is not None:
-                last_arc_ending_chapter = _safe_int(last_arc.get("ending_chapter"))
-                chapters_in_arc = max(1, chapters_count - last_arc_ending_chapter)
-
-        chapter_in_arc = chapters_in_arc  # Current chapter position within arc
-
         format_kwargs = {
             "schema_class": target_name,
             "branch_name": item_name,
@@ -550,17 +510,6 @@ class DSPromptsMixin:
             "name1": state["name1"],
             "name2": state["name2"],
             "current_message_node": current_message_node,
-            # Absolute counts
-            "scenes_count": scenes_count,
-            "chapters_count": chapters_count,
-            "current_scene_number": current_scene_number,
-            "current_chapter_number": current_chapter_number,
-            "current_arc_number": current_arc_number,
-            # Relative counts (within current chapter/arc)
-            "scenes_in_chapter": scenes_in_chapter,
-            "scene_in_chapter": scene_in_chapter,
-            "chapters_in_arc": chapters_in_arc,
-            "chapter_in_arc": chapter_in_arc,
             "subjects": self.all_subjects_data,
             **kwargs,
         }

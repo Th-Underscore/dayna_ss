@@ -116,9 +116,21 @@
         "evidence_placeholder": "The name of the event/scene where this skill was demonstrated in action. null if only stated or inferred (never demonstrated).",
         "visibility_placeholder": "Whether other characters know this skill exists. Options: 'public' (known to relevant parties), 'secret' (hidden).",
         "source_placeholder": "How this information was established. Options: 'stated' (character/author said so), 'demonstrated' (shown in action), 'inferred' (deduced by the summarizer).",
-        "acquired_via_options": ["trained", "innate", "item", "granted"],
-        "visibility_options": ["public", "secret"],
-        "source_options": ["stated", "demonstrated", "inferred"]
+        "acquired_via_options": [
+          "trained",
+          "innate",
+          "item",
+          "granted"
+        ],
+        "visibility_options": [
+          "public",
+          "secret"
+        ],
+        "source_options": [
+          "stated",
+          "demonstrated",
+          "inferred"
+        ]
       }
     },
     "Attribute": {
@@ -132,7 +144,11 @@
         "can_do_placeholder": "1-2 concrete sentences describing this attribute, naming the axis (speed, thoroughness, breadth, raw power) and using the story's Proficiency ladder yardsticks (e.g., 'Strategic thinking: processes a complex battle plan in seconds; has never missed a tactical detail in 40+ engagements').",
         "tier_placeholder": "Rung on the Proficiency ladder. 0 = competent real-world professional. See the ladder definitions in the system context.",
         "source_placeholder": "How this information was established. Options: 'stated' (character/author said so), 'demonstrated' (shown in action), 'inferred' (deduced by the summarizer).",
-        "source_options": ["stated", "demonstrated", "inferred"]
+        "source_options": [
+          "stated",
+          "demonstrated",
+          "inferred"
+        ]
       }
     },
     "CharacterMilestone": {
@@ -187,7 +203,7 @@
         "biography_placeholder": "The character's backstory, past experiences, and history. This can include their origins, past relationships, previous life events, and how they became who they are today.",
         "traits_placeholder": "A list of defining characteristics, personality aspects, or physical features of the character.",
         "attributes_placeholder": "A mapping of aptitude name to Attribute object. Each aptitude is a continuous, always-on capability with no activation (raw strength, strategic speed, sensory acuity). Key is the aptitude name (e.g., 'Raw Strength', 'Tactical Speed'). Value has: can_do (1-2 concrete sentences naming the axis and using Proficiency ladder yardsticks), tier (rung on the Proficiency ladder, 0 = competent professional), source (stated|demonstrated|inferred).",
-       "skills_placeholder": "A mapping of skill name to Skill object. Each skill is a discrete, named technique used on demand (a named attack, a transformation, a learned ability). Key is the skill name (e.g., 'Sunbeam', 'Meteor Drive'). Value has: can_do (1-2 concrete sentences using Magnitude ladder yardsticks), tier (rung on the Magnitude ladder, 0 = real-world human), limits (cost/cooldown/requirements, null if none), acquired_via (trained|innate|item|granted), learned_scene (scene where acquired), evidence (event name where demonstrated, null if only stated), visibility (public|secret), source (stated|demonstrated|inferred).",
+        "skills_placeholder": "A mapping of skill name to Skill object. Each skill is a discrete, named technique used on demand (a named attack, a transformation, a learned ability). Key is the skill name (e.g., 'Sunbeam', 'Meteor Drive'). Value has: can_do (1-2 concrete sentences using Magnitude ladder yardsticks), tier (rung on the Magnitude ladder, 0 = real-world human), limits (cost/cooldown/requirements, null if none), acquired_via (trained|innate|item|granted), learned_scene (scene where acquired), evidence (event name where demonstrated, null if only stated), visibility (public|secret), source (stated|demonstrated|inferred).",
         "voice_placeholder": "A description of the character's speaking style, tone, and manner of expression (e.g., 'Speaks in a low, gravelly voice, uses short sentences').",
         "quirks_placeholder": "A list of distinctive habits, quirks, or idiosyncratic behaviors that make the character unique.",
         "fears_placeholder": "A list of things that frighten or concern the character.",
@@ -581,9 +597,7 @@
       "fields": {
         "what": "str",
         "start": "SceneStart",
-        "now": "SceneNow",
-        "_scene_number": "int",
-        "_scene_start_message": "int"
+        "now": "SceneNow"
       },
       "defaults": {
         "what_placeholder": "A brief summary or title describing the overall current scene or situation. This field is reset when a new scene is detected (via manual 'NEXT SCENE:' prefix or auto-detection), and the current scene is cleared for tracking the new scene.",
@@ -801,27 +815,23 @@
       "type": "dataclass",
       "fields": {
         "title": "str",
-        "starting_chapter": "int",
-        "ending_chapter": "int",
-        "chapters": "list[int]",
         "summary": "str",
         "character_arcs": "str",
         "relationship_shifts": "str",
         "plot_threads": "list[str]",
-        "status": "str"
+        "status": "str",
+        "_starting_chapter": "int",
+        "_ending_chapter": "int"
       },
       "defaults": {
         "title_placeholder": "A short, evocative title for this narrative arc (e.g., 'The Betrayal', 'The Hunt Begins').",
-        "starting_chapter_placeholder": "The chapter index where this arc began.",
-        "ending_chapter_placeholder": "The chapter index where this arc concluded, or null if still active.",
-        "chapters_placeholder": "List of chapter indices where this arc was active or referenced.",
         "summary_placeholder": "2-3 paragraph summary of what this arc is about - the core conflict, stakes, and progression. Aim for ~300 tokens.",
         "character_arcs_placeholder": "How have the main characters involved in this arc changed or been revealed?",
         "relationship_shifts_placeholder": "How have relationships between characters shifted during this arc?",
         "plot_threads_placeholder": "What plot threads or mysteries are associated with this arc?",
         "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
         "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any changes to this arc (status, summary, character_arcs, relationship_shifts, plot_threads)? Respond with only 'NO' or 'UNCHANGED' if this arc is up-to-date. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the arc entry below.\n\nRelevant Schema:\n#!/definitions/{{ schema_class }}\n{% if enum_constraints %}\nENUM CONSTRAINTS — values MUST be exactly one of the listed options:\n{% for path, options in enum_constraints %}\n  {{ path }}: {{ options | join(' | ') }}\n{% endfor %}\n{% endif %}\n\nExample JSON structure (the structure you are modifying — do NOT output this full structure in your response; only output the fields that changed):\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices for list items (e.g., 'plot_threads.0') and key names for dict fields.\n\nPATH SCOPE — All paths you emit are RELATIVE to the entry identified below. Do NOT include the branch path (e.g., 'events.scenes', 'general_info') as a path prefix. The first segment of your path must be the ENTRY KEY within the branch, followed by the field path within that entry (e.g., \"Dex.status\" not \"events.characters.Dex.status\").\nPATH TYPES — Scalar fields (str, int) use the bare field name. List fields use numeric indices (e.g., 'chapters.2').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"status\", \"value\": \"concluded\"},\n  {\"path\": \"summary\", \"value\": \"Updated summary text\"},\n  {\"path\": \"character_arcs\", \"value\": \"Updated character arc notes\"},\n  {\"path\": \"plot_threads.0\", \"value\": \"Resolved mystery thread\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nEntry to review: '{{ branch_name }}'\n\nCurrent entry state:\n```json\n{{ value | tojsonc }}\n```"
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the arc entry below.\n\nRelevant Schema:\n#!/definitions/{{ schema_class }}\n{% if enum_constraints %}\nENUM CONSTRAINTS — values MUST be exactly one of the listed options:\n{% for path, options in enum_constraints %}\n  {{ path }}: {{ options | join(' | ') }}\n{% endfor %}\n{% endif %}\n\nExample JSON structure (the structure you are modifying — do NOT output this full structure in your response; only output the fields that changed):\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices for list items (e.g., 'plot_threads.0') and key names for dict fields.\n\nPATH SCOPE — All paths you emit are RELATIVE to the entry identified below. Do NOT include the branch path (e.g., 'events.scenes', 'general_info') as a path prefix. The first segment of your path must be the ENTRY KEY within the branch, followed by the field path within that entry (e.g., \"Dex.status\" not \"events.characters.Dex.status\").\nPATH TYPES — Scalar fields (str, int) use the bare field name. \n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"status\", \"value\": \"concluded\"},\n  {\"path\": \"summary\", \"value\": \"Updated summary text\"},\n  {\"path\": \"character_arcs\", \"value\": \"Updated character arc notes\"},\n  {\"path\": \"plot_threads.0\", \"value\": \"Resolved mystery thread\"}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nEntry to review: '{{ branch_name }}'\n\nCurrent entry state:\n```json\n{{ value | tojsonc }}\n```"
       },
       "triggers": {
         "on_new_scene": [
@@ -840,14 +850,15 @@
         "field_placeholder": "Arc_Title",
         "gate_check_prompt_template": "A chapter has just been archived. This is an ARC-BOUNDARY decision: should the current stretch of chapters be archived as a complete arc?\n\nCurrent state: {{ chapters_in_arc }} chapter(s) in the current arc (of {{ chapters_count }} total). Expected: {{ suggested_min }}-{{ suggested_max }} chapters per arc; mandatory at {{ max_chapters_before_required }}.\n\nChapters in the current arc:\n{{ chapters_digest }}\n\nLook for arc-boundary signals in the story so far:\n- A major conflict, event, or campaign has fully concluded (not paused)\n- A long timeskip or phase transition in the story\n- The stakes, cast dynamics, or central question have fundamentally shifted\n- The story has moved into a new long-range situation that would feel like a fresh start\n- The emotional/tonal register has changed significantly\n\nIf you see one or more of these signals and the chapter count is within the expected range, answer YES. The count being in range is itself a mild signal that a boundary is appropriate.\n\nAnswer NO only if the arc's core conflict is still actively unfolding: escalation is ongoing, the central question is unresolved, or the chapters read as one continuous campaign.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\nRespond ONLY with: YES or NO",
         "new_entry_query_prompt_template": "Should we create a new narrative arc?\n\nIf a new arc is needed, respond with its title as a JSON array containing a single string, e.g. [\"The Unsealing of the North Door\"]. Otherwise respond with exactly NO.\n\n\nActive Arcs:\n{{ formatted_data }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
-        "new_entry_prompt_template": "A new arc has been detected. This is the current archive data:\n```jsonc\n{{ temp_data }}\n```\nReplace the \"ARC #N\" placeholder in \"title\" with a descriptive arc title (a few words to a short phrase) capturing the arc's central conflict or journey — e.g. \"The Heist\", \"The Erasure War\", \"Reclaiming the Grid\". Fill in the summary, character_arcs, relationship_shifts, and plot_threads based on the chapters covered. Leave structural fields (starting_chapter, ending_chapter, chapters, status) unchanged.\n\nSchema:\n#!/definitions/{{ schema_class }}\n\nExample:\n```json\n{{ example_json }}\n```\n\nIMPORTANT: Output ONLY the arc's JSON data. Never reproduce the schema definition, the example JSON, or any other text from this prompt.",
-        "archive_template": "{% set start = 1 if arcs | length == 0 else ((arcs | last).get('ending_chapter') or 0) + 1 %}\n{\n  \"title\": \"ARC #{{ current_scene._arc_number | d(1) }}\",\n  \"starting_chapter\": {{ start }},\n  \"ending_chapter\": {{ current_scene._chapter_number | d(1) }},\n  \"chapters\": {{ start | range_list(current_scene._chapter_number | d(1)) | tojson }},\n  \"summary\": \"\",\n  \"character_arcs\": \"\",\n  \"relationship_shifts\": \"\",\n  \"plot_threads\": [],\n  \"status\": \"complete\"\n}",
+        "new_entry_prompt_template": "A new arc has been detected. This is the current archive data:\n```jsonc\n{{ temp_data }}\n```\nReplace the \"ARC #N\" placeholder in \"title\" with a descriptive arc title (a few words to a short phrase) capturing the arc's central conflict or journey — e.g. \"The Heist\", \"The Erasure War\", \"Reclaiming the Grid\". Fill in the summary, character_arcs, relationship_shifts, and plot_threads based on the chapters covered. Leave structural fields (_starting_chapter, _ending_chapter, status) unchanged.\n\nSchema:\n#!/definitions/{{ schema_class }}\n\nExample:\n```json\n{{ example_json }}\n```\n\nIMPORTANT: Output ONLY the arc's JSON data. Never reproduce the schema definition, the example JSON, or any other text from this prompt.",
+        "archive_template": "{% set start = 1 if arcs | length == 0 else ((arcs | last).get('_ending_chapter') or 0) + 1 %}\n{\n  \"title\": \"ARC #{{ current_scene._arc_number | d(1) }}\",\n  \"_starting_chapter\": {{ start }},\n  \"_ending_chapter\": {{ current_scene._chapter_number | d(1) }},\n  \"summary\": \"\",\n  \"character_arcs\": \"\",\n  \"relationship_shifts\": \"\",\n  \"plot_threads\": [],\n  \"status\": \"complete\"\n}",
         "span_source": "chapters",
-        "span_end_field": "ending_chapter",
+        "span_end_field": "_ending_chapter",
         "numbering_field": "_arc_number",
         "key_field": "title",
         "storage": "dict",
-        "stamp_message_node": false
+        "stamp_message_node": false,
+        "start_offset": 0
       },
       "triggers": {
         "on_chapter_archived": [
@@ -870,23 +881,19 @@
       "type": "dataclass",
       "fields": {
         "title": "str",
-        "starting_scene": "int",
-        "ending_scene": "int",
-        "scenes": "list[int]",
         "summary": "str",
         "key_changes": "list[KeyChange]",
-        "status": "str"
+        "status": "str",
+        "_starting_scene": "int",
+        "_ending_scene": "int"
       },
       "defaults": {
         "title_placeholder": "A short title for this chapter (e.g., 'The Betrayal Unfolds', 'The Journey Begins').",
-        "starting_scene_placeholder": "The absolute scene index where this chapter began (e.g., scene 1 of the story).",
-        "ending_scene_placeholder": "The absolute scene index where this chapter concluded, or null if still active.",
-        "scenes_placeholder": "List of absolute scene indices in this chapter (e.g., [1, 2, 3, 4, 5]).",
         "summary_placeholder": "A concise summary of what happened in this chapter - the core narrative beats and progression.",
         "key_changes_placeholder": "A list of significant changes, each with a description and the scene where it occurred.",
         "status_placeholder": "Current status: 'active', 'concluded', or 'suspended'.",
-        "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any changes to this chapter (status, summary, key_changes, scenes)? Respond with only 'NO' or 'UNCHANGED' if this chapter is up-to-date. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
-        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the chapter entry below.\n\nRelevant Schema:\n#!/definitions/{{ schema_class }}\n{% if enum_constraints %}\nENUM CONSTRAINTS — values MUST be exactly one of the listed options:\n{% for path, options in enum_constraints %}\n  {{ path }}: {{ options | join(' | ') }}\n{% endfor %}\n{% endif %}\n\nExample JSON structure (the structure you are modifying — do NOT output this full structure in your response; only output the fields that changed):\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices for list items (e.g., 'key_changes.0.description') and key names for dict fields.\n\nPATH SCOPE — All paths you emit are RELATIVE to the entry identified below. Do NOT include the branch path (e.g., 'events.scenes', 'general_info') as a path prefix. The first segment of your path must be the ENTRY KEY within the branch, followed by the field path within that entry (e.g., \"Dex.status\" not \"events.characters.Dex.status\").\nPATH TYPES — Scalar fields (str, int) use the bare field name. List fields use numeric indices (e.g., 'scenes.3'). List-of-dict fields use index + key (e.g., 'key_changes.0.description').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"status\", \"value\": \"concluded\"},\n  {\"path\": \"summary\", \"value\": \"Updated summary text\"},\n  {\"path\": \"scenes\", \"value\": [1, 2, 3, 4, 5]},\n  {\"path\": \"key_changes\", \"value\": [{\"description\": \"New change\", \"scene\": \"Scene Name\"}]}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nEntry to review: '{{ branch_name }}'\n\nCurrent entry state:\n```json\n{{ value | tojsonc }}\n```"
+        "branch_query_prompt_template": "Based on the latest exchange and the current state of the entry, are there any changes to this chapter (status, summary, key_changes)? Respond with only 'NO' or 'UNCHANGED' if this chapter is up-to-date. Otherwise, respond with 'YES'.\n\nEntry to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction below and complete ONLY that instruction.\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}",
+        "branch_update_prompt_template": "Based on the latest exchange, review the current state of the chapter entry below.\n\nRelevant Schema:\n#!/definitions/{{ schema_class }}\n{% if enum_constraints %}\nENUM CONSTRAINTS — values MUST be exactly one of the listed options:\n{% for path, options in enum_constraints %}\n  {{ path }}: {{ options | join(' | ') }}\n{% endfor %}\n{% endif %}\n\nExample JSON structure (the structure you are modifying — do NOT output this full structure in your response; only output the fields that changed):\n```json\n{{ example_json }}\n```\nIf any specific fields within the entry require updates (additions, modifications, or deletions), please provide a list of these changes.\nEach change should specify the 'path' to the field and the 'value' for the update.\nThe path should be a dot-separated str representing the nested structure, using numeric indices for list items (e.g., 'key_changes.0.description') and key names for dict fields.\n\nPATH SCOPE — All paths you emit are RELATIVE to the entry identified below. Do NOT include the branch path (e.g., 'events.scenes', 'general_info') as a path prefix. The first segment of your path must be the ENTRY KEY within the branch, followed by the field path within that entry (e.g., \"Dex.status\" not \"events.characters.Dex.status\").\nPATH TYPES — Scalar fields (str, int) use the bare field name. List-of-dict fields use index + key (e.g., 'key_changes.0.description').\n\nExample of expected output if updates are needed:\n[\n  {\"path\": \"status\", \"value\": \"concluded\"},\n  {\"path\": \"summary\", \"value\": \"Updated summary text\"},\n  {\"path\": \"key_changes\", \"value\": [{\"description\": \"New change\", \"scene\": \"Scene Name\"}]}\n]\n\nIf NO updates are required for this entry, respond with the exact str: NO_UPDATES_REQUIRED\n\nSCENE CONTEXT (what has actually happened so far, aggregated over the current scene):\n--- EVENTS DURING THE SCENE ---\n{{ scene_events }}\n\nEntry to review: '{{ branch_name }}'\n\nCurrent entry state:\n```json\n{{ value | tojsonc }}\n```"
       },
       "triggers": {
         "on_new_scene": [
@@ -905,16 +912,17 @@
         "field_placeholder": "Chapter_Title",
         "gate_check_prompt_template": "A scene has just been archived. This is a CHAPTER-BOUNDARY decision: should the current stretch of scenes be archived as a complete chapter?\n\nCurrent state: {{ scenes_in_chapter }} scene(s) since the last chapter boundary (of {{ scenes_count }} total). Expected: {{ suggested_min }}-{{ suggested_max }} scenes per chapter; mandatory at {{ max_scenes_before_required }}.\n\nScenes in the current chapter:\n{{ span_digest }}\n\nLook for chapter-boundary signals in the story so far:\n- A complete shift in setting, time of day, or location\n- A revelation, resolution, or plot turn that changes the situation\n- A dramatic movement reaching a natural resting point (not mid-cliffhanger)\n- A change in which characters are in focus\n- A new day, timeskip, or phase transition\n\nIf you see one or more of these signals and the scene count is within the expected range, answer YES. The count being in range is itself a mild signal that a boundary is appropriate.\n\nAnswer NO only if the story is clearly mid-movement: the complication hasn't resolved, the scene ends on an unresolved tension that the next scene must continue, or the scenes read as one continuous beat split artificially.\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction.\nRespond ONLY with: YES or NO",
         "new_entry_query_prompt_template": "Should we create a new chapter?\n\nIf a new chapter is needed, respond with its title as a JSON array containing a single string, e.g. [\"Chapter Nine: The Door Unseals\"]. Otherwise respond with exactly NO.\n\n\nActive Chapters:\n{{ formatted_data }}\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of entry name(s), or exactly NO.",
-        "new_entry_prompt_template": "A new chapter has been detected. This is the current archive data:\n```jsonc\n{{ temp_data }}\n```\nReplace the \"CHAPTER #N\" placeholder in \"title\" with a descriptive chapter title (a few words to a short phrase) capturing the chapter's dramatic arc — e.g. \"Assembling the Crew\", \"The Memory Market Run\", \"Into the Vault\". Fill in the summary and key_changes based on the scenes covered. Leave structural fields (starting_scene, ending_scene, scenes, status) unchanged.\nSchema:\n#!/definitions/{{ schema_class }}\n\nExample:\n```json\n{{ example_json }}\n```\n\nIMPORTANT: Output ONLY the chapter's JSON data. Never reproduce the schema definition, the example JSON, or any other text from this prompt.",
-        "archive_template": "{% set start = 1 if chapters | length == 0 else ((chapters | last).get('ending_scene') or 0) + 1 %}\n{\n  \"title\": \"CHAPTER #{{ current_scene._chapter_number | d(1) }}\",\n  \"starting_scene\": {{ start }},\n  \"ending_scene\": {{ current_scene._scene_number | d(1) }},\n  \"scenes\": {{ start | range_list(current_scene._scene_number | d(1)) | tojson }},\n  \"summary\": \"\",\n  \"key_changes\": [],\n  \"status\": \"complete\"\n}",
+        "new_entry_prompt_template": "A new chapter has been detected. This is the current archive data:\n```jsonc\n{{ temp_data }}\n```\nReplace the \"CHAPTER #N\" placeholder in \"title\" with a descriptive chapter title (a few words to a short phrase) capturing the chapter's dramatic arc — e.g. \"Assembling the Crew\", \"The Memory Market Run\", \"Into the Vault\". Fill in the summary and key_changes based on the scenes covered. Leave structural fields (_starting_scene, _ending_scene, status) unchanged.\nSchema:\n#!/definitions/{{ schema_class }}\n\nExample:\n```json\n{{ example_json }}\n```\n\nIMPORTANT: Output ONLY the chapter's JSON data. Never reproduce the schema definition, the example JSON, or any other text from this prompt.",
+        "archive_template": "{% set start = 1 if chapters | length == 0 else ((chapters | last).get('_ending_scene') or 0) + 1 %}\n{\n  \"title\": \"CHAPTER #{{ current_scene._chapter_number | d(1) }}\",\n  \"_starting_scene\": {{ start }},\n  \"_ending_scene\": {{ current_scene._scene_number | d(1) }},\n  \"summary\": \"\",\n  \"key_changes\": [],\n  \"status\": \"complete\"\n}",
         "span_source": "scenes",
-        "span_end_field": "ending_scene",
+        "span_end_field": "_ending_scene",
         "numbering_field": "_chapter_number",
         "key_field": "title",
         "storage": "dict",
         "stamp_message_node": false,
-        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which chapters plausibly need any update (status, summary, key_changes, scenes)?\n\nTypically only the most recent (current/active) chapter needs updating. Previously archived chapters rarely change. Name every chapter that MIGHT have changed. Err on the side of naming: naming a chapter that turns out to be unchanged is harmless; omitting one leaves it stale.\n\nIf a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of chapter names, e.g.:\n[\"Chapter Three: The Memory Market\", \"Chapter Four: Into the Vault\"]\n\nAn empty array means no chapters need updating.\n\nHere is the current list of existing chapters:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of chapter names, or exactly NO.\n",
-        "select_entries_min_size": 3
+        "select_entries_to_update_prompt_template": "Based on the latest exchange(s), which chapters plausibly need any update (status, summary, key_changes)?\n\nTypically only the most recent (current/active) chapter needs updating. Previously archived chapters rarely change. Name every chapter that MIGHT have changed. Err on the side of naming: naming a chapter that turns out to be unchanged is harmless; omitting one leaves it stale.\n\nIf a name contains a dot, wrap it in square brackets (e.g., '[Mrs. Patterson]').\n\nRespond with ONLY a JSON array of chapter names, e.g.:\n[\"Chapter Three: The Memory Market\", \"Chapter Four: Into the Vault\"]\n\nAn empty array means no chapters need updating.\n\nHere is the current list of existing chapters:\n{{ branch_list }}\n\nSection to review: '{{ branch_name }}'\n\nThis is a MEMORY-MANAGEMENT TASK, not a story continuation. Do NOT write fiction. Re-read the instruction at the top of this prompt and complete ONLY that instruction.\nRespond ONLY with the requested JSON array of chapter names, or exactly NO.\n",
+        "select_entries_min_size": 3,
+        "start_offset": 1
       },
       "triggers": {
         "on_new_scene": [

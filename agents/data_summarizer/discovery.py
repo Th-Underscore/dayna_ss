@@ -438,6 +438,11 @@ class DSDiscoveryMixin:
             if "start" in refined and isinstance(refined["start"], dict):
                 refined["start"]["_message_node"] = current_message_node
 
+        # Restore structural fields the LLM nulled (e.g. _ending_scene)
+        for key in temp_data:
+            if key.startswith("_") and temp_data[key] is not None and refined.get(key) is None:
+                refined[key] = temp_data[key]
+
         data[final_name] = refined
         expanded_data = recursive_get(formatted_data.data, keys, default=None)
         if isinstance(expanded_data, dict):
@@ -568,6 +573,14 @@ class DSDiscoveryMixin:
         if num_field and len(data) > prev_len:
             current_scene = self.all_subjects_data.get("current_scene", {})
             current_scene[num_field] = current_scene.get(num_field, 1) + 1
+            # Track where the new unit starts, so templates can derive
+            # relative counts (e.g. scenes_in_chapter) without Python.
+            unit = num_field.lstrip("_").removesuffix("_number")
+            child_unit = (d.get("span_source") or "").removesuffix("s")
+            if child_unit:
+                start_field = f"_{unit}_start_{child_unit}"
+                child_num = current_scene.get(f"_{child_unit}_number", 1)
+                current_scene[start_field] = child_num + int(d.get("start_offset", 1))
 
         return data
 
