@@ -603,7 +603,7 @@ class DSUpdatesMixin:
                 value = merge_underscore_preserve(value, old_value)
                 print(f"{_GRAY}[{branch_name}] Applying update: {path_str} == {json.dumps(old_value, indent=None)}{_RESET}")
                 recursive_set(data, keyList, value)
-                self._record_history(data, path_str, old_value, value)
+                # self._record_history(data, path_str, old_value, value)
                 # Null hygiene
                 stored = recursive_get(data, keyList)
                 if isinstance(stored, list):

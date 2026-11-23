@@ -25,7 +25,7 @@ def main():
     json.loads(result)
 
     OUTPUT.write_text(result, encoding="utf-8")
-    print(f"Replaced {count} schema_snippet blocks → {OUTPUT.name}")
+    print(f"Generated with {count} replaced schema_snippet blocks → {OUTPUT.name}")
 
 
 if __name__ == "__main__":

@@ -1303,10 +1303,6 @@ class StoryContextRetriever:
         char_data = characters_data[char_name]
         group_status = self._get_field_value(char_data, "Character", "group_status")
         if not group_status:
-            fallback_status = self._get_field_value(char_data, "Character", "status")
-            group_status = fallback_status if fallback_status else {}
-
-        if not group_status:
             return {}
 
         result = {}

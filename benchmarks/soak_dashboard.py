@@ -130,8 +130,6 @@ HELP = {
                  "so this is an estimate).",
 }
 
-TRANSITION_KINDS = (("scene", "_scene_number"), ("chapter", "_chapter_number"), ("arc", "_arc_number"))
-
 
 # --------------------------------------------------------------------------- #
 # file helpers

@@ -301,7 +301,8 @@ def write_state_section(L, run_dir: Path, turn_dirs: list[Path]):
     for r in rows:
         t = r["dir"]
         sn = r["scene_no"]
-        if sn is not None and "scene_no" in prev_counts and sn < prev_counts["scene_no"]:
+        prev_sn = prev_counts.get("scene_no")
+        if sn is not None and prev_sn is not None and sn < prev_sn:
             flags.append(f"- **{t}**: scene number RESET {prev_counts['scene_no']} \u2192 {sn}")
         prev_counts["scene_no"] = sn
         for key, label in [("characters", "characters"), ("elements", "elements"),

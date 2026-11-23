@@ -906,7 +906,7 @@
       "type": "alias",
       "field": "dict[str, Chapter]",
       "defaults": {
-        "suggested_min_scenes": 4,
+        "suggested_min_scenes": 6,
         "suggested_max_scenes": 10,
         "max_scenes_before_required": 24,
         "field_placeholder": "Chapter_Title",

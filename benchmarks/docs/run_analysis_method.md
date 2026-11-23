@@ -374,6 +374,60 @@ entity graph's relevance set. Verify:
 - **No data loss** — filtered entries should still be present in the state
   files (the filter only narrows the LLM prompt, not the data).
 
+### `select_entries_to_update` filtering
+
+Events branches (StoryEvents, OffscreenEvents, Scenes, Chapters) now use
+`select_entries_to_update` to cap per-entry `apply_updates` to the 2-3 entries
+the LLM selects, instead of recursing into all entries.
+
+- **Select calls present** — `select_entries` action appears in `dss_calls.jsonl`
+  for events branches (beats, scenes, offscreen, chapters).
+- **Filter reduces apply_updates** — compare `apply_updates` call count for
+  events branches against a pre-select baseline (s573: ~78 chapter calls,
+  ~75 full-branch calls). Expect 70-80% reduction.
+- **No empty selections on active branches** — if the LLM selects 0 entries
+  for a branch that clearly has active content, the filter may be too aggressive.
+
+### Hierarchical archival triggers (`on_{unit}_archived`)
+
+Arcs now trigger on `on_chapter_archived` instead of `on_new_scene`, making
+arc archival dependent on a chapter having archived in the same turn.
+
+- **Arcs only fire after chapters** — in the log, `on_chapter_archived` trigger
+  should appear on the same turn as a chapter archive, never on a scene-only turn.
+- **No independent arc archives** — an arc archive on a turn where no chapter
+  archived indicates the hierarchy is broken.
+- **`_turn_start_numbers` snapshot** — the trigger map for arcs should be
+  `{'on_chapter_archived': [...]}` only when `_chapter_number` increased.
+
+### Attribute/Skill dataclass restructure
+
+`Character.attributes` and `Element.attributes` changed from `list[str]`
+to `dict[str, Attribute]`; `Character.skills: dict[str, Skill]` added.
+
+- **Attributes are dicts** — in `characters.json`, each entry's `attributes`
+  should be a dict of `{name: {can_do, tier, source}}`, not a list of strings.
+- **Skills populated** — at least one character should have a non-empty `skills`
+  dict by mid-run.
+- **Template renders correctly** — in the log's rendered prompts, attributes
+  should appear as `- name: can_do (tier N)` lines, not raw `{'can_do': ...}` dicts.
+
+### Underscore structural fields + archive path restoration
+
+`_starting_scene`/`_ending_scene`/`_starting_chapter`/`_ending_chapter` are
+underscore-prefixed (invisible to LLM in prompts) and restored from the
+programmatic archive template if the LLM nulls them during refinement.
+
+- **All `_ending_scene` values non-None** — every chapter entry in
+  `events.json` must have a non-None `_ending_scene`.
+- **All `_ending_chapter` values non-None** — every arc entry in
+  `arcs.json` must have a non-None `_ending_chapter`.
+- **`_chapter_start_scene` / `_arc_start_chapter` present** — in
+  `current_scene.json`, these tracking fields should be set after the first
+  chapter/arc archive.
+- **Cadence gate functional** — chapters should NOT archive on every scene turn.
+  Expected: ~1 chapter per 8-10 scenes, not 1 per 2-3 scenes.
+
 ## Lessons Learned
 
 1. **Check the most recent run directory**. Don't assume what you have in memory is the actual latest run - always do a quick check on the actual run directories first. Hashes aren't sorted either.
