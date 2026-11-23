@@ -371,6 +371,27 @@ class DSDiscoveryMixin:
         # Derive the entry key from the programmatic name (will be overwritten by LLM)
         programmatic_name = temp_data.get(key_field, f"{branch_name.title()} ?")
 
+        # Build span_context: one-line summaries of the entries this archive covers
+        span_context = ""
+        _defaults = branch_schema_class.defaults or {}
+        span_source = _defaults.get("span_source")
+        span_end_field = _defaults.get("span_end_field")
+        if span_source and span_end_field:
+            span_start_field = span_end_field.replace("_ending_", "_starting_")
+            span_entries = self.all_subjects_data.get("events", {}).get(span_source, {})
+            if not isinstance(span_entries, dict):
+                span_entries = {}
+            span_list = list(span_entries.values())
+            s = temp_data.get(span_start_field)
+            e = temp_data.get(span_end_field)
+            if s and e and isinstance(s, int) and isinstance(e, int):
+                selected = span_list[s - 1:e]
+                if selected:
+                    span_context = "\n".join(
+                        f"- {v.get('title', '?')}: {v.get('summary', '')}"
+                        for v in selected
+                    )
+
         # Build the LLM refine prompt using the schema's new_entry_prompt_template
         new_entry_template = (branch_schema_class.defaults or {}).get("new_entry_prompt_template")
         if not new_entry_template:
@@ -395,6 +416,7 @@ class DSDiscoveryMixin:
             entry_name=programmatic_name,
             keys=keys,
             temp_data=temp_data_str,
+            span_context=span_context,
         )
 
         # Single LLM call to refine
