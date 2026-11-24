@@ -366,6 +366,11 @@ class DSTraversalMixin:
         if field_name not in parent_data:
             self._initialize_field(parent_data, field_name, field_def)
 
+        if not isinstance(parent_data, dict):
+            print(f"{_GRAY}Skipping '{full_path}': parent container is "
+                  f"{type(parent_data).__name__}, not dict.{_RESET}")
+            return
+
         current_value = parent_data[field_name]
         field_type = field_def.type
 
