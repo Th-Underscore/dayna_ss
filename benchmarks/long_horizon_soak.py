@@ -936,7 +936,7 @@ _MEMORY_WEIGHTS = {"notes": 0.35, "beats": 0.25, "facts": 0.40}
 _MEMORY_MIN_ITEMS_FOR_TOP = 6  # fewer checked items than this cannot earn above 4.5
 _CLAIM_PENALTY = 0.5
 _CLAIM_PENALTY_CAP = 1.5
-_DEMOTE = {"retained": "partial", "saved": "partial", "partial": "missing", "stale": "missing"}
+_DEMOTE = {"retained": "partial", "saved": "partial"}
 
 
 def _text_tokens(text: str) -> set[str]:
