@@ -211,6 +211,13 @@ def _resolve_path_keys(data: Any, keys: list) -> list:
                 current = current[canonical]
                 i += 1
                 continue
+            # Spurious list-index in a dict context (LLM treats dict keys as
+            # list items, e.g. "group_status.Name.0.field" instead of
+            # "group_status.Name.field"). Safe to skip: a legitimate numeric
+            # dict key would have been caught by the `key in current` check above.
+            if key.isdigit():
+                i += 1
+                continue
             result.append(key)
             current = current.get(key, {})
             i += 1
