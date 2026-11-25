@@ -202,123 +202,74 @@ class DSDiscoveryMixin:
                 return
             print(f"{_INPUT}Generating data for new entry '{entry_name}' in '{branch_name}'...{_RESET}")
 
-            max_retries = 2
-            last_error = None
-            for attempt in range(max_retries + 1):
-                if attempt > 0 and last_error:
-                    error_feedback = (
-                        f"\n\nYour previous attempt was rejected: {last_error}\n"
-                        f"Do NOT reproduce the schema, the example, or any other text from this prompt. "
-                        f"Respond with ONLY the new entry's JSON object."
-                    )
-                    generation_template = new_entry_template + error_feedback
-                else:
-                    generation_template = new_entry_template
+            entry_generation_prompt = self._create_update_prompt(
+                item_name=branch_name,
+                field_name="",
+                formatted_data=formatted_data,
+                prompt_template_str=new_entry_template,
+                target_schema_or_type=value_schema_class,
+                entry_name=entry_name,
+                keys=keys,
+            )
+            # Universal anti-echo guard: the schema/example blocks sit right
+            # before the generation boundary, and a small-active model can
+            # latch onto them and reproduce the JSONSchema instead of the
+            # entry. Applies to every new-entry call regardless of subject.
+            entry_generation_prompt += (
+                "\n\nIMPORTANT: Output ONLY the new entry's JSON data — a fresh object "
+                f"for '{entry_name}'. Never reproduce the schema definition, the example "
+                "JSON, or any other text from this prompt."
+            )
 
-                entry_generation_prompt = self._create_update_prompt(
-                    item_name=branch_name,
-                    field_name="",  # Not updating a sub-field of the new entry yet
-                    formatted_data=formatted_data,
-                    prompt_template_str=generation_template,
-                    target_schema_or_type=value_schema_class,
-                    entry_name=entry_name,
-                    keys=keys,
-                )
-                # Universal anti-echo guard: the schema/example blocks sit right
-                # before the generation boundary, and a small-active model can
-                # latch onto them and reproduce the JSONSchema instead of the
-                # entry. Applies to every new-entry call regardless of subject.
-                entry_generation_prompt += (
-                    "\n\nIMPORTANT: Output ONLY the new entry's JSON data — a fresh object "
-                    f"for '{entry_name}'. Never reproduce the schema definition, the example "
-                    "JSON, or any other text from this prompt."
-                )
-
-                llm_entry_response, _ = self.summarizer.generate_using_tgwui(
-                    prompt=entry_generation_prompt,
-                    state=self.custom_state or {},
-                    history_path=self.history_path,
-                    # No specific stopping strings, expect full JSON
-                    phase_id=str(branch_name).lower().replace(" ", "_"),
-                    step_id="add_new",
-                )
-                if runtime.stop_everything:
-                    return
-
-                stripped_entry_json = strip_response(llm_entry_response)
-                try:
-                    new_entry_data = _tolerant_json_loads(stripped_entry_json)
-                except json.JSONDecodeError:
-                    snippet = stripped_entry_json[:120].replace("\n", " ")
-                    last_error = f"the response was not valid JSON (started with: {snippet}...)"
-                    print(
-                        f"{_ERROR}Failed to parse LLM response for new entry '{entry_name}' in "
-                        f"'{branch_name}' as JSON: {llm_entry_response}{_RESET}"
-                    )
-                    continue
-                if not isinstance(new_entry_data, dict):
-                    last_error = f"the response parsed to {type(new_entry_data).__name__}, not a JSON object"
-                    print(
-                        f"{_ERROR}LLM response for new entry '{entry_name}' in '{branch_name}' "
-                        f"was not a JSON object: {llm_entry_response}{_RESET}"
-                    )
-                    continue
-                # json_repair turns even 'not json {{' into {}, and a truly-empty
-                # entry would render as a stub missing every required field.
-                if not new_entry_data:
-                    last_error = "the response was empty or contained no entry fields"
-                    print(
-                        f"{_ERROR}LLM response for new entry '{entry_name}' in '{branch_name}' "
-                        f"was empty after parsing: {llm_entry_response[:200]}{_RESET}"
-                    )
-                    continue
-                # Unwrap if the LLM wrapped the entry in a parent object
-                # keyed by the branch name (e.g. {"events": {...}}).
-                if len(new_entry_data) == 1:
-                    wrapper_key = next(iter(new_entry_data))
-                    if wrapper_key in (branch_name, branch_name.split(".")[-1]) and isinstance(new_entry_data[wrapper_key], dict):
-                        print(f"{_DEBUG}Unwrapping parent key '{wrapper_key}' from new entry '{entry_name}'.{_RESET}")
-                        new_entry_data = new_entry_data[wrapper_key]
-                if _is_schema_echo(new_entry_data):
-                    last_error = "the response reproduced this prompt's schema instead of describing the entry"
-                    print(
-                        f"{_ERROR}LLM response for new entry '{entry_name}' in '{branch_name}' "
-                        f"echoed the schema: {llm_entry_response[:200]}{_RESET}"
-                    )
-                    continue
-
-                current_message_node = self._resolve_current_message_node()
-                if "start" in new_entry_data:
-                    new_entry_data["start"]["_message_node"] = current_message_node
-                if is_list_branch and not any(
-                    isinstance(new_entry_data.get(k), str) and new_entry_data.get(k, "").strip()
-                    for k in ("title", "name", "formal_name", "id")
-                ):
-                    # Keep list entries addressable by their proposed title even
-                    # if the model omitted the field.
-                    new_entry_data["title"] = entry_name
-                print(f"{_DEBUG}Auto-set '_message_node' to '{current_message_node}' for new entry '{entry_name}'.{_RESET}")
-
-                if is_list_branch:
-                    data.append(new_entry_data)
-                    expanded_data = recursive_get(formatted_data.data, keys, default=None)
-                    # Guard aliasing: formatted_data may share the list object,
-                    # and unlike dict assignment a mirrored append duplicates.
-                    if isinstance(expanded_data, list) and expanded_data is not data:
-                        expanded_data.append(new_entry_data)
-                else:
-                    print(f"{_DEBUG}[add_new] SET data['{entry_name}'] branch={branch_name} existing_keys={list(data.keys())}{_RESET}")
-                    data[entry_name] = new_entry_data
-                    expanded_data: dict = recursive_get(formatted_data.data, keys, default=None)
-                    expanded_data[entry_name] = new_entry_data
-                self._new_entry_names.setdefault(branch_name, set()).add(entry_name)
-                print(f"\r{_SUCCESS}Successfully added new entry '{entry_name}' to '{branch_name}'.{_RESET}")
-                break
-            else:
+            new_entry_data, last_error = self._generate_validated_entry(
+                prompt=entry_generation_prompt,
+                schema_class=value_schema_class,
+                phase_id=str(branch_name).lower().replace(" ", "_"),
+                step_id="add_new",
+            )
+            if runtime.stop_everything:
+                return
+            if new_entry_data is None:
                 print(
-                    f"{_ERROR}add_new: all {max_retries + 1} attempts failed for entry '{entry_name}' "
+                    f"{_ERROR}add_new: all attempts failed for entry '{entry_name}' "
                     f"in '{branch_name}'; skipping entry (last error: {last_error}).{_RESET}"
                 )
+                continue
+
+            # Unwrap if the LLM wrapped the entry in a parent object
+            # keyed by the branch name (e.g. {"events": {...}}).
+            if len(new_entry_data) == 1:
+                wrapper_key = next(iter(new_entry_data))
+                if wrapper_key in (branch_name, branch_name.split(".")[-1]) and isinstance(new_entry_data[wrapper_key], dict):
+                    print(f"{_DEBUG}Unwrapping parent key '{wrapper_key}' from new entry '{entry_name}'.{_RESET}")
+                    new_entry_data = new_entry_data[wrapper_key]
+
+            current_message_node = self._resolve_current_message_node()
+            if "start" in new_entry_data:
+                new_entry_data["start"]["_message_node"] = current_message_node
+            if is_list_branch and not any(
+                isinstance(new_entry_data.get(k), str) and new_entry_data.get(k, "").strip()
+                for k in ("title", "name", "formal_name", "id")
+            ):
+                # Keep list entries addressable by their proposed title even
+                # if the model omitted the field.
+                new_entry_data["title"] = entry_name
+            print(f"{_DEBUG}Auto-set '_message_node' to '{current_message_node}' for new entry '{entry_name}'.{_RESET}")
+
+            if is_list_branch:
+                data.append(new_entry_data)
+                expanded_data = recursive_get(formatted_data.data, keys, default=None)
+                # Guard aliasing: formatted_data may share the list object,
+                # and unlike dict assignment a mirrored append duplicates.
+                if isinstance(expanded_data, list) and expanded_data is not data:
+                    expanded_data.append(new_entry_data)
+            else:
+                print(f"{_DEBUG}[add_new] SET data['{entry_name}'] branch={branch_name} existing_keys={list(data.keys())}{_RESET}")
+                data[entry_name] = new_entry_data
+                expanded_data: dict = recursive_get(formatted_data.data, keys, default=None)
+                expanded_data[entry_name] = new_entry_data
+            self._new_entry_names.setdefault(branch_name, set()).add(entry_name)
+            print(f"\r{_SUCCESS}Successfully added new entry '{entry_name}' to '{branch_name}'.{_RESET}")
 
         recursive_set(formatted_data.data, keys, data)
         return data
@@ -419,11 +370,10 @@ class DSDiscoveryMixin:
             span_context=span_context,
         )
 
-        # Single LLM call to refine
-        llm_response, _ = self.summarizer.generate_using_tgwui(
+        # LLM refine with validation retry; fail-open to programmatic entry
+        refined, _ = self._generate_validated_entry(
             prompt=refine_prompt,
-            state=self.custom_state or {},
-            history_path=self.history_path,
+            schema_class=value_schema_class,
             phase_id=str(branch_name).lower().replace(" ", "_"),
             step_id=f"archive_{branch_key}",
         )
@@ -432,13 +382,6 @@ class DSDiscoveryMixin:
             data[programmatic_name] = temp_data
             recursive_set(formatted_data.data, keys, data)
             return data
-
-        stripped = strip_response(llm_response)
-        try:
-            refined = _tolerant_json_loads(stripped)
-        except json.JSONDecodeError:
-            print(f"{_WARNING}_archive_boundary: LLM response not valid JSON; storing programmatic entry.{_RESET}")
-            refined = temp_data
 
         if not isinstance(refined, dict) or not refined:
             refined = temp_data
@@ -460,9 +403,9 @@ class DSDiscoveryMixin:
             if "start" in refined and isinstance(refined["start"], dict):
                 refined["start"]["_message_node"] = current_message_node
 
-        # Restore structural fields the LLM nulled (e.g. _ending_scene)
+        # Restore structural fields from the programmatic template (LLM may null or corrupt them)
         for key in temp_data:
-            if key.startswith("_") and temp_data[key] is not None and refined.get(key) is None:
+            if key.startswith("_") and temp_data[key] is not None:
                 refined[key] = temp_data[key]
 
         data[final_name] = refined

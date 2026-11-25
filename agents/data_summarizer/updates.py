@@ -707,6 +707,81 @@ class DSUpdatesMixin:
             print(f"{_GRAY}No valid updates to apply for '{branch_name}'.{_RESET}")
             return True
 
+    def _generate_validated_entry(
+        self,
+        prompt: str,
+        schema_class: ParsedSchemaClass | None,
+        phase_id: str,
+        step_id: str,
+        max_retries: int = 2,
+    ) -> tuple[dict | None, str | None]:
+        """LLM call → JSON parse → schema validation → retry with feedback.
+
+        Returns (entry, last_error). entry is the validated dict, or None if
+        all attempts failed. last_error is the final error message (None on success).
+        """
+        pm = self._phase_manager
+        current_custom_state = self.custom_state or {}
+        last_error = None
+
+        for attempt in range(max_retries + 1):
+            effective_prompt = prompt
+            if attempt > 0 and last_error:
+                effective_prompt = prompt + (
+                    f"\n\nYour previous attempt was rejected: {last_error}\n"
+                    f"Respond with ONLY the corrected JSON object."
+                )
+                pm.warn_step(phase_id, step_id, f"Retry {attempt}/{max_retries}: {last_error}")
+            else:
+                pm.update_step(phase_id, step_id, "Generating entry...")
+
+            llm_response, _ = self.summarizer.generate_using_tgwui(
+                prompt=effective_prompt,
+                state=current_custom_state,
+                history_path=self.history_path,
+                phase_id=phase_id,
+                step_id=step_id,
+            )
+
+            if runtime.stop_everything:
+                return None, "stopped"
+
+            stripped = strip_response(llm_response)
+
+            try:
+                parsed = _tolerant_json_loads(stripped)
+            except json.JSONDecodeError:
+                snippet = stripped[:120].replace("\n", " ")
+                last_error = f"response was not valid JSON (started with: {snippet}...)"
+                continue
+
+            if not isinstance(parsed, dict):
+                last_error = f"response parsed to {type(parsed).__name__}, not a JSON object"
+                continue
+
+            if not parsed:
+                last_error = "response was empty after parsing"
+                continue
+
+            if _is_schema_echo(parsed):
+                last_error = "response reproduced the schema instead of the entry"
+                continue
+
+            if schema_class is not None:
+                validation_errors = self.summarizer.last.schema_parser.validate_data(
+                    parsed, schema_class.name
+                )
+                if validation_errors:
+                    last_error = "; ".join(validation_errors[:3])
+                    pm.warn_step(phase_id, step_id, f"Validation: {last_error}")
+                    continue
+
+            pm.done_step(phase_id, step_id, "Entry generated and validated")
+            return parsed, None
+
+        pm.warn_step(phase_id, step_id, f"All {max_retries + 1} attempts failed: {last_error}")
+        return None, last_error
+
     def _generate_field_update(
         self,
         item_name_prefix: str,
@@ -859,6 +934,16 @@ class DSUpdatesMixin:
                         try:
                             parsed_dict = _tolerant_json_loads(stripped_text)
                             if isinstance(parsed_dict, dict):
+                                if isinstance(target_schema_or_type, ParsedSchemaClass):
+                                    validation_errors = self.summarizer.last.schema_parser.validate_data(parsed_dict, target_schema_or_type.name)
+                                    if validation_errors:
+                                        error_msg = "; ".join(validation_errors[:3])
+                                        last_error = f"Validation failed: {error_msg}"
+                                        print(f"{_ERROR}Validation errors for {context_path_for_marker}: {validation_errors}{_RESET}")
+                                        pm.warn_step(field_phase_id, "perform_update", f"Validation error: {error_msg}")
+                                        if attempt < max_retries:
+                                            continue
+                                        print(f"{_ERROR}Max retries reached, accepting dict with warnings.{_RESET}")
                                 _done_field_phase()
                                 return parsed_dict
                             else:
