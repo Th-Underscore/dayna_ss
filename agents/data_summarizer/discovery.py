@@ -461,7 +461,7 @@ class DSDiscoveryMixin:
             last_boundary = 0
             if data:
                 last_entry = next(
-                    (v for k, v in data.items() if not k.startswith("_")), None
+                    (v for k, v in reversed(data.items()) if not k.startswith("_")), None
                 )
                 if isinstance(last_entry, dict):
                     last_boundary = int(last_entry.get(end_field, 0) or 0)
@@ -545,7 +545,7 @@ class DSDiscoveryMixin:
             if child_unit:
                 start_field = f"_{unit}_start_{child_unit}"
                 child_num = current_scene.get(f"_{child_unit}_number", 1)
-                current_scene[start_field] = child_num + int(d.get("start_offset", 1))
+                current_scene[start_field] = child_num
 
         return data
 
