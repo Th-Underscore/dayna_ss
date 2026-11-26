@@ -1844,6 +1844,7 @@ A. PLANTED NOTES: details the outline meant to establish (MEMORY ANSWER KEY, par
 B. MEMORY BEATS: specific saves the outline expected DSS to make, in a named subject, with expected data (MEMORY ANSWER KEY, part 2).
 C. STORY FACTS: details the transcript itself established, whether EXPLICIT or IMPLICIT. YOU choose these (rules below).
 Items listed as EXCLUDED appeared too recently for DSS to have saved them: ignore them, and do not add your own "too recent" excuses.
+- STATE LAG: the DSS absorbs story content into its state at scene boundaries (when a scene archives), not every turn. If a fact, note, or beat was established in the CURRENT scene (the one still in progress), the state will not yet contain it — this is a timing artifact, not a memory failure. Do NOT mark such items as 'missing' when the scene they belong to has not yet archived; if you cannot tell whether the scene has archived, check the state for a scene entry matching the current one — its absence means the scene is still open and its content is pending absorption. Only mark 'missing' when the scene has already archived (a scene entry for it exists in the state) and the fact is still absent.
 
 VERDICTS
 - Notes (A) and story facts (C): retained | partial | missing | contradicted, and for facts also stale.
