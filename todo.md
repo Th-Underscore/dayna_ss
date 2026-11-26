@@ -171,6 +171,43 @@
 
 ---
 
+### Far TODO
+
+1. Schema UI (flow or tree?)
+    - Gray out children when update\_prompt or branch\_query\_prompt is checked
+    - Have immutable “Default” in case a custom schema breaks
+    - Upload JSON as schema
+    - Download schema JSON
+    - Convert JSON-schema format to subjects\_schema.json
+2. Save full UI settings (like tgwui “Session”)
+3. Sync tgwui generation parameters to dss
+4. Add ability to change specific names/keywords in message\_index/subject data
+5. User-defined story structure/objectives (specify future scenes/events)
+    - Include “lasts until” or time range during current\_scene (mainly for general DAYNA)
+6. Optionally sync state seed (state → custom state)
+7. Add locations schema?
+8. Send to Notebook
+9. Logs UI (show field updates and creations)
+    - Also track updates to show LLM?
+10. Force/emulate “YES” gate check for CurrentScene?
+11. Update character IDs when necessary
+    - Maybe also detect when a “past alias” is used when updating data and automatically change it to the new one
+12. Generate subject data with input (manually ask DAYNA to generate something based off of current context + user\_instr)
+13. Show summarization progress
+    - Include ETA estimation / progress %
+14. Different prompts depending on always, next scene, first message, etc.
+15. Generate initial subject data based off of general character context
+16. Note edits to bot replies and include in general\_info instructions
+17. Delete current history\_str (self.last) - for manual edits to data
+18. Update history-context in realtime with DataSummarizer? Will potentially hurt eval time
+19. For events: additional context from the future
+20. Trigger archive at end of scene (to archive values that aren’t needed in the main subjects files but may still be needed for extra details in the future)?
+21. “Notes” LLM can write for future reference (also based off of #5, user-defined story structure/objectives)
+22. Pre-convert (compile) schema to specific workflow instead of recursive DataSummarizer?
+23. Adapt (append/modify) current data to user changes to schema structure
+
+---
+
 ## AI-Generated Notes
 
 - [ ] Revise initial population mechanism (wrapper vs individual type mismatch):

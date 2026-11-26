@@ -156,7 +156,7 @@ For branches with accumulating entries (beats, scenes, chapters, offscreen), str
 **Event2**: One-line description
 **Event3**: One-line description
 ...
-(~15 tokens per entry, flat list)
+(~30 tokens per entry, flat list)
 
 ### Possibly relevant events (full data)
 **EventA**: Full JSON with all properties
@@ -169,7 +169,7 @@ Which of these events may require updates? Err on the side of naming events over
 
 ### How It Works
 
-- **Tier 1 (roster):** All entries in the branch, name + one-line description. Uses the **broad threshold** (42) or lists everything. Cost: ~15 tokens per entry. 50 entries = 750 tokens. This gives the LLM full awareness of what exists without exponential growth.
+- **Tier 1 (roster):** All entries in the branch, name + one-line description. Uses the **broad threshold** (42) or lists everything. Cost: ~30 tokens per entry. 50 entries = 750 tokens. This gives the LLM full awareness of what exists without exponential growth.
 
 - **Tier 2 (full data):** Only entries passing the **final threshold** (75). Full JSON. Bounded by the threshold — as the story grows, more entries pass, but the select-then-update pattern (§4) means only the selected ones get full-data updates.
 
@@ -270,17 +270,24 @@ These optimizations remain valid and are independent of the new sections above:
 
 ## 9. Implementation Order
 
-| # | Change | Type | Risk | Expected impact |
-|---|--------|------|------|----------------|
-| 1 | Gate `add_new_query` with relevance presence | Code (discovery.py) | Low | ~300-400s/run |
-| 2 | Two-tier prompt structure (roster + full data) | Code (prompts.py) + template | Medium | Caps prompt growth; reduces uncached suffix |
-| 3 | `select_entries_to_update` for accumulating branches | Code + schema | Medium | 80-95% reduction in per-branch per-turn cost |
-| 4 | Score-graded relevance filter | Code (prompts.py) | Low | Finer control over Tier 2 size |
-| 5 | Relevance threshold tuning (data-driven) | Config | Low | Optimizes Tier 2 size |
-| 6 | Gate elimination (8 grounded gate checks) | Schema + prompt | Medium | Removes 23.7% of total run time |
-| 7 | Enable `skip_query` (after template rewording) | Schema + template | Medium | ~149s/run (deferred — see §8.1) |
+| # | Change | Status | Notes |
+|---|--------|--------|-------|
+| 1 | Gate `add_new_query` with relevance presence | ⬜ pending | |
+| 2 | Two-tier prompt structure (roster + full data) | ⬜ pending | |
+| 3 | `select_entries_to_update` for accumulating branches | ✅ done | events `apply_updates` 78→5 (s573→s585) |
+| 4 | Score-graded relevance filter | ⬜ pending | |
+| 5 | Relevance threshold tuning (data-driven) | ⬜ pending | |
+| 6 | Gate elimination (8 grounded gate checks) | ⬜ pending | |
+| 7 | Enable `skip_query` (after template rewording) | ⬜ pending | deferred — see §8.1 |
 
-Items 1-2 are the quick structural wins. Item 3 is the foundation for 4-5. Item 6 is the largest single win but requires new prompt design. Item 7 is deferred pending template rewording (see §8.1).
+**Additional completed work (not in original plan):**
+- Cadence tuning: `suggested_min_scenes` 4→6 (schema)
+- Validation consolidation: shared `_generate_validated_entry` helper across all data-write paths
+- Underscore structural fields: schema-driven, LLM-invisible, always restored from programmatic template
+- Off-by-one fix: `_ending_*` now inclusive (`- 1` in template)
+- `span_context`: archive refine prompts get actual scene/chapter data for the span
+- Spurious list-index skip in `_resolve_path_keys` (parsing.py)
+- Memory fidelity: removed `_DEMOTE` demotion of `partial`/`stale` verdicts
 
 **Combined target:** 50-60% reduction in DSS time (from ~28Ks to ~11-14Ks for a 100-turn run).
 
@@ -304,4 +311,4 @@ Example for chapters:
 
 The override values are rendered first, then merged into the LLM's response (override wins on key conflicts). This lets the LLM freely name the entry and fill narrative fields while structural integrity is guaranteed.
 
-**Status:** Not implemented. Separate enhancement from the current `or 0` fix.
+**Status:** Superseded. The underscore-prefixing approach achieves the same goal more broadly: structural fields are invisible to the LLM in both the prompt and the update path, and `_archive_boundary_entry` always restores them from the programmatic template output (not just when nulled). No separate `archive_override` mechanism needed.

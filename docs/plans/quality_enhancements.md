@@ -15,10 +15,11 @@ Section numbers differ from the earlier item numbering. A map is at the end.
 | 3.4 | Rewind safety for swipes, edits and deletes | 0 | High |
 | 4.1 | ~~World rules as deviations from real life~~ **DONE** | 1 call per scene boundary (rules query only) | ✅ |
 | 4.2 | ~~Epistemics (who knows what)~~ **DONE** — `Knowledge` subject + `KnowledgeItem` dataclass + `on_new_scene` trigger + format template; writer-side rendering fixed, scene-cast stances proposed in 4.2 Consumption | 1 call per scene | ✅ |
-| 5.2 | Values for characters | Set at creation | Medium |
+| 4.3 | Plans (KnowledgeItem `type: plan`) | Rides on existing knowledge calls | **Next** |
+| 5.2 | Values for characters | Set at creation | **In progress** |
 | 5.3 | Goals / intent | Folded into the scene-boundary call | Medium |
 | 5.4 | Spatial and physical state | Mostly code-derived | Medium |
-| 6 | Skills, aptitudes and anchored scales | Small, plus a short `can_do` per entry | Decide after the benchmark baseline |
+| 6 | Skills, aptitudes and anchored scales | Small, plus a short `can_do` per entry | ✅ schema rework done (attributes/skills as keyed dicts) |
 | 7.1 | Event provenance and milestone types | ~1–3 tokens per item | High (provenance), Medium (types) |
 | 7.2 | Threads | 0–1 call per scene | High |
 
@@ -212,7 +213,7 @@ Characters acting on things they shouldn't know are the most visible roleplay me
 ```
 KnowledgeItem:                       # one shared `knowledge` subject
   fact:          str                 # one atomic statement
-  type:          fact | secret | suspicion | rumor | lie | revelation
+  type:          fact | secret | suspicion | rumor | lie | revelation | plan
   status:        active | confirmed | debunked | resolved
   source:        Source              # witnessed | stated | demonstrated | overheard | inferred
   importance:    Importance          # score (0-100) + reason + faction
@@ -240,6 +241,25 @@ EventKnowledgeRole: established | reinforced | challenged | debunked
 Verify with the Leak and Knowledge render probes (9).
 
 **Implementation:** `Knowledge` wrapper with `KnowledgeMap` (`dict[str, KnowledgeItem]`). Triggers: `on_new_scene` → `[add_new, perform_gate_check]` on `KnowledgeMap` (creation), `query_branch_for_changes` on `Knowledge` (modification). `Source` alias with `field_options` (5 values). `EpistemicStance` alias with `field_options` (5 values). `type` and `status` use `field_options` in KnowledgeItem defaults. `score_range: [0,100]` on Importance. `knows`/`learned` declared in `relationship_format` on wrapper classes (`Characters`, `Groups`, `StoryEvents`) for entity graph edge extraction — the string-value branch in `_process_relationship_dict` handles `dict[str, str]` edge labels. Format template renders entries with type/status/fact/importance/source. Schema-driven subject discovery — no code changes needed for the subject itself.
+
+### 4.3 Plans
+
+A plan is a forward-looking knowledge item: what a character intends to do, as opposed to what they know. All existing `type` values are backward-looking (what is known); `plan` is the first forward-looking type.
+
+Lives as `type: plan` on `KnowledgeItem` — no new subject, no new dataclass. The existing infrastructure already models everything a plan needs:
+
+| Need | Existing field |
+|------|---------------|
+| What the plan is | `fact` |
+| Lifecycle | `status` (`active` → `resolved` / `dormant`) |
+| How it's known | `source` (`stated` / `demonstrated` / `inferred`) |
+| Who knows about it | `knows` edges on characters/groups |
+| How important | `importance` |
+| When established | `learned` edges on scenes |
+
+Rides on the existing `on_new_scene` → `add_new` trigger. Zero new LLM calls.
+
+**Open question — granularity:** `plan` vs `intention` vs `idea`. A plan implies commitment ("I will forge the credentials"), an intention is pre-commitment ("I want to get into the vault"), and an idea is unstructured ("what if I could just walk through walls?"). The baseline implementation uses a single `plan` type. If the data shows characters expressing pre-commitment intentions that don't rise to plans, a second type (`intention`) can be added later. The `status` lifecycle already distinguishes `active` (in progress) from `dormant` (shelved/abandoned), which covers most of the plan→intention axis. Defer the split until a soak run shows the LLM conflating the two.
 
 ## 5. Characters
 
@@ -517,12 +537,13 @@ The current `format_templates.json` renders all subjects as flat `Field --- valu
 5. **5.4** Code-derived `last_seen`.
 6. **7.1** Guardrails (cross-tier dedup, `origin` validation). Deterministic and independent of the rest.
 7. **4.1** Scoped patches and regex-gated harvest, replacing the `general_info` rewrite.
-8. **4.2, 7.2 (creation and resolution) and 5.3** behind one batched scene-boundary call.
+8. **4.2, 7.2 (creation and resolution) and 5.3** behind one batched scene-boundary call. **5.3 in progress** — schema + prompts done, pending soak validation. Committed together with 4.3 and 5.2 after testing.
 9. **7.1** Milestone types and enums, once milestones are actually being populated.
-10. **5.2** Values. Set at creation first, then add revision on `transformation`, `betrayal` and `oath` milestones once milestones populate.
+10. **5.2** Values. Set at creation first, then add revision on `transformation`, `betrayal` and `oath` milestones once milestones populate. **In progress** — schema + prompts done, pending soak validation.
+10a. **4.3** Plans. Add `plan` to `KnowledgeItem` `type_options` + update placeholder. Rides on existing knowledge `on_new_scene` trigger. **In progress** — schema done, pending soak validation. Committed together with 5.2 and 5.3 after testing.
 11. **3.2** Precedence rule, then `source` on goals, threads, rules and character and group relationships, after knowledge and values exist.
 12. **7.2** Roll-up of arc `plot_threads` from threads, once threads exist and arcs close during a run.
-13. **6** Skills, aptitudes and ladders, only if the baseline shows capability tracking is a real gap. Start with the prompt-only `can_do` step plus the ladder definitions, then add keyed fields and code validation.
+13. **6** Skills, aptitudes and ladders. **PARTIAL** — schema rework done (attributes/skills as keyed dicts with `can_do`, `tier`, `source`). Remaining: ladder definitions, code validation, migration of existing `list[str]` data.
 
 ## 9. Measurement
 

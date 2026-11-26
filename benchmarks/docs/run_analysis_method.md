@@ -400,33 +400,110 @@ arc archival dependent on a chapter having archived in the same turn.
 - **`_turn_start_numbers` snapshot** — the trigger map for arcs should be
   `{'on_chapter_archived': [...]}` only when `_chapter_number` increased.
 
-### Attribute/Skill dataclass restructure
+### Attribute/Skill/Value dataclass restructure
 
 `Character.attributes` and `Element.attributes` changed from `list[str]`
-to `dict[str, Attribute]`; `Character.skills: dict[str, Skill]` added.
+to `dict[str, Attribute]`; `Character.skills: dict[str, Skill]` and
+`Character.values: dict[str, Value]` added.
 
 - **Attributes are dicts** — in `characters.json`, each entry's `attributes`
   should be a dict of `{name: {can_do, tier, source}}`, not a list of strings.
 - **Skills populated** — at least one character should have a non-empty `skills`
   dict by mid-run.
+- **Values populated** — each character should have 2–4 real `values` entries
+  (`{name: {maxim, drives, in_tension_with, source, coping}}`). No `"N/A": null`
+  placeholder entries. The `source` field should be `stated`, `demonstrated`,
+  or `inferred` (never empty).
 - **Template renders correctly** — in the log's rendered prompts, attributes
-  should appear as `- name: can_do (tier N)` lines, not raw `{'can_do': ...}` dicts.
+  should appear as `- name: can_do (tier N)` lines, values as
+  `- name: maxim → drives (tension: X)` lines, not raw dicts.
 
 ### Underscore structural fields + archive path restoration
 
 `_starting_scene`/`_ending_scene`/`_starting_chapter`/`_ending_chapter` are
-underscore-prefixed (invisible to LLM in prompts) and restored from the
-programmatic archive template if the LLM nulls them during refinement.
+underscore-prefixed (invisible to LLM in prompts) and ALWAYS restored from the
+programmatic archive template (overwriting any LLM modification, not just nulls).
 
-- **All `_ending_scene` values non-None** — every chapter entry in
-  `events.json` must have a non-None `_ending_scene`.
-- **All `_ending_chapter` values non-None** — every arc entry in
+- **All `_ending_scene` values non-None and inclusive** — every chapter entry
+  in `events.json` must have a non-None `_ending_scene` equal to the LAST scene
+  in that chapter (not the first scene of the next chapter).
+- **All `_ending_chapter` values non-None and inclusive** — every arc entry in
   `arcs.json` must have a non-None `_ending_chapter`.
+- **`_starting_scene` correct** — each chapter's `_starting_scene` must equal
+  the previous chapter's `_ending_scene + 1` (no gaps, no overlaps).
 - **`_chapter_start_scene` / `_arc_start_chapter` present** — in
   `current_scene.json`, these tracking fields should be set after the first
   chapter/arc archive.
 - **Cadence gate functional** — chapters should NOT archive on every scene turn.
-  Expected: ~1 chapter per 8-10 scenes, not 1 per 2-3 scenes.
+  Expected: ~1 chapter per 6-10 scenes (with `suggested_min_scenes=6`),
+  not 1 per 2-3 scenes.
+
+### span_context in archive refine prompts
+
+The `new_entry_prompt_template` for chapters/arcs now receives `span_context`
+(the actual scene/chapter entries within the span) so the LLM summarizes
+from real data rather than paraphrasing from general context.
+
+- **No chapter replication** — consecutive chapter summaries should NOT repeat
+  the same scene content. If chapter N+1's summary duplicates chapter N's,
+  the span_context constraint is not working.
+- **span_context in log** — in the soak log, archive refine calls for chapters
+  should show a `span_context` section listing the specific scenes.
+
+### Validation consolidation (`_generate_validated_entry`)
+
+All 4 whole-entry data-write paths (`add_new`, `check_archive` refine,
+`perform_update` dict path, `apply_updates`) now validate LLM output against
+the schema via `validate_data` before accepting it. Invalid entries are
+rejected with error feedback and retried (max 3 attempts).
+
+- **No silent schema violations** — no entries in state files should have
+  missing required fields or wrong types. If the LLM produces a violation,
+  the log should show a validation retry (not a silent acceptance).
+- **Rejections after 3 attempts** — the log may show "all attempts failed"
+  for genuinely unfixable violations (e.g. LLM consistently produces wrong
+  shape). These are acceptable; the entry is discarded rather than corrupted.
+
+### Spurious list-index skip in `_resolve_path_keys`
+
+When the LLM emits a path like `group_status.Halcyon Forge Academy.0.aliases.0`
+(spurious `.0` in a dict context), the path resolver now skips the integer
+string instead of creating a phantom `"0"` key in the dict.
+
+- **No `"0"` keys in dict fields** — in `characters.json`, `group_status`
+  entries should NOT contain a `"0"` key. The correct path is
+  `group_status.<name>.aliases.0` (no intermediate `.0`).
+
+### Memory fidelity demote fix
+
+The harness no longer demotes `partial` memory verdicts to `missing` when the
+`state_quote` is empty. Only `retained`/`saved` verdicts require a verbatim
+quote; `partial`/`stale` are accepted at face value.
+
+- **Partial verdicts preserved** — in `result.json` judge records, items with
+  status `partial` should remain `partial` (not downgraded to `missing`).
+  The computed `memory_fidelity` score should reflect this.
+
+### Judge STATE LAG caveat
+
+The judge system prompt now instructs that facts established in the current
+(still-open) scene are pending absorption and should NOT be marked `missing`.
+
+- **Early-turn memory scores** — turn 5 (first judged turn) `memory_fidelity`
+  should NOT be 1.0 due to the state being empty before the first scene archive.
+  Expected: ≥ 2.5 on the first judged turn (facts from the opening scene are
+  pending, not missing).
+
+### Show-don't-tell (twins' shared perception)
+
+The `shounen_twins.json` spreadsheet now includes a taboo: do not state that
+the twins' shared perception mirrors/links/syncs their senses — show the
+effect in the moment without naming the mechanism.
+
+- **No mechanism-naming** — in the replies, the twins' shared perception
+  should be shown through simultaneous sensory experience ("she sees it, he
+  sees it") without explicit statements like "the impact mirrors to my twin"
+  or "our senses are linked".
 
 ## Lessons Learned
 
